@@ -12,6 +12,7 @@
 | `render-config.sh` | 按 profile 渲染 `config.toml` 的 MCP 托管区块 | `~/.codex/control/scripts/render-config.sh ~/.codex solo-dev` |
 | `doctor.sh` | 执行一致性体检 | `~/.codex/control/scripts/doctor.sh ~/.codex solo-dev` |
 | `archive-guidance.sh` | 归档知识文档快照并更新索引 | `~/.codex/control/scripts/archive-guidance.sh ~/.codex <source> <archive_dir> <index_file> <slug>` |
+| `archive-bwrap.sh` | 归档 bwrap 版本/能力/风险结论知识快照并更新索引 | `~/.codex/control/scripts/archive-bwrap.sh ~/.codex` |
 | `git-codex.sh` | 在仓库根目录执行 git 命令的轻量包装 | `~/.codex/control/scripts/git-codex.sh status` |
 
 ## 推荐执行顺序
