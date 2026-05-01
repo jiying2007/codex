@@ -18,6 +18,8 @@ SKILLS_CSV="$ROOT/control/catalog/skills.csv"
 AGENTS_CSV="$ROOT/control/catalog/agents.csv"
 MCP_CSV="$ROOT/control/catalog/mcp.csv"
 PLUGINS_CSV="$ROOT/control/catalog/plugins.csv"
+RTK_POLICY_FILE="$ROOT/vendor/policies/rtk/1.0.0/RTK.md"
+RULES_FILE="$ROOT/rules/default.rules"
 
 errors=0
 warnings=0
@@ -33,6 +35,23 @@ has_profile() {
     fi
   done
   return 1
+}
+
+check_rtk_shell_config() {
+  local cfg="$1"
+  if [ ! -f "$cfg" ]; then
+    return
+  fi
+
+  if ! rg -q '^[[:space:]]*program[[:space:]]*=[[:space:]]*"rtk"' "$cfg"; then
+    echo "[ERROR] shell 未使用 rtk 作为默认入口: ${cfg#$ROOT/}"
+    errors=$((errors + 1))
+  fi
+
+  if ! rg -q '^[[:space:]]*args[[:space:]]*=[[:space:]]*\["bash",[[:space:]]*"-lc"\]' "$cfg"; then
+    echo "[ERROR] shell args 未配置为 [\"bash\", \"-lc\"]: ${cfg#$ROOT/}"
+    errors=$((errors + 1))
+  fi
 }
 
 check_links() {
@@ -108,6 +127,32 @@ else
   echo "[ERROR] 缺少插件 catalog: control/catalog/plugins.csv"
   errors=$((errors + 1))
 fi
+
+if [ ! -f "$RTK_POLICY_FILE" ]; then
+  echo "[ERROR] 缺少 RTK 规则文档: vendor/policies/rtk/1.0.0/RTK.md"
+  errors=$((errors + 1))
+fi
+
+if [ -f "$RULES_FILE" ]; then
+  if ! rg -q 'prefix_rule\(pattern=\["rtk"\], decision="allow"\)' "$RULES_FILE"; then
+    echo "[ERROR] rules/default.rules 缺少 RTK 前缀放行规则: prefix_rule(pattern=[\"rtk\"], decision=\"allow\")"
+    errors=$((errors + 1))
+  fi
+else
+  echo "[WARN ] 未发现 rules/default.rules（建议配置 RTK 前缀放行规则以减少提权确认）"
+  warnings=$((warnings + 1))
+fi
+
+if [ -e "$ROOT/RTK.md" ] || [ -L "$ROOT/RTK.md" ]; then
+  echo "[WARN ] 检测到根目录 RTK.md（建议仅保留 vendor/policies 下版本化文档）"
+  warnings=$((warnings + 1))
+fi
+
+check_rtk_shell_config "$ROOT/config.toml"
+check_rtk_shell_config "$ROOT/config.debug.toml"
+check_rtk_shell_config "$ROOT/config.dev.toml"
+check_rtk_shell_config "$ROOT/config.embedded.toml"
+check_rtk_shell_config "$ROOT/config.max.toml"
 
 if [ ! -f "$MCP_CSV" ]; then
   echo "[ERROR] 缺少 mcp catalog: control/catalog/mcp.csv"

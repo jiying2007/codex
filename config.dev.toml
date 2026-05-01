@@ -67,8 +67,8 @@ inherit = "none"
 
 # Linux 下使用 bash，避免依赖 PowerShell
 [shell]
-program = "bash"
-args = ["-lc"]
+program = "rtk"
+args = ["bash", "-lc"]
 
 
 # ========================

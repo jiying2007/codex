@@ -69,6 +69,18 @@
 - 默认假设主环境为 Linux / POSIX shell；命令、路径、权限与脚本写法优先采用 `bash`、`$HOME`、正斜杠 `/`、LF 换行。
 - 仅当仓库文档、项目配置或用户要求明确指向其他平台时，才切换到对应平台约定。
 
+### RTK 命令前缀硬规则
+
+- 所有 shell 命令必须通过 `rtk` 执行，不允许裸命令。
+- 允许形式：
+  - `rtk <command> ...`
+  - `rtk bash -lc "<command> ..."`
+- 禁止形式：
+  - 直接执行 `bash -lc ...`
+  - 直接执行 `git` / `rg` / `find` / `sed` / `awk` / `python` 等裸命令
+- 仅在 `rtk` 自身不可用或明确被用户豁免时，才可临时降级，并必须在输出中说明原因。
+- 规则文档：`~/.codex/vendor/policies/rtk/1.0.0/RTK.md`
+
 ### Command Verification Rules
 
 - 不得虚构已运行命令、退出码或验证结果。
@@ -320,4 +332,4 @@
 - 统一使用手册：`~/.codex/skills/README.md`，用于场景路由与维护流程说明。
 - 技能新增、删除、升级时，必须同步更新 `registry.csv` 并执行自检脚本。
 
-@/home/aiot03/.codex/RTK.md
+@/home/aiot03/.codex/vendor/policies/rtk/1.0.0/RTK.md
