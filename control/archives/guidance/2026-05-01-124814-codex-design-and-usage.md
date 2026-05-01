@@ -1,3 +1,15 @@
+# 归档快照：codex-design-and-usage
+
+- 归档时间：2026-05-01 12:48:14 +0800
+- 来源文件：`/home/aiot03/.codex/control/knowledge/codex-design-and-usage.md`
+
+## 自动摘要（按二级标题提取）
+- 1. 设计方案
+- 2. 使用说明
+- 3. 归档机制
+
+## 正文快照
+
 # Codex 全局设计方案与使用说明
 
 - 版本：v1.1.0

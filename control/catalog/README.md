@@ -21,3 +21,24 @@
 2. 多值字段使用 `|` 分隔。
 3. 布尔字段使用 `1` / `0`。
 4. 相对路径均相对 `~/.codex` 根目录。
+
+## 变更流程
+
+1. 修改对应 CSV 文件。
+2. 执行 `activate-profile.sh`（或 `sync-vendor.sh`）。
+3. 执行 `doctor.sh` 检查一致性。
+4. 如有规则更新，补充 `control/knowledge` 文档并归档。
+
+## 常见修改入口
+
+1. 增加/下线技能：`skills.csv`
+2. 增加/下线代理：`agents.csv`
+3. 调整 profile 组合：`profiles.csv`
+4. 新增 MCP 服务：`mcp.csv`
+5. 第三方供应登记：`plugins.csv`
+
+## 维护建议
+
+1. 优先“增量新增版本目录”，避免覆盖历史版本。
+2. `plugins.csv` 的 `source_path` 与 `vendor_path` 建议统一在 `vendor/` 下。
+3. profile 变更后至少验证一次 `minimal` 与目标 profile。
