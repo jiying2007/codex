@@ -1,0 +1,10 @@
+# 参考配置：由 render-config.sh 根据 control/catalog/mcp.csv 渲染到 config.toml
+[mcp_servers.github]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-github"]
+enabled = false
+required = false
+supports_parallel_tool_calls = true
+
+[mcp_servers.github.env]
+GITHUB_PERSONAL_ACCESS_TOKEN = ""

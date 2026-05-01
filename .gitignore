@@ -1,0 +1,31 @@
+# Codex runtime artifacts (do not track)
+.personality_migration
+.codex
+.tmp/
+__pycache__/
+*.pyc
+auth.json
+cache/
+history.jsonl
+installation_id
+log/
+logs_*.sqlite
+logs_*.sqlite-shm
+logs_*.sqlite-wal
+memories/
+models_cache.json
+session_index.jsonl
+sessions/
+shell_snapshots/
+state_*.sqlite
+state_*.sqlite-shm
+state_*.sqlite-wal
+tmp/
+version.json
+tasks.codex.json
+control/state/active-profile.env
+control/state/backup/
+control/generated/config-managed.toml
+
+# Local backup artifacts
+AGENTS_.md

@@ -1,0 +1,4 @@
+interface:
+  display_name: "project-daily-summary"
+  short_description: "按项目汇总当天的 Codex 会话、提交与未提交改动"
+  default_prompt: "Use $project-daily-summary to generate a same-day Codex work summary grouped by project, combining sessions, commits, and uncommitted changes."

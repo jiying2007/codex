@@ -1,0 +1,4 @@
+interface:
+  display_name: "commit-daily-summary"
+  short_description: "按提交证据输出同日中文工作摘要"
+  default_prompt: "Use $commit-daily-summary to summarize today's commits by workstream, with concise Chinese action items and optional raw commit appendix."

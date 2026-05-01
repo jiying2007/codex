@@ -1,0 +1,4 @@
+interface:
+  display_name: "research-note-wrap"
+  short_description: "将调研与分析会话整理成高密度 Markdown 结论笔记"
+  default_prompt: "Use $research-note-wrap to summarize this session or today's related sessions into a markdown note focused on key problems, comparisons, and conclusions."

@@ -1,0 +1,7 @@
+role,owner,scope_write,scope_read,blocked_when,handoff_to
+commander,主代理,control/catalog|control/scripts|config.toml,全局,需求不清或共享契约需要变更,architect
+architect,架构代理,control/roles|control/workflows,control|vendor|skills|agents,涉及根配置/共享schema变更,commander
+implementer,实现代理,业务模块分片,目标模块及依赖,需越权写入或冲突文件,integrator
+reviewer,评审代理,无写权限,目标改动及测试证据,发现高风险回归,commander
+tester,验证代理,tests|scripts,目标模块及运行日志,环境缺失无法验证,integrator
+integrator,收口代理,跨模块整合文件,全局,遇到共享契约冲突,commander

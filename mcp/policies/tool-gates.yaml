@@ -1,0 +1,15 @@
+version: 1
+updated_at: 2026-05-01
+rules:
+  - id: no-destructive-default
+    description: 默认禁止 destructive 工具调用
+    applies_to: [github]
+    mode: prompt
+  - id: docs-readonly
+    description: 文档检索默认允许
+    applies_to: [docs]
+    mode: approve
+  - id: design-safe
+    description: 设计资源读取走提示确认
+    applies_to: [figma]
+    mode: prompt

@@ -1,0 +1,4 @@
+name,enabled,transport,command,args,env_keys,required,supports_parallel_tool_calls,mcp_group,profiles,notes
+github,0,stdio,npx,-y|@modelcontextprotocol/server-github,GITHUB_PERSONAL_ACCESS_TOKEN,0,1,core,solo-dev|team-collab,GitHub 读写
+docs,0,stdio,npx,-y|@openai/docs-mcp,OPENAI_API_KEY,0,1,dev,minimal|solo-dev|team-collab,官方文档检索
+figma,0,stdio,npx,-y|figma-developer-mcp,FIGMA_ACCESS_TOKEN,0,0,design,team-collab,设计稿读取

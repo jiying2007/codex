@@ -1,0 +1,97 @@
+########################################
+# Codex Industrial Config (VSCode)
+# https://developers.openai.com/codex/config-basic
+# https://developers.openai.com/codex/config-advanced
+# https://developers.openai.com/codex/config-reference
+# https://developers.openai.com/codex/config-sample
+# Ctrl + Shift + P -> Run Task -> Codex: Mode
+# Ctrl + Shift + P -> Reload Window
+########################################
+
+developer_instructions = "请使用中文回答,务必使用清晰详细准确的风格。"
+
+# ========================
+# 模型配置
+# ========================
+model = "gpt-5.3-codex"  # 最新 Codex 模型（适合代码任务）
+
+# 推理强度（核心成本控制参数）
+# low    = 最省钱（推荐日常）
+# medium = 平衡
+# high   = 深度分析
+model_reasoning_effort = "low"
+
+# 输出风格（影响长度 & 是否乱改代码）
+# none      = 无特别风格，默认最简洁的风格
+# friendly  = 更友好的输出风格，适用于与用户交互
+# pragmatic = 更务实、直白的风格，适用于任务执行
+personality = "none"
+
+
+# ========================
+# Token / 上下文控制（核心优化区）
+# ========================
+
+# 最大上下文窗口（注意：不是越大越好）
+# 太大会导致扫描无关文件 -> token 暴涨
+model_context_window = 60000
+
+# 自动压缩阈值（超过就裁剪历史）
+# 防止对话越来越长
+model_auto_compact_token_limit = 40000
+
+# 工具输出限制
+tool_output_token_limit = 30000
+
+
+# ========================
+# 执行行为控制（防止 token 爆炸）
+# ========================
+
+# 是否自动执行命令（强烈建议关闭）
+# true  = 自动跑命令（危险 + 烧 token）
+# false = 手动确认（推荐）
+auto_execute = false
+
+
+# ========================
+# Shell 环境控制
+# ========================
+[shell_environment_policy]
+
+# 环境变量继承策略：
+# all  = 全部（污染上下文）
+# core = 精简（推荐）
+# none = 最干净（可能找不到工具）
+inherit = "none"
+
+# Linux 下使用 bash，避免依赖 PowerShell
+[shell]
+program = "bash"
+args = ["-lc"]
+
+
+# ========================
+# 工作区权限控制
+# ========================
+[workspace]
+
+# 允许写文件（必须开）
+write = true
+
+# 是否允许执行命令
+# - npm install
+# - test
+# - build
+run_commands = false
+
+
+# ========================
+# 高级功能（Agent 控制）
+# ========================
+[features]
+
+# 多 Agent 模式（耗 token）
+# true  = 多代理协作
+# false = 单代理（推荐）
+multi_agent = false

@@ -1,0 +1,29 @@
+version: 1
+updated_at: 2026-05-01
+plugins:
+  - name: superpowers
+    version: 1.1.9
+    source: superpowers-zh
+    vendor_path: vendor/plugins/superpowers/1.1.9
+skills:
+  - name: caveman
+    version: 1.0.0
+    vendor_path: vendor/skills/caveman/1.0.0
+  - name: codex-parallel-collab
+    version: 3.1.0
+    vendor_path: vendor/skills/codex-parallel-collab/3.1.0
+  - name: commit-daily-summary
+    version: 3.1.0
+    vendor_path: vendor/skills/commit-daily-summary/3.1.0
+  - name: project-daily-summary
+    version: 3.1.0
+    vendor_path: vendor/skills/project-daily-summary/3.1.0
+  - name: research-note-wrap
+    version: 3.1.0
+    vendor_path: vendor/skills/research-note-wrap/3.1.0
+  - name: session-wrap
+    version: 3.1.0
+    vendor_path: vendor/skills/session-wrap/3.1.0
+  - name: worktree-closeout
+    version: 3.1.0
+    vendor_path: vendor/skills/worktree-closeout/3.1.0
