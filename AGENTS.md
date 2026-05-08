@@ -332,4 +332,4 @@
 - 统一使用手册：`~/.codex/skills/README.md`，用于场景路由与维护流程说明。
 - 技能新增、删除、升级时，必须同步更新 `registry.csv` 并执行自检脚本。
 
-@/home/aiot03/.codex/vendor/policies/rtk/1.0.0/RTK.md
+<!-- RTK 规则文档：vendor/policies/rtk/1.0.0/RTK.md -->

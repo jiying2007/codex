@@ -43,12 +43,12 @@ check_rtk_shell_config() {
     return
   fi
 
-  if ! rg -q '^[[:space:]]*program[[:space:]]*=[[:space:]]*"rtk"' "$cfg"; then
+  if ! grep -qE '^[[:space:]]*program[[:space:]]*=[[:space:]]*"rtk"' "$cfg"; then
     echo "[ERROR] shell 未使用 rtk 作为默认入口: ${cfg#$ROOT/}"
     errors=$((errors + 1))
   fi
 
-  if ! rg -q '^[[:space:]]*args[[:space:]]*=[[:space:]]*\["bash",[[:space:]]*"-lc"\]' "$cfg"; then
+  if ! grep -qE '^[[:space:]]*args[[:space:]]*=[[:space:]]*\["bash",[[:space:]]*"-lc"\]' "$cfg"; then
     echo "[ERROR] shell args 未配置为 [\"bash\", \"-lc\"]: ${cfg#$ROOT/}"
     errors=$((errors + 1))
   fi
@@ -96,6 +96,20 @@ check_links() {
 check_links "$SKILLS_CSV" "skill"
 check_links "$AGENTS_CSV" "agent"
 
+# 检查 ~/.codex 是否指向本仓库
+CODEX_HOME="$HOME/.codex"
+if [ -L "$CODEX_HOME" ]; then
+  codex_target="$(readlink "$CODEX_HOME")"
+  if [ "$codex_target" = "$ROOT" ]; then
+    :  # 正常
+  else
+    echo "[WARN ] ~/.codex 指向 $codex_target，非当前 ROOT=$ROOT"
+    warnings=$((warnings + 1))
+  fi
+elif [ -d "$CODEX_HOME" ] && [ "$CODEX_HOME" != "$ROOT" ]; then
+  echo "[INFO ] ~/.codex 是独立目录（非软链接），当前 ROOT=$ROOT"
+fi
+
 if [ -d "$ROOT/agents" ]; then
   dup_names="$(awk -F'"' '/^name = /{print $2}' "$ROOT"/agents/*.toml 2>/dev/null | sort | uniq -d || true)"
   if [ -n "$dup_names" ]; then
@@ -134,7 +148,7 @@ if [ ! -f "$RTK_POLICY_FILE" ]; then
 fi
 
 if [ -f "$RULES_FILE" ]; then
-  if ! rg -q 'prefix_rule\(pattern=\["rtk"\], decision="allow"\)' "$RULES_FILE"; then
+  if ! grep -qF 'prefix_rule(pattern=["rtk"], decision="allow")' "$RULES_FILE"; then
     echo "[ERROR] rules/default.rules 缺少 RTK 前缀放行规则: prefix_rule(pattern=[\"rtk\"], decision=\"allow\")"
     errors=$((errors + 1))
   fi

@@ -11,8 +11,10 @@ if [ ! -d "$ROOT" ]; then
 fi
 
 if ! command -v rg >/dev/null 2>&1; then
-  echo "[FATAL] 需要 rg 命令，请先安装 ripgrep" >&2
-  exit 2
+  # rg 不可用时降级为 grep
+  _rg_grep() { grep -qE "$1"; }
+else
+  _rg_grep() { rg -q "$1"; }
 fi
 
 declare -A REG_VERSIONS=()
@@ -58,7 +60,7 @@ while IFS= read -r skill_dir; do
   ' "$skill_file")"
 
   for key in name description; do
-    if ! printf '%s\n' "$frontmatter" | rg -q "^${key}:"; then
+    if ! printf '%s\n' "$frontmatter" | grep -qE "^${key}:"; then
       echo "[ERROR] ${skill_name}: SKILL.md frontmatter 缺少 ${key}"
       errors=$((errors + 1))
     fi
@@ -90,7 +92,7 @@ while IFS= read -r skill_dir; do
     warnings=$((warnings + 1))
   fi
 
-  if [ -f "$readme_file" ] && rg -q --fixed-strings "~/.agents/skills" "$readme_file"; then
+  if [ -f "$readme_file" ] && grep -qF "~/.agents/skills" "$readme_file"; then
     echo "[WARN ] ${skill_name}: README 包含非当前标准路径 ~/.agents/skills"
     warnings=$((warnings + 1))
   fi
@@ -101,7 +103,7 @@ while IFS= read -r skill_dir; do
       echo "[ERROR] ${skill_name}: 引用不存在 -> ${rel_path}"
       errors=$((errors + 1))
     fi
-  done < <(rg -o --no-filename '(scripts|references)/[A-Za-z0-9._/-]+' "$skill_file" | sort -u)
+  done < <(grep -oE '(scripts|references)/[A-Za-z0-9._/-]+' "$skill_file" | sort -u)
 
 done < <(find -L "$ROOT" -mindepth 1 -maxdepth 1 -type d ! -name '.*' ! -name 'scripts' | sort)
 

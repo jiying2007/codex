@@ -96,41 +96,17 @@ run_commands = true
 # false = 单代理（推荐）
 multi_agent = true
 
-[projects."/home/aiot03"]
-trust_level = "trusted"
-
-[projects."/home/aiot03/aiot/llm_agent"]
-trust_level = "trusted"
-
-[projects."/work/aiot03/sigmastar/pcr02_ssc305/SourceCode/sdk/verify/robot_pcr02_codex"]
-trust_level = "trusted"
-
-[projects."/home/aiot03/.codex"]
-trust_level = "trusted"
-
-[tui.model_availability_nux]
-"gpt-5.5" = 4
-
-[notice.model_migrations]
-"gpt-5.3-codex" = "gpt-5.4"
-
-
-
-
-
-
-
-
-
-
-
-
-
+# ========================
+# 项目信任配置（按需添加本机路径）
+# ========================
+# 示例：
+# [projects."/home/yourname/work/myproject"]
+# trust_level = "trusted"
 
 
 # >>> CODEX-MANAGED MCP START
 # profile = team-collab
-# generated_at = 2026-05-01 12:26:19 +0800
+# generated_at = 2026-05-08 19:16:40 +0800
 
 [mcp_servers.github]
 command = "npx"

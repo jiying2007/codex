@@ -125,7 +125,7 @@ emit_array() {
   echo "# <<< CODEX-MANAGED MCP END"
 } > "$FRAGMENT_FILE"
 
-if rg -q "# >>> CODEX-MANAGED MCP START" "$CONFIG_FILE"; then
+if grep -qF "# >>> CODEX-MANAGED MCP START" "$CONFIG_FILE"; then
   awk '
     BEGIN {skip=0}
     /^# >>> CODEX-MANAGED MCP START/ {skip=1; next}
