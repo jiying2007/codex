@@ -1,0 +1,10 @@
+# 参考配置：v2 中由 manifests 与后续 config 构建流程管理
+[mcp_servers.figma]
+command = "npx"
+args = ["-y", "figma-developer-mcp"]
+enabled = false
+required = false
+supports_parallel_tool_calls = false
+
+[mcp_servers.figma.env]
+FIGMA_ACCESS_TOKEN = ""

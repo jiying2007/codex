@@ -1,117 +1,89 @@
-# Codex 资产仓库设计
+# Codex V2 设计
 
-## 结构
+## 核心模型
+
+v2 采用构建系统模型，而不是目录镜像模型：
 
 ```text
-~/codex/
-├── AGENTS.md
-├── README.md
-├── assets/
-│   └── codex/
-│       ├── AGENTS.md
-│       ├── control/
-│       ├── skills/
-│       ├── prompts/
-│       ├── vendor/
-│       ├── mcp/
-│       ├── rules/
-│       ├── agents/
-│       └── config*.toml
-├── scripts/
-│   ├── apply-to-codex.sh
-│   ├── diff-codex.sh
-│   ├── backup-codex.sh
-│   ├── scan-codex-skills.sh
-│   ├── promote-skill.sh
-│   └── doctor-assets.sh
-├── docs/
-└── .gitignore
+src/codex-home + manifests -> build/codex-home -> ~/.codex
 ```
 
-## 约定
+- `src/codex-home/`：人工维护源资产。
+- `manifests/`：声明式 SSOT。
+- `build/codex-home/`：生成产物，可随时删除重建。
+- `~/.codex`：Codex 运行目录，保留系统 skill、认证、session、日志、缓存和本机私有状态。
 
-- `assets/codex/` 是注入到 `~/.codex` 的 source of truth。
-- `scripts/` 是仓库维护入口，不默认注入到 `~/.codex`。
-- `docs/` 记录长期设计与维护说明。
-- `skills/.system/` 以 `~/.codex` 中已有内容为准，不纳入仓库资产。
-- 运行时、密钥、缓存、日志、session 不纳入仓库资产。
+## Manifest
 
-## 注入策略
+`manifests/assets.json` 定义源目录、构建目录、默认 profile 和复制根。
 
-默认命令：
+`manifests/skills.json` 与 `manifests/agents.json` 定义可激活能力：
 
-```bash
-rtk bash scripts/apply-to-codex.sh
+```json
+{
+  "name": "skill-asset-manager",
+  "enabled": true,
+  "source_kind": "vendor",
+  "version": "0.2.0",
+  "vendor_rel": "vendor/skills/skill-asset-manager/0.2.0",
+  "target_rel": "skills/skill-asset-manager",
+  "profiles": ["solo-dev", "team-collab"]
+}
 ```
 
-默认行为：
+`manifests/policies.json` 定义受保护路径。构建和注入必须跳过这些路径，尤其是 `skills/.system/**`、密钥、session、缓存和日志。
 
-- 新文件复制到 `~/.codex`。
-- 已存在文件跳过并报告。
-- 已存在目录递归合并。
-- `skills/.system/` 始终跳过。
-- secrets/runtime/cache/logs 始终跳过。
+## 构建
 
-覆盖模式：
+`scripts/build.sh` 负责：
 
-```bash
-rtk bash scripts/apply-to-codex.sh --overwrite
-```
+1. 清空并重建 `build/codex-home/`。
+2. 从 `src/codex-home/` 复制声明的资产根。
+3. 根据 profile 为 skills 和 agents 创建相对 symlink。
+4. 生成 `skills/registry.csv`。
+5. 生成 `control/state/active-profile.env` 与 `managed-files.json`。
+
+构建产物不纳入 git，不手工编辑。
+
+## 注入
+
+`scripts/apply.sh` 只从 `build/codex-home/` 注入到 `~/.codex`：
 
 - 新文件复制。
-- 已存在文件先备份，再覆盖。
-- 已存在目录递归合并。
-- `skills/.system/` 仍然跳过。
+- 已存在普通文件默认保留。
+- `--overwrite` 时先备份再覆盖。
+- 生成文件和 profile symlink 会更新。
+- 目录合并，不整体替换目标目录。
+- protected paths 永远跳过。
 
-结构体检：
+## 体检
 
-```bash
-rtk bash scripts/doctor-assets.sh
-rtk bash scripts/doctor-assets.sh --deep
-```
-
-默认检查确认根目录没有旧运行资产入口、`assets/codex/skills/.system` 不存在、根级脚本语法有效。`--deep` 会额外调用资产源内的 `control/scripts/doctor.sh` 做 profile 体检；该检查面向已激活运行目录，在未激活的 `assets/codex` 中可能出现预期警告。
-
-## Skill 归档策略
-
-第三方或运行中生成的 skill 不直接进入 `assets/codex/skills/`，而是先进入候选区，再提升为 vendor 资产。
-
-发现 `~/.codex/skills` 中的未知 skill：
+统一入口：
 
 ```bash
-rtk bash scripts/scan-codex-skills.sh --dry-run
-rtk bash scripts/scan-codex-skills.sh
+rtk bash scripts/doctor.sh --scope repo
+rtk bash scripts/doctor.sh --scope build
+rtk bash scripts/doctor.sh --scope live
+rtk bash scripts/doctor.sh --scope all
 ```
 
-候选目录：
+`repo` 检查仓库结构、manifest、脚本语法和旧入口残留。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
+
+## Skill 归档
+
+第三方或运行中生成的 skill 生命周期：
 
 ```text
-inbox/skills/<name>/<timestamp>/
+discovered -> inbox -> reviewed -> vendored -> built -> applied
 ```
 
-`inbox/` 是未审核候选区，默认通过 `.gitignore` 排除；审核通过后再用 promote 脚本归档为正式 vendor 资产。
-
-归档审核通过的 skill：
+命令：
 
 ```bash
+rtk bash scripts/scan-skills.sh
 rtk bash scripts/promote-skill.sh inbox/skills/<name>/<timestamp> --version 0.1.0
+rtk bash scripts/build.sh --profile team-collab
+rtk bash scripts/apply.sh --profile team-collab
 ```
 
-归档后位置：
-
-```text
-assets/codex/vendor/skills/<name>/<version>/
-```
-
-归档脚本会更新：
-
-- `assets/codex/control/catalog/skills.csv`
-- `assets/codex/skills/registry.csv`
-
-自动化 skill：
-
-```text
-assets/codex/vendor/skills/skill-asset-manager/0.1.0/
-```
-
-当用户要求接入、扫描、归档、提升 Codex skill 时，AI 应使用 `skill-asset-manager`，按发现、审核、promote、验证、注入的顺序执行。
+正式归档位置是 `src/codex-home/vendor/skills/<name>/<version>/`。`src/codex-home/skills/` 只保留 registry、README 和维护脚本等基础层。

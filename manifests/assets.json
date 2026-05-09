@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "source_root": "src/codex-home",
+  "build_root": "build/codex-home",
+  "default_profile": "team-collab",
+  "copy_roots": [
+    "AGENTS.md",
+    "README.md",
+    "agents",
+    "config.debug.toml",
+    "config.dev.toml",
+    "config.embedded.toml",
+    "config.max.toml",
+    "config.toml",
+    "control",
+    "mcp",
+    "prompts",
+    "rules",
+    "skills",
+    "vendor"
+  ],
+  "generated": [
+    "skills/registry.csv",
+    "control/state/active-profile.env",
+    "control/state/managed-files.json"
+  ],
+  "notes": "build/codex-home is generated from src/codex-home plus manifests; apply.sh only deploys build output."
+}

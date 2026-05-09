@@ -1,4 +1,0 @@
-name,version,kind,source_path,vendor_path,enabled,notes
-superpowers,1.1.9,git-mirror,vendor/plugins/superpowers/1.1.9,vendor/plugins/superpowers/1.1.9,1,通过 vendor 插件镜像入口统一引用
-caveman,1.0.0,skill-pack,vendor/skills/caveman/1.0.0,vendor/skills/caveman/1.0.0,1,压缩表达技能
-ops-daily-pack,3.1.0,skill-pack,vendor/skills,vendor/skills,1,日报与收尾技能集合

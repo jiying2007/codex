@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "profiles": [
+    {
+      "name": "minimal",
+      "description": "最小可用配置，适合日常单人开发",
+      "max_parallel_agents": 2,
+      "max_depth": 2,
+      "default_agent_type": "default",
+      "enabled_mcp_groups": [
+        "core"
+      ],
+      "notes": "仅激活核心 skill 与本地 agents"
+    },
+    {
+      "name": "solo-dev",
+      "description": "个人深度开发配置",
+      "max_parallel_agents": 4,
+      "max_depth": 3,
+      "default_agent_type": "worker",
+      "enabled_mcp_groups": [
+        "core",
+        "dev"
+      ],
+      "notes": "激活 daily skill + caveman + reviewer"
+    },
+    {
+      "name": "team-collab",
+      "description": "团队协作配置",
+      "max_parallel_agents": 6,
+      "max_depth": 4,
+      "default_agent_type": "worker",
+      "enabled_mcp_groups": [
+        "core",
+        "dev",
+        "design"
+      ],
+      "notes": "激活 superpowers + 协作 agents + 扩展 mcp"
+    }
+  ]
+}

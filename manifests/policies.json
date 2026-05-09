@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "protected_paths": [
+    "skills/.system/**",
+    "auth.json",
+    "sessions/**",
+    "log/**",
+    "logs_*.sqlite*",
+    "state_*.sqlite*",
+    "cache/**",
+    "tmp/**",
+    ".tmp/**",
+    "shell_snapshots/**",
+    "mcp/secrets/**",
+    "config.local.*",
+    "**/*.secret",
+    "**/*.key",
+    "**/*.pem"
+  ],
+  "skip_source_paths": [
+    ".git/**",
+    ".codex/**",
+    "control/state/backup/**",
+    "control/generated/config-managed.toml"
+  ],
+  "default_apply_mode": "keep-existing",
+  "overwrite_requires_backup": true
+}

@@ -1,4 +1,0 @@
-name,description,max_parallel_agents,max_depth,default_agent_type,enabled_mcp_groups,notes
-minimal,最小可用配置，适合日常单人开发,2,2,default,core,仅激活核心 skill 与本地 agents
-solo-dev,个人深度开发配置,4,3,worker,core|dev,激活 daily skill + caveman + reviewer
-team-collab,团队协作配置,6,4,worker,core|dev|design,激活 superpowers + 协作 agents + 扩展 mcp

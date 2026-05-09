@@ -1,0 +1,308 @@
+{
+  "schema_version": 2,
+  "skills": [
+    {
+      "name": "caveman",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/caveman/1.0.0",
+      "target_rel": "skills/caveman",
+      "profiles": [
+        "minimal",
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "compression"
+      ]
+    },
+    {
+      "name": "codex-parallel-collab",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "3.1.0",
+      "vendor_rel": "vendor/skills/codex-parallel-collab/3.1.0",
+      "target_rel": "skills/codex-parallel-collab",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "parallel"
+      ]
+    },
+    {
+      "name": "commit-daily-summary",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "3.1.0",
+      "vendor_rel": "vendor/skills/commit-daily-summary/3.1.0",
+      "target_rel": "skills/commit-daily-summary",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "summary"
+      ]
+    },
+    {
+      "name": "project-daily-summary",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "3.1.0",
+      "vendor_rel": "vendor/skills/project-daily-summary/3.1.0",
+      "target_rel": "skills/project-daily-summary",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "summary"
+      ]
+    },
+    {
+      "name": "research-note-wrap",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "3.1.0",
+      "vendor_rel": "vendor/skills/research-note-wrap/3.1.0",
+      "target_rel": "skills/research-note-wrap",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "summary"
+      ]
+    },
+    {
+      "name": "session-wrap",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "3.1.0",
+      "vendor_rel": "vendor/skills/session-wrap/3.1.0",
+      "target_rel": "skills/session-wrap",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "summary"
+      ]
+    },
+    {
+      "name": "worktree-closeout",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "3.1.0",
+      "vendor_rel": "vendor/skills/worktree-closeout/3.1.0",
+      "target_rel": "skills/worktree-closeout",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "summary"
+      ]
+    },
+    {
+      "name": "brainstorming",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/brainstorming",
+      "target_rel": "skills/brainstorming",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "writing-plans",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/writing-plans",
+      "target_rel": "skills/writing-plans",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "systematic-debugging",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/systematic-debugging",
+      "target_rel": "skills/systematic-debugging",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "verification-before-completion",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/verification-before-completion",
+      "target_rel": "skills/verification-before-completion",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "requesting-code-review",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/requesting-code-review",
+      "target_rel": "skills/requesting-code-review",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "receiving-code-review",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/receiving-code-review",
+      "target_rel": "skills/receiving-code-review",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "test-driven-development",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/test-driven-development",
+      "target_rel": "skills/test-driven-development",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "executing-plans",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/executing-plans",
+      "target_rel": "skills/executing-plans",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "dispatching-parallel-agents",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
+      "target_rel": "skills/dispatching-parallel-agents",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "subagent-driven-development",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/subagent-driven-development",
+      "target_rel": "skills/subagent-driven-development",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "using-git-worktrees",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/using-git-worktrees",
+      "target_rel": "skills/using-git-worktrees",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "finishing-a-development-branch",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/finishing-a-development-branch",
+      "target_rel": "skills/finishing-a-development-branch",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "using-superpowers",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/using-superpowers",
+      "target_rel": "skills/using-superpowers",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "skill-asset-manager",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.2.0",
+      "vendor_rel": "vendor/skills/skill-asset-manager/0.2.0",
+      "target_rel": "skills/skill-asset-manager",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "asset-management"
+      ]
+    }
+  ]
+}

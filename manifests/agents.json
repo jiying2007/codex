@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "agents": [
+    {
+      "name": "code-reviewer",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/agents/code-reviewer.md",
+      "target_rel": "agents/code-reviewer.md",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "description": "代码审查代理"
+    },
+    {
+      "name": "local-architect",
+      "enabled": true,
+      "source_kind": "local",
+      "version": "1.0.0",
+      "vendor_rel": "control/agents-local/local-architect.toml",
+      "target_rel": "agents/local-architect.toml",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "model": "gpt-5.4",
+      "reasoning_effort": "xhigh",
+      "description": "架构拆解与边界控制"
+    },
+    {
+      "name": "local-implementer",
+      "enabled": true,
+      "source_kind": "local",
+      "version": "1.0.0",
+      "vendor_rel": "control/agents-local/local-implementer.toml",
+      "target_rel": "agents/local-implementer.toml",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "model": "gpt-5.3-codex",
+      "reasoning_effort": "high",
+      "description": "实现代理"
+    },
+    {
+      "name": "local-tester",
+      "enabled": true,
+      "source_kind": "local",
+      "version": "1.0.0",
+      "vendor_rel": "control/agents-local/local-tester.toml",
+      "target_rel": "agents/local-tester.toml",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "model": "gpt-5.4-mini",
+      "reasoning_effort": "high",
+      "description": "测试与验证代理"
+    },
+    {
+      "name": "local-integrator",
+      "enabled": true,
+      "source_kind": "local",
+      "version": "1.0.0",
+      "vendor_rel": "control/agents-local/local-integrator.toml",
+      "target_rel": "agents/local-integrator.toml",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "description": "收口整合代理"
+    }
+  ]
+}

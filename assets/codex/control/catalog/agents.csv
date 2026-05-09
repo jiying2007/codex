@@ -1,6 +1,0 @@
-name,enabled,source_kind,version,vendor_rel,target_rel,profiles,model,reasoning_effort,description
-code-reviewer,1,vendor,1.1.9,vendor/plugins/superpowers/1.1.9/agents/code-reviewer.md,agents/code-reviewer.md,solo-dev|team-collab,gpt-5.4,high,代码审查代理
-local-architect,1,local,1.0.0,control/agents-local/local-architect.toml,agents/local-architect.toml,solo-dev|team-collab,gpt-5.4,xhigh,架构拆解与边界控制
-local-implementer,1,local,1.0.0,control/agents-local/local-implementer.toml,agents/local-implementer.toml,solo-dev|team-collab,gpt-5.3-codex,high,实现代理
-local-tester,1,local,1.0.0,control/agents-local/local-tester.toml,agents/local-tester.toml,solo-dev|team-collab,gpt-5.4-mini,high,测试与验证代理
-local-integrator,1,local,1.0.0,control/agents-local/local-integrator.toml,agents/local-integrator.toml,solo-dev|team-collab,gpt-5.4,high,收口整合代理

@@ -2,6 +2,7 @@
 .personality_migration
 .codex
 .backups/
+build/
 .inbox/
 inbox/
 .tmp/
@@ -32,19 +33,19 @@ control/generated/config-managed.toml
 mcp/secrets/*
 !mcp/secrets/README.md
 skills/.system/
-assets/codex/skills/.system/
-assets/codex/logs/
-assets/codex/log/
-assets/codex/sessions/
-assets/codex/tmp/
-assets/codex/cache/
-assets/codex/auth.json
-assets/codex/config.local.*
-assets/codex/**/*.secret
-assets/codex/**/*.key
-assets/codex/**/*.pem
-assets/codex/mcp/secrets/*
-!assets/codex/mcp/secrets/README.md
+src/codex-home/skills/.system/
+src/codex-home/logs/
+src/codex-home/log/
+src/codex-home/sessions/
+src/codex-home/tmp/
+src/codex-home/cache/
+src/codex-home/auth.json
+src/codex-home/config.local.*
+src/codex-home/**/*.secret
+src/codex-home/**/*.key
+src/codex-home/**/*.pem
+src/codex-home/mcp/secrets/*
+!src/codex-home/mcp/secrets/README.md
 
 # Local backup artifacts
 AGENTS_.md
