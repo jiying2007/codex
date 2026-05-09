@@ -1,0 +1,6 @@
+interface:
+  display_name: "Skill Asset Manager"
+  short_description: "Discover, review, and archive Codex skills"
+  default_prompt: "Use $skill-asset-manager to scan and promote Codex skills into the asset repository."
+policy:
+  allow_implicit_invocation: true

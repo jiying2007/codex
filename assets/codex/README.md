@@ -53,9 +53,6 @@ rtk bash scripts/diff-codex.sh
 
 # 备份当前 ~/.codex
 rtk bash scripts/backup-codex.sh
-
-# 仓库结构与脚本体检
-rtk bash scripts/doctor-assets.sh
 ```
 
 默认注入源是 `assets/codex/`，注入清单位于 `assets/codex/control/catalog/assets.txt`。脚本会始终跳过 `skills/.system/`，该目录以 `~/.codex` 中已有内容为准，本仓库不跟踪、不复制、不覆盖。脚本也会跳过 symlink；需要让目标环境生成 profile 激活链接时，使用 `--activate-profile <profile>`。
@@ -129,17 +126,6 @@ rtk bash ~/codex/assets/codex/control/scripts/archive-bwrap.sh ~/codex/assets/co
 | `archive-guidance.sh` | 归档知识文档快照 |
 | `archive-bwrap.sh` | 归档 bwrap 运行时信息 |
 | `git-codex.sh` | 在仓库根执行 git 命令的快捷方式 |
-
-根目录额外提供维护脚本：
-
-| 脚本 | 用途 |
-|------|------|
-| `scripts/apply-to-codex.sh` | 从 `assets/codex/` 安全注入到 `~/.codex` |
-| `scripts/diff-codex.sh` | 对比资产源与目标目录 |
-| `scripts/backup-codex.sh` | 备份当前 `~/.codex` |
-| `scripts/scan-codex-skills.sh` | 扫描运行目录中未归档 skill |
-| `scripts/promote-skill.sh` | 将候选/第三方 skill 提升为 vendor 资产 |
-| `scripts/doctor-assets.sh` | 检查仓库结构、脚本语法与资产源健康度 |
 
 ## Profile 说明
 

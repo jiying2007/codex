@@ -1,0 +1,18 @@
+# Codex asset injection manifest.
+# Paths are relative to the asset source root and are copied into ~/.codex.
+# Keep runtime data, secrets, generated caches, and skills/.system out of this list.
+
+AGENTS.md
+README.md
+agents
+config.debug.toml
+config.dev.toml
+config.embedded.toml
+config.max.toml
+config.toml
+control
+mcp
+prompts
+rules
+skills
+vendor

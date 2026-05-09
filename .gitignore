@@ -1,6 +1,7 @@
 # Codex runtime artifacts (do not track)
 .personality_migration
 .codex
+.backups/
 .tmp/
 __pycache__/
 *.pyc
@@ -26,6 +27,22 @@ tasks.codex.json
 control/state/active-profile.env
 control/state/backup/
 control/generated/config-managed.toml
+mcp/secrets/*
+!mcp/secrets/README.md
+skills/.system/
+assets/codex/skills/.system/
+assets/codex/logs/
+assets/codex/log/
+assets/codex/sessions/
+assets/codex/tmp/
+assets/codex/cache/
+assets/codex/auth.json
+assets/codex/config.local.*
+assets/codex/**/*.secret
+assets/codex/**/*.key
+assets/codex/**/*.pem
+assets/codex/mcp/secrets/*
+!assets/codex/mcp/secrets/README.md
 
 # Local backup artifacts
 AGENTS_.md
