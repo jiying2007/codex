@@ -2,6 +2,20 @@
   "schema_version": 2,
   "skills": [
     {
+      "name": "brainstorming",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/brainstorming",
+      "target_rel": "skills/brainstorming",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
       "name": "caveman",
       "enabled": true,
       "source_kind": "vendor",
@@ -16,6 +30,24 @@
       "tags": [
         "compression"
       ]
+    },
+    {
+      "name": "cli-creator",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/cli-creator/0.1.0",
+      "target_rel": "skills/cli-creator",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "codex",
+        "cli",
+        "tools"
+      ],
+      "owner": "openai"
     },
     {
       "name": "codex-parallel-collab",
@@ -48,6 +80,101 @@
       ]
     },
     {
+      "name": "create-plan",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/create-plan/0.1.0",
+      "target_rel": "skills/create-plan",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "planning",
+        "codex"
+      ],
+      "owner": "composiohq"
+    },
+    {
+      "name": "developer-growth-analysis",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/developer-growth-analysis/0.1.0",
+      "target_rel": "skills/developer-growth-analysis",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "growth",
+        "summary",
+        "research"
+      ],
+      "owner": "composiohq"
+    },
+    {
+      "name": "dispatching-parallel-agents",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
+      "target_rel": "skills/dispatching-parallel-agents",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "executing-plans",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/executing-plans",
+      "target_rel": "skills/executing-plans",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "finishing-a-development-branch",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/finishing-a-development-branch",
+      "target_rel": "skills/finishing-a-development-branch",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "mcp-builder",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/mcp-builder/0.1.0",
+      "target_rel": "skills/mcp-builder",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "mcp",
+        "tools",
+        "development"
+      ],
+      "owner": "anthropics"
+    },
+    {
       "name": "project-daily-summary",
       "enabled": true,
       "source_kind": "vendor",
@@ -60,6 +187,34 @@
       ],
       "tags": [
         "summary"
+      ]
+    },
+    {
+      "name": "receiving-code-review",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/receiving-code-review",
+      "target_rel": "skills/receiving-code-review",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "requesting-code-review",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/requesting-code-review",
+      "target_rel": "skills/requesting-code-review",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
       ]
     },
     {
@@ -93,41 +248,27 @@
       ]
     },
     {
-      "name": "worktree-closeout",
+      "name": "skill-asset-manager",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "3.1.0",
-      "vendor_rel": "vendor/skills/worktree-closeout/3.1.0",
-      "target_rel": "skills/worktree-closeout",
+      "version": "0.2.0",
+      "vendor_rel": "vendor/skills/skill-asset-manager/0.2.0",
+      "target_rel": "skills/skill-asset-manager",
       "profiles": [
         "solo-dev",
         "team-collab"
       ],
       "tags": [
-        "summary"
+        "asset-management"
       ]
     },
     {
-      "name": "brainstorming",
+      "name": "subagent-driven-development",
       "enabled": true,
       "source_kind": "vendor",
       "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/brainstorming",
-      "target_rel": "skills/brainstorming",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "superpowers"
-      ]
-    },
-    {
-      "name": "writing-plans",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/writing-plans",
-      "target_rel": "skills/writing-plans",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/subagent-driven-development",
+      "target_rel": "skills/subagent-driven-development",
       "profiles": [
         "team-collab"
       ],
@@ -150,96 +291,12 @@
       ]
     },
     {
-      "name": "verification-before-completion",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/verification-before-completion",
-      "target_rel": "skills/verification-before-completion",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "superpowers"
-      ]
-    },
-    {
-      "name": "requesting-code-review",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/requesting-code-review",
-      "target_rel": "skills/requesting-code-review",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "superpowers"
-      ]
-    },
-    {
-      "name": "receiving-code-review",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/receiving-code-review",
-      "target_rel": "skills/receiving-code-review",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "superpowers"
-      ]
-    },
-    {
       "name": "test-driven-development",
       "enabled": true,
       "source_kind": "vendor",
       "version": "1.1.9",
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/test-driven-development",
       "target_rel": "skills/test-driven-development",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "superpowers"
-      ]
-    },
-    {
-      "name": "executing-plans",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/executing-plans",
-      "target_rel": "skills/executing-plans",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "superpowers"
-      ]
-    },
-    {
-      "name": "dispatching-parallel-agents",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
-      "target_rel": "skills/dispatching-parallel-agents",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "superpowers"
-      ]
-    },
-    {
-      "name": "subagent-driven-development",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/subagent-driven-development",
-      "target_rel": "skills/subagent-driven-development",
       "profiles": [
         "team-collab"
       ],
@@ -262,20 +319,6 @@
       ]
     },
     {
-      "name": "finishing-a-development-branch",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/finishing-a-development-branch",
-      "target_rel": "skills/finishing-a-development-branch",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "superpowers"
-      ]
-    },
-    {
       "name": "using-superpowers",
       "enabled": true,
       "source_kind": "vendor",
@@ -290,18 +333,46 @@
       ]
     },
     {
-      "name": "skill-asset-manager",
+      "name": "verification-before-completion",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.2.0",
-      "vendor_rel": "vendor/skills/skill-asset-manager/0.2.0",
-      "target_rel": "skills/skill-asset-manager",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/verification-before-completion",
+      "target_rel": "skills/verification-before-completion",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
+      ]
+    },
+    {
+      "name": "worktree-closeout",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "3.1.0",
+      "vendor_rel": "vendor/skills/worktree-closeout/3.1.0",
+      "target_rel": "skills/worktree-closeout",
       "profiles": [
         "solo-dev",
         "team-collab"
       ],
       "tags": [
-        "asset-management"
+        "summary"
+      ]
+    },
+    {
+      "name": "writing-plans",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/writing-plans",
+      "target_rel": "skills/writing-plans",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "superpowers"
       ]
     }
   ]

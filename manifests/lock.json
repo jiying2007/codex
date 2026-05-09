@@ -1,14 +1,28 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 364,
+  "managed_count": 397,
   "items": [
+    {
+      "kind": "skill",
+      "name": "brainstorming",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/brainstorming",
+      "sha256": "3839ee31365ad876effcb0398ac2cc4745594eb9819100022a11f80404541709"
+    },
     {
       "kind": "skill",
       "name": "caveman",
       "version": "1.0.0",
       "source": "vendor/skills/caveman/1.0.0",
       "sha256": "dbd6b98f3ac8869a0804d9b80f5035e1b0cbba6a9003d7d61ed02a08f5424a9b"
+    },
+    {
+      "kind": "skill",
+      "name": "cli-creator",
+      "version": "0.1.0",
+      "source": "vendor/skills/cli-creator/0.1.0",
+      "sha256": "3e5afa4c0126dec2131732387f5df81609cad947abac97aa8bd90d1d9ae2622d"
     },
     {
       "kind": "skill",
@@ -26,10 +40,66 @@
     },
     {
       "kind": "skill",
+      "name": "create-plan",
+      "version": "0.1.0",
+      "source": "vendor/skills/create-plan/0.1.0",
+      "sha256": "e34f28d2a61286bf7efdb49d9438b56aa38671b73f25fb23b7c4ad63c1185fe3"
+    },
+    {
+      "kind": "skill",
+      "name": "developer-growth-analysis",
+      "version": "0.1.0",
+      "source": "vendor/skills/developer-growth-analysis/0.1.0",
+      "sha256": "475b6794ed7f338d60a9b9f09d7bddfaee164f8b459c89e7077939b42cea3561"
+    },
+    {
+      "kind": "skill",
+      "name": "dispatching-parallel-agents",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
+      "sha256": "2e93defb50a6eec61139ffe729bdd2920dab791f43a92656a178f8b4180359ac"
+    },
+    {
+      "kind": "skill",
+      "name": "executing-plans",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/executing-plans",
+      "sha256": "aff3a16a420e59dc994e0b51acbb0a142e3929b4ffb73b66ab245bf8d75e2a53"
+    },
+    {
+      "kind": "skill",
+      "name": "finishing-a-development-branch",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/finishing-a-development-branch",
+      "sha256": "7bf286e6ef03bd88fcc1ddceb6fdffca882b7a9e193314b2b16082e20bce4f9d"
+    },
+    {
+      "kind": "skill",
+      "name": "mcp-builder",
+      "version": "0.1.0",
+      "source": "vendor/skills/mcp-builder/0.1.0",
+      "sha256": "f443b8861e93480e676781d3e60b1a159b0664f5fbe501c6e3a890cc802cc9ae"
+    },
+    {
+      "kind": "skill",
       "name": "project-daily-summary",
       "version": "3.1.0",
       "source": "vendor/skills/project-daily-summary/3.1.0",
       "sha256": "f1afaec4f540710d89c1279a345ad80c708d56c5de4680f0bfa80fbd477c2f1e"
+    },
+    {
+      "kind": "skill",
+      "name": "receiving-code-review",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/receiving-code-review",
+      "sha256": "1f7e8649c2807f2264a7290b3fcfdb1f44c8dbec7e1a097e61620adfc8effb3c"
+    },
+    {
+      "kind": "skill",
+      "name": "requesting-code-review",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/requesting-code-review",
+      "sha256": "f045b2cec9b75a62230464da650fd95a1972275b686df111db8e7e98fe19ce66"
     },
     {
       "kind": "skill",
@@ -47,73 +117,10 @@
     },
     {
       "kind": "skill",
-      "name": "worktree-closeout",
-      "version": "3.1.0",
-      "source": "vendor/skills/worktree-closeout/3.1.0",
-      "sha256": "3cbaf00682528a36d62ae825ab534f0487442b792019e8d07afb4749daa363ca"
-    },
-    {
-      "kind": "skill",
-      "name": "brainstorming",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/brainstorming",
-      "sha256": "3839ee31365ad876effcb0398ac2cc4745594eb9819100022a11f80404541709"
-    },
-    {
-      "kind": "skill",
-      "name": "writing-plans",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/writing-plans",
-      "sha256": "edd18c4ec9e11e15ae7f93485c5a338691d862c2c104d8e0f1d91a68adc85960"
-    },
-    {
-      "kind": "skill",
-      "name": "systematic-debugging",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/systematic-debugging",
-      "sha256": "b79916433d8dc6fd51dbc13393ce0f99e60b090815617ce3b7c230c7193835f5"
-    },
-    {
-      "kind": "skill",
-      "name": "verification-before-completion",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/verification-before-completion",
-      "sha256": "3cca7a2f7d06174c198918e3aada61cf2d9b9786ff544b4c1026fd9d05207ed7"
-    },
-    {
-      "kind": "skill",
-      "name": "requesting-code-review",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/requesting-code-review",
-      "sha256": "f045b2cec9b75a62230464da650fd95a1972275b686df111db8e7e98fe19ce66"
-    },
-    {
-      "kind": "skill",
-      "name": "receiving-code-review",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/receiving-code-review",
-      "sha256": "1f7e8649c2807f2264a7290b3fcfdb1f44c8dbec7e1a097e61620adfc8effb3c"
-    },
-    {
-      "kind": "skill",
-      "name": "test-driven-development",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/test-driven-development",
-      "sha256": "c268445b1a47533d2b4db9d654a17a4780e1eae38d48266d3a5173dafaea3bae"
-    },
-    {
-      "kind": "skill",
-      "name": "executing-plans",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/executing-plans",
-      "sha256": "aff3a16a420e59dc994e0b51acbb0a142e3929b4ffb73b66ab245bf8d75e2a53"
-    },
-    {
-      "kind": "skill",
-      "name": "dispatching-parallel-agents",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
-      "sha256": "2e93defb50a6eec61139ffe729bdd2920dab791f43a92656a178f8b4180359ac"
+      "name": "skill-asset-manager",
+      "version": "0.2.0",
+      "source": "vendor/skills/skill-asset-manager/0.2.0",
+      "sha256": "f95c6eaa19c3f5f9590a559663ef0bdbc5a2c2ba33ece5ca784ec6cf61424f46"
     },
     {
       "kind": "skill",
@@ -124,17 +131,24 @@
     },
     {
       "kind": "skill",
+      "name": "systematic-debugging",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/systematic-debugging",
+      "sha256": "b79916433d8dc6fd51dbc13393ce0f99e60b090815617ce3b7c230c7193835f5"
+    },
+    {
+      "kind": "skill",
+      "name": "test-driven-development",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/test-driven-development",
+      "sha256": "c268445b1a47533d2b4db9d654a17a4780e1eae38d48266d3a5173dafaea3bae"
+    },
+    {
+      "kind": "skill",
       "name": "using-git-worktrees",
       "version": "1.1.9",
       "source": "vendor/plugins/superpowers/1.1.9/skills/using-git-worktrees",
       "sha256": "463a12fa34198de1038ea9b4ffa92fbd9807dc2b69c10748d0ef0285445ad423"
-    },
-    {
-      "kind": "skill",
-      "name": "finishing-a-development-branch",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/finishing-a-development-branch",
-      "sha256": "7bf286e6ef03bd88fcc1ddceb6fdffca882b7a9e193314b2b16082e20bce4f9d"
     },
     {
       "kind": "skill",
@@ -145,10 +159,24 @@
     },
     {
       "kind": "skill",
-      "name": "skill-asset-manager",
-      "version": "0.2.0",
-      "source": "vendor/skills/skill-asset-manager/0.2.0",
-      "sha256": "f95c6eaa19c3f5f9590a559663ef0bdbc5a2c2ba33ece5ca784ec6cf61424f46"
+      "name": "verification-before-completion",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/verification-before-completion",
+      "sha256": "3cca7a2f7d06174c198918e3aada61cf2d9b9786ff544b4c1026fd9d05207ed7"
+    },
+    {
+      "kind": "skill",
+      "name": "worktree-closeout",
+      "version": "3.1.0",
+      "source": "vendor/skills/worktree-closeout/3.1.0",
+      "sha256": "3cbaf00682528a36d62ae825ab534f0487442b792019e8d07afb4749daa363ca"
+    },
+    {
+      "kind": "skill",
+      "name": "writing-plans",
+      "version": "1.1.9",
+      "source": "vendor/plugins/superpowers/1.1.9/skills/writing-plans",
+      "sha256": "edd18c4ec9e11e15ae7f93485c5a338691d862c2c104d8e0f1d91a68adc85960"
     }
   ]
 }

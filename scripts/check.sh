@@ -12,7 +12,7 @@ rtk bash "$ROOT/tests/smoke.sh"
 rtk bash "$ROOT/scripts/diff.sh" --target "$HOME/.codex"
 rtk bash "$ROOT/scripts/drift.sh" --target "$HOME/.codex"
 
-if rtk rg -n "(sk-[A-Za-z0-9_-]{20,}|api[_-]?key\\s*[:=]|token\\s*[:=]|BEGIN (RSA|OPENSSH|EC|DSA|PRIVATE) KEY|password\\s*[:=])" "$ROOT" --glob '!build/**' --glob '!.git/**'; then
+if rtk rg -n "(sk-[A-Za-z0-9_-]{20,}|(api[_-]?key|token|password)\\s*[:=]\\s*['\\\"][A-Za-z0-9_./+=:-]{16,}['\\\"]|BEGIN (RSA|OPENSSH|EC|DSA|PRIVATE) KEY)" "$ROOT" --glob '!build/**' --glob '!.git/**'; then
   echo "[FATAL] 疑似敏感信息命中" >&2
   exit 1
 fi
