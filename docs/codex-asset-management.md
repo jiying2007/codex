@@ -8,7 +8,7 @@
 4. 运行 `rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json` 生成审计计划。
 5. 运行 `rtk bash scripts/apply.sh --dry-run --no-build` 预览。
 6. 确认后运行 `rtk bash scripts/apply.sh --profile team-collab`。
-7. 发布前运行 `rtk bash tests/smoke.sh`。
+7. 发布前运行 `rtk bash scripts/check.sh`。
 
 ## 新增普通资产
 
@@ -80,8 +80,20 @@ rtk bash scripts/doctor.sh --scope build
 rtk bash scripts/doctor.sh --scope live
 rtk bash scripts/diff.sh
 rtk bash scripts/drift.sh
+rtk bash scripts/check.sh
 ```
 
 若 `diff.sh` 报告普通文件不同，先判断目标文件是否为本机私有修改；若需要仓库版本覆盖，再使用 `apply.sh --overwrite`。
 
 若 `drift.sh` 报告 changed，表示 live 中受管理文件偏离了上次 apply 时的 managed state；先确认是否为人工修改，再决定重新 apply 或将修改提升回源资产。
+
+## 回滚
+
+如果一次 apply 后需要撤回，使用当次保存的 apply plan：
+
+```bash
+rtk bash scripts/rollback.sh --plan build/apply-plan.live.json --dry-run
+rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
+```
+
+rollback 只处理 plan 中记录的 copy/overwrite 项：新增文件会移除，被覆盖文件会从备份恢复。

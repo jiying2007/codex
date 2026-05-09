@@ -367,6 +367,56 @@ def apply_plan(plan: dict[str, Any], dry_run: bool) -> None:
             copy_one(build / rel, target / rel, dry_run)
 
 
+def remove_path(path: pathlib.Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+
+
+def restore_path(backup: pathlib.Path, dest: pathlib.Path, dry_run: bool) -> None:
+    if dry_run:
+        return
+    if dest.exists() or dest.is_symlink():
+        remove_path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if backup.is_symlink():
+        dest.symlink_to(os.readlink(backup))
+    elif backup.is_dir():
+        shutil.copytree(backup, dest, symlinks=True)
+    elif backup.is_file():
+        shutil.copy2(backup, dest)
+    else:
+        fail(f"备份路径不存在: {backup}")
+
+
+def rollback_plan(plan_path: str | pathlib.Path, dry_run: bool = False, remove_copies: bool = True) -> dict[str, int]:
+    plan = read_json(pathlib.Path(plan_path).expanduser())
+    target = pathlib.Path(plan["target"]).expanduser()
+    summary = {"restored": 0, "removed": 0, "skipped": 0}
+    for action in reversed(plan.get("actions", [])):
+        rel = action.get("path", "")
+        if not rel or rel == ".":
+            continue
+        dest = target / rel
+        if action.get("action") == "overwrite":
+            backup = pathlib.Path(action.get("backup", "")).expanduser()
+            if backup.exists() or backup.is_symlink():
+                print(f"[ROLLBACK] restore {rel}")
+                restore_path(backup, dest, dry_run)
+                summary["restored"] += 1
+            else:
+                print(f"[SKIP] {rel} (backup missing)")
+                summary["skipped"] += 1
+        elif action.get("action") == "copy" and remove_copies:
+            if dest.exists() or dest.is_symlink():
+                print(f"[ROLLBACK] remove {rel}")
+                if not dry_run:
+                    remove_path(dest)
+                summary["removed"] += 1
+    return summary
+
+
 def diff_build_live(build: str | pathlib.Path, target: str | pathlib.Path) -> tuple[int, int, int]:
     build_path = pathlib.Path(build).expanduser().resolve()
     target_path = pathlib.Path(target).expanduser()

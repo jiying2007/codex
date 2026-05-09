@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 362,
+  "managed_count": 364,
   "items": [
     {
       "kind": "skill",
@@ -148,7 +148,7 @@
       "name": "skill-asset-manager",
       "version": "0.2.0",
       "source": "vendor/skills/skill-asset-manager/0.2.0",
-      "sha256": "895fd3ed3e6b0a61429d6de7b5a19486dfec0c3c941d51b93e4176f591b57683"
+      "sha256": "f95c6eaa19c3f5f9590a559663ef0bdbc5a2c2ba33ece5ca784ec6cf61424f46"
     }
   ]
 }

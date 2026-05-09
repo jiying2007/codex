@@ -46,8 +46,14 @@ rtk bash scripts/drift.sh
 # 备份当前 ~/.codex
 rtk bash scripts/backup.sh
 
+# 从指定 apply plan 回滚
+rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
+
 # 端到端 smoke
 rtk bash tests/smoke.sh
+
+# 发布前统一检查
+rtk bash scripts/check.sh
 ```
 
 ## 目录职责
@@ -93,6 +99,6 @@ rtk bash scripts/apply.sh --profile team-collab
 5. `skills/.system/` 永远以 `~/.codex` 为准。
 6. 未审核资产先进入 `inbox/`，审核通过后 promote。
 7. 每次改动后运行 `build.sh` 与 `doctor.sh`。
-8. 发布前运行 `tests/smoke.sh`。
+8. 发布前运行 `scripts/check.sh`。
 
 更多细节见 `docs/design.md` 与 `docs/codex-asset-management.md`。

@@ -40,6 +40,7 @@ rtk bash scripts/doctor.sh --scope all
 rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json
 rtk bash scripts/apply.sh --dry-run --no-build
 rtk bash scripts/apply.sh --profile team-collab
+rtk bash scripts/check.sh
 ```
 
 ## Rules
@@ -53,4 +54,5 @@ rtk bash scripts/apply.sh --profile team-collab
 - Run `--dry-run` first when the target or version is uncertain.
 - Prefer `scripts/plan.sh` before applying to produce an auditable apply plan.
 - Use `scripts/drift.sh` to detect live managed-file drift.
+- Use `scripts/rollback.sh --plan <apply-plan.json>` to restore files touched by a specific apply plan.
 - If validation reports suspected secrets, stop and ask the user to clean or confirm a safe source.

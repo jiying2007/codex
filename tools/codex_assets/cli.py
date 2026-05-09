@@ -17,6 +17,7 @@ from .core import (
     normalize_name,
     plan_apply,
     read_json,
+    rollback_plan,
     split_list,
     write_json,
 )
@@ -205,6 +206,12 @@ def cmd_promote_skill(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_rollback(args: argparse.Namespace) -> int:
+    summary = rollback_plan(args.plan, dry_run=args.dry_run, remove_copies=not args.keep_copies)
+    print(f"[DONE] rollback summary={summary} dry_run={int(args.dry_run)}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="codex-assets")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -270,6 +277,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--replace", action="store_true")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_promote_skill)
+
+    p = sub.add_parser("rollback", parents=[common])
+    p.add_argument("--plan", required=True)
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--keep-copies", action="store_true")
+    p.set_defaults(func=cmd_rollback)
     return parser
 
 
@@ -281,4 +294,3 @@ def main() -> None:
     except CodexAssetError as exc:
         print(f"[FATAL] {exc}", file=sys.stderr)
         raise SystemExit(2)
-

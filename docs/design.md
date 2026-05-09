@@ -75,13 +75,23 @@ rtk bash scripts/doctor.sh --scope all
 rtk bash scripts/drift.sh
 ```
 
-`repo` 检查仓库结构、manifest、脚本语法和旧入口残留。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
+`repo` 检查仓库结构、manifest、脚本语法和旧入口残留，并执行语义校验：profile 引用、source 路径存在性、target 冲突、protected path 写入、lock 与 build state 一致性。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
 
 `drift.sh` 基于 live 的 `control/state/managed-files.json` 检查运行目录是否被手工改动，区别于 `diff.sh` 的 build/live 当前差异比较。
 
 ## Schema 与测试
 
-`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构校验。`tests/smoke.sh` 会创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
+`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`team-collab` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
+
+## 回滚
+
+`scripts/rollback.sh` 根据 apply plan 回滚一次发布：
+
+```bash
+rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
+```
+
+默认恢复 overwrite 动作的备份，并移除该 plan 中新增的 copy 文件。不会触碰未出现在 plan 中的运行态文件。
 
 ## Skill 归档
 
