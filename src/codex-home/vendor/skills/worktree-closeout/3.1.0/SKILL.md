@@ -1,6 +1,6 @@
 ---
 name: worktree-closeout
-description: Use when the user asks for worktree closeout, branch closeout, parallel closeout, worktree janitor, 工作树收口, 分支收口, or 并行收口, especially when work spans multiple Codex sessions and you need a date-based scan of open worktrees, closeout status, suggested merge/prune order, and prompt-ready handoff instructions.
+description: Use only for read-only branch/worktree closeout triage across sessions or repos: date/scope scan, status classification, merge/prune order, and handoff prompts. Prefer session-wrap for one current session, project-daily-summary for daily project reports, and commit-daily-summary for commit-only summaries.
 version: 3.1.0
 last_updated: 2026-04-27
 ---
@@ -26,8 +26,15 @@ This skill does **not** auto-merge, auto-delete, auto-push, or auto-prune. It as
 - **Same-day project report:** use `project-daily-summary`
 - **Single branch is already chosen for final handling:** use `finishing-a-development-branch`
 - **Dangerous branch actions:** do not use this skill as permission to merge, delete, prune, or push automatically
+- **Skill asset import or governance:** use `skill-asset-manager`
 
 `project-daily-summary` may optionally call this skill when the user wants a **same-day all-repo summary with a closeout appendix**.
+
+## Routing Boundary
+
+Use this skill only when the user asks about **branches, worktrees, closeout, prune, merge order, or parallel closeout**.
+
+Do not use it for generic "日报" or "总结今天"; those should route to `project-daily-summary` or `commit-daily-summary` depending on evidence source.
 
 ## Required Flow
 
@@ -204,5 +211,4 @@ Do not hide uncertainty. If the artifact and current chat context disagree, call
 - No fabricated status if the scan comes back empty or ambiguous
 
 Use this skill to organize closeout work, not to silently execute risky git actions.
-
 

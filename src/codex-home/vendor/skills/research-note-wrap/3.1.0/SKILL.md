@@ -1,6 +1,6 @@
 ---
 name: research-note-wrap
-description: Use when the user wants to summarize research or analysis into a readable Obsidian markdown note, such as 总结调研, 输出结论, 总结分析, 输出笔记, 调研纪要, 分析纪要, 会话结论, or when asking to summarize today's sessions about a topic. Use for current-session summaries by default, and for cross-session topic summaries when the user mentions 今天会话 or gives a topic scope.
+description: Use only when the user wants research, architecture, diagnosis, or analysis conclusions turned into a readable Markdown/Obsidian note. Prefer session-wrap for current-session engineering closeout, project-daily-summary for daily project reports, commit-daily-summary for commit-only reports, and worktree-closeout for branch/worktree closeout.
 version: 3.1.0
 last_updated: 2026-04-27
 ---
@@ -24,6 +24,20 @@ Summarize the current session, or today's related sessions for a given topic, in
   - why it matters
   - how it supports the conclusion
 - Default to writing the note file after confirmation; do not stop at chat-only output unless the user explicitly asks not to write a file.
+
+## Routing Boundary
+
+Use this skill only when the requested artifact is an **analysis note** or **research conclusion**.
+
+Prefer another skill when:
+
+- Current session closeout: use `session-wrap`.
+- Same-day project work report: use `project-daily-summary`.
+- Commit-only daily report: use `commit-daily-summary`.
+- Branch/worktree triage: use `worktree-closeout`.
+- Skill asset governance: use `skill-asset-manager`.
+
+If the user asks for "总结" without mentioning analysis, research, conclusions, or notes, do not choose this skill by default.
 
 ## Scope Decision
 
@@ -63,6 +77,17 @@ Before writing the file:
 ## Confirmation Workflow
 
 Do not write the file immediately after the first draft. Use this confirmation sequence:
+
+### Fast path
+
+If the user explicitly says "直接写入", "落地", "不用确认", or gives a clear file path and scope, you may skip the two-step confirmation and write the note directly after forming the conclusion.
+
+Use the full confirmation workflow when:
+
+- scope spans multiple sessions or projects
+- conclusions are uncertain or controversial
+- output location is unknown
+- the user asks to review before writing
 
 ### Step 1: Draft the main problems
 
@@ -204,4 +229,3 @@ Before writing the file, verify:
 - `关键结论` appears after the tables.
 - Code-level references, if any, are explained in Chinese.
 - The filename matches `YYYY-MM-DD-topic.md`.
-

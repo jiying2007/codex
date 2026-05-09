@@ -1,6 +1,6 @@
 ---
 name: skill-asset-manager
-description: Use when discovering, importing, reviewing, promoting, or archiving Codex skills between ~/.codex and the ~/codex v2 asset repository.
+description: Use only for Codex skill asset governance: discovering live skills, importing third-party skills, reviewing candidates, promoting versions, updating manifests, applying assets to ~/.codex, rollback, and checking skill inventory health.
 version: 0.2.0
 last_updated: 2026-05-09
 ---
@@ -14,6 +14,18 @@ Use this skill when the user asks to:
 - 把候选 skill 归档到 `~/codex/src/codex-home/vendor/skills`。
 - 更新 `manifests/skills.json`。
 - 构建、体检并注入 v2 Codex 资产。
+
+## Routing Boundary
+
+Use this skill only for **skill asset lifecycle management**.
+
+Prefer another skill when:
+
+- Current session closeout: use `session-wrap`.
+- Same-day project report: use `project-daily-summary`.
+- Commit-only daily report: use `commit-daily-summary`.
+- Research/analysis note: use `research-note-wrap`.
+- Branch/worktree closeout: use `worktree-closeout`.
 
 ## Workflow
 
@@ -32,6 +44,15 @@ rtk bash scripts/scan-skills.sh
 rtk bash scripts/promote-skill.sh inbox/skills/<name>/<timestamp> --version 0.1.0
 ```
 
+When promoting third-party skills, record provenance metadata in `manifests/skills.json`:
+
+- `owner`
+- `source_repo`
+- `source_ref`
+- `source_path`
+- `imported_at`
+- `review_status`
+
 5. Build, verify, and apply:
 
 ```bash
@@ -43,12 +64,20 @@ rtk bash scripts/apply.sh --profile team-collab
 rtk bash scripts/check.sh
 ```
 
+For a skill-only health check, run:
+
+```bash
+rtk bash scripts/check-skills.sh
+```
+
 ## Rules
 
 - Treat `manifests/*.json` as the SSOT for activation and versioning.
 - Treat `src/codex-home/` as the hand-maintained source.
 - Treat `build/codex-home/` as generated output; do not edit it manually.
 - Store official promoted skills under `src/codex-home/vendor/skills/<name>/<version>/`.
+- Treat `source_repo`, `source_ref`, and `source_path` as required for third-party skills when known.
+- Set `review_status` to `accepted`, `pending`, or `rejected`; only `accepted` skills should be enabled by default.
 - Never archive or overwrite `skills/.system`.
 - Do not promote symlink activation entries; promote real skill directories only.
 - Run `--dry-run` first when the target or version is uncertain.

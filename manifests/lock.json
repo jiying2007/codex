@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 397,
+  "managed_count": 411,
   "items": [
     {
       "kind": "skill",
@@ -15,14 +15,14 @@
       "name": "caveman",
       "version": "1.0.0",
       "source": "vendor/skills/caveman/1.0.0",
-      "sha256": "dbd6b98f3ac8869a0804d9b80f5035e1b0cbba6a9003d7d61ed02a08f5424a9b"
+      "sha256": "88c7191e559dbe2749dfbe0b35627d2a5f359974cc38572b33789d54fba0b23d"
     },
     {
       "kind": "skill",
       "name": "cli-creator",
       "version": "0.1.0",
       "source": "vendor/skills/cli-creator/0.1.0",
-      "sha256": "3e5afa4c0126dec2131732387f5df81609cad947abac97aa8bd90d1d9ae2622d"
+      "sha256": "8d095c2d55d67827283c05adfeca75a349cb78e183c33e92298a49f49ce49b2a"
     },
     {
       "kind": "skill",
@@ -36,21 +36,21 @@
       "name": "commit-daily-summary",
       "version": "3.1.0",
       "source": "vendor/skills/commit-daily-summary/3.1.0",
-      "sha256": "ced7d93145cba492fe8902942de07a7cf84cd9a5c42ac654b346906577b5fa03"
+      "sha256": "2f9aa442d4959c44aba5787884712c6356e6a29c6397ed6c1c735f6ed26127c4"
     },
     {
       "kind": "skill",
       "name": "create-plan",
       "version": "0.1.0",
       "source": "vendor/skills/create-plan/0.1.0",
-      "sha256": "e34f28d2a61286bf7efdb49d9438b56aa38671b73f25fb23b7c4ad63c1185fe3"
+      "sha256": "93e6f8a6b0cb01b3d3aac9ab24060c43589c17a397818a5acf63984380579aa8"
     },
     {
       "kind": "skill",
       "name": "developer-growth-analysis",
       "version": "0.1.0",
       "source": "vendor/skills/developer-growth-analysis/0.1.0",
-      "sha256": "475b6794ed7f338d60a9b9f09d7bddfaee164f8b459c89e7077939b42cea3561"
+      "sha256": "d43aeaffa3c1af8c1ec198332b3e14b658b30ad8328ad0f6d9685443b21a2544"
     },
     {
       "kind": "skill",
@@ -78,14 +78,14 @@
       "name": "mcp-builder",
       "version": "0.1.0",
       "source": "vendor/skills/mcp-builder/0.1.0",
-      "sha256": "f443b8861e93480e676781d3e60b1a159b0664f5fbe501c6e3a890cc802cc9ae"
+      "sha256": "4254ed52302c8f9ee258f1af7f1770a7155faaa65d8e47007d9c997c39cbff8f"
     },
     {
       "kind": "skill",
       "name": "project-daily-summary",
       "version": "3.1.0",
       "source": "vendor/skills/project-daily-summary/3.1.0",
-      "sha256": "f1afaec4f540710d89c1279a345ad80c708d56c5de4680f0bfa80fbd477c2f1e"
+      "sha256": "7fc33a359aca7c11d261afe5bf67265dc16997ff7ad55d70b04b70144f63135d"
     },
     {
       "kind": "skill",
@@ -106,21 +106,21 @@
       "name": "research-note-wrap",
       "version": "3.1.0",
       "source": "vendor/skills/research-note-wrap/3.1.0",
-      "sha256": "5eb15c713e5743f3d45ecf11934edc7eb5079d2b6852af5c6205f3fa5905c528"
+      "sha256": "3e459e39600d8e3e8b7d161486a340b20f836fb9c580479e343a1d5aecb6f6d0"
     },
     {
       "kind": "skill",
       "name": "session-wrap",
       "version": "3.1.0",
       "source": "vendor/skills/session-wrap/3.1.0",
-      "sha256": "fadb19043ce0340fc6a27759cb4ae6fd422bf93bf3f6b01709cf08c0ce38faa9"
+      "sha256": "f8daa78b828f4c0513dee47bb75656750232d00cf9bcccc3d22d3eaa4782dad5"
     },
     {
       "kind": "skill",
       "name": "skill-asset-manager",
       "version": "0.2.0",
       "source": "vendor/skills/skill-asset-manager/0.2.0",
-      "sha256": "f95c6eaa19c3f5f9590a559663ef0bdbc5a2c2ba33ece5ca784ec6cf61424f46"
+      "sha256": "9adcd327b31239a6e0054415645ba21209a7d10d9e88e25bc08d91fb7a100dba"
     },
     {
       "kind": "skill",
@@ -169,7 +169,7 @@
       "name": "worktree-closeout",
       "version": "3.1.0",
       "source": "vendor/skills/worktree-closeout/3.1.0",
-      "sha256": "3cbaf00682528a36d62ae825ab534f0487442b792019e8d07afb4749daa363ca"
+      "sha256": "f73c1ab1e98eac4cd11fe64deef33c1afc24c6b2d715ac233b22579eccac1c1c"
     },
     {
       "kind": "skill",

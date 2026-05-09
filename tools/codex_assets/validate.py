@@ -69,6 +69,16 @@ def validate_repo(root: str | pathlib.Path) -> list[str]:
             version = item.get("version", "")
             if version and not re.match(r"^[0-9]+\.[0-9]+\.[0-9]+([+-][A-Za-z0-9.-]+)?$", version):
                 errors.append(f"{collection_name}:{name} version 非 semver: {version}")
+            if collection_name == "skills.json":
+                provenance = [item.get(field, "") for field in ["source_repo", "source_ref", "source_path", "imported_at"]]
+                if any(provenance) and not all(provenance):
+                    errors.append(f"{collection_name}:{name} 来源元数据不完整")
+                if item.get("imported_at") and not re.match(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", item["imported_at"]):
+                    errors.append(f"{collection_name}:{name} imported_at 必须是 YYYY-MM-DD")
+                if item.get("review_status") and item["review_status"] not in {"accepted", "pending", "rejected"}:
+                    errors.append(f"{collection_name}:{name} review_status 非法: {item['review_status']}")
+                if item.get("enabled") and item.get("review_status") in {"pending", "rejected"}:
+                    errors.append(f"{collection_name}:{name} 未 accepted 不能启用")
             for profile in item.get("profiles", []):
                 if profile not in profile_names:
                     errors.append(f"{collection_name}:{name} 引用未知 profile: {profile}")

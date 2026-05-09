@@ -1,6 +1,6 @@
 ---
 name: session-wrap
-description: Use when the user wants to wrap up the current coding session, summarize the current session before ending work, document learnings, decide what to commit, or says 总结会话, 会话总结, 收尾, 会话收尾, 结束会话, 总结本次会话.
+description: Use only for wrapping up the current Codex session: completed work, decisions, validation, risks, next actions, and optional commit guidance. Prefer project-daily-summary for all-day or cross-session project reports, commit-daily-summary for commit-only summaries, research-note-wrap for analysis notes, and worktree-closeout for branch/worktree closeout.
 version: 3.1.0
 last_updated: 2026-04-27
 ---
@@ -18,6 +18,18 @@ Use this skill to close out the **current** coding session in a way that is easy
 - Do not output a chronological 流水账.
 - Do not claim work is completed unless there is evidence in the session, git status, or validation output.
 - If the user asks to write files, commit, or update docs, summarize first and then confirm the action.
+
+## Routing Boundary
+
+Use this skill only when the user wants to close or summarize **the current conversation/session**.
+
+Prefer another skill when:
+
+- All-day or cross-session project report: use `project-daily-summary`.
+- Git commit report only: use `commit-daily-summary`.
+- Research, architecture, or analysis note: use `research-note-wrap`.
+- Branch/worktree closeout across sessions: use `worktree-closeout`.
+- Skill asset import, archive, or apply: use `skill-asset-manager`.
 
 ## Workflow
 

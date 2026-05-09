@@ -194,6 +194,15 @@ def cmd_promote_skill(args: argparse.Namespace) -> int:
         "tags": split_list(args.tags),
         "owner": args.owner,
     }
+    for key, value in {
+        "source_repo": args.source_repo,
+        "source_ref": args.source_ref,
+        "source_path": args.source_path,
+        "imported_at": args.imported_at,
+        "review_status": args.review_status,
+    }.items():
+        if value:
+            entry[key] = value
     print(f"[INFO] promote name={name} version={args.version}")
     if not args.dry_run:
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -274,6 +283,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--profiles", default="solo-dev,team-collab")
     p.add_argument("--tags", default="custom")
     p.add_argument("--owner", default="global")
+    p.add_argument("--source-repo", default="")
+    p.add_argument("--source-ref", default="")
+    p.add_argument("--source-path", default="")
+    p.add_argument("--imported-at", default="")
+    p.add_argument("--review-status", default="")
     p.add_argument("--replace", action="store_true")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_promote_skill)

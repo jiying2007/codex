@@ -47,7 +47,12 @@
         "cli",
         "tools"
       ],
-      "owner": "openai"
+      "owner": "openai",
+      "source_repo": "openai/skills",
+      "source_ref": "4c4058ebf44f6734e62c70ab4a81246d4d093fc8",
+      "source_path": "skills/.curated/cli-creator",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "codex-parallel-collab",
@@ -94,7 +99,12 @@
         "planning",
         "codex"
       ],
-      "owner": "composiohq"
+      "owner": "composiohq",
+      "source_repo": "ComposioHQ/awesome-codex-skills",
+      "source_ref": "500b0c00093ec3a8633d7ed1122d289ab1d23755",
+      "source_path": "create-plan",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "developer-growth-analysis",
@@ -112,7 +122,12 @@
         "summary",
         "research"
       ],
-      "owner": "composiohq"
+      "owner": "composiohq",
+      "source_repo": "ComposioHQ/awesome-codex-skills",
+      "source_ref": "500b0c00093ec3a8633d7ed1122d289ab1d23755",
+      "source_path": "developer-growth-analysis",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "dispatching-parallel-agents",
@@ -172,7 +187,12 @@
         "tools",
         "development"
       ],
-      "owner": "anthropics"
+      "owner": "anthropics",
+      "source_repo": "anthropics/skills",
+      "source_ref": "f458cee31a7577a47ba0c9a101976fa599385174",
+      "source_path": "skills/mcp-builder",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "project-daily-summary",

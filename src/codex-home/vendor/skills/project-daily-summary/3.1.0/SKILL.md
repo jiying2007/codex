@@ -1,6 +1,6 @@
 ---
 name: project-daily-summary
-description: Use when the user wants a same-day Codex work summary grouped by project folder or repository, combining today's Codex sessions, extracted plans, completed items, commits, and uncommitted changes, or says 项目日报, 日报, 今日工作总结, 按项目总结今天, 总结今天所有 Codex 会话, 总结今天会话+提交+未提交改动.
+description: Use only for project-level daily reports that combine Codex sessions, plans, outcomes, commits, and dirty worktrees by repository or project. Prefer commit-daily-summary for commit-only reports, session-wrap for the current session only, research-note-wrap for analysis notes, and worktree-closeout for branch/worktree closeout.
 version: 3.1.0
 last_updated: 2026-04-27
 ---
@@ -14,6 +14,32 @@ Summarize today's Codex work by project. Use global Codex session transcripts as
 Do not produce a chronological 流水账.
 Do not summarize reasoning noise.
 Always summarize by **project** and then by **major workstream**.
+
+## Routing Boundary
+
+Use this skill only when the requested output is a **project daily report**.
+
+Prefer another skill when:
+
+- Current session only: use `session-wrap`.
+- Git commits only: use `commit-daily-summary`.
+- Research or analysis note: use `research-note-wrap`.
+- Branch, worktree, or parallel closeout: use `worktree-closeout`.
+- Skill discovery, import, promotion, or apply: use `skill-asset-manager`.
+
+If the user says only "日报" or "今天做了什么", inspect the wording:
+
+- If they mention Codex sessions, projects, all repos, uncommitted changes, or "全面", use this skill.
+- If they mention only commits or git history, use `commit-daily-summary`.
+- If they mention only this conversation, use `session-wrap`.
+
+## Detail Level
+
+Default to `normal` unless the user asks otherwise.
+
+- `brief`: project and workstream outcomes only.
+- `normal`: add commits and current dirty worktree state.
+- `full`: add session evidence, subagent handling, and optional closeout appendix.
 
 ## Source Priority
 
@@ -303,7 +329,6 @@ If the user explicitly says not to save the report, skip file creation and retur
 - 总结今天所有 Codex 会话
 - 总结今天会话+提交+未提交改动
 - codex project daily summary
-
 
 
 

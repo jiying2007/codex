@@ -1,6 +1,6 @@
 ---
 name: commit-daily-summary
-description: Use when the user wants a same-day summary of git commits or a commit-based daily report, asks what they did today, or says 总结我今天做了什么, 总结我的提交, 提交总结, 今天提交总结, 日报.
+description: Use only for commit-based daily reports or summaries of git history. Prefer project-daily-summary when the user wants Codex sessions, project workstreams, uncommitted changes, or a full daily report; use session-wrap for the current session only.
 version: 3.1.0
 last_updated: 2026-04-27
 ---
@@ -18,6 +18,19 @@ Use this skill to turn one day of git commits into a readable work summary. The 
 - Group commits by **workstream / theme**, not just by repository order.
 - Rewrite raw commit messages into concise Chinese action summaries.
 - Do not include empty, noise-only, or clearly meaningless commits as standalone achievements.
+
+## Routing Boundary
+
+Use this skill only when the evidence source is **git commits**.
+
+Prefer another skill when:
+
+- User asks for all Codex sessions, projects, or "全面日报": use `project-daily-summary`.
+- User asks to summarize this current conversation: use `session-wrap`.
+- User asks for research/analysis conclusions: use `research-note-wrap`.
+- User asks for branch/worktree closeout: use `worktree-closeout`.
+
+If the user says "今天做了什么" without mentioning commits, first decide whether session evidence is expected. If yes, use `project-daily-summary`.
 
 ## Workflow
 
@@ -121,5 +134,4 @@ Before responding, verify:
 - [ ] Related commits are grouped into workstreams
 - [ ] Chinese task lines are human-readable and action-oriented
 - [ ] Empty noise commits are not treated as major work items
-
 
