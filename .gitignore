@@ -2,6 +2,8 @@
 .personality_migration
 .codex
 .backups/
+.inbox/
+inbox/
 .tmp/
 __pycache__/
 *.pyc

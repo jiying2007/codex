@@ -56,6 +56,9 @@ rtk bash scripts/backup-codex.sh
 
 # 仓库结构与脚本体检
 rtk bash scripts/doctor-assets.sh
+
+# 深度体检：额外检查 assets/codex 内 profile 激活状态
+rtk bash scripts/doctor-assets.sh --deep
 ```
 
 默认注入源是 `assets/codex/`，注入清单位于 `assets/codex/control/catalog/assets.txt`。脚本会始终跳过 `skills/.system/`，该目录以 `~/.codex` 中已有内容为准，本仓库不跟踪、不复制、不覆盖。脚本也会跳过 symlink；需要让目标环境生成 profile 激活链接时，使用 `--activate-profile <profile>`。
@@ -74,7 +77,7 @@ rtk bash scripts/promote-skill.sh inbox/skills/<name>/<timestamp> --version 0.1.
 rtk bash scripts/promote-skill.sh /path/to/skill --version 1.0.0 --tags third-party
 ```
 
-正式 skill 源统一归档到 `assets/codex/vendor/skills/<name>/<version>/`，并由 catalog/profile 生成激活入口。本仓库内置 `skill-asset-manager`，AI 遇到 skill 接入、扫描和归档任务时应使用它。
+正式 skill 源统一归档到 `assets/codex/vendor/skills/<name>/<version>/`，并由 catalog/profile 生成激活入口。`inbox/` 是未审核候选区，默认不纳入 git。本仓库内置 `skill-asset-manager`，AI 遇到 skill 接入、扫描和归档任务时应使用它。
 
 ## 新机器安装（首次上手）
 
@@ -139,7 +142,7 @@ rtk bash ~/codex/assets/codex/control/scripts/archive-bwrap.sh ~/codex/assets/co
 | `scripts/backup-codex.sh` | 备份当前 `~/.codex` |
 | `scripts/scan-codex-skills.sh` | 扫描运行目录中未归档 skill |
 | `scripts/promote-skill.sh` | 将候选/第三方 skill 提升为 vendor 资产 |
-| `scripts/doctor-assets.sh` | 检查仓库结构、脚本语法与资产源健康度 |
+| `scripts/doctor-assets.sh` | 检查仓库结构与脚本语法；`--deep` 额外检查资产源 profile |
 
 ## Profile 说明
 

@@ -78,6 +78,15 @@ rtk bash scripts/diff-codex.sh
 rtk bash scripts/backup-codex.sh
 ```
 
+仓库结构体检：
+
+```bash
+rtk bash scripts/doctor-assets.sh
+rtk bash scripts/doctor-assets.sh --deep
+```
+
+默认体检只检查资产仓库结构与脚本语法。`--deep` 会额外检查 `assets/codex` 内 profile 状态，适合排查激活层问题。
+
 ## `skills/.system/` 规则
 
 `skills/.system/` 由 Codex 本机环境提供，优先级高于本仓库。本仓库不得跟踪、复制或覆盖该目录。若未来需要观察系统技能变化，只做只读记录，不把内容纳入资产清单。
@@ -104,6 +113,8 @@ rtk bash scripts/scan-codex-skills.sh
 ```bash
 rtk bash scripts/promote-skill.sh inbox/skills/<name>/<timestamp> --version 0.1.0
 ```
+
+`inbox/` 是未审核候选区，默认不进入 git；只有通过审核并执行 promote 后，才成为正式可版本化资产。
 
 第三方 skill 也使用同一入口：
 

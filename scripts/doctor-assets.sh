@@ -4,7 +4,44 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DEFAULT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-ROOT="${1:-$ROOT_DEFAULT}"
+ROOT="$ROOT_DEFAULT"
+DEEP=0
+
+usage() {
+  cat <<'USAGE'
+用法: scripts/doctor-assets.sh [root] [--deep]
+
+检查 Codex 资产仓库结构与脚本语法。
+
+Options:
+  --deep   额外调用 assets/codex/control/scripts/doctor.sh 检查资产源 profile。
+           该检查面向已激活运行目录；在未激活的 assets/codex 中可能出现预期警告。
+  -h, --help
+           显示帮助
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --deep)
+      DEEP=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --*)
+      echo "[FATAL] 未知参数: $1" >&2
+      exit 2
+      ;;
+    *)
+      ROOT="$1"
+      shift
+      ;;
+  esac
+done
+
 ROOT="$(cd "$ROOT" && pwd)"
 SOURCE="$ROOT/assets/codex"
 
@@ -68,12 +105,14 @@ for script in "$ROOT"/scripts/*.sh; do
   fi
 done
 
-if [ -x "$SOURCE/control/scripts/doctor.sh" ]; then
+if [ "$DEEP" -eq 1 ] && [ -x "$SOURCE/control/scripts/doctor.sh" ]; then
   if ! "$SOURCE/control/scripts/doctor.sh" "$SOURCE" team-collab; then
     warn "assets/codex/control/scripts/doctor.sh 报告问题，请检查上方输出"
   fi
-else
+elif [ "$DEEP" -eq 1 ]; then
   warn "资产源缺少可执行 doctor.sh"
+else
+  echo "[INFO ] skip source profile doctor (use --deep to run)"
 fi
 
 echo "[INFO ] asset-root=$ROOT source=$SOURCE errors=$errors warnings=$warnings"

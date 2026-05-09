@@ -67,9 +67,10 @@ rtk bash scripts/apply-to-codex.sh --overwrite
 
 ```bash
 rtk bash scripts/doctor-assets.sh
+rtk bash scripts/doctor-assets.sh --deep
 ```
 
-该检查确认根目录没有旧运行资产入口、`assets/codex/skills/.system` 不存在、根级脚本语法有效，并调用资产源内的 `control/scripts/doctor.sh` 做 profile 体检。
+默认检查确认根目录没有旧运行资产入口、`assets/codex/skills/.system` 不存在、根级脚本语法有效。`--deep` 会额外调用资产源内的 `control/scripts/doctor.sh` 做 profile 体检；该检查面向已激活运行目录，在未激活的 `assets/codex` 中可能出现预期警告。
 
 ## Skill 归档策略
 
@@ -87,6 +88,8 @@ rtk bash scripts/scan-codex-skills.sh
 ```text
 inbox/skills/<name>/<timestamp>/
 ```
+
+`inbox/` 是未审核候选区，默认通过 `.gitignore` 排除；审核通过后再用 promote 脚本归档为正式 vendor 资产。
 
 归档审核通过的 skill：
 
