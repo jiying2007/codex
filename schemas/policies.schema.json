@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Policies Manifest",
+  "type": "object",
+  "required": ["schema_version", "protected_paths", "skip_source_paths"],
+  "properties": {
+    "schema_version": {"type": "integer"},
+    "protected_paths": {"type": "array", "items": {"type": "string"}},
+    "skip_source_paths": {"type": "array", "items": {"type": "string"}},
+    "default_apply_mode": {"type": "string"},
+    "overwrite_requires_backup": {"type": "boolean"}
+  }
+}

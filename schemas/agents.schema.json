@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Agents Manifest",
+  "type": "object",
+  "required": ["schema_version", "agents"],
+  "properties": {
+    "schema_version": {"type": "integer"},
+    "agents": {"type": "array"}
+  }
+}

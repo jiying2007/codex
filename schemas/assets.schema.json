@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Assets Manifest",
+  "type": "object",
+  "required": ["schema_version", "source_root", "build_root", "default_profile", "copy_roots", "generated", "config"],
+  "properties": {
+    "schema_version": {"type": "integer"},
+    "source_root": {"type": "string"},
+    "build_root": {"type": "string"},
+    "default_profile": {"type": "string"},
+    "copy_roots": {"type": "array", "items": {"type": "string"}},
+    "generated": {"type": "array", "items": {"type": "string"}},
+    "config": {"type": "object"}
+  }
+}

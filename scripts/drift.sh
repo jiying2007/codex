@@ -4,4 +4,4 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-exec python3 -m tools.codex_assets promote-skill --root "$ROOT" "$@"
+exec python3 -m tools.codex_assets drift --root "$ROOT" "$@"

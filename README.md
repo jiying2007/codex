@@ -28,6 +28,9 @@ rtk bash scripts/doctor.sh --scope all
 # 预览注入
 rtk bash scripts/apply.sh --dry-run --no-build
 
+# 生成机器可读 apply plan
+rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json
+
 # 构建并注入到 ~/.codex，默认保留已有普通文件
 rtk bash scripts/apply.sh --profile team-collab
 
@@ -37,8 +40,14 @@ rtk bash scripts/apply.sh --profile team-collab --overwrite
 # 对比 build 与 ~/.codex
 rtk bash scripts/diff.sh
 
+# 检查 live 是否偏离上次 managed state
+rtk bash scripts/drift.sh
+
 # 备份当前 ~/.codex
 rtk bash scripts/backup.sh
+
+# 端到端 smoke
+rtk bash tests/smoke.sh
 ```
 
 ## 目录职责
@@ -51,8 +60,11 @@ rtk bash scripts/backup.sh
 | `manifests/skills.json` | skill 版本、来源、启用 profile 与激活路径 |
 | `manifests/agents.json` | agent 版本、来源、启用 profile 与激活路径 |
 | `manifests/policies.json` | protected paths 与 apply 策略 |
+| `manifests/lock.json` | build 生成的 vendor 锁定摘要 |
 | `build/codex-home/` | `build.sh` 生成的可注入产物 |
 | `inbox/skills/` | 未审核 skill 候选区，默认不纳入 git |
+| `tools/codex_assets/` | Python CLI 核心实现 |
+| `schemas/` | manifest schema 文档与校验依据 |
 
 ## Skill 生命周期
 
@@ -81,5 +93,6 @@ rtk bash scripts/apply.sh --profile team-collab
 5. `skills/.system/` 永远以 `~/.codex` 为准。
 6. 未审核资产先进入 `inbox/`，审核通过后 promote。
 7. 每次改动后运行 `build.sh` 与 `doctor.sh`。
+8. 发布前运行 `tests/smoke.sh`。
 
 更多细节见 `docs/design.md` 与 `docs/codex-asset-management.md`。

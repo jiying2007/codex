@@ -5,8 +5,10 @@
 1. 修改 `src/codex-home/` 中的人工资产，或修改 `manifests/*.json`。
 2. 运行 `rtk bash scripts/build.sh --profile team-collab`。
 3. 运行 `rtk bash scripts/doctor.sh --scope all`。
-4. 运行 `rtk bash scripts/apply.sh --dry-run --no-build` 预览。
-5. 确认后运行 `rtk bash scripts/apply.sh --profile team-collab`。
+4. 运行 `rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json` 生成审计计划。
+5. 运行 `rtk bash scripts/apply.sh --dry-run --no-build` 预览。
+6. 确认后运行 `rtk bash scripts/apply.sh --profile team-collab`。
+7. 发布前运行 `rtk bash tests/smoke.sh`。
 
 ## 新增普通资产
 
@@ -77,6 +79,9 @@ rtk bash scripts/doctor.sh --scope repo
 rtk bash scripts/doctor.sh --scope build
 rtk bash scripts/doctor.sh --scope live
 rtk bash scripts/diff.sh
+rtk bash scripts/drift.sh
 ```
 
 若 `diff.sh` 报告普通文件不同，先判断目标文件是否为本机私有修改；若需要仓库版本覆盖，再使用 `apply.sh --overwrite`。
+
+若 `drift.sh` 报告 changed，表示 live 中受管理文件偏离了上次 apply 时的 managed state；先确认是否为人工修改，再决定重新 apply 或将修改提升回源资产。

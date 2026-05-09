@@ -37,6 +37,7 @@ rtk bash scripts/promote-skill.sh inbox/skills/<name>/<timestamp> --version 0.1.
 ```bash
 rtk bash scripts/build.sh --profile team-collab
 rtk bash scripts/doctor.sh --scope all
+rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json
 rtk bash scripts/apply.sh --dry-run --no-build
 rtk bash scripts/apply.sh --profile team-collab
 ```
@@ -50,4 +51,6 @@ rtk bash scripts/apply.sh --profile team-collab
 - Never archive or overwrite `skills/.system`.
 - Do not promote symlink activation entries; promote real skill directories only.
 - Run `--dry-run` first when the target or version is uncertain.
+- Prefer `scripts/plan.sh` before applying to produce an auditable apply plan.
+- Use `scripts/drift.sh` to detect live managed-file drift.
 - If validation reports suspected secrets, stop and ask the user to clean or confirm a safe source.

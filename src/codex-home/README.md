@@ -9,3 +9,4 @@
 - 第三方 skill 的正式源放在 `vendor/skills/<name>/<version>/`。
 - `skills/` 只保留 README、registry 模板和维护脚本等基础文件。
 - profile 激活入口由 build 阶段生成 symlink。
+- `config/base.toml` 是 `config.toml` 的构建模板。

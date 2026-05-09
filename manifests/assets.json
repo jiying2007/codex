@@ -11,7 +11,6 @@
     "config.dev.toml",
     "config.embedded.toml",
     "config.max.toml",
-    "config.toml",
     "control",
     "mcp",
     "prompts",
@@ -20,9 +19,15 @@
     "vendor"
   ],
   "generated": [
+    "config.toml",
     "skills/registry.csv",
     "control/state/active-profile.env",
     "control/state/managed-files.json"
   ],
+  "config": {
+    "base": "config/base.toml",
+    "profiles": {},
+    "output": "config.toml"
+  },
   "notes": "build/codex-home is generated from src/codex-home plus manifests; apply.sh only deploys build output."
 }
