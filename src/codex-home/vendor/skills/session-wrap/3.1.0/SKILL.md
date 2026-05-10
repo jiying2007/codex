@@ -1,6 +1,6 @@
 ---
 name: session-wrap
-description: Use only for wrapping up the current Codex session: completed work, decisions, validation, risks, next actions, and optional commit guidance. Prefer project-daily-summary for all-day or cross-session project reports, commit-daily-summary for commit-only summaries, research-note-wrap for analysis notes, and worktree-closeout for branch/worktree closeout.
+description: "Use only for wrapping up the current Codex session: completed work, decisions, validation, risks, next actions, and optional commit guidance. Prefer project-daily-summary for all-day or cross-session project reports, commit-daily-summary for commit-only summaries, research-note-wrap for analysis notes, and worktree-closeout for branch/worktree closeout."
 version: 3.1.0
 last_updated: 2026-04-27
 ---

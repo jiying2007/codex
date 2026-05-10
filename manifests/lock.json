@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 409,
+  "managed_count": 421,
   "items": [
     {
       "kind": "skill",
@@ -44,6 +44,13 @@
       "version": "3.1.0",
       "source": "vendor/skills/commit-daily-summary/3.1.0",
       "sha256": "2f9aa442d4959c44aba5787884712c6356e6a29c6397ed6c1c735f6ed26127c4"
+    },
+    {
+      "kind": "skill",
+      "name": "context-compress-handoff",
+      "version": "0.1.0",
+      "source": "vendor/skills/context-compress-handoff/0.1.0",
+      "sha256": "a3a9c512297ed364b0343fdaa0b0f862d98b50bdd4d10ea3b81916fd12934eb1"
     },
     {
       "kind": "skill",
@@ -141,14 +148,14 @@
       "name": "session-wrap",
       "version": "3.1.0",
       "source": "vendor/skills/session-wrap/3.1.0",
-      "sha256": "f8daa78b828f4c0513dee47bb75656750232d00cf9bcccc3d22d3eaa4782dad5"
+      "sha256": "f2b4dee530628f344e70c31056a5f6f92126aad7c455560304af775044041371"
     },
     {
       "kind": "skill",
       "name": "skill-asset-manager",
       "version": "0.2.0",
       "source": "vendor/skills/skill-asset-manager/0.2.0",
-      "sha256": "9adcd327b31239a6e0054415645ba21209a7d10d9e88e25bc08d91fb7a100dba"
+      "sha256": "96928126d8210fcc3532a8e06bb3faf28f5589841a736e7abc07182f8ebc23ca"
     },
     {
       "kind": "skill",
@@ -197,7 +204,7 @@
       "name": "worktree-closeout",
       "version": "3.1.0",
       "source": "vendor/skills/worktree-closeout/3.1.0",
-      "sha256": "f73c1ab1e98eac4cd11fe64deef33c1afc24c6b2d715ac233b22579eccac1c1c"
+      "sha256": "a713e1ae744a2fa956c68924e26fa50568671dde2153d57a3b596aa0838bdbf1"
     },
     {
       "kind": "skill",

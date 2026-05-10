@@ -107,6 +107,29 @@
       ]
     },
     {
+      "name": "context-compress-handoff",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/context-compress-handoff/0.1.0",
+      "target_rel": "skills/context-compress-handoff",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "context",
+        "compression",
+        "handoff"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/context-compress-handoff/0.1.0",
+      "imported_at": "2026-05-10",
+      "review_status": "accepted"
+    },
+    {
       "name": "create-plan",
       "enabled": true,
       "source_kind": "vendor",

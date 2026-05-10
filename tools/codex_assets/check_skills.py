@@ -5,6 +5,8 @@ import pathlib
 import re
 import sys
 
+from .core import CodexAssetError, parse_frontmatter
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SKILLS_ROOT = ROOT / "src/codex-home/vendor/skills"
@@ -15,17 +17,7 @@ LINK = re.compile(r"(?:\]\(|`)((?:scripts|references|reference|examples)/[^)`#\s
 
 
 def frontmatter(path: pathlib.Path) -> dict[str, str]:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    if not lines or lines[0].strip() != "---":
-        return {}
-    data: dict[str, str] = {}
-    for line in lines[1:]:
-        if line.strip() == "---":
-            return data
-        if ":" in line and not line.startswith(" "):
-            key, value = line.split(":", 1)
-            data[key.strip()] = value.strip().strip("'\"")
-    return data
+    return {str(key): str(value) for key, value in parse_frontmatter(path).items()}
 
 
 def main() -> int:
@@ -39,7 +31,11 @@ def main() -> int:
         skill_dir = skill_md.parent
         expected_version = skill_dir.name
         expected_name = skill_dir.parent.name
-        meta = frontmatter(skill_md)
+        try:
+            meta = frontmatter(skill_md)
+        except CodexAssetError as exc:
+            errors.append(str(exc))
+            continue
 
         for field in ["name", "description", "version", "last_updated"]:
             if not meta.get(field):
@@ -83,7 +79,11 @@ def main() -> int:
             if not skill_md.is_file():
                 errors.append(f"manifest:{name} vendor_rel 缺少 SKILL.md")
                 continue
-            meta = frontmatter(skill_md)
+            try:
+                meta = frontmatter(skill_md)
+            except CodexAssetError as exc:
+                errors.append(str(exc))
+                continue
             if meta.get("name") != name:
                 errors.append(f"manifest:{name} 与 SKILL.md name={meta.get('name')} 不一致")
             if meta.get("version") != item.get("version"):

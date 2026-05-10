@@ -43,6 +43,15 @@ rtk bash scripts/diff.sh
 # 检查 live 是否偏离上次 managed state
 rtk bash scripts/drift.sh
 
+# 检查 bwrap 新沙箱参数能力（默认告警）
+rtk bash scripts/check-bwrap-capability.sh
+
+# 强制要求满足新沙箱参数（不满足返回失败）
+rtk bash scripts/check-bwrap-capability.sh --require-modern
+
+# 用自适应参数执行 bwrap 沙箱命令
+rtk bash scripts/run-sandbox.sh -- /bin/true
+
 # 备份当前 ~/.codex
 rtk bash scripts/backup.sh
 
@@ -51,6 +60,9 @@ rtk bash scripts/archive-note.sh /path/to/note.md --topic embedded-debug
 
 # 周期性整理 memories、AGENTS 与归档知识，默认只生成审计报告
 rtk bash scripts/curate-memory.sh
+
+# 上下文压缩前 90 秒 preflight（会话接力模板）
+rtk bash scripts/context-preflight.sh
 
 # 多源搜索能力由 multi-search-engine skill 提供，仅 team-collab profile 激活
 

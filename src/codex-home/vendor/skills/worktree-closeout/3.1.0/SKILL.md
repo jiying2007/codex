@@ -1,6 +1,6 @@
 ---
 name: worktree-closeout
-description: Use only for read-only branch/worktree closeout triage across sessions or repos: date/scope scan, status classification, merge/prune order, and handoff prompts. Prefer session-wrap for one current session, project-daily-summary for daily project reports, and commit-daily-summary for commit-only summaries.
+description: "Use only for read-only branch/worktree closeout triage across sessions or repos: date/scope scan, status classification, merge/prune order, and handoff prompts. Prefer session-wrap for one current session, project-daily-summary for daily project reports, and commit-daily-summary for commit-only summaries."
 version: 3.1.0
 last_updated: 2026-04-27
 ---
@@ -211,4 +211,3 @@ Do not hide uncertainty. If the artifact and current chat context disagree, call
 - No fabricated status if the scan comes back empty or ambiguous
 
 Use this skill to organize closeout work, not to silently execute risky git actions.
-

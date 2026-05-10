@@ -1,6 +1,6 @@
 ---
 name: skill-asset-manager
-description: Use only for Codex skill asset governance: discovering live skills, importing third-party skills, reviewing candidates, promoting versions, updating manifests, applying assets to ~/.codex, rollback, and checking skill inventory health.
+description: "Use only for Codex skill asset governance: discovering live skills, importing third-party skills, reviewing candidates, promoting versions, updating manifests, applying assets to ~/.codex, rollback, and checking skill inventory health."
 version: 0.2.0
 last_updated: 2026-05-09
 ---

@@ -124,6 +124,26 @@ docs/archive/codex-agent-mem/
 - Phase 2 手动写入：先由 `memory-curator` 生成候选，再人工确认是否写入 `~/.codex/memories` 或 codex-agent-mem note/snapshot。
 - Phase 3 任务闭环：会话开始读取可用 context pack，会话结束执行 `knowledge-archive + memory-curator`，重要决策人工提升到 `AGENTS.md` 或 memory。
 
+## 上下文压缩与会话接力
+
+`context-compress-handoff` 用于在主动压缩上下文前做快速收口，固定输出 preflight、会话总结归档和恢复提示。
+
+常用入口：
+
+```bash
+rtk bash scripts/context-preflight.sh
+```
+
+建议闭环：
+
+```bash
+rtk bash scripts/context-preflight.sh
+rtk bash scripts/archive-note.sh <session-summary.md> --topic session-wrap --title "<title>"
+rtk bash scripts/curate-memory.sh --dry-run
+```
+
+当会话很长且噪音较多时，可使用 `local-context-curator` 做提炼，但最终归档与结论由主 agent 输出。
+
 ## 多源搜索能力
 
 `multi-search-engine` 按 v2 skill 方式接入，只在 `team-collab` profile 激活。它用于需要外部证据的问题，例如当前信息、资料核验、标准/库/工具对比和多来源交叉验证。
@@ -173,6 +193,34 @@ rtk bash scripts/diff.sh
 rtk bash scripts/drift.sh
 rtk bash scripts/check.sh
 ```
+
+## 沙箱能力与兼容
+
+平台上可能存在旧版 `bwrap`（如仅支持 `--ro-bind-try`，不支持 `--perms`/`--size`）。v2 提供两层支持：
+
+1. 能力检查：
+
+```bash
+rtk bash scripts/check-bwrap-capability.sh
+```
+
+2. 自适应运行（自动降级参数）：
+
+```bash
+rtk bash scripts/run-sandbox.sh -- /bin/true
+```
+
+严格模式（发布门禁）：
+
+```bash
+rtk bash scripts/check-bwrap-capability.sh --require-modern
+REQUIRE_MODERN_BWRAP=1 rtk bash scripts/check.sh
+```
+
+说明：
+
+- 默认 `scripts/check.sh` 只记录 bwrap 能力并告警，不阻断发布。
+- 设置 `REQUIRE_MODERN_BWRAP=1` 后，若缺少 `--perms`/`--size` 或运行态不满足，将直接失败。
 
 若 `diff.sh` 报告普通文件不同，先判断目标文件是否为本机私有修改；若需要仓库版本覆盖，再使用 `apply.sh --overwrite`。
 

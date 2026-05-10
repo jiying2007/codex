@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+import yaml
+
 
 class CodexAssetError(RuntimeError):
     pass
@@ -57,6 +59,20 @@ def matches_any(rel: str | pathlib.Path, patterns: list[str]) -> bool:
 
 def split_list(value: str) -> list[str]:
     return [part.strip() for part in re.split(r"[|,]", value) if part.strip()]
+
+
+def parse_frontmatter(path: pathlib.Path) -> dict[str, Any]:
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    match = re.search(r"^---\n(.*?)\n---", text, re.S)
+    if not match:
+        return {}
+    try:
+        data = yaml.safe_load(match.group(1)) or {}
+    except yaml.YAMLError as exc:
+        fail(f"无效 frontmatter YAML: {path}: {exc}")
+    if not isinstance(data, dict):
+        fail(f"frontmatter 必须是 key/value 映射: {path}")
+    return data
 
 
 def slugify(value: str) -> str:
@@ -609,14 +625,8 @@ def live_drift(build: str | pathlib.Path, target: str | pathlib.Path) -> dict[st
 
 
 def frontmatter_value(path: pathlib.Path, key: str) -> str:
-    text = path.read_text(errors="ignore")
-    match = re.search(r"^---\n(.*?)\n---", text, re.S)
-    if not match:
-        return ""
-    for line in match.group(1).splitlines():
-        if line.startswith(f"{key}:"):
-            return line.split(":", 1)[1].strip().strip('"')
-    return ""
+    value = parse_frontmatter(path).get(key, "")
+    return value if isinstance(value, str) else str(value)
 
 
 def normalize_name(value: str) -> str:

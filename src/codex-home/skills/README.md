@@ -50,6 +50,23 @@ rtk bash ~/codex/scripts/curate-memory.sh
 - Phase 2：人工确认后手动写入 memory 或 codex-agent-mem。
 - Phase 3：会话开始读取 context，结束时归档并整理。
 
+## 上下文压缩与会话接力
+
+当用户要求“上下文压缩前处理”“会话接力”“恢复上下文”“resume prompt”时，路由到 `context-compress-handoff`。
+
+入口：
+
+```bash
+rtk bash ~/codex/scripts/context-preflight.sh
+```
+
+默认闭环：
+
+- 生成 preflight 模板
+- `session-wrap` 产出会话总结
+- `knowledge-archive` 归档总结
+- `memory-curator --dry-run` 生成记忆审计建议
+
 ## 多源搜索
 
 当用户要求“多源搜索”“交叉验证”“资料核验”时，路由到 `multi-search-engine`。该 skill 仅在 `team-collab` profile 激活，用于需要外部证据的问题；本地代码库问题仍优先读取仓库。

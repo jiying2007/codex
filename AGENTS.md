@@ -306,6 +306,10 @@
   - 出现“会话总结归档”时，先用 `session-wrap` 生成总结，再用 `knowledge-archive` 归档
   - 出现“排障结论归档/调研结论归档/架构结论归档”时，先用 `research-note-wrap` 生成笔记，再用 `knowledge-archive` 归档
   - 固定归档目标为 `~/codex/docs/archive/<topic>/`；不得归档到 `~/.codex`、`src/codex-home/`、`build/` 或 `control/`
+- 上下文压缩与会话接力路由规则：
+  - 出现“压缩前处理/上下文压缩前/会话接力/恢复上下文/resume prompt/90 秒模板”时，使用 `context-compress-handoff`
+  - `context-compress-handoff` 默认流程：`context-preflight -> session-wrap -> knowledge-archive -> memory-curator --dry-run`
+  - 当会话很长且噪音较多时，可调用 `local-context-curator` 做提炼，但最终决策与归档仍由主 agent 输出
 - 记忆整理路由规则：
   - 出现“整理 memory/整理 memories/记忆整理/memory-curator/周期性整理记忆/整理 AGENTS 与决策记录”时，使用 `memory-curator`
   - `memory-curator` 默认只生成审计报告到 `~/codex/docs/archive/memory-curation/`，不得静默覆盖 `~/.codex/memories` 或 `AGENTS.md`

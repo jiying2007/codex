@@ -89,6 +89,20 @@
       "model": "gpt-5.4",
       "reasoning_effort": "high",
       "description": "收口整合代理"
+    },
+    {
+      "name": "local-context-curator",
+      "enabled": true,
+      "source_kind": "local",
+      "version": "0.1.0",
+      "vendor_rel": "control/agents-local/local-context-curator.toml",
+      "target_rel": "agents/local-context-curator.toml",
+      "profiles": [
+        "team-collab"
+      ],
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "description": "上下文压缩与会话接力整理代理"
     }
   ]
 }

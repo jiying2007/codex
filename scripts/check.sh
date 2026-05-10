@@ -7,6 +7,11 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 rtk bash "$ROOT/scripts/build.sh" --profile team-collab
 rtk bash "$ROOT/scripts/doctor.sh" --scope all
 rtk bash "$ROOT/scripts/check-skills.sh"
+if [[ "${REQUIRE_MODERN_BWRAP:-0}" == "1" ]]; then
+  rtk bash "$ROOT/scripts/check-bwrap-capability.sh" --require-modern --json-out "$ROOT/build/bwrap-capability.json"
+else
+  rtk bash "$ROOT/scripts/check-bwrap-capability.sh" --json-out "$ROOT/build/bwrap-capability.json"
+fi
 rtk bash "$ROOT/scripts/plan.sh" --target "$HOME/.codex" --output "$ROOT/build/apply-plan.check.json"
 rtk bash "$ROOT/scripts/apply.sh" --dry-run --no-build --target "$HOME/.codex" --plan-out "$ROOT/build/apply-plan.check-dry-run.json"
 rtk bash "$ROOT/tests/smoke.sh"

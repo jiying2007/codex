@@ -6,6 +6,7 @@ build/
 .inbox/
 inbox/
 .tmp/
+scratch/
 __pycache__/
 *.pyc
 auth.json

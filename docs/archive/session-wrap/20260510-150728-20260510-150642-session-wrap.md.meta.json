@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "archived_at": "2026-05-10T15:07:28+08:00",
+  "source": "/home/leiwenjun/codex/scratch/20260510-150642-session-wrap.md",
+  "destination": "/home/leiwenjun/codex/docs/archive/session-wrap/20260510-150728-20260510-150642-session-wrap.md",
+  "metadata": "/home/leiwenjun/codex/docs/archive/session-wrap/20260510-150728-20260510-150642-session-wrap.md.meta.json",
+  "topic": "session-wrap",
+  "title": "会话收尾归档 2026-05-10",
+  "description": "上下文压缩前准备、sandbox 能力升级与验证",
+  "mode": "move"
+}
