@@ -134,7 +134,7 @@ rtk bash scripts/archive-note.sh /path/to/note-dir --topic topic-name --move
 1. 默认复制，不移动来源；`--move` 只用于明确完成迁移的材料。
 2. 每次归档生成时间戳文件/目录、同名 `.meta.json` 和主题 `index.md`。
 3. 归档目标必须位于本仓库内，默认 `docs/archive/<topic>/`。
-4. 拒绝归档 `.codex` 运行态、密钥、日志、session、cache、`auth.json` 和 protected paths。
+4. 拒绝归档 `.codex` 运行态、密钥、日志、session、cache、`auth.json`、protected paths 和旧 control 知识态目录。
 5. `scripts/check.sh` 会阻止旧 control 知识态目录重新进入 `src/codex-home/`。
 
 进入 `docs/archive/` 的材料应是可复用结论、背景、约束、决策和验证证据；一次性过程噪音、私密上下文和机器状态不沉淀。

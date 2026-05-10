@@ -1,0 +1,4 @@
+interface:
+  display_name: "memory-curator"
+  short_description: "周期性整理 memories、AGENTS、日报和决策记录"
+  default_prompt: "Use $memory-curator to audit and consolidate Codex memory sources into a curation report before proposing memory or AGENTS updates."

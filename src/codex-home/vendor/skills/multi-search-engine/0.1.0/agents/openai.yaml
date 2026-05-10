@@ -1,0 +1,4 @@
+interface:
+  display_name: "multi-search-engine"
+  short_description: "多源搜索、交叉验证与证据型调研"
+  default_prompt: "Use $multi-search-engine to verify a question across multiple credible sources and return concise evidence with citations."

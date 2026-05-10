@@ -16,6 +16,28 @@
       ]
     },
     {
+      "name": "browser-reader",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/browser-reader/0.1.0",
+      "target_rel": "skills/browser-reader",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "browser",
+        "reading",
+        "verification"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/browser-reader/0.1.0",
+      "imported_at": "2026-05-10",
+      "review_status": "accepted"
+    },
+    {
       "name": "caveman",
       "enabled": true,
       "source_kind": "vendor",
@@ -172,6 +194,29 @@
       ]
     },
     {
+      "name": "knowledge-archive",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/knowledge-archive/0.1.0",
+      "target_rel": "skills/knowledge-archive",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "archive",
+        "knowledge",
+        "summary"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/knowledge-archive/0.1.0",
+      "imported_at": "2026-05-10",
+      "review_status": "accepted"
+    },
+    {
       "name": "mcp-builder",
       "enabled": true,
       "source_kind": "vendor",
@@ -192,6 +237,51 @@
       "source_ref": "f458cee31a7577a47ba0c9a101976fa599385174",
       "source_path": "skills/mcp-builder",
       "imported_at": "2026-05-09",
+      "review_status": "accepted"
+    },
+    {
+      "name": "memory-curator",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/memory-curator/0.1.0",
+      "target_rel": "skills/memory-curator",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "memory",
+        "archive",
+        "governance"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/memory-curator/0.1.0",
+      "imported_at": "2026-05-10",
+      "review_status": "accepted"
+    },
+    {
+      "name": "multi-search-engine",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/multi-search-engine/0.1.0",
+      "target_rel": "skills/multi-search-engine",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "research",
+        "search",
+        "verification"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/multi-search-engine/0.1.0",
+      "imported_at": "2026-05-10",
       "review_status": "accepted"
     },
     {

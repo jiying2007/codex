@@ -17,6 +17,20 @@
       "description": "代码审查代理"
     },
     {
+      "name": "agent-browser",
+      "enabled": true,
+      "source_kind": "local",
+      "version": "0.1.0",
+      "vendor_rel": "control/agents-local/agent-browser.toml",
+      "target_rel": "agents/agent-browser.toml",
+      "profiles": [
+        "team-collab"
+      ],
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "description": "受限浏览器读取代理"
+    },
+    {
       "name": "local-architect",
       "enabled": true,
       "source_kind": "local",

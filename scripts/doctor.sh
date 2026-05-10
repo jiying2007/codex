@@ -6,8 +6,8 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 for script in "$ROOT"/scripts/*.sh; do
   [ -f "$script" ] || continue
-  bash -n "$script"
+  rtk bash -n "$script"
 done
 
-python3 -m py_compile "$ROOT"/tools/codex_assets/*.py
-exec python3 -m tools.codex_assets doctor --root "$ROOT" "$@"
+rtk python3 -m py_compile "$ROOT"/tools/codex_assets/*.py
+exec rtk python3 -m tools.codex_assets doctor --root "$ROOT" "$@"

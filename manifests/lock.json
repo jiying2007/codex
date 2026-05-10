@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 371,
+  "managed_count": 409,
   "items": [
     {
       "kind": "skill",
@@ -9,6 +9,13 @@
       "version": "1.1.9",
       "source": "vendor/plugins/superpowers/1.1.9/skills/brainstorming",
       "sha256": "3839ee31365ad876effcb0398ac2cc4745594eb9819100022a11f80404541709"
+    },
+    {
+      "kind": "skill",
+      "name": "browser-reader",
+      "version": "0.1.0",
+      "source": "vendor/skills/browser-reader/0.1.0",
+      "sha256": "136fe3e642718fcbbb1dca14038347255f9bbeb09600d40850a2d7e9f95aa8d9"
     },
     {
       "kind": "skill",
@@ -75,10 +82,31 @@
     },
     {
       "kind": "skill",
+      "name": "knowledge-archive",
+      "version": "0.1.0",
+      "source": "vendor/skills/knowledge-archive/0.1.0",
+      "sha256": "8b586780d5d5b1b5bb27f7b91d2c1ecf79feb09a7bce6fcdda9feb952a3553c8"
+    },
+    {
+      "kind": "skill",
       "name": "mcp-builder",
       "version": "0.1.0",
       "source": "vendor/skills/mcp-builder/0.1.0",
       "sha256": "4254ed52302c8f9ee258f1af7f1770a7155faaa65d8e47007d9c997c39cbff8f"
+    },
+    {
+      "kind": "skill",
+      "name": "memory-curator",
+      "version": "0.1.0",
+      "source": "vendor/skills/memory-curator/0.1.0",
+      "sha256": "66042e6745b21da0a7ee3cc83ea41fb3e26a3e3c671b471c8397b134b00b3c7e"
+    },
+    {
+      "kind": "skill",
+      "name": "multi-search-engine",
+      "version": "0.1.0",
+      "source": "vendor/skills/multi-search-engine/0.1.0",
+      "sha256": "94710e2cc9290a844f193eceaa63aca6ba5b50b7ee0bc1d32d04dc34044a68cc"
     },
     {
       "kind": "skill",

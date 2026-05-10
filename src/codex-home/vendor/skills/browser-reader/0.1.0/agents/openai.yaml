@@ -1,0 +1,4 @@
+interface:
+  display_name: "browser-reader"
+  short_description: "受限浏览器读取、手动验证后网页整理"
+  default_prompt: "Use $browser-reader to inspect a user-authorized webpage with browser assistance, without bypassing captcha or submitting forms."

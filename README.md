@@ -49,6 +49,11 @@ rtk bash scripts/backup.sh
 # 归档一份长期知识材料到 docs/archive/<topic>/
 rtk bash scripts/archive-note.sh /path/to/note.md --topic embedded-debug
 
+# 周期性整理 memories、AGENTS 与归档知识，默认只生成审计报告
+rtk bash scripts/curate-memory.sh
+
+# 多源搜索能力由 multi-search-engine skill 提供，仅 team-collab profile 激活
+
 # 从指定 apply plan 回滚
 rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
 

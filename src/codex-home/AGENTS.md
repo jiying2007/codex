@@ -300,14 +300,37 @@
   - 出现“提交总结/我今天做了什么（且强调 commit）”优先 `commit-daily-summary`
   - 出现“项目日报/按项目总结今天/所有会话”优先 `project-daily-summary`
   - 出现“调研纪要/分析纪要/输出结论”优先 `research-note-wrap`
+- 知识沉淀路由规则：
+  - 出现“知识归档/长期沉淀/沉淀到 docs/archive/保存到 docs/archive”时，使用 `knowledge-archive`
+  - 出现“日报归档”时，先用 `project-daily-summary` 生成日报，再用 `knowledge-archive` 归档
+  - 出现“会话总结归档”时，先用 `session-wrap` 生成总结，再用 `knowledge-archive` 归档
+  - 出现“排障结论归档/调研结论归档/架构结论归档”时，先用 `research-note-wrap` 生成笔记，再用 `knowledge-archive` 归档
+  - 固定归档目标为 `~/codex/docs/archive/<topic>/`；不得归档到 `~/.codex`、`src/codex-home/`、`build/` 或 `control/`
+- 记忆整理路由规则：
+  - 出现“整理 memory/整理 memories/记忆整理/memory-curator/周期性整理记忆/整理 AGENTS 与决策记录”时，使用 `memory-curator`
+  - `memory-curator` 默认只生成审计报告到 `~/codex/docs/archive/memory-curation/`，不得静默覆盖 `~/.codex/memories` 或 `AGENTS.md`
+  - 只有用户明确要求写入候选 memory 时，才生成 `~/.codex/memories/.codex/curation-inbox/` 候选文件
+  - Phase 1 报告归档：默认阶段，只生成 `docs/archive/` 归档和 memory-curator 审计报告，不写入任何长期 memory
+  - Phase 2 手动写入：由 `memory-curator` 生成候选；人工确认后才可写入 codex-agent-mem note/snapshot；不得自动双写 `~/.codex/memories` 与 codex-agent-mem
+  - Phase 3 任务闭环：会话开始优先读取 `AGENTS.md`、相关 `docs/archive`、memory-curator 报告和已启用的 codex-agent-mem context pack；会话结束执行 `knowledge-archive + memory-curator`，重要决策人工提升到 `AGENTS.md` 或 memory
+  - 记忆优先级：当前用户指令 > 仓库 / 项目 `AGENTS.md` > 项目 docs / archive > codex-agent-mem 检索结果 > 历史会话摘要
+- 多源搜索路由规则：
+  - 出现“多源搜索/交叉验证/资料核验/查多个来源/multi-search”时，使用 `multi-search-engine`
+  - `multi-search-engine` 只用于需要外部证据的问题；本地代码库问题优先读取仓库
+  - 搜索结论必须附来源链接、日期判断、置信度与不确定性
+- 浏览器读取路由规则：
+  - 出现“浏览器查看/打开网页读取/微信公众号文章整理/agent-browser/需要浏览器”时，使用 `browser-reader`
+  - `browser-reader` 可按需调用受限 `agent-browser`；只读，不自动登录、不提交表单、不绕过验证码、不批量抓取
+  - 遇到微信安全验证、验证码或登录墙时，要求用户手动完成验证；只整理用户授权且可见的页面内容
 - 若用户要求“日报 + 收口附录”，主 skill 选 `project-daily-summary`，并追加 `worktree-closeout`。
 - 并行开发规划 / 多 worktree 协作统一由 `codex-parallel-collab` 负责编排。
 - 在回复中声明本次使用了哪些技能；未命中 skill 时明确说明“未使用专用 skill”。
-
 ### 技能元数据治理
 
-- 每个技能目录至少包含：`SKILL.md`、`README.md`、`LICENSE`。
-- 每个 `SKILL.md` frontmatter 必须包含：
+- 本仓库直接维护的 `src/codex-home/vendor/skills/<name>/<version>/` 必须满足本节规则。
+- `src/codex-home/vendor/plugins/**/skills/` 属于上游插件内容，默认不改写其元数据；只通过 manifest、lock 和 build 检查控制激活范围。
+- 每个本地 managed skill 目录至少包含：`SKILL.md`、`README.md`、`LICENSE`。
+- 每个本地 managed `SKILL.md` frontmatter 必须包含：
   - `name`
   - `description`
   - `version`（语义化版本，如 `3.1.0`）

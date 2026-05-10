@@ -81,6 +81,14 @@ def assert_safe_archive_source(source: pathlib.Path, repo: "Repo") -> None:
         rel = resolved.relative_to(repo.root).as_posix()
     except ValueError:
         pass
+    old_control_roots = [
+        "src/codex-home/control/archives",
+        "src/codex-home/control/knowledge",
+        "src/codex-home/control/roles",
+        "src/codex-home/control/workflows",
+    ]
+    if rel and any(rel == root or rel.startswith(f"{root}/") for root in old_control_roots):
+        fail(f"拒绝归档旧 control 知识态目录: {rel}")
     protected = repo.policies.get("protected_paths", [])
     if rel and matches_any(rel, protected):
         fail(f"拒绝归档 protected path: {rel}")
