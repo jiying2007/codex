@@ -95,6 +95,19 @@ def active(item: dict[str, Any], profile: str) -> bool:
     return bool(item.get("enabled", True)) and profile in item.get("profiles", [])
 
 
+def inactive_plugin_skill_patterns(source: pathlib.Path, skills: list[dict[str, Any]], profile: str) -> list[str]:
+    active_sources = {item["vendor_rel"] for item in skills if active(item, profile)}
+    patterns: list[str] = []
+    plugins_dir = source / "vendor/plugins"
+    if not plugins_dir.is_dir():
+        return patterns
+    for skill_md in sorted(plugins_dir.glob("*/*/skills/*/SKILL.md")):
+        rel = skill_md.parent.relative_to(source).as_posix()
+        if rel not in active_sources:
+            patterns.append(f"{rel}/**")
+    return patterns
+
+
 def copy_entry(src: pathlib.Path, dst: pathlib.Path, rel: pathlib.Path, protected: list[str], skip_source: list[str]) -> None:
     if matches_any(rel, protected) or matches_any(rel, skip_source):
         return
@@ -201,8 +214,9 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         shutil.rmtree(tmp_build)
     tmp_build.mkdir(parents=True)
 
+    skills = repo.manifest("skills.json").get("skills", [])
     protected = policies.get("protected_paths", [])
-    skip_source = policies.get("skip_source_paths", [])
+    skip_source = policies.get("skip_source_paths", []) + inactive_plugin_skill_patterns(source, skills, profile)
     for rel_text in assets.get("copy_roots", []):
         if rel_text == "config.toml":
             continue
@@ -211,7 +225,7 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
 
     render_config(repo, tmp_build, profile)
 
-    for item in repo.manifest("skills.json").get("skills", []):
+    for item in skills:
         if active(item, profile):
             src_path = tmp_build / item["vendor_rel"]
             if not src_path.exists():

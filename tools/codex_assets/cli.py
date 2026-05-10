@@ -8,6 +8,7 @@ from datetime import datetime
 from .core import (
     CodexAssetError,
     Repo,
+    active,
     apply_plan,
     build_repo,
     diff_build_live,
@@ -109,6 +110,14 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             errors.append(f"构建目录不存在: {build}")
         elif not (build / "control/state/managed-files.json").is_file():
             errors.append("build 缺少 managed-files.json")
+        else:
+            state = read_json(build / "control/state/managed-files.json")
+            profile = state.get("profile", repo.assets.get("default_profile", ""))
+            active_sources = {item["vendor_rel"] for item in repo.manifest("skills.json").get("skills", []) if active(item, profile)}
+            for skill_md in sorted((build / "vendor/plugins").glob("*/*/skills/*/SKILL.md")):
+                rel = skill_md.parent.relative_to(build).as_posix()
+                if rel not in active_sources:
+                    errors.append(f"build 包含未激活 plugin skill: {rel}")
     if args.scope in {"live", "all"}:
         print("[INFO ] scope=live")
         target = pathlib.Path(args.target).expanduser()

@@ -1,20 +1,54 @@
 version: 1
-updated_at: 2026-05-01
+updated_at: 2026-05-10
 plugins:
   - name: superpowers
     version: 1.1.9
     source: superpowers-zh
     vendor_path: vendor/plugins/superpowers/1.1.9
+    activated_skills:
+      - brainstorming
+      - dispatching-parallel-agents
+      - executing-plans
+      - finishing-a-development-branch
+      - receiving-code-review
+      - requesting-code-review
+      - subagent-driven-development
+      - systematic-debugging
+      - test-driven-development
+      - using-git-worktrees
+      - using-superpowers
+      - verification-before-completion
+      - writing-plans
 skills:
   - name: caveman
     version: 1.0.0
     vendor_path: vendor/skills/caveman/1.0.0
+  - name: cli-creator
+    version: 0.1.0
+    source: openai/skills
+    source_ref: 4c4058ebf44f6734e62c70ab4a81246d4d093fc8
+    vendor_path: vendor/skills/cli-creator/0.1.0
   - name: codex-parallel-collab
     version: 3.1.0
     vendor_path: vendor/skills/codex-parallel-collab/3.1.0
   - name: commit-daily-summary
     version: 3.1.0
     vendor_path: vendor/skills/commit-daily-summary/3.1.0
+  - name: create-plan
+    version: 0.1.0
+    source: ComposioHQ/awesome-codex-skills
+    source_ref: 500b0c00093ec3a8633d7ed1122d289ab1d23755
+    vendor_path: vendor/skills/create-plan/0.1.0
+  - name: developer-growth-analysis
+    version: 0.1.0
+    source: ComposioHQ/awesome-codex-skills
+    source_ref: 500b0c00093ec3a8633d7ed1122d289ab1d23755
+    vendor_path: vendor/skills/developer-growth-analysis/0.1.0
+  - name: mcp-builder
+    version: 0.1.0
+    source: anthropics/skills
+    source_ref: f458cee31a7577a47ba0c9a101976fa599385174
+    vendor_path: vendor/skills/mcp-builder/0.1.0
   - name: project-daily-summary
     version: 3.1.0
     vendor_path: vendor/skills/project-daily-summary/3.1.0
@@ -24,6 +58,9 @@ skills:
   - name: session-wrap
     version: 3.1.0
     vendor_path: vendor/skills/session-wrap/3.1.0
+  - name: skill-asset-manager
+    version: 0.2.0
+    vendor_path: vendor/skills/skill-asset-manager/0.2.0
   - name: worktree-closeout
     version: 3.1.0
     vendor_path: vendor/skills/worktree-closeout/3.1.0
