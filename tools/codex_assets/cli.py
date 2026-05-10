@@ -131,6 +131,17 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             profile_file = target / "control/state/active-profile.env"
             if profile_file.is_file():
                 print(f"[INFO ] {profile_file.read_text().strip()}")
+            for path in [
+                "control/scripts",
+                "control/catalog",
+                "control/generated",
+                "control/archives",
+                "control/knowledge",
+                "control/roles",
+                "control/workflows",
+            ]:
+                if (target / path).exists():
+                    errors.append(f"live 包含 v1 control 残留: {path}")
     for error in errors:
         print(f"[ERROR] {error}")
     for warning in warnings:

@@ -1,6 +1,6 @@
 # bwrap 知识归档索引
 
-> 自动维护：`control/scripts/archive-bwrap.sh`
+> 历史归档：原由 v1 `control/scripts/archive-bwrap.sh` 维护；v2 不再注入 control 脚本。
 
 | 归档时间 | 文件 | 当前版本 | --perms | 路径 |
 | --- | --- | --- | --- | --- |

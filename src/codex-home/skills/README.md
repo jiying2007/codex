@@ -11,9 +11,15 @@
 ## 常用命令
 
 ```bash
-# 切换 profile（自动重建 skills 软链接）
-~/.codex/control/scripts/activate-profile.sh ~/.codex solo-dev
+# 构建指定 profile
+rtk bash ~/codex/scripts/build.sh --profile solo-dev
 
-# 体检
-~/.codex/control/scripts/doctor.sh ~/.codex solo-dev
+# 预览应用计划
+rtk bash ~/codex/scripts/plan.sh --target ~/.codex
+
+# 应用到 ~/.codex
+rtk bash ~/codex/scripts/apply.sh --profile solo-dev
+
+# 完整检查
+rtk bash ~/codex/scripts/check.sh
 ```

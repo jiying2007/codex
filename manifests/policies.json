@@ -20,8 +20,7 @@
   "skip_source_paths": [
     ".git/**",
     ".codex/**",
-    "control/state/backup/**",
-    "control/generated/config-managed.toml"
+    "control/state/backup/**"
   ],
   "default_apply_mode": "keep-existing",
   "overwrite_requires_backup": true
