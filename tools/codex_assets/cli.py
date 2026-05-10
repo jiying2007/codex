@@ -9,6 +9,7 @@ from .core import (
     CodexAssetError,
     Repo,
     active,
+    archive_note,
     apply_plan,
     build_repo,
     diff_build_live,
@@ -241,6 +242,21 @@ def cmd_rollback(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_archive_note(args: argparse.Namespace) -> int:
+    meta = archive_note(
+        args.root,
+        args.source,
+        topic_arg=args.topic,
+        dest_arg=args.dest,
+        title_arg=args.title,
+        description=args.description,
+        move=args.move,
+        dry_run=args.dry_run,
+    )
+    print(f"[DONE] archive-note destination={meta['destination']} dry_run={int(args.dry_run)}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="codex-assets")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -317,6 +333,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--keep-copies", action="store_true")
     p.set_defaults(func=cmd_rollback)
+
+    p = sub.add_parser("archive-note", parents=[common])
+    p.add_argument("source")
+    p.add_argument("--topic", default="")
+    p.add_argument("--dest", default="")
+    p.add_argument("--title", default="")
+    p.add_argument("--description", default="")
+    p.add_argument("--move", action="store_true")
+    p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(func=cmd_archive_note)
     return parser
 
 

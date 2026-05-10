@@ -46,6 +46,9 @@ rtk bash scripts/drift.sh
 # 备份当前 ~/.codex
 rtk bash scripts/backup.sh
 
+# 归档一份长期知识材料到 docs/archive/<topic>/
+rtk bash scripts/archive-note.sh /path/to/note.md --topic embedded-debug
+
 # 从指定 apply plan 回滚
 rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
 
@@ -68,6 +71,7 @@ rtk bash scripts/check.sh
 | `manifests/policies.json` | protected paths 与 apply 策略 |
 | `manifests/lock.json` | build 生成的 vendor 锁定摘要 |
 | `build/codex-home/` | `build.sh` 生成的可注入产物 |
+| `docs/archive/` | 长期知识沉淀区，只放脱敏后的稳定材料 |
 | `inbox/skills/` | 未审核 skill 候选区，默认不纳入 git |
 | `tools/codex_assets/` | Python CLI 核心实现 |
 | `schemas/` | manifest schema 文档与校验依据 |
@@ -89,6 +93,17 @@ rtk bash scripts/apply.sh --profile team-collab
 ```
 
 正式 skill 存放在 `src/codex-home/vendor/skills/<name>/<version>/`，激活入口由 `build.sh` 在 `build/codex-home/skills/<name>` 生成相对 symlink。不要把第三方 skill 直接放进 `src/codex-home/skills/`。
+
+## 知识沉淀
+
+运行中产生的总结、调研、排障记录和外部资料，默认不进入 `src/codex-home/`，而是先脱敏、定题后归档到 `docs/archive/<topic>/`：
+
+```bash
+rtk bash scripts/archive-note.sh /path/to/note.md --topic topic-name --title "Readable Title"
+rtk bash scripts/archive-note.sh /path/to/note-dir --topic topic-name --description "why this matters"
+```
+
+归档默认复制来源，不删除原文件；使用 `--move` 才移动。脚本会拒绝归档 Codex 运行态、密钥、日志、session、cache、`auth.json` 和旧 v2 control 知识态目录。
 
 ## 设计约束
 

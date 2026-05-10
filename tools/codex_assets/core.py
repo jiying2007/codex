@@ -59,6 +59,119 @@ def split_list(value: str) -> list[str]:
     return [part.strip() for part in re.split(r"[|,]", value) if part.strip()]
 
 
+def slugify(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9._-]+", "-", value.strip().lower()).strip("-")
+    return slug or "note"
+
+
+def assert_safe_archive_source(source: pathlib.Path, repo: "Repo") -> None:
+    resolved = source.expanduser().resolve()
+    source_text = resolved.as_posix()
+    forbidden_parts = [
+        "/.codex/sessions/",
+        "/.codex/log/",
+        "/.codex/cache/",
+        "/.codex/tmp/",
+        "/.codex/mcp/secrets/",
+    ]
+    if any(part in source_text for part in forbidden_parts):
+        fail(f"拒绝归档运行态/敏感目录: {source}")
+    rel = ""
+    try:
+        rel = resolved.relative_to(repo.root).as_posix()
+    except ValueError:
+        pass
+    protected = repo.policies.get("protected_paths", [])
+    if rel and matches_any(rel, protected):
+        fail(f"拒绝归档 protected path: {rel}")
+    candidates = [source]
+    if source.is_dir():
+        candidates = [path for path in source.rglob("*") if path.is_file() or path.is_symlink()]
+    for path in candidates:
+        name = path.name.lower()
+        if any(name.endswith(suffix) for suffix in [".secret", ".key", ".pem"]):
+            fail(f"拒绝归档疑似密钥文件: {path}")
+        if name in {"auth.json"} or name.startswith(("logs_", "state_")):
+            fail(f"拒绝归档运行态文件: {path}")
+
+
+def archive_note(
+    root: str | pathlib.Path,
+    source_arg: str | pathlib.Path,
+    topic_arg: str = "",
+    dest_arg: str = "",
+    title_arg: str = "",
+    description: str = "",
+    move: bool = False,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    repo = Repo.from_path(root)
+    source = pathlib.Path(source_arg).expanduser()
+    if not source.exists() and not source.is_symlink():
+        fail(f"归档来源不存在: {source}")
+    assert_safe_archive_source(source, repo)
+    topic = slugify(topic_arg or source.stem or source.name)
+    archive_root = pathlib.Path(dest_arg).expanduser() if dest_arg else repo.root / "docs/archive" / topic
+    archive_root = archive_root.resolve()
+    if repo.root not in [archive_root, *archive_root.parents]:
+        fail(f"归档目标必须位于仓库内: {archive_root}")
+    if source.is_dir() and source.resolve() in [archive_root, *archive_root.parents]:
+        fail(f"归档目标不能位于来源目录内部: {archive_root}")
+    timestamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
+    source_slug = slugify(source.stem if source.is_file() else source.name)
+    item_name = f"{timestamp}-{source_slug}"
+    dest = archive_root / f"{item_name}{source.suffix}" if source.is_file() else archive_root / item_name
+    meta_path = archive_root / f"{dest.name}.meta.json"
+    meta = {
+        "schema_version": 1,
+        "archived_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "source": source.expanduser().resolve().as_posix(),
+        "destination": dest.as_posix(),
+        "metadata": meta_path.as_posix(),
+        "topic": topic,
+        "title": title_arg or topic,
+        "description": description,
+        "mode": "move" if move else "copy",
+    }
+    if not dry_run:
+        archive_root.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            if move:
+                shutil.move(str(source), str(dest))
+            else:
+                shutil.copytree(source, dest, symlinks=True)
+        else:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if move:
+                shutil.move(str(source), str(dest))
+            else:
+                shutil.copy2(source, dest)
+        write_json(meta_path, meta)
+        update_archive_index(archive_root, topic, title_arg or topic)
+    return meta
+
+
+def update_archive_index(archive_root: pathlib.Path, topic: str, title: str) -> None:
+    rows = []
+    for path in sorted(archive_root.iterdir(), key=lambda p: p.name):
+        if path.name == "index.md" or path.name.endswith(".meta.json"):
+            continue
+        rows.append(f"| `{path.name}` | `{path.relative_to(archive_root).as_posix()}` |")
+    content = [
+        f"# {title}",
+        "",
+        "本目录由 `rtk bash scripts/archive-note.sh` 维护，用于沉淀不属于 Codex 运行态的知识材料。",
+        "",
+        f"- Topic: `{topic}`",
+        "",
+        "| Item | Path |",
+        "| --- | --- |",
+        *rows,
+        "",
+    ]
+    archive_root.joinpath("index.md").write_text("\n".join(content))
+
+
 @dataclass
 class Repo:
     root: pathlib.Path

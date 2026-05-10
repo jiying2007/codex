@@ -56,6 +56,28 @@ rtk bash scripts/promote-skill.sh /path/to/third-party-skill --version 1.0.0 --t
 
 归档脚本会更新 `manifests/skills.json`，下一次 build 会生成 `skills/registry.csv` 与激活 symlink。
 
+## 知识材料归档
+
+当会话总结、调研笔记、排障结论或外部材料值得长期复用时，先脱敏，再归档到 `docs/archive/`：
+
+```bash
+rtk bash scripts/archive-note.sh /path/to/note.md --topic topic-name --dry-run
+rtk bash scripts/archive-note.sh /path/to/note.md --topic topic-name --title "Readable Title"
+```
+
+目录也可以归档：
+
+```bash
+rtk bash scripts/archive-note.sh /path/to/note-dir --topic topic-name
+```
+
+归档规则：
+
+- 默认复制，保留来源；`--move` 才移动来源。
+- 每条材料生成独立 `.meta.json`，主题目录自动维护 `index.md`。
+- 禁止归档 `.codex` runtime、session、日志、cache、tmp、密钥、`auth.json` 和 protected paths。
+- `src/codex-home/control/` 只保留运行边界配置，不再承载 archives、knowledge、roles 或 workflows。
+
 ## 发布到运行目录
 
 默认注入不会覆盖已有普通文件：
