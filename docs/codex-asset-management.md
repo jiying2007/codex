@@ -195,6 +195,7 @@ rtk bash scripts/usage-tail.sh --interactive
 - `usage-tail` 默认每 3 秒刷新一次终端面板。
 - `usage-tail` 会提示两类风险：长线程累计过高、最近 token 增速过快。
 - `usage-tail --interactive` 启动轻交互 TUI，支持 `1/2/3/a/r/p/+/-/j/k/h/q`。
+- `usage-tail` 在 `summary` 视图额外给出 `Trim Mode`，将高风险状态直接映射为缩范围读取建议。
 - 第一版不写入长期时序文件；如需沉淀，可后续增加 `docs/metrics/codex-usage.jsonl`。
 
 ## Codex 省 Token 操作规范
@@ -206,6 +207,23 @@ rtk bash scripts/usage-tail.sh --interactive
 - 非必要不并行：高耦合问题、单点 bug、核心文件集中修改时，优先单线程处理。
 - 提问和任务定义尽量收敛：明确模块、文件、目标和验收标准，减少来回改口造成的重复消耗。
 - 先用 `rtk bash scripts/usage-report.sh` 或 `rtk bash scripts/usage-tail.sh --once` 观察当前消耗，再决定是否需要压缩上下文或切线程。
+
+### 分阶段回答压缩与输出裁剪
+
+- 回答压缩默认只压缩表达噪音，不压缩必要思考；不要把 brainstorming、设计、计划、风险权衡一刀切压成极简输出。
+- `brainstorming` / `writing-plans` 阶段允许中等展开，但仍应避免寒暄、重复背景、同义改写和无行动价值的延展说明。
+- `implementation` / `debugging` 阶段默认低噪音，优先输出：当前动作、证据、验证、阻塞、下一步。
+- `verification` / `wrap-up` / `archive` 阶段默认最严格压缩，只保留结论、验证结果、风险和后续动作。
+- 默认压缩对象：过渡语、寒暄、重复解释、大段工具输出复述、已确认事实的重复说明。
+- 默认保留对象：方案对比、设计边界、关键权衡、风险分析、计划依赖、验收标准。
+- 当 `usage-tail` 状态进入 `HOT` / `CRITICAL` 时，即使还在设计阶段，也只允许“受控展开”：讲清关键取舍，不做无边界铺陈。
+- 输出裁剪也按阶段处理：探索/设计阶段可保留支撑结论的必要证据；实现和验证阶段默认先给摘要、关键窗口、关键字段，需要时再展开全文。
+- 推荐读取范式：
+  - 定位优先：`rg`
+  - 片段优先：`sed -n`
+  - 日志窗口优先：`tail`
+  - diff 先摘要：`git diff --stat`
+  - 结构化数据先筛字段，再决定是否展开全文
 
 ## 多源搜索能力
 

@@ -169,6 +169,7 @@ rtk bash scripts/usage-tail.sh --view trends
 - 额外展示 `5m / 15m / 30m` 三档速率
 - 默认 `summary` 视图压成单屏；可切换 `threads` / `trends`
 - 默认 `summary` 视图会给出 `Status`（`CRITICAL/HOT/WATCH/STABLE`）以及最优先的 `Alerts/Next Action`
+- 默认 `summary` 视图会给出 `Trim Mode`，直接提示当前应采用的缩范围读取范式
 - `--interactive` 会启动轻交互 TUI，支持 `1/2/3/a/r/p/+/-/j/k/h/q`
 - `threads` 视图支持 `s` 切换排序：`updated -> tokens -> model -> repo`
 - `--interactive` 需要真实 TTY，不能在管道或非终端环境下运行
@@ -185,6 +186,20 @@ rtk bash scripts/usage-tail.sh --view threads --thread-sort tokens
 rtk bash scripts/usage-tail.sh --view trends
 rtk bash scripts/usage-tail.sh --view auto
 ```
+
+## 回答压缩与输出裁剪边界
+
+- 回答压缩默认只压缩表达噪音，不压缩必要思考。
+- `brainstorming` / `writing-plans` 保留方案对比、边界、风险与推荐，不做无边界铺陈。
+- `implementation` / `debugging` 默认低噪音，优先讲动作、证据、验证、阻塞。
+- `verification` / `wrap-up` / `archive` 默认最严格压缩，只保留结论、结果、风险和后续动作。
+- 输出裁剪也分阶段：设计阶段保留必要证据，实现与验证阶段默认先给摘要、关键字段和关键窗口。
+- `usage-tail` 在高风险状态下会给出 `Trim Mode`，常见动作包括：
+  - 只保留定向 `rg`
+  - 只读局部 `sed -n`
+  - 日志仅看短窗口 `tail`
+  - 大 diff 先看 `--stat`
+  - 大 JSON 只筛关键字段
 
 ## 设计约束
 

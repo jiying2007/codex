@@ -628,6 +628,26 @@ def advisory_lines(snapshot: dict[str, Any], warn_thread_tokens: int, tail_rate_
     return lines
 
 
+def output_trim_playbook(alerts: list[dict[str, Any]]) -> list[str]:
+    codes = {item.get("code", "") for item in alerts}
+    steps: list[str] = []
+    if "THREAD_LONG" in codes or "CTX_PRESSURE" in codes:
+        steps.append("先收口当前线程；新问题改为新线程，不继续堆背景。")
+    if "RATE_SPIKE" in codes or "ACCELERATING" in codes:
+        steps.append("暂停扩范围读取；只保留定向 rg、局部 sed -n、短窗口 tail。")
+    if "DELTA_LARGE" in codes:
+        steps.append("大日志只看错误窗口；大 diff 先看 --stat；大 JSON 只筛关键字段。")
+    if "CACHE_LOW" in codes:
+        steps.append("减少重复解释和工具输出复述；下一轮只提交增量问题。")
+    if not steps:
+        steps.append("默认先缩范围再展开：先摘要、后片段、最后才看全文。")
+    deduped: list[str] = []
+    for item in steps:
+        if item not in deduped:
+            deduped.append(item)
+    return deduped[:3]
+
+
 def render_summary(snapshot: dict[str, Any], warn_thread_tokens: int, tail_rate_per_min: float = 0.0) -> str:
     active = snapshot.get("active_thread") or {}
     goal = snapshot.get("active_goal") or {}
@@ -659,6 +679,7 @@ def render_summary(snapshot: dict[str, Any], warn_thread_tokens: int, tail_rate_
             rate_chunks.append(f"{key}m {fmt_tokens_m(int(item.get('rate_per_min') or 0))}/min")
     advisories = advisory_lines(snapshot, warn_thread_tokens, tail_rate_per_min=tail_rate_per_min)
     status = status_from_alerts(advisories)
+    playbook = output_trim_playbook(advisories)
     lines = [
         "Codex Usage Dashboard",
         f"Status        : {status}",
@@ -683,6 +704,8 @@ def render_summary(snapshot: dict[str, Any], warn_thread_tokens: int, tail_rate_
     if len(advisories) > 1:
         second = advisories[1]
         lines.append(f"Next Action   : [{second['severity']}] {short_text(second['action'], 100)}")
+    if playbook:
+        lines.append(f"Trim Mode     : {short_text(' | '.join(playbook), 110)}")
     return "\n".join(lines)
 
 
@@ -831,6 +854,7 @@ def interactive_loop(args: argparse.Namespace, state_db: Path, sessions_root: Pa
                 prev_monotonic = now_monotonic
                 snapshot["advisories"] = advisory_lines(snapshot, args.warn_thread_tokens, tail_rate_per_min=rate_per_min)
                 snapshot["status"] = status_from_alerts(snapshot["advisories"])
+                snapshot["playbook"] = output_trim_playbook(snapshot["advisories"])
                 force_refresh = False
                 scroll = 0 if effective_view(view, term_size().lines) == "summary" else scroll
             print("\033[2J\033[H", end="")
@@ -883,6 +907,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     snapshot["recent_buckets"] = recent_bucket_series(sessions_root, state_db, minutes=30, bucket_minutes=5)
     snapshot["advisories"] = advisory_lines(snapshot, args.warn_thread_tokens)
     snapshot["status"] = status_from_alerts(snapshot["advisories"])
+    snapshot["playbook"] = output_trim_playbook(snapshot["advisories"])
     if args.json:
         print(json.dumps(snapshot, ensure_ascii=False, indent=2))
     else:
@@ -923,6 +948,7 @@ def cmd_tail(args: argparse.Namespace) -> int:
         prev_monotonic = now_monotonic
         snapshot["advisories"] = advisory_lines(snapshot, args.warn_thread_tokens, tail_rate_per_min=rate_per_min)
         snapshot["status"] = status_from_alerts(snapshot["advisories"])
+        snapshot["playbook"] = output_trim_playbook(snapshot["advisories"])
         if args.json:
             print(json.dumps(snapshot, ensure_ascii=False))
         else:
