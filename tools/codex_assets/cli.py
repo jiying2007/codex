@@ -23,6 +23,8 @@ from .core import (
     split_list,
     write_json,
 )
+from .memory_curator import run as run_memory_curator
+from .usage_dashboard import main as usage_dashboard_main
 from .validate import validate_repo
 
 
@@ -257,6 +259,80 @@ def cmd_archive_note(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_curate_memory(args: argparse.Namespace) -> int:
+    mapped = argparse.Namespace(
+        repo=args.root,
+        memories=args.memories,
+        output=args.output,
+        days=args.days,
+        dry_run=args.dry_run,
+        write_memory_candidate=args.write_memory_candidate,
+    )
+    return run_memory_curator(mapped)
+
+
+def cmd_usage_report(args: argparse.Namespace) -> int:
+    argv = [
+        "report",
+        "--codex-home",
+        args.codex_home,
+        "--view",
+        args.view,
+        "--state-db",
+        args.state_db,
+        "--sessions-root",
+        args.sessions_root,
+        "--limit",
+        str(args.limit),
+        "--top-models",
+        str(args.top_models),
+        "--top-repos",
+        str(args.top_repos),
+        "--thread-sort",
+        args.thread_sort,
+        "--warn-thread-tokens",
+        str(args.warn_thread_tokens),
+    ]
+    if args.json:
+        argv.append("--json")
+    return usage_dashboard_main(argv)
+
+
+def cmd_usage_tail(args: argparse.Namespace) -> int:
+    argv = [
+        "tail",
+        "--codex-home",
+        args.codex_home,
+        "--view",
+        args.view,
+        "--state-db",
+        args.state_db,
+        "--sessions-root",
+        args.sessions_root,
+        "--limit",
+        str(args.limit),
+        "--top-models",
+        str(args.top_models),
+        "--top-repos",
+        str(args.top_repos),
+        "--thread-sort",
+        args.thread_sort,
+        "--warn-thread-tokens",
+        str(args.warn_thread_tokens),
+        "--interval",
+        str(args.interval),
+        "--iterations",
+        str(args.iterations),
+    ]
+    if args.json:
+        argv.append("--json")
+    if args.interactive:
+        argv.append("--interactive")
+    if args.once:
+        argv.append("--once")
+    return usage_dashboard_main(argv)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="codex-assets")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -343,6 +419,44 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--move", action="store_true")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_archive_note)
+
+    p = sub.add_parser("curate-memory", parents=[common])
+    p.add_argument("--memories", default="~/.codex/memories")
+    p.add_argument("--output", default="")
+    p.add_argument("--days", type=int, default=14)
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--write-memory-candidate", action="store_true")
+    p.set_defaults(func=cmd_curate_memory)
+
+    p = sub.add_parser("usage-report", parents=[common])
+    p.add_argument("--codex-home", default="~/.codex")
+    p.add_argument("--view", default="summary", choices=["summary", "threads", "trends"])
+    p.add_argument("--state-db", default="")
+    p.add_argument("--sessions-root", default="")
+    p.add_argument("--limit", type=int, default=8)
+    p.add_argument("--top-models", type=int, default=5)
+    p.add_argument("--top-repos", type=int, default=5)
+    p.add_argument("--thread-sort", default="updated", choices=["updated", "tokens", "model", "repo"])
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--warn-thread-tokens", type=int, default=50_000_000)
+    p.set_defaults(func=cmd_usage_report)
+
+    p = sub.add_parser("usage-tail", parents=[common])
+    p.add_argument("--codex-home", default="~/.codex")
+    p.add_argument("--view", default="summary", choices=["summary", "threads", "trends", "auto"])
+    p.add_argument("--interactive", action="store_true")
+    p.add_argument("--state-db", default="")
+    p.add_argument("--sessions-root", default="")
+    p.add_argument("--limit", type=int, default=8)
+    p.add_argument("--top-models", type=int, default=5)
+    p.add_argument("--top-repos", type=int, default=5)
+    p.add_argument("--thread-sort", default="updated", choices=["updated", "tokens", "model", "repo"])
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--warn-thread-tokens", type=int, default=50_000_000)
+    p.add_argument("--interval", type=float, default=3.0)
+    p.add_argument("--iterations", type=int, default=0)
+    p.add_argument("--once", action="store_true")
+    p.set_defaults(func=cmd_usage_tail)
     return parser
 
 

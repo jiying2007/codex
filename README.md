@@ -64,6 +64,12 @@ rtk bash scripts/curate-memory.sh
 # 上下文压缩前 90 秒 preflight（会话接力模板）
 rtk bash scripts/context-preflight.sh
 
+# 查看当前线程和近 7 天用量
+rtk bash scripts/usage-report.sh
+
+# 实时刷新终端用量面板
+rtk bash scripts/usage-tail.sh --once
+
 # 多源搜索能力由 multi-search-engine skill 提供，仅 team-collab profile 激活
 
 # 从指定 apply plan 回滚
@@ -121,6 +127,53 @@ rtk bash scripts/archive-note.sh /path/to/note-dir --topic topic-name --descript
 ```
 
 归档默认复制来源，不删除原文件；使用 `--move` 才移动。脚本会拒绝归档 Codex 运行态、密钥、日志、session、cache、`auth.json` 和旧 v2 control 知识态目录。
+
+## 用量观察
+
+第一版不依赖 `status`，直接读取本机运行数据：
+
+- `~/.codex/sessions/**/*.jsonl` 中的 `token_count`
+- `~/.codex/state_5.sqlite` 中的 `threads` / `thread_goals`
+
+```bash
+rtk bash scripts/usage-report.sh
+rtk bash scripts/usage-report.sh --json
+rtk bash scripts/usage-tail.sh
+rtk bash scripts/usage-tail.sh --once
+rtk bash scripts/usage-tail.sh --interactive
+rtk bash scripts/usage-tail.sh --view threads
+rtk bash scripts/usage-tail.sh --view trends
+```
+
+默认会提示两类风险：
+
+- 长线程风险：当前线程累计 token 过高
+- 高增速风险：最近一段时间 token 增长过快
+
+显示优化：
+
+- 终端面板中的 token 数值统一按 `M` 显示
+- 额外展示 `Cache Hit`、`Last In Ctx`、`Think Ratio`、`Live Rate`
+- 额外展示 `Top Models`、`Top Repos`、`Recent 30m`
+- 额外展示 `5m / 15m / 30m` 三档速率
+- 默认 `summary` 视图压成单屏；可切换 `threads` / `trends`
+- 默认 `summary` 视图会给出 `Status`（`CRITICAL/HOT/WATCH/STABLE`）以及最优先的 `Alerts/Next Action`
+- `--interactive` 会启动轻交互 TUI，支持 `1/2/3/a/r/p/+/-/j/k/h/q`
+- `threads` 视图支持 `s` 切换排序：`updated -> tokens -> model -> repo`
+- `--interactive` 需要真实 TTY，不能在管道或非终端环境下运行
+
+可配阈值：
+
+```bash
+rtk bash scripts/usage-tail.sh --warn-thread-tokens 30000000
+rtk bash scripts/usage-tail.sh --top-models 3 --top-repos 3
+rtk bash scripts/usage-tail.sh --interactive
+rtk bash scripts/usage-tail.sh --view summary
+rtk bash scripts/usage-tail.sh --view threads
+rtk bash scripts/usage-tail.sh --view threads --thread-sort tokens
+rtk bash scripts/usage-tail.sh --view trends
+rtk bash scripts/usage-tail.sh --view auto
+```
 
 ## 设计约束
 

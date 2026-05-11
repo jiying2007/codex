@@ -4,6 +4,7 @@ import argparse
 import pathlib
 import re
 from datetime import datetime
+from typing import Sequence
 
 
 TEXT_SUFFIXES = {".md", ".txt", ".json", ".jsonl", ".yaml", ".yml", ".toml", ".csv"}
@@ -200,7 +201,7 @@ def write_candidate(memories: pathlib.Path, report: str) -> pathlib.Path:
     return out
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Curate Codex memory sources into an auditable report.")
     parser.add_argument("--repo", default=str(pathlib.Path.home() / "codex"))
     parser.add_argument("--memories", default=str(pathlib.Path.home() / ".codex/memories"))
@@ -208,8 +209,10 @@ def main() -> int:
     parser.add_argument("--days", type=int, default=14)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--write-memory-candidate", action="store_true")
-    args = parser.parse_args()
+    return parser
 
+
+def run(args: argparse.Namespace) -> int:
     repo = pathlib.Path(args.repo).expanduser().resolve()
     memories = pathlib.Path(args.memories).expanduser().resolve()
     report = build_report(repo, memories, args.days)
@@ -229,6 +232,12 @@ def main() -> int:
         candidate = write_candidate(memories, report)
         print(f"[DONE] memory_candidate={candidate}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    return run(args)
 
 
 if __name__ == "__main__":

@@ -4,4 +4,5 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-rtk python3 -m tools.codex_assets.check_skills "$@"
+exec env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" \
+  rtk python3 -m tools.codex_assets.check_skills "$@"

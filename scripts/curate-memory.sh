@@ -4,4 +4,5 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-exec rtk python3 "$ROOT/tools/codex_assets/memory_curator.py" --repo "$ROOT" "$@"
+exec env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" \
+  rtk python3 -m tools.codex_assets curate-memory --root "$ROOT" "$@"

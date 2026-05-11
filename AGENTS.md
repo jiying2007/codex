@@ -69,6 +69,24 @@
 - 默认假设主环境为 Linux / POSIX shell；命令、路径、权限与脚本写法优先采用 `bash`、`$HOME`、正斜杠 `/`、LF 换行。
 - 仅当仓库文档、项目配置或用户要求明确指向其他平台时，才切换到对应平台约定。
 
+### Python 入口规范
+
+- 仓库内新增 Python 工具入口时，默认统一收敛到 `tools.codex_assets` 包，并通过 `rtk python3 -m tools.codex_assets <subcommand>` 调用。
+- `scripts/*.sh` 只作为稳定包装层：负责解析 `SCRIPT_DIR` / `ROOT`、注入 `PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"`，再转发到模块入口。
+- 除非是明确独立、与 `tools.codex_assets` 无关的单文件工具，否则不要新增 `rtk python3 "$ROOT/path/to/file.py"` 这类直接执行文件路径的入口。
+- CLI 公共参数统一使用 `--root`；若历史实现内部使用 `repo` 等名称，应在 CLI 适配层映射，不要把别名扩散到 shell 包装层。
+- 文档、README、skill 和 agent 默认只引用 `scripts/*.sh` 入口，不直接引用模块路径或 Python 文件路径。
+- 每次新增或修改脚本入口后，至少从一个非仓库 `cwd`（如 `/tmp`）执行一次帮助或 dry-run 验证，防止脚本隐式依赖当前工作目录。
+
+### Token 效率
+
+- 默认把 token 视为受限资源：能缩小范围的，不做全仓扫描；能返回摘要的，不返回整段原始输出。
+- 单线程主题应尽量收敛；当目标切换、验收点完成或上下文明显膨胀时，优先收口并新开线程，而不是继续滚大同一会话。
+- 长会话优先执行 `context-preflight -> session-wrap -> archive-note -> memory-curator --dry-run`，再进入下一线程。
+- 读取代码、日志、diff、JSON 时，优先局部片段、关键字段和定向窗口；避免一次性读取大文件全文。
+- 高耦合问题默认不并行；只有子任务边界清晰且写入范围互不冲突时，才使用多 agent。
+- 需要观察实时消耗时，优先使用 `rtk bash scripts/usage-report.sh` 或 `rtk bash scripts/usage-tail.sh`，不要依赖 `status` 作为高频遥测源。
+
 ### RTK 命令前缀硬规则
 
 - 所有 shell 命令必须通过 `rtk` 执行，不允许裸命令。

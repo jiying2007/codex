@@ -10,6 +10,16 @@
 6. 确认后运行 `rtk bash scripts/apply.sh --profile team-collab`。
 7. 发布前运行 `rtk bash scripts/check.sh`。
 
+## 脚本与 Python 入口规范
+
+- 面向用户和 skill 的稳定入口统一放在 `scripts/*.sh`。
+- Python 实现默认统一收敛到 `tools.codex_assets`，通过 `rtk python3 -m tools.codex_assets <subcommand>` 调用。
+- `scripts/*.sh` 应只负责三件事：定位仓库根目录、注入 `PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"`、转发到模块入口。
+- 除非是明确独立的单文件工具，否则不要新增直接执行 Python 文件路径的入口，例如 `rtk python3 "$ROOT/tools/foo.py"`。
+- CLI 公共参数统一使用 `--root`；内部历史参数名如 `repo`，在 `tools.codex_assets.cli` 中做映射适配。
+- README、skill、agent 和运维文档默认只引用 `scripts/*.sh`，不要把模块路径或 Python 文件路径暴露为正式入口。
+- 新增或修改入口脚本后，至少从一个非仓库 `cwd`（例如 `/tmp`）执行一次 `--help` 或 `--dry-run`，验证入口不依赖当前工作目录。
+
 ## 新增普通资产
 
 普通资产放入 `src/codex-home/` 对应目录。如果是新的顶层目录，需要加入 `manifests/assets.json` 的 `copy_roots`。
@@ -143,6 +153,41 @@ rtk bash scripts/curate-memory.sh --dry-run
 ```
 
 当会话很长且噪音较多时，可使用 `local-context-curator` 做提炼，但最终归档与结论由主 agent 输出。
+
+## Codex 用量观察
+
+第一版直接读取本机一手数据，不依赖 `status` 的刷新策略：
+
+- 实时层：`~/.codex/sessions/**/*.jsonl` 中的 `token_count`
+- 状态层：`~/.codex/state_5.sqlite` 中的 `threads` / `thread_goals`
+
+常用入口：
+
+```bash
+rtk bash scripts/usage-report.sh
+rtk bash scripts/usage-report.sh --json
+rtk bash scripts/usage-tail.sh
+rtk bash scripts/usage-tail.sh --once
+rtk bash scripts/usage-tail.sh --interactive
+```
+
+说明：
+
+- `usage-report` 输出当前活跃线程、top threads、今日累计和近 7 天累计。
+- `usage-tail` 默认每 3 秒刷新一次终端面板。
+- `usage-tail` 会提示两类风险：长线程累计过高、最近 token 增速过快。
+- `usage-tail --interactive` 启动轻交互 TUI，支持 `1/2/3/a/r/p/+/-/j/k/h/q`。
+- 第一版不写入长期时序文件；如需沉淀，可后续增加 `docs/metrics/codex-usage.jsonl`。
+
+## Codex 省 Token 操作规范
+
+- 一个主题尽量一个线程；主题切换、目标变化或验收点完成后，优先收口再新开线程。
+- 长线程达到高风险区后，优先执行 `context-preflight -> session-wrap -> archive-note -> memory-curator --dry-run`，不要继续无边界滚大上下文。
+- 先定位再读取：优先 `rg` 缩小范围，再读命中文件片段，不直接全仓扫描。
+- 控制工具输出：大日志、大 JSON、大 diff 默认先裁剪，只看关键窗口或关键字段。
+- 非必要不并行：高耦合问题、单点 bug、核心文件集中修改时，优先单线程处理。
+- 提问和任务定义尽量收敛：明确模块、文件、目标和验收标准，减少来回改口造成的重复消耗。
+- 先用 `rtk bash scripts/usage-report.sh` 或 `rtk bash scripts/usage-tail.sh --once` 观察当前消耗，再决定是否需要压缩上下文或切线程。
 
 ## 多源搜索能力
 
