@@ -279,6 +279,13 @@ def cmd_archive_search(args: argparse.Namespace) -> int:
         limit=args.limit,
         json=args.json,
         include=args.include,
+        index_db=args.index_db,
+        rebuild_index=args.rebuild_index,
+        topic=args.topic,
+        tag=args.tag,
+        kind=args.kind,
+        since=args.since,
+        until=args.until,
     )
     return run_archive_search(mapped)
 
@@ -437,6 +444,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=20)
     p.add_argument("--json", action="store_true")
     p.add_argument("--include", action="append", default=[])
+    p.add_argument("--index-db", default="")
+    p.add_argument("--rebuild-index", action="store_true")
+    p.add_argument("--topic", action="append", default=[])
+    p.add_argument("--tag", action="append", default=[])
+    p.add_argument("--type", dest="kind", action="append", default=[])
+    p.add_argument("--since", default="")
+    p.add_argument("--until", default="")
     p.set_defaults(func=cmd_archive_search)
 
     p = sub.add_parser("curate-memory", parents=[common])

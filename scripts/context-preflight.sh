@@ -44,6 +44,16 @@ RECENT_LOG="$(rtk git log --oneline -5 2>/dev/null || true)"
   printf "%s\n" "- 决策 1："
   printf "%s\n\n" "- 决策 2："
 
+  printf "%s\n" "## 自动结晶（Crystallized Insights）"
+  printf "%s\n" "- Insight 1："
+  printf "%s\n" "- 为什么重要："
+  printf "%s\n\n" "- 是否应提升到 AGENTS / archive / memory："
+
+  printf "%s\n" "## 未决张力（Open Tensions）"
+  printf "%s\n" "- Tension 1："
+  printf "%s\n" "- 为什么还没闭环："
+  printf "%s\n\n" "- 下次恢复时先验证什么："
+
   printf "%s\n" "## 约束与风险"
   printf "%s\n" "- 约束："
   printf "%s\n\n" "- 风险："

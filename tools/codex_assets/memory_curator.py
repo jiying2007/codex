@@ -79,6 +79,22 @@ def classify_action(line: str) -> str:
     return "archive-only"
 
 
+def classify_tension(line: str) -> bool:
+    lower = line.lower()
+    return any(
+        token in lower
+        for token in ["风险", "阻塞", "待办", "未完成", "未决", "open", "blocker", "next", "todo", "constraint"]
+    )
+
+
+def classify_crystallized(line: str) -> bool:
+    lower = line.lower()
+    return any(
+        token in lower
+        for token in ["决策", "规则", "根因", "正确做法", "验证", "lesson", "decision", "constraint", "insight"]
+    )
+
+
 def codex_agent_mem_sources(repo: pathlib.Path, memories: pathlib.Path) -> list[pathlib.Path]:
     roots = [
         pathlib.Path.home() / ".codex_agent_mem",
@@ -143,6 +159,8 @@ def build_report(repo: pathlib.Path, memories: pathlib.Path, days: int) -> str:
 
     signal_lines: list[str] = []
     action_rows: list[str] = ["| Action | Source | Signal |", "| --- | --- | --- |"]
+    crystallized_rows: list[str] = ["| Source | Insight | Promote Target |", "| --- | --- | --- |"]
+    tension_rows: list[str] = ["| Source | Tension | Suggested Follow-up |", "| --- | --- | --- |"]
     for path in signal_sources:
         signals = extract_signals(path)
         if not signals:
@@ -153,7 +171,14 @@ def build_report(repo: pathlib.Path, memories: pathlib.Path, days: int) -> str:
         signal_lines.append("")
         for item in signals[:6]:
             action_rows.append(f"| `{classify_action(item)}` | `{rel(path, repo)}` | {item} |")
+            if classify_crystallized(item):
+                target = "AGENTS" if classify_action(item) == "promote-to-agents" else "archive/memory-review"
+                crystallized_rows.append(f"| `{rel(path, repo)}` | {item} | `{target}` |")
+            if classify_tension(item):
+                tension_rows.append(f"| `{rel(path, repo)}` | {item} | 先补验证、补上下文或保持 archive-only |")
     lines += section("可复用信号摘录", signal_lines or ["- 暂无"])
+    lines += section("自动结晶候选", crystallized_rows if len(crystallized_rows) > 2 else ["- 暂无"])
+    lines += section("未决张力候选", tension_rows if len(tension_rows) > 2 else ["- 暂无"])
 
     lines += section("候选整理动作", [
         "- `promote-to-agents`：跨会话行为规则、硬约束、反复验证的工作方式",
@@ -171,6 +196,8 @@ def build_report(repo: pathlib.Path, memories: pathlib.Path, days: int) -> str:
         "- 是否存在敏感信息需要删除",
         "- 是否有过期规则需要废弃",
         "- 是否有高频经验应提升为 AGENTS 规则",
+        "- 是否有稳定 insight 应沉淀为 crystallized insight",
+        "- 是否有未决 tension 需要在下次会话恢复时优先展开",
         "- 是否有短小结构化状态应手动写入 codex-agent-mem note/snapshot",
         "- 是否有长材料应只保留在 `docs/archive/`",
         "- 不要自动双写到 `~/.codex/memories` 与 codex-agent-mem",

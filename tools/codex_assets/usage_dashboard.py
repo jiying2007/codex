@@ -648,6 +648,80 @@ def output_trim_playbook(alerts: list[dict[str, Any]]) -> list[str]:
     return deduped[:3]
 
 
+def likely_operation_causes(snapshot: dict[str, Any], alerts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    derived = snapshot.get("derived") or snapshot_metrics(snapshot)
+    recent = snapshot.get("recent_window") or {}
+    recent_windows = snapshot.get("recent_windows") or {}
+    top_repos = snapshot.get("top_repos") or []
+    codes = {item.get("code", "") for item in alerts}
+    causes: list[dict[str, Any]] = []
+    active_total = int(derived.get("active_total_tokens") or 0)
+    last_delta = int(derived.get("last_delta_tokens") or 0)
+    cache_hit_ratio = float(derived.get("cache_hit_ratio") or 0.0)
+    last_input_ratio = float(derived.get("last_input_ratio") or 0.0)
+    rate_5 = float((recent_windows.get("5") or {}).get("rate_per_min") or 0.0)
+    rate_15 = float((recent_windows.get("15") or {}).get("rate_per_min") or 0.0)
+    recent_total = int(recent.get("total_tokens") or 0)
+
+    def add(cause: str, confidence: str, summary: str, evidence: dict[str, Any]) -> None:
+        causes.append(
+            {
+                "cause": cause,
+                "confidence": confidence,
+                "summary": summary,
+                "evidence": evidence,
+            }
+        )
+
+    if "THREAD_LONG" in codes and active_total > 0:
+        add(
+            "long_thread_rollup",
+            "high",
+            "主要消耗来自长线程持续滚大上下文，而不是单次异常读入。",
+            {"active_total_tokens": active_total},
+        )
+    if "DELTA_LARGE" in codes:
+        add(
+            "large_read_payload",
+            "medium",
+            "最近一次读入偏大，常见于长日志、大 diff 或大 JSON 直接进入上下文。",
+            {"last_delta_tokens": last_delta},
+        )
+    if "RATE_SPIKE" in codes or "ACCELERATING" in codes:
+        add(
+            "repo_wide_scan_or_broad_read",
+            "medium",
+            "短时间内速率明显抬升，常见于扩范围搜索、批量读文件或大输出工具结果。",
+            {"rate_5_per_min": rate_5, "rate_15_per_min": rate_15},
+        )
+    if "CTX_PRESSURE" in codes and "CACHE_LOW" in codes:
+        add(
+            "repeated_background_restatement",
+            "medium",
+            "上下文压力和低缓存命中同时出现，说明重复背景和重复解释占比偏高。",
+            {"last_input_ratio": last_input_ratio, "cache_hit_ratio": cache_hit_ratio},
+        )
+    if recent_total > 0 and top_repos:
+        top_repo = top_repos[0]
+        top_repo_tokens = int(top_repo.get("tokens_used") or 0)
+        if top_repo_tokens > 0 and top_repo_tokens >= max(recent_total, 1):
+            add(
+                "single_repo_concentration",
+                "low",
+                "消耗高度集中在单一 repo，可能在错误工作流上持续投入了读取和解释成本。",
+                {"top_repo": top_repo.get("name", "-"), "top_repo_tokens": top_repo_tokens, "recent_total_tokens": recent_total},
+            )
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in causes:
+        key = str(item.get("cause"))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+    return deduped[:3]
+
+
 def render_summary(snapshot: dict[str, Any], warn_thread_tokens: int, tail_rate_per_min: float = 0.0) -> str:
     active = snapshot.get("active_thread") or {}
     goal = snapshot.get("active_goal") or {}
@@ -680,6 +754,7 @@ def render_summary(snapshot: dict[str, Any], warn_thread_tokens: int, tail_rate_
     advisories = advisory_lines(snapshot, warn_thread_tokens, tail_rate_per_min=tail_rate_per_min)
     status = status_from_alerts(advisories)
     playbook = output_trim_playbook(advisories)
+    causes = likely_operation_causes(snapshot, advisories)
     lines = [
         "Codex Usage Dashboard",
         f"Status        : {status}",
@@ -704,6 +779,8 @@ def render_summary(snapshot: dict[str, Any], warn_thread_tokens: int, tail_rate_
     if len(advisories) > 1:
         second = advisories[1]
         lines.append(f"Next Action   : [{second['severity']}] {short_text(second['action'], 100)}")
+    if causes:
+        lines.append(f"Likely Cause  : {short_text(' | '.join(item['cause'] for item in causes), 110)}")
     if playbook:
         lines.append(f"Trim Mode     : {short_text(' | '.join(playbook), 110)}")
     return "\n".join(lines)
@@ -854,6 +931,7 @@ def interactive_loop(args: argparse.Namespace, state_db: Path, sessions_root: Pa
                 prev_monotonic = now_monotonic
                 snapshot["advisories"] = advisory_lines(snapshot, args.warn_thread_tokens, tail_rate_per_min=rate_per_min)
                 snapshot["status"] = status_from_alerts(snapshot["advisories"])
+                snapshot["attribution"] = likely_operation_causes(snapshot, snapshot["advisories"])
                 snapshot["playbook"] = output_trim_playbook(snapshot["advisories"])
                 force_refresh = False
                 scroll = 0 if effective_view(view, term_size().lines) == "summary" else scroll
@@ -907,6 +985,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     snapshot["recent_buckets"] = recent_bucket_series(sessions_root, state_db, minutes=30, bucket_minutes=5)
     snapshot["advisories"] = advisory_lines(snapshot, args.warn_thread_tokens)
     snapshot["status"] = status_from_alerts(snapshot["advisories"])
+    snapshot["attribution"] = likely_operation_causes(snapshot, snapshot["advisories"])
     snapshot["playbook"] = output_trim_playbook(snapshot["advisories"])
     if args.json:
         print(json.dumps(snapshot, ensure_ascii=False, indent=2))
@@ -948,6 +1027,7 @@ def cmd_tail(args: argparse.Namespace) -> int:
         prev_monotonic = now_monotonic
         snapshot["advisories"] = advisory_lines(snapshot, args.warn_thread_tokens, tail_rate_per_min=rate_per_min)
         snapshot["status"] = status_from_alerts(snapshot["advisories"])
+        snapshot["attribution"] = likely_operation_causes(snapshot, snapshot["advisories"])
         snapshot["playbook"] = output_trim_playbook(snapshot["advisories"])
         if args.json:
             print(json.dumps(snapshot, ensure_ascii=False))

@@ -137,7 +137,12 @@ rtk bash scripts/archive-note.sh /path/to/note-dir --topic topic-name --descript
 rtk bash scripts/archive-search.sh "context-preflight"
 rtk bash scripts/archive-search.sh "token 效率" --limit 10
 rtk bash scripts/archive-search.sh "memory-curator" --json
+rtk bash scripts/archive-search.sh "token 优化" --topic diag-architecture --since 2026-05-01
+rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag research
 ```
+
+- `archive-search` 默认在 `.cache/archive-search.sqlite` 维护轻量索引。
+- 支持 `--topic`、`--tag`、`--type`、`--since`、`--until`、`--rebuild-index` 做 metadata 过滤与索引控制。
 
 ## 用量观察
 
@@ -169,6 +174,7 @@ rtk bash scripts/usage-tail.sh --view trends
 - 额外展示 `5m / 15m / 30m` 三档速率
 - 默认 `summary` 视图压成单屏；可切换 `threads` / `trends`
 - 默认 `summary` 视图会给出 `Status`（`CRITICAL/HOT/WATCH/STABLE`）以及最优先的 `Alerts/Next Action`
+- 默认 `summary` 视图会给出 `Likely Cause`，用启发式方式说明当前最可能的高消耗来源
 - 默认 `summary` 视图会给出 `Trim Mode`，直接提示当前应采用的缩范围读取范式
 - `--interactive` 会启动轻交互 TUI，支持 `1/2/3/a/r/p/+/-/j/k/h/q`
 - `threads` 视图支持 `s` 切换排序：`updated -> tokens -> model -> repo`
@@ -200,6 +206,7 @@ rtk bash scripts/usage-tail.sh --view auto
   - 日志仅看短窗口 `tail`
   - 大 diff 先看 `--stat`
   - 大 JSON 只筛关键字段
+- `Likely Cause` 是启发式归因，不是精确审计；它用于提示最可能的高消耗模式，例如长线程滚上下文、大读入负载、扩范围扫描、重复背景重喂。
 
 ## 设计约束
 

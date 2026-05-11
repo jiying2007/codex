@@ -63,6 +63,8 @@ Summarize by **workstream** instead of by timestamp.
 Preferred structure:
 - 本次完成
 - 关键决策
+- 自动结晶
+- 未决张力 / 恢复风险
 - 涉及文件 / 模块
 - 已做验证
 
@@ -108,6 +110,12 @@ Do not auto-commit. Recommend commit timing only when there is enough evidence.
 - 未验证：...
 
 ### 经验与风险
+- ...
+
+### 自动结晶
+- ...
+
+### 未决张力 / 恢复风险
 - ...
 
 ### 下一步建议

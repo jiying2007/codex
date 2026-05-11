@@ -152,6 +152,11 @@ rtk bash scripts/archive-note.sh <session-summary.md> --topic session-wrap --tit
 rtk bash scripts/curate-memory.sh --dry-run
 ```
 
+建议在 preflight、session wrap 和 memory curation 中显式保留：
+
+- `自动结晶 / crystallized insights`
+- `未决张力 / open tensions`
+
 当会话很长且噪音较多时，可使用 `local-context-curator` 做提炼，但最终归档与结论由主 agent 输出。
 
 ## 归档检索
@@ -162,6 +167,8 @@ rtk bash scripts/curate-memory.sh --dry-run
 rtk bash scripts/archive-search.sh "context-preflight"
 rtk bash scripts/archive-search.sh "token 效率" --limit 10
 rtk bash scripts/archive-search.sh "memory-curator" --json
+rtk bash scripts/archive-search.sh "token 优化" --topic diag-architecture --since 2026-05-01
+rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag research
 ```
 
 默认搜索范围：
@@ -170,7 +177,14 @@ rtk bash scripts/archive-search.sh "memory-curator" --json
 - `AGENTS.md`
 - `src/codex-home/AGENTS.md`
 
-需要时可用 `--include` 追加其他文本路径。
+需要时可用 `--include` 追加其他文本路径。默认索引位于 `.cache/archive-search.sqlite`，支持：
+
+- `--topic`
+- `--tag`
+- `--type`
+- `--since`
+- `--until`
+- `--rebuild-index`
 
 ## Codex 用量观察
 
@@ -195,6 +209,7 @@ rtk bash scripts/usage-tail.sh --interactive
 - `usage-tail` 默认每 3 秒刷新一次终端面板。
 - `usage-tail` 会提示两类风险：长线程累计过高、最近 token 增速过快。
 - `usage-tail --interactive` 启动轻交互 TUI，支持 `1/2/3/a/r/p/+/-/j/k/h/q`。
+- `usage-tail` 在 `summary` 视图额外给出 `Likely Cause`，用启发式方式提示当前最可能的高消耗来源。
 - `usage-tail` 在 `summary` 视图额外给出 `Trim Mode`，将高风险状态直接映射为缩范围读取建议。
 - 第一版不写入长期时序文件；如需沉淀，可后续增加 `docs/metrics/codex-usage.jsonl`。
 
