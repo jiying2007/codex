@@ -23,6 +23,7 @@ from .core import (
     split_list,
     write_json,
 )
+from .archive_search import run as run_archive_search
 from .memory_curator import run as run_memory_curator
 from .usage_dashboard import main as usage_dashboard_main
 from .validate import validate_repo
@@ -271,6 +272,17 @@ def cmd_curate_memory(args: argparse.Namespace) -> int:
     return run_memory_curator(mapped)
 
 
+def cmd_archive_search(args: argparse.Namespace) -> int:
+    mapped = argparse.Namespace(
+        repo=args.root,
+        query=args.query,
+        limit=args.limit,
+        json=args.json,
+        include=args.include,
+    )
+    return run_archive_search(mapped)
+
+
 def cmd_usage_report(args: argparse.Namespace) -> int:
     argv = [
         "report",
@@ -419,6 +431,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--move", action="store_true")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_archive_note)
+
+    p = sub.add_parser("archive-search", parents=[common])
+    p.add_argument("query")
+    p.add_argument("--limit", type=int, default=20)
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--include", action="append", default=[])
+    p.set_defaults(func=cmd_archive_search)
 
     p = sub.add_parser("curate-memory", parents=[common])
     p.add_argument("--memories", default="~/.codex/memories")

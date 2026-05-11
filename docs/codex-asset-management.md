@@ -154,6 +154,24 @@ rtk bash scripts/curate-memory.sh --dry-run
 
 当会话很长且噪音较多时，可使用 `local-context-curator` 做提炼，但最终归档与结论由主 agent 输出。
 
+## 归档检索
+
+现有知识沉淀默认不靠人工翻目录，可直接检索：
+
+```bash
+rtk bash scripts/archive-search.sh "context-preflight"
+rtk bash scripts/archive-search.sh "token 效率" --limit 10
+rtk bash scripts/archive-search.sh "memory-curator" --json
+```
+
+默认搜索范围：
+
+- `docs/archive/`
+- `AGENTS.md`
+- `src/codex-home/AGENTS.md`
+
+需要时可用 `--include` 追加其他文本路径。
+
 ## Codex 用量观察
 
 第一版直接读取本机一手数据，不依赖 `status` 的刷新策略：

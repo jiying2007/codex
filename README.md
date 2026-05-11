@@ -61,6 +61,9 @@ rtk bash scripts/archive-note.sh /path/to/note.md --topic embedded-debug
 # 周期性整理 memories、AGENTS 与归档知识，默认只生成审计报告
 rtk bash scripts/curate-memory.sh
 
+# 搜索归档知识与 AGENTS 规则
+rtk bash scripts/archive-search.sh "context-preflight"
+
 # 上下文压缩前 90 秒 preflight（会话接力模板）
 rtk bash scripts/context-preflight.sh
 
@@ -127,6 +130,14 @@ rtk bash scripts/archive-note.sh /path/to/note-dir --topic topic-name --descript
 ```
 
 归档默认复制来源，不删除原文件；使用 `--move` 才移动。脚本会拒绝归档 Codex 运行态、密钥、日志、session、cache、`auth.json` 和旧 v2 control 知识态目录。
+
+可直接检索长期沉淀与规则：
+
+```bash
+rtk bash scripts/archive-search.sh "context-preflight"
+rtk bash scripts/archive-search.sh "token 效率" --limit 10
+rtk bash scripts/archive-search.sh "memory-curator" --json
+```
 
 ## 用量观察
 
