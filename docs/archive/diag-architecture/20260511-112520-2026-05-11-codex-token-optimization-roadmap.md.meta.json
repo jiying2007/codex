@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "archived_at": "2026-05-11T11:25:20+08:00",
+  "source": "/home/leiwenjun/codex/scratch/2026-05-11-codex-token-optimization-roadmap.md",
+  "destination": "/home/leiwenjun/codex/docs/archive/diag-architecture/20260511-112520-2026-05-11-codex-token-optimization-roadmap.md",
+  "metadata": "/home/leiwenjun/codex/docs/archive/diag-architecture/20260511-112520-2026-05-11-codex-token-optimization-roadmap.md.meta.json",
+  "topic": "diag-architecture",
+  "title": "Codex 长期省 Token 优化建议计划",
+  "description": "基于 token 优化项目清单形成的长期优化路线图",
+  "mode": "copy"
+}
