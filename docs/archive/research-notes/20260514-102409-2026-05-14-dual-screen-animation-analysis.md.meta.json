@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "archived_at": "2026-05-14T10:24:09+08:00",
+  "source": "/home/leiwenjun/work/sigmastar/pcr02_ssc305_release/SourceCode/sdk/verify/xcrz_sigmastar_demo/modules/sensor/display/docs/2026-05-14-dual-screen-animation-analysis.md",
+  "destination": "/home/leiwenjun/codex/docs/archive/research-notes/20260514-102409-2026-05-14-dual-screen-animation-analysis.md",
+  "metadata": "/home/leiwenjun/codex/docs/archive/research-notes/20260514-102409-2026-05-14-dual-screen-animation-analysis.md.meta.json",
+  "topic": "research-notes",
+  "title": "Sigmastar 双屏动画实现分析",
+  "description": "",
+  "mode": "copy"
+}
