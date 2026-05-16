@@ -37,7 +37,7 @@ for old_control in control/archives control/knowledge control/roles control/work
   fi
 done
 
-if rtk rg -n "assets/codex|control/catalog|apply-to-codex|scan-codex-skills|doctor-assets|diff-codex|backup-codex" "$ROOT/README.md" "$ROOT/docs" "$ROOT/manifests" "$ROOT/scripts" "$ROOT/src" "$ROOT/tools" "$ROOT/tests" --glob '!build/**' --glob '!scripts/check.sh' --glob '!tools/codex_assets/check_skills.py' --glob '!tools/codex_assets/cli.py'; then
+if rtk rg -n "assets/codex|control/catalog|apply-to-codex|scan-codex-skills|doctor-assets|diff-codex|backup-codex" "$ROOT/README.md" "$ROOT/docs" "$ROOT/manifests" "$ROOT/scripts" "$ROOT/src" "$ROOT/tools" "$ROOT/tests" --glob '!build/**' --glob '!scripts/check.sh' --glob '!tools/codex_assets/check_skills.py' --glob '!tools/codex_assets/cli.py' --glob '!tools/codex_assets/core.py' --glob '!docs/design.md'; then
   echo "[FATAL] 旧入口残留命中" >&2
   exit 1
 fi

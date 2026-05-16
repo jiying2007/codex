@@ -7,6 +7,7 @@
 1. `.system/` 保留系统技能目录。
 2. 第三方技能通过软链接指向 `~/.codex/vendor/skills/...` 或 `~/.codex/vendor/plugins/...`。
 3. 启停与版本由 `~/codex/manifests/skills.json` 与 `scripts/build.sh` 控制。
+4. `registry.csv` 是由 manifest 派生的索引；变更 skill 后以 `manifests/skills.json` 为准并重新 build。
 
 ## 常用命令
 

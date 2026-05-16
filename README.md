@@ -31,10 +31,10 @@ rtk bash scripts/apply.sh --dry-run --no-build
 # 生成机器可读 apply plan
 rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json
 
-# 构建并注入到 ~/.codex，默认保留已有普通文件
+# 构建并注入到 ~/.codex，默认只覆盖未被本机改过的已管理文件
 rtk bash scripts/apply.sh --profile team-collab
 
-# 覆盖已有普通文件，覆盖前备份
+# 强制覆盖已有普通文件，覆盖前备份
 rtk bash scripts/apply.sh --profile team-collab --overwrite
 
 # 对比 build 与 ~/.codex
@@ -218,5 +218,9 @@ rtk bash scripts/usage-tail.sh --view auto
 6. 未审核资产先进入 `inbox/`，审核通过后 promote。
 7. 每次改动后运行 `build.sh` 与 `doctor.sh`。
 8. 发布前运行 `scripts/check.sh`。
+
+默认 apply 策略会对比 live 的 `managed-files.json`：如果目标文件仍等于上次注入的 managed hash，会自动更新；如果已被本机改过，会保留并由 `drift.sh` 报告。`--overwrite` 才会强制覆盖本机改动。
+
+`manifests/policies.json` 的 `allowed_live_drift_paths` 记录允许长期保留的本机差异。当前允许 `config.toml` 漂移，以保留项目 trust、TUI notice 等运行时状态。
 
 更多细节见 `docs/design.md` 与 `docs/codex-asset-management.md`。

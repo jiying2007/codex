@@ -148,7 +148,7 @@
       "name": "session-wrap",
       "version": "3.1.0",
       "source": "vendor/skills/session-wrap/3.1.0",
-      "sha256": "f2b4dee530628f344e70c31056a5f6f92126aad7c455560304af775044041371"
+      "sha256": "0ea9dc069f125fbf3b12887d7a9cc5e5bc77bb4ac4c6c805e28a55c943f503a4"
     },
     {
       "kind": "skill",

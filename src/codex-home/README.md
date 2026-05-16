@@ -10,3 +10,4 @@
 - `skills/` 只保留 README、registry 模板和维护脚本等基础文件。
 - profile 激活入口由 build 阶段生成 symlink。
 - `config/base.toml` 是 `config.toml` 的构建模板。
+- 注入时只自动覆盖未被本机改过的已管理文件；`config.toml` 等本机差异由 `manifests/policies.json` 控制。

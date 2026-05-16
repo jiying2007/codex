@@ -76,7 +76,8 @@ def cmd_apply(args: argparse.Namespace) -> int:
 def cmd_diff(args: argparse.Namespace) -> int:
     repo = Repo.from_path(args.root)
     build = pathlib.Path(args.build).expanduser().resolve() if args.build else repo.build
-    same, diff, missing = diff_build_live(build, pathlib.Path(args.target).expanduser())
+    ignored = repo.policies.get("allowed_live_drift_paths", [])
+    same, diff, missing = diff_build_live(build, pathlib.Path(args.target).expanduser(), ignored)
     print(f"[INFO] same={same} diff={diff} missing={missing}")
     return 1 if diff or missing else 0
 
@@ -84,15 +85,21 @@ def cmd_diff(args: argparse.Namespace) -> int:
 def cmd_drift(args: argparse.Namespace) -> int:
     repo = Repo.from_path(args.root)
     build = pathlib.Path(args.build).expanduser().resolve() if args.build else repo.build
-    drift = live_drift(build, pathlib.Path(args.target).expanduser())
+    ignored = repo.policies.get("allowed_live_drift_paths", [])
+    drift = live_drift(build, pathlib.Path(args.target).expanduser(), ignored)
     if args.output:
         write_json(pathlib.Path(args.output).expanduser(), drift)
     for path in drift.get("changed", []):
         print(f"[DRIFT] {path}")
     for path in drift.get("stale", []):
         print(f"[STALE] {path}")
-    print(f"[INFO] status={drift['status']} changed={len(drift.get('changed', []))} stale={len(drift.get('stale', []))}")
-    return 1 if drift.get("changed") or drift.get("stale") else 0
+    for path in drift.get("unmanaged", []):
+        print(f"[UNMANAGED] {path}")
+    print(
+        f"[INFO] status={drift['status']} changed={len(drift.get('changed', []))} "
+        f"stale={len(drift.get('stale', []))} unmanaged={len(drift.get('unmanaged', []))}"
+    )
+    return 1 if drift.get("changed") or drift.get("stale") or drift.get("unmanaged") else 0
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -146,6 +153,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             ]:
                 if (target / path).exists():
                     errors.append(f"live 包含 v1 control 残留: {path}")
+            drift = live_drift(
+                pathlib.Path(args.build).expanduser().resolve() if args.build else repo.build,
+                target,
+                repo.policies.get("allowed_live_drift_paths", []),
+            )
+            for path in drift.get("unmanaged", []):
+                errors.append(f"live 包含未管理资产: {path}")
     for error in errors:
         print(f"[ERROR] {error}")
     for warning in warnings:

@@ -417,7 +417,8 @@ def plan_apply(root: str | pathlib.Path, build: str | pathlib.Path, target: str 
     if not build_path.is_dir():
         fail(f"构建目录不存在: {build_path}")
     protected = repo.policies.get("protected_paths", [])
-    generated = {"skills/registry.csv", "control/state/active-profile.env", "control/state/managed-files.json"}
+    always_generated = {"skills/registry.csv", "control/state/active-profile.env", "control/state/managed-files.json"}
+    previous_managed = managed_items(target_path)
     actions: list[dict[str, Any]] = [{"action": "mkdir", "path": "."}]
     summary = {"copy": 0, "keep": 0, "overwrite": 0, "mkdir": 1, "skip": 0}
 
@@ -445,7 +446,13 @@ def plan_apply(root: str | pathlib.Path, build: str | pathlib.Path, target: str 
             actions.append({"action": "keep", "path": rel, "reason": "same-file"})
             summary["keep"] += 1
             continue
-        should_overwrite = overwrite or src.is_symlink() or rel in generated
+        previous = previous_managed.get(rel)
+        should_overwrite = (
+            overwrite
+            or src.is_symlink()
+            or rel in always_generated
+            or unchanged_from_managed(dest, previous)
+        )
         if should_overwrite:
             actions.append({
                 "action": "overwrite",
@@ -467,6 +474,23 @@ def plan_apply(root: str | pathlib.Path, build: str | pathlib.Path, target: str 
         "summary": summary,
         "actions": actions,
     }
+
+
+def managed_items(target: pathlib.Path) -> dict[str, dict[str, Any]]:
+    state = target / "control/state/managed-files.json"
+    if not state.is_file():
+        return {}
+    return {item["path"]: item for item in read_json(state).get("managed", [])}
+
+
+def unchanged_from_managed(path: pathlib.Path, item: dict[str, Any] | None) -> bool:
+    if not item:
+        return False
+    if item.get("type") == "symlink":
+        return path.is_symlink() and os.readlink(path) == item.get("target")
+    if item.get("type") == "file":
+        return path.is_file() and sha256(path) == item.get("sha256")
+    return False
 
 
 def backup_existing(dest: pathlib.Path, backup_dest: pathlib.Path, dry_run: bool) -> None:
@@ -568,43 +592,50 @@ def rollback_plan(plan_path: str | pathlib.Path, dry_run: bool = False, remove_c
     return summary
 
 
-def diff_build_live(build: str | pathlib.Path, target: str | pathlib.Path) -> tuple[int, int, int]:
+def diff_build_live(build: str | pathlib.Path, target: str | pathlib.Path, ignored: list[str] | None = None) -> tuple[int, int, int]:
     build_path = pathlib.Path(build).expanduser().resolve()
     target_path = pathlib.Path(target).expanduser()
     if not build_path.is_dir():
         fail(f"构建目录不存在: {build_path}")
+    ignored = ignored or []
     same = diff = missing = 0
     for src in sorted(p for p in build_path.rglob("*") if p.is_file() or p.is_symlink()):
         rel = src.relative_to(build_path)
+        rel_text = rel.as_posix()
+        if matches_any(rel_text, ignored):
+            continue
         dest = target_path / rel
         if not dest.exists() and not dest.is_symlink():
-            print(f"[MISS] {rel.as_posix()}")
+            print(f"[MISS] {rel_text}")
             missing += 1
         elif src.is_symlink():
             if dest.is_symlink() and os.readlink(src) == os.readlink(dest):
                 same += 1
             else:
-                print(f"[DIFF] {rel.as_posix()}")
+                print(f"[DIFF] {rel_text}")
                 diff += 1
         elif dest.is_file() and filecmp.cmp(src, dest, shallow=False):
             same += 1
         else:
-            print(f"[DIFF] {rel.as_posix()}")
+            print(f"[DIFF] {rel_text}")
             diff += 1
     return same, diff, missing
 
 
-def live_drift(build: str | pathlib.Path, target: str | pathlib.Path) -> dict[str, Any]:
+def live_drift(build: str | pathlib.Path, target: str | pathlib.Path, ignored: list[str] | None = None) -> dict[str, Any]:
     build_path = pathlib.Path(build).expanduser().resolve()
     target_path = pathlib.Path(target).expanduser()
+    ignored = ignored or []
     state = target_path / "control/state/managed-files.json"
     if not state.is_file():
-        return {"schema_version": 2, "status": "missing-live-state", "changed": [], "stale": []}
+        return {"schema_version": 2, "status": "missing-live-state", "changed": [], "stale": [], "unmanaged": []}
     managed = read_json(state).get("managed", [])
     changed: list[str] = []
     stale: list[str] = []
     for item in managed:
         rel = item["path"]
+        if matches_any(rel, ignored):
+            continue
         if item["type"] == "dir":
             continue
         live = target_path / rel
@@ -621,7 +652,36 @@ def live_drift(build: str | pathlib.Path, target: str | pathlib.Path) -> dict[st
         elif item["type"] == "file":
             if not live.is_file() or sha256(live) != item.get("sha256"):
                 changed.append(rel)
-    return {"schema_version": 2, "status": "ok", "changed": changed, "stale": stale}
+    return {
+        "schema_version": 2,
+        "status": "ok",
+        "changed": changed,
+        "stale": stale,
+        "unmanaged": unmanaged_live_assets(build_path, target_path),
+    }
+
+
+def unmanaged_live_assets(build: str | pathlib.Path, target: str | pathlib.Path) -> list[str]:
+    build_path = pathlib.Path(build).expanduser().resolve()
+    target_path = pathlib.Path(target).expanduser()
+    if not target_path.is_dir():
+        return []
+    unmanaged: list[str] = []
+    for pattern in ["vendor/skills/*/*/SKILL.md", "vendor/plugins/*/*/skills/*/SKILL.md"]:
+        for skill_md in sorted(target_path.glob(pattern)):
+            rel = skill_md.parent.relative_to(target_path).as_posix()
+            if not (build_path / rel).exists():
+                unmanaged.append(rel)
+    skills_dir = target_path / "skills"
+    if skills_dir.is_dir():
+        ignored = {".system", "scripts", "README.md", "registry.csv"}
+        for path in sorted(skills_dir.iterdir(), key=lambda p: p.name):
+            if path.name in ignored:
+                continue
+            rel = path.relative_to(target_path).as_posix()
+            if not (build_path / rel).exists() and (path.is_symlink() or path.is_dir()):
+                unmanaged.append(rel)
+    return sorted(set(unmanaged))
 
 
 def frontmatter_value(path: pathlib.Path, key: str) -> str:

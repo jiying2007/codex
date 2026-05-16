@@ -10,6 +10,10 @@
 6. 确认后运行 `rtk bash scripts/apply.sh --profile team-collab`。
 7. 发布前运行 `rtk bash scripts/check.sh`。
 
+默认 apply 只自动覆盖“上次由本仓库注入且 live 端未被本机改过”的文件；像 `config.toml` 这类已发生本机漂移的文件会被保留，并继续由 `drift.sh` 报告。需要强制覆盖时显式加 `--overwrite`。
+
+允许长期保留的 live 本机差异记录在 `manifests/policies.json` 的 `allowed_live_drift_paths`。当前 `config.toml` 允许漂移，用于保留本机项目 trust、TUI 状态和运行时 notice。
+
 ## 脚本与 Python 入口规范
 
 - 面向用户和 skill 的稳定入口统一放在 `scripts/*.sh`。
