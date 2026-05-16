@@ -12,10 +12,13 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 - `manifests/`：声明式 SSOT。
 - `build/codex-home/`：生成产物，可随时删除重建。
 - `~/.codex`：Codex 运行目录，保留系统 skill、认证、session、日志、缓存和本机私有状态。
+- `docs/archive/`：长期知识沉淀，不参与注入。
 
 ## Manifest
 
 `manifests/assets.json` 定义源目录、构建目录、默认 profile 和复制根。
+
+`manifests/profiles.json` 定义可选运行 profile。profile 是能力选择边界，不直接包含文件路径。
 
 `manifests/skills.json` 与 `manifests/agents.json` 定义可激活能力：
 
@@ -32,6 +35,14 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 ```
 
 `manifests/policies.json` 定义受保护路径。构建和注入必须跳过这些路径，尤其是 `skills/.system/**`、密钥、session、缓存和日志。
+
+`manifests/workflows.json` 定义可复用工作流编排。每个 workflow 必须显式声明启用 profile、触发词、依赖 skill、依赖 agent、入口命令和验证命令。
+
+`manifests/project-templates.json` 定义项目类型映射。它用路径模式把项目归类到默认 profile、推荐 workflow 和归档主题，解决“不同项目之间如何复用同一套 Codex 工作流”的问题。
+
+`manifests/overlays.json` 定义场景覆盖层。overlay 用来约束个人本地、团队共享、发布脱敏等场景下哪些 live 差异允许存在，哪些路径必须阻断。
+
+治理 manifest 只描述关系，不直接改变 build 复制内容；关系正确性由 `doctor --scope governance` 和 `scripts/check.sh` 检查。
 
 ## 构建
 
@@ -69,19 +80,21 @@ rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json
 
 ```bash
 rtk bash scripts/doctor.sh --scope repo
+rtk bash scripts/doctor.sh --scope governance
 rtk bash scripts/doctor.sh --scope build
 rtk bash scripts/doctor.sh --scope live
 rtk bash scripts/doctor.sh --scope all
+rtk bash scripts/governance-report.sh --json
 rtk bash scripts/drift.sh
 ```
 
-`repo` 检查仓库结构、manifest、脚本语法和旧入口残留，并执行语义校验：profile 引用、source 路径存在性、target 冲突、protected path 写入、lock 与 build state 一致性。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
+`repo` 检查仓库结构、manifest、脚本语法和旧入口残留，并执行语义校验：profile 引用、source 路径存在性、target 冲突、protected path 写入、lock 与 build state 一致性。`governance` 只检查 workflow、project template 和 overlay 的跨 manifest 引用关系与路径边界。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
 
 `drift.sh` 基于 live 的 `control/state/managed-files.json` 检查运行目录是否被手工改动，区别于 `diff.sh` 的 build/live 当前差异比较。
 
 ## Schema 与测试
 
-`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`team-collab` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
+`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/test_governance.py` 覆盖 workflow、project template、overlay 的引用错误与报告输出。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`team-collab` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
 
 ## 回滚
 

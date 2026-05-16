@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "project_templates": [
+    {
+      "name": "asset-repo",
+      "path_patterns": [
+        "*/codex"
+      ],
+      "default_profile": "team-collab",
+      "workflows": [
+        "asset-governance",
+        "context-handoff",
+        "archive-curation"
+      ],
+      "archive_topics": [
+        "session-wrap",
+        "diag-architecture",
+        "memory-curation"
+      ]
+    },
+    {
+      "name": "embedded-c",
+      "path_patterns": [
+        "*/work/sigmastar/*",
+        "*/sdk/*",
+        "*/SourceCode/*"
+      ],
+      "default_profile": "team-collab",
+      "workflows": [
+        "implementation-quality",
+        "parallel-collab",
+        "context-handoff",
+        "archive-curation"
+      ],
+      "archive_topics": [
+        "diag-architecture",
+        "session-wrap",
+        "tools"
+      ]
+    },
+    {
+      "name": "frontend-app",
+      "path_patterns": [
+        "*/frontend/*",
+        "*/web/*",
+        "*/app/*"
+      ],
+      "default_profile": "team-collab",
+      "workflows": [
+        "implementation-quality",
+        "external-research",
+        "context-handoff"
+      ],
+      "archive_topics": [
+        "research-notes",
+        "session-wrap"
+      ]
+    },
+    {
+      "name": "python-tooling",
+      "path_patterns": [
+        "*/tools/*",
+        "*/bin/*",
+        "*/scripts/*"
+      ],
+      "default_profile": "solo-dev",
+      "workflows": [
+        "implementation-quality",
+        "archive-curation",
+        "context-handoff"
+      ],
+      "archive_topics": [
+        "tools",
+        "session-wrap"
+      ]
+    }
+  ]
+}

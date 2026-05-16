@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import pathlib
 import sys
 from datetime import datetime
@@ -24,6 +25,7 @@ from .core import (
     write_json,
 )
 from .archive_search import run as run_archive_search
+from .governance import governance_errors, governance_report
 from .memory_curator import run as run_memory_curator
 from .usage_dashboard import main as usage_dashboard_main
 from .validate import validate_repo
@@ -106,6 +108,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     repo = Repo.from_path(args.root)
     errors: list[str] = []
     warnings: list[str] = []
+    if args.scope == "governance":
+        print("[INFO ] scope=governance")
+        errors.extend(governance_errors(repo))
     if args.scope in {"repo", "all"}:
         print("[INFO ] scope=repo")
         errors.extend(validate_repo(repo.root))
@@ -166,6 +171,38 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         print(f"[WARN ] {warning}")
     print(f"[INFO ] errors={len(errors)} warnings={len(warnings)}")
     return 1 if errors else 0
+
+
+def cmd_governance_report(args: argparse.Namespace) -> int:
+    report = governance_report(args.root)
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    print(f"[INFO] default_profile={report['default_profile']}")
+    print(
+        "[INFO] "
+        f"profiles={len(report['profiles'])} "
+        f"skills={len(report['skills'])} "
+        f"agents={len(report['agents'])} "
+        f"workflows={len(report['workflows'])} "
+        f"project_templates={len(report['project_templates'])} "
+        f"overlays={len(report['overlays'])}"
+    )
+    for name, links in report["workflow_links"].items():
+        print(
+            f"[WORKFLOW] {name} "
+            f"profiles={','.join(links['profiles']) or '-'} "
+            f"skills={','.join(links['skills']) or '-'} "
+            f"agents={','.join(links['agents']) or '-'}"
+        )
+    for name, links in report["template_links"].items():
+        print(
+            f"[TEMPLATE] {name} "
+            f"profile={links['default_profile'] or '-'} "
+            f"workflows={','.join(links['workflows']) or '-'} "
+            f"archive_topics={','.join(links['archive_topics']) or '-'}"
+        )
+    return 0
 
 
 def cmd_scan_skills(args: argparse.Namespace) -> int:
@@ -410,10 +447,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_drift)
 
     p = sub.add_parser("doctor", parents=[common])
-    p.add_argument("--scope", default="all", choices=["repo", "build", "live", "all"])
+    p.add_argument("--scope", default="all", choices=["repo", "governance", "build", "live", "all"])
     p.add_argument("--build", default="")
     p.add_argument("--target", default="~/.codex")
     p.set_defaults(func=cmd_doctor)
+
+    p = sub.add_parser("governance-report", parents=[common])
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_governance_report)
 
     p = sub.add_parser("scan-skills", parents=[common])
     p.add_argument("--codex-home", default="~/.codex")

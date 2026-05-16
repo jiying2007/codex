@@ -9,5 +9,6 @@
 - 第三方 skill 的正式源放在 `vendor/skills/<name>/<version>/`。
 - `skills/` 只保留 README、registry 模板和维护脚本等基础文件。
 - profile 激活入口由 build 阶段生成 symlink。
+- workflow、project template 和 overlay 只在仓库根目录 `manifests/` 中声明，不作为运行资产放入本目录。
 - `config/base.toml` 是 `config.toml` 的构建模板。
 - 注入时只自动覆盖未被本机改过的已管理文件；`config.toml` 等本机差异由 `manifests/policies.json` 控制。

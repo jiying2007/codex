@@ -4,7 +4,7 @@
 
 ```text
 src/codex-home/      # 人工维护资产源
-manifests/           # 声明式 SSOT：资产、profile、skill、agent、保护规则
+manifests/           # 声明式 SSOT：资产、profile、skill、agent、workflow、项目模板、overlay
 build/codex-home/    # 生成产物，可删除重建，不纳入 git
 ```
 
@@ -24,6 +24,13 @@ rtk bash scripts/build.sh --profile team-collab
 
 # 体检仓库、构建产物和当前 ~/.codex
 rtk bash scripts/doctor.sh --scope all
+
+# 只检查 workflow / project template / overlay 引用关系
+rtk bash scripts/doctor.sh --scope governance
+
+# 输出 profile、skill、agent、workflow、项目模板和 overlay 关系
+rtk bash scripts/governance-report.sh
+rtk bash scripts/governance-report.sh --json
 
 # 预览注入
 rtk bash scripts/apply.sh --dry-run --no-build
@@ -94,6 +101,9 @@ rtk bash scripts/check.sh
 | `manifests/profiles.json` | profile 元数据 |
 | `manifests/skills.json` | skill 版本、来源、启用 profile 与激活路径 |
 | `manifests/agents.json` | agent 版本、来源、启用 profile 与激活路径 |
+| `manifests/workflows.json` | workflow 触发词、profile、skill、agent、命令与验证闭环 |
+| `manifests/project-templates.json` | 项目类型到默认 profile、workflow 与归档主题的映射 |
+| `manifests/overlays.json` | 个人、本地、团队和发布场景的允许漂移与阻断路径 |
 | `manifests/policies.json` | protected paths 与 apply 策略 |
 | `manifests/lock.json` | build 生成的 vendor 锁定摘要 |
 | `build/codex-home/` | `build.sh` 生成的可注入产物 |
@@ -119,6 +129,24 @@ rtk bash scripts/apply.sh --profile team-collab
 ```
 
 正式 skill 存放在 `src/codex-home/vendor/skills/<name>/<version>/`，激活入口由 `build.sh` 在 `build/codex-home/skills/<name>` 生成相对 symlink。不要把第三方 skill 直接放进 `src/codex-home/skills/`。
+
+## 治理模型
+
+profile、agent、skill、workflow、项目模板和 overlay 分层管理：
+
+- profile 决定当前启用的能力集合，例如 `minimal`、`solo-dev`、`team-collab`。
+- skill 与 agent 是可注入能力资产，由 `manifests/skills.json` 和 `manifests/agents.json` 记录版本、来源和 profile 绑定。
+- workflow 是可复用工作流编排，显式声明触发词、依赖 skill、依赖 agent、入口命令和验证命令。
+- project template 用路径模式把不同项目类型映射到默认 profile、推荐 workflow 和归档主题。
+- overlay 约束个人、本地、团队共享和发布场景下哪些 live 差异允许存在，哪些路径必须阻断。
+
+治理层不直接写入 `~/.codex`；它提供可审计的能力关系图。修改治理 manifest 后运行：
+
+```bash
+rtk bash scripts/doctor.sh --scope governance
+rtk bash scripts/governance-report.sh --json
+rtk bash scripts/check.sh
+```
 
 ## 知识沉淀
 
@@ -216,8 +244,9 @@ rtk bash scripts/usage-tail.sh --view auto
 4. `apply.sh` 只从 build 注入，不直接读取 source。
 5. `skills/.system/` 永远以 `~/.codex` 为准。
 6. 未审核资产先进入 `inbox/`，审核通过后 promote。
-7. 每次改动后运行 `build.sh` 与 `doctor.sh`。
-8. 发布前运行 `scripts/check.sh`。
+7. workflow、project template 和 overlay 必须只引用已登记的 profile、skill 与 agent。
+8. 每次改动后运行 `build.sh` 与 `doctor.sh`。
+9. 发布前运行 `scripts/check.sh`。
 
 默认 apply 策略会对比 live 的 `managed-files.json`：如果目标文件仍等于上次注入的 managed hash，会自动更新；如果已被本机改过，会保留并由 `drift.sh` 报告。`--overwrite` 才会强制覆盖本机改动。
 

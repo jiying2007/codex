@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Project Templates Manifest",
+  "type": "object",
+  "required": ["schema_version", "project_templates"],
+  "properties": {
+    "schema_version": {"type": "integer"},
+    "project_templates": {"type": "array"}
+  }
+}

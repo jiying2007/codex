@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from .core import Repo, active, build_lock, matches_any, read_json
+from .governance import governance_errors
 
 
 REQUIRED = {
@@ -13,6 +14,9 @@ REQUIRED = {
     "profiles.json": ["schema_version", "profiles"],
     "skills.json": ["schema_version", "skills"],
     "agents.json": ["schema_version", "agents"],
+    "workflows.json": ["schema_version", "workflows"],
+    "project-templates.json": ["schema_version", "project_templates"],
+    "overlays.json": ["schema_version", "overlays"],
 }
 
 
@@ -31,6 +35,7 @@ def validate_repo(root: str | pathlib.Path) -> list[str]:
 
     if errors:
         return errors
+    errors.extend(governance_errors(repo))
 
     assets = repo.assets
     source = repo.source

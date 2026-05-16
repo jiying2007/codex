@@ -6,6 +6,9 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 rtk bash "$ROOT/scripts/build.sh" --profile team-collab
 rtk bash "$ROOT/scripts/doctor.sh" --scope all
+rtk bash "$ROOT/scripts/doctor.sh" --scope governance
+rtk bash "$ROOT/scripts/governance-report.sh" --json
+rtk python3 -m unittest discover -s "$ROOT/tests" -p 'test_*.py'
 rtk bash "$ROOT/scripts/check-skills.sh"
 if [[ "${REQUIRE_MODERN_BWRAP:-0}" == "1" ]]; then
   rtk bash "$ROOT/scripts/check-bwrap-capability.sh" --require-modern --json-out "$ROOT/build/bwrap-capability.json"

@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "overlays": [
+    {
+      "name": "personal-local",
+      "allowed_live_drift_paths": [
+        "config.toml"
+      ],
+      "blocked_paths": [
+        "auth.json",
+        "sessions/**",
+        "log/**",
+        "cache/**",
+        "tmp/**",
+        "skills/.system/**",
+        "mcp/secrets/**"
+      ]
+    },
+    {
+      "name": "team-shared",
+      "allowed_live_drift_paths": [],
+      "blocked_paths": [
+        "auth.json",
+        "sessions/**",
+        "log/**",
+        "cache/**",
+        "tmp/**",
+        "skills/.system/**",
+        "mcp/secrets/**",
+        "config.local.*"
+      ]
+    },
+    {
+      "name": "release-sanitized",
+      "allowed_live_drift_paths": [],
+      "blocked_paths": [
+        "auth.json",
+        "sessions/**",
+        "log/**",
+        "logs_*.sqlite*",
+        "state_*.sqlite*",
+        "cache/**",
+        "tmp/**",
+        "skills/.system/**",
+        "mcp/secrets/**",
+        "config.local.*",
+        "**/*.secret",
+        "**/*.key",
+        "**/*.pem"
+      ]
+    }
+  ]
+}

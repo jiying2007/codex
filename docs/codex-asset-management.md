@@ -5,14 +5,42 @@
 1. 修改 `src/codex-home/` 中的人工资产，或修改 `manifests/*.json`。
 2. 运行 `rtk bash scripts/build.sh --profile team-collab`。
 3. 运行 `rtk bash scripts/doctor.sh --scope all`。
-4. 运行 `rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json` 生成审计计划。
-5. 运行 `rtk bash scripts/apply.sh --dry-run --no-build` 预览。
-6. 确认后运行 `rtk bash scripts/apply.sh --profile team-collab`。
-7. 发布前运行 `rtk bash scripts/check.sh`。
+4. 若修改了 workflow、project template 或 overlay，运行 `rtk bash scripts/doctor.sh --scope governance`。
+5. 运行 `rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json` 生成审计计划。
+6. 运行 `rtk bash scripts/apply.sh --dry-run --no-build` 预览。
+7. 确认后运行 `rtk bash scripts/apply.sh --profile team-collab`。
+8. 发布前运行 `rtk bash scripts/check.sh`。
 
 默认 apply 只自动覆盖“上次由本仓库注入且 live 端未被本机改过”的文件；像 `config.toml` 这类已发生本机漂移的文件会被保留，并继续由 `drift.sh` 报告。需要强制覆盖时显式加 `--overwrite`。
 
 允许长期保留的 live 本机差异记录在 `manifests/policies.json` 的 `allowed_live_drift_paths`。当前 `config.toml` 允许漂移，用于保留本机项目 trust、TUI 状态和运行时 notice。
+
+## Profile / Agent / Skill / Workflow 治理
+
+本仓库把长期维护对象拆成六层：
+
+- `profiles`：运行能力边界，例如 `minimal`、`solo-dev`、`team-collab`。
+- `skills`：可复用操作能力，存放版本、来源、目标路径和启用 profile。
+- `agents`：可用子代理或本地 agent 配置，按 profile 激活。
+- `workflows`：把触发词、skill、agent、命令和验证命令串成可复用流程。
+- `project_templates`：把不同项目路径映射到默认 profile、推荐 workflow 和归档主题。
+- `overlays`：定义个人、本地、团队共享和发布场景的允许漂移与阻断路径。
+
+常用治理命令：
+
+```bash
+rtk bash scripts/doctor.sh --scope governance
+rtk bash scripts/governance-report.sh
+rtk bash scripts/governance-report.sh --json
+```
+
+维护原则：
+
+- 新增 skill 或 agent 后，先登记对应 manifest，再由 workflow 引用。
+- workflow 只能引用已登记且拼写一致的 profile、skill 和 agent。
+- project template 只能引用已登记 workflow，并明确默认 profile。
+- overlay 的 `allowed_live_drift_paths` 不能覆盖 protected path，例如认证、session、日志、缓存、密钥和系统 skill。
+- 团队共享或发布前优先使用 `team-shared` / `release-sanitized` 视角审查，个人本机状态只保留在 live 目录或 `personal-local` overlay。
 
 ## 脚本与 Python 入口规范
 
@@ -287,8 +315,10 @@ rtk bash scripts/apply.sh --profile team-collab --overwrite
 
 ```bash
 rtk bash scripts/doctor.sh --scope repo
+rtk bash scripts/doctor.sh --scope governance
 rtk bash scripts/doctor.sh --scope build
 rtk bash scripts/doctor.sh --scope live
+rtk bash scripts/governance-report.sh --json
 rtk bash scripts/diff.sh
 rtk bash scripts/drift.sh
 rtk bash scripts/check.sh

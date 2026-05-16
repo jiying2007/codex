@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "workflows": [
+    {
+      "name": "archive-curation",
+      "enabled": true,
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "triggers": [
+        "知识归档",
+        "记忆整理",
+        "调研纪要",
+        "会话总结归档"
+      ],
+      "skills": [
+        "knowledge-archive",
+        "memory-curator",
+        "research-note-wrap",
+        "session-wrap"
+      ],
+      "agents": [],
+      "commands": [
+        "rtk bash scripts/archive-note.sh",
+        "rtk bash scripts/curate-memory.sh --dry-run"
+      ],
+      "verification": [
+        "rtk bash scripts/check-skills.sh"
+      ]
+    },
+    {
+      "name": "asset-governance",
+      "enabled": true,
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "triggers": [
+        "skill 同步",
+        "资产治理",
+        "profile 调整",
+        "agent 调整"
+      ],
+      "skills": [
+        "skill-asset-manager"
+      ],
+      "agents": [
+        "local-integrator"
+      ],
+      "commands": [
+        "rtk bash scripts/build.sh --profile team-collab",
+        "rtk bash scripts/doctor.sh --scope all",
+        "rtk bash scripts/apply.sh --dry-run --no-build"
+      ],
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ]
+    },
+    {
+      "name": "context-handoff",
+      "enabled": true,
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "triggers": [
+        "上下文压缩",
+        "会话接力",
+        "resume prompt",
+        "90 秒模板"
+      ],
+      "skills": [
+        "context-compress-handoff",
+        "session-wrap",
+        "knowledge-archive",
+        "memory-curator"
+      ],
+      "agents": [
+        "local-context-curator"
+      ],
+      "commands": [
+        "rtk bash scripts/context-preflight.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check-skills.sh"
+      ]
+    },
+    {
+      "name": "external-research",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "多源搜索",
+        "交叉验证",
+        "浏览器查看",
+        "微信公众号文章整理"
+      ],
+      "skills": [
+        "multi-search-engine",
+        "browser-reader"
+      ],
+      "agents": [
+        "agent-browser"
+      ],
+      "commands": [
+        "rtk bash scripts/archive-search.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check-skills.sh"
+      ]
+    },
+    {
+      "name": "implementation-quality",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "实现",
+        "修复 bug",
+        "重构",
+        "完成前验证"
+      ],
+      "skills": [
+        "systematic-debugging",
+        "test-driven-development",
+        "requesting-code-review",
+        "receiving-code-review",
+        "verification-before-completion",
+        "executing-plans",
+        "writing-plans"
+      ],
+      "agents": [
+        "code-reviewer",
+        "local-tester",
+        "local-integrator"
+      ],
+      "commands": [
+        "rtk bash scripts/check.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ]
+    },
+    {
+      "name": "parallel-collab",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "并行施工",
+        "多 agent",
+        "worktree 方案",
+        "外部并行规划"
+      ],
+      "skills": [
+        "codex-parallel-collab",
+        "dispatching-parallel-agents",
+        "subagent-driven-development",
+        "using-git-worktrees",
+        "worktree-closeout"
+      ],
+      "agents": [
+        "local-architect",
+        "local-implementer",
+        "local-tester",
+        "local-integrator"
+      ],
+      "commands": [
+        "rtk bash scripts/check.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ]
+    }
+  ]
+}
