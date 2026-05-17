@@ -122,6 +122,42 @@
       ]
     },
     {
+      "name": "session-continuity-coach",
+      "enabled": true,
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "triggers": [
+        "下一步提醒",
+        "上下文提醒",
+        "省 token",
+        "会话收口",
+        "新开会话",
+        "AGENT/SKILL/DOC/SCRIPT 更新"
+      ],
+      "skills": [
+        "context-compress-handoff",
+        "session-wrap",
+        "knowledge-archive",
+        "memory-curator",
+        "skill-asset-manager"
+      ],
+      "agents": [
+        "local-context-curator"
+      ],
+      "commands": [
+        "rtk bash scripts/session-coach.sh",
+        "rtk bash scripts/usage-report.sh --json",
+        "rtk bash scripts/context-preflight.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/session-coach.sh --deep",
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "会话间主动提醒上下文压缩、归档、记忆整理、资产同步和省 token 动作"
+    },
+    {
       "name": "external-research",
       "enabled": true,
       "profiles": [

@@ -74,6 +74,10 @@ rtk bash scripts/archive-search.sh "context-preflight"
 # 上下文压缩前 90 秒 preflight（会话接力模板）
 rtk bash scripts/context-preflight.sh
 
+# 查看会话连续性下一步提醒
+rtk bash scripts/session-coach.sh
+rtk bash scripts/session-coach.sh --deep
+
 # 查看当前线程和近 7 天用量
 rtk bash scripts/usage-report.sh
 

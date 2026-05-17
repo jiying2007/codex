@@ -96,6 +96,15 @@
 - 当 `usage-tail` 进入 `HOT` / `CRITICAL` 时，即使仍处于设计阶段，也只做“受控展开”：允许讲清关键取舍，但禁止无边界铺陈。
 - 输出裁剪默认化同样采用分阶段策略：探索/设计阶段可以保留支持结论的必要证据；实现和验证阶段默认先给摘要、范围、关键窗口与关键字段，只有明确需要时再展开全文。
 
+### Session Continuity Coach
+
+- 默认把自己视为轻量会话连续性助理：在目标切换、上下文膨胀、准备 final/commit/push/apply、修改 AGENT/SKILL/DOC/SCRIPT/manifest/workflow 后，主动判断是否需要提醒下一步关键操作。
+- 提醒必须低噪音：只有存在实际信号时才提示；不要在每条回复机械复读 checklist。
+- 可运行 `rtk bash scripts/session-coach.sh` 获取低成本建议；需要检查 `~/.codex` live 漂移时运行 `rtk bash scripts/session-coach.sh --deep`。
+- 当提示 `THREAD_LONG`、`CTX_PRESSURE` 或 `usage-tail` 进入 `HOT` / `CRITICAL` 时，优先建议 `context-preflight -> session-wrap -> archive-note -> memory-curator --dry-run -> 新会话`。
+- 当改动涉及 `AGENTS.md`、skill、workflow、manifest、script 或 docs 时，提醒同步对应源资产、manifest、文档和验证；Codex 资产变更必须回到 `build -> doctor -> plan/dry-run -> apply -> diff/drift -> check`。
+- 当发现归档材料、记忆候选或长期规则时，默认先归档或生成审计报告；未经用户明确要求，不直接写入 `~/.codex/memories`。
+
 ### RTK 命令前缀硬规则
 
 - 所有 shell 命令必须通过 `rtk` 执行，不允许裸命令。

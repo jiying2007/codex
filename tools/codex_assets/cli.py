@@ -27,6 +27,7 @@ from .core import (
 from .archive_search import run as run_archive_search
 from .governance import governance_errors, governance_report
 from .memory_curator import run as run_memory_curator
+from .session_coach import run as run_session_coach
 from .usage_dashboard import main as usage_dashboard_main
 from .validate import validate_repo
 
@@ -341,6 +342,10 @@ def cmd_archive_search(args: argparse.Namespace) -> int:
     return run_archive_search(mapped)
 
 
+def cmd_session_coach(args: argparse.Namespace) -> int:
+    return run_session_coach(args)
+
+
 def cmd_usage_report(args: argparse.Namespace) -> int:
     argv = [
         "report",
@@ -515,6 +520,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--write-memory-candidate", action="store_true")
     p.set_defaults(func=cmd_curate_memory)
+
+    p = sub.add_parser("session-coach", parents=[common])
+    p.add_argument("--codex-home", default="~/.codex")
+    p.add_argument("--target", default="~/.codex")
+    p.add_argument("--deep", action="store_true")
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--warn-thread-tokens", type=int, default=50_000_000)
+    p.set_defaults(func=cmd_session_coach)
 
     p = sub.add_parser("usage-report", parents=[common])
     p.add_argument("--codex-home", default="~/.codex")
