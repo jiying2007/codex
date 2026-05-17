@@ -1,8 +1,113 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 421,
+  "managed_count": 599,
   "items": [
+    {
+      "kind": "skill",
+      "name": "adk-artifact-gated-lite",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-artifact-gated-lite/1.0.0",
+      "sha256": "e961a8adb4598b7a34a48b3a0f2f66c1ced4eb030079bb1bd3a0016c0efb7b81"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-commit-pr-quality-gate",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-commit-pr-quality-gate/1.0.0",
+      "sha256": "5473776552b6d1e867e62769830002412b0771067716f57a9abddf40e655986c"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-cross-team-handoff",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-cross-team-handoff/1.0.0",
+      "sha256": "d0039b7dea9aca4b1989efced95d420edaad7709f04e1f8f713b92774f80ce4d"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-grill-with-docs",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-grill-with-docs/1.0.0",
+      "sha256": "b5bb44d1e942c0eca6a2a9f33cc4a52bd0a39b37d53bd637161b3a5be78cafce"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-interface-contract-design",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-interface-contract-design/1.0.0",
+      "sha256": "2c38a92ae61bb437add13dc91125e50cfda6d8f75e4f0658d686d91b201aedc0"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-planning-execution-loop",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-planning-execution-loop/1.0.0",
+      "sha256": "1581fc09291823f8ed48453d502758a750c183d6da80ed6754060f4bc6cf3683"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-release-versioning",
+      "version": "1.1.0",
+      "source": "vendor/skills/adk-release-versioning/1.1.0",
+      "sha256": "e7ca02de5276a9cee62a08ae631b1d1ab5c06aab59ec3110464ad1f748906121"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-requirements-triage",
+      "version": "1.1.0",
+      "source": "vendor/skills/adk-requirements-triage/1.1.0",
+      "sha256": "b3a04045144c45bad7292469e25bdf20315b848ee048c62ff6ef2443d2ac7fa9"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-security-supply-chain",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-security-supply-chain/1.0.0",
+      "sha256": "1cf897557ba3505333754d0d7c201b2d169a83659f035366e2c8ff9b4fb634eb"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-skill-composition-governance",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-skill-composition-governance/1.0.0",
+      "sha256": "54e6c879825d3a1d654c42845775e491b47424315bedf530fcdd09242dade08d"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-static-analysis-c-cpp",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-static-analysis-c-cpp/1.0.0",
+      "sha256": "48b08f542668a4ad49e0d1d509246b63048cfb0d1861e660cd15f5f8ea81f84b"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-systematic-debugging",
+      "version": "1.1.0",
+      "source": "vendor/skills/adk-systematic-debugging/1.1.0",
+      "sha256": "60c186956fdfb3caad10435239aa6c46ed912dbe9f6c61c15e6cb6d2308455fd"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-task-breakdown",
+      "version": "1.1.0",
+      "source": "vendor/skills/adk-task-breakdown/1.1.0",
+      "sha256": "06afaa976556278f83c775f836f2a39e31d2378c9a3101b5f736dbd66fa82da2"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-unit-test-embedded",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-unit-test-embedded/1.0.0",
+      "sha256": "469787475a3c08c652df1d4264b961f43624210e224a13271bd1b8078031dcd9"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-verification-before-completion",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-verification-before-completion/1.0.0",
+      "sha256": "4f533ef3b53a958a6a8760a196a6a48d5cce0ae07dfe20dca4e68f11266e42fd"
+    },
     {
       "kind": "skill",
       "name": "brainstorming",

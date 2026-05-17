@@ -2,6 +2,336 @@
   "schema_version": 2,
   "skills": [
     {
+      "name": "adk-artifact-gated-lite",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-artifact-gated-lite/1.0.0",
+      "target_rel": "skills/adk-artifact-gated-lite",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p2"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.8.0",
+      "source_path": "optional-skills/adk-artifact-gated-lite/SKILL.md",
+      "imported_at": "2026-05-16",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-commit-pr-quality-gate",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-commit-pr-quality-gate/1.0.0",
+      "target_rel": "skills/adk-commit-pr-quality-gate",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-commit-pr-quality-gate/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-cross-team-handoff",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-cross-team-handoff/1.0.0",
+      "target_rel": "skills/adk-cross-team-handoff",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p2"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "optional-skills/adk-cross-team-handoff/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-grill-with-docs",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-grill-with-docs/1.0.0",
+      "target_rel": "skills/adk-grill-with-docs",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-grill-with-docs/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-interface-contract-design",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-interface-contract-design/1.0.0",
+      "target_rel": "skills/adk-interface-contract-design",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-interface-contract-design/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-planning-execution-loop",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-planning-execution-loop/1.0.0",
+      "target_rel": "skills/adk-planning-execution-loop",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p2"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "optional-skills/adk-planning-execution-loop/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-release-versioning",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.0",
+      "vendor_rel": "vendor/skills/adk-release-versioning/1.1.0",
+      "target_rel": "skills/adk-release-versioning",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-release-versioning/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-requirements-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.0",
+      "vendor_rel": "vendor/skills/adk-requirements-triage/1.1.0",
+      "target_rel": "skills/adk-requirements-triage",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-requirements-triage/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-security-supply-chain",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-security-supply-chain/1.0.0",
+      "target_rel": "skills/adk-security-supply-chain",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p2"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "optional-skills/adk-security-supply-chain/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-skill-composition-governance",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-skill-composition-governance/1.0.0",
+      "target_rel": "skills/adk-skill-composition-governance",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p2"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "optional-skills/adk-skill-composition-governance/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-static-analysis-c-cpp",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-static-analysis-c-cpp/1.0.0",
+      "target_rel": "skills/adk-static-analysis-c-cpp",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-static-analysis-c-cpp/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-systematic-debugging",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.0",
+      "vendor_rel": "vendor/skills/adk-systematic-debugging/1.1.0",
+      "target_rel": "skills/adk-systematic-debugging",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-systematic-debugging/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-task-breakdown",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.1.0",
+      "vendor_rel": "vendor/skills/adk-task-breakdown/1.1.0",
+      "target_rel": "skills/adk-task-breakdown",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-task-breakdown/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-unit-test-embedded",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-unit-test-embedded/1.0.0",
+      "target_rel": "skills/adk-unit-test-embedded",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-unit-test-embedded/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-verification-before-completion",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-verification-before-completion/1.0.0",
+      "target_rel": "skills/adk-verification-before-completion",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-verification-before-completion/SKILL.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
       "name": "brainstorming",
       "enabled": true,
       "source_kind": "vendor",

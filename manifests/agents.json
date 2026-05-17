@@ -2,6 +2,71 @@
   "schema_version": 2,
   "agents": [
     {
+      "name": "agent-browser",
+      "enabled": true,
+      "source_kind": "local",
+      "version": "0.1.0",
+      "vendor_rel": "control/agents-local/agent-browser.toml",
+      "target_rel": "agents/agent-browser.toml",
+      "profiles": [
+        "team-collab"
+      ],
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "description": "受限浏览器读取代理"
+    },
+    {
+      "name": "architecture-planner",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/architecture-planner/AGENTS.md",
+      "target_rel": "agents/architecture-planner/AGENTS.md",
+      "profiles": [
+        "team-collab"
+      ],
+      "description": "architecture-planner",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/architecture-planner/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "build-release-engineer",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/build-release-engineer/AGENTS.md",
+      "target_rel": "agents/build-release-engineer/AGENTS.md",
+      "profiles": [
+        "team-collab"
+      ],
+      "description": "build-release-engineer",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/build-release-engineer/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "code-review-governor",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/code-review-governor/AGENTS.md",
+      "target_rel": "agents/code-review-governor/AGENTS.md",
+      "profiles": [
+        "team-collab"
+      ],
+      "description": "code-review-governor",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/code-review-governor/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
       "name": "code-reviewer",
       "enabled": true,
       "source_kind": "vendor",
@@ -17,18 +82,38 @@
       "description": "代码审查代理"
     },
     {
-      "name": "agent-browser",
+      "name": "component-engineer",
       "enabled": true,
-      "source_kind": "local",
-      "version": "0.1.0",
-      "vendor_rel": "control/agents-local/agent-browser.toml",
-      "target_rel": "agents/agent-browser.toml",
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/component-engineer/AGENTS.md",
+      "target_rel": "agents/component-engineer/AGENTS.md",
       "profiles": [
         "team-collab"
       ],
-      "model": "gpt-5.4",
-      "reasoning_effort": "high",
-      "description": "受限浏览器读取代理"
+      "description": "component-engineer",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/component-engineer/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "driver-engineer",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/driver-engineer/AGENTS.md",
+      "target_rel": "agents/driver-engineer/AGENTS.md",
+      "profiles": [
+        "team-collab"
+      ],
+      "description": "driver-engineer",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/driver-engineer/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
     },
     {
       "name": "local-architect",
@@ -46,6 +131,20 @@
       "description": "架构拆解与边界控制"
     },
     {
+      "name": "local-context-curator",
+      "enabled": true,
+      "source_kind": "local",
+      "version": "0.1.0",
+      "vendor_rel": "control/agents-local/local-context-curator.toml",
+      "target_rel": "agents/local-context-curator.toml",
+      "profiles": [
+        "team-collab"
+      ],
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "description": "上下文压缩与会话接力整理代理"
+    },
+    {
       "name": "local-implementer",
       "enabled": true,
       "source_kind": "local",
@@ -59,21 +158,6 @@
       "model": "gpt-5.3-codex",
       "reasoning_effort": "high",
       "description": "实现代理"
-    },
-    {
-      "name": "local-tester",
-      "enabled": true,
-      "source_kind": "local",
-      "version": "1.0.0",
-      "vendor_rel": "control/agents-local/local-tester.toml",
-      "target_rel": "agents/local-tester.toml",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "model": "gpt-5.4-mini",
-      "reasoning_effort": "high",
-      "description": "测试与验证代理"
     },
     {
       "name": "local-integrator",
@@ -91,18 +175,87 @@
       "description": "收口整合代理"
     },
     {
-      "name": "local-context-curator",
+      "name": "local-tester",
       "enabled": true,
       "source_kind": "local",
-      "version": "0.1.0",
-      "vendor_rel": "control/agents-local/local-context-curator.toml",
-      "target_rel": "agents/local-context-curator.toml",
+      "version": "1.0.0",
+      "vendor_rel": "control/agents-local/local-tester.toml",
+      "target_rel": "agents/local-tester.toml",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "model": "gpt-5.4-mini",
+      "reasoning_effort": "high",
+      "description": "测试与验证代理"
+    },
+    {
+      "name": "performance-reliability-engineer",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/performance-reliability-engineer/AGENTS.md",
+      "target_rel": "agents/performance-reliability-engineer/AGENTS.md",
       "profiles": [
         "team-collab"
       ],
-      "model": "gpt-5.4",
-      "reasoning_effort": "high",
-      "description": "上下文压缩与会话接力整理代理"
+      "description": "performance-reliability-engineer",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/performance-reliability-engineer/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "requirements-analyst",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/requirements-analyst/AGENTS.md",
+      "target_rel": "agents/requirements-analyst/AGENTS.md",
+      "profiles": [
+        "team-collab"
+      ],
+      "description": "requirements-analyst",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/requirements-analyst/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "security-compliance-reviewer",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/security-compliance-reviewer/AGENTS.md",
+      "target_rel": "agents/security-compliance-reviewer/AGENTS.md",
+      "profiles": [
+        "team-collab"
+      ],
+      "description": "security-compliance-reviewer",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/security-compliance-reviewer/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "test-validation-engineer",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "2.9.0",
+      "vendor_rel": "vendor/agents/agent-dev-kit/2.9.0/test-validation-engineer/AGENTS.md",
+      "target_rel": "agents/test-validation-engineer/AGENTS.md",
+      "profiles": [
+        "team-collab"
+      ],
+      "description": "test-validation-engineer",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "agents/test-validation-engineer/AGENTS.md",
+      "imported_at": "2026-05-17",
+      "review_status": "accepted"
     }
   ]
 }

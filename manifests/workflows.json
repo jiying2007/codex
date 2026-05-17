@@ -2,6 +2,41 @@
   "schema_version": 1,
   "workflows": [
     {
+      "name": "adk-delivery-gate",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "优化 adk",
+        "agent-dev-kit 交付",
+        "嵌入式资产发布",
+        "完成前验证"
+      ],
+      "skills": [
+        "adk-requirements-triage",
+        "adk-task-breakdown",
+        "adk-verification-before-completion",
+        "adk-commit-pr-quality-gate"
+      ],
+      "agents": [
+        "requirements-analyst",
+        "architecture-planner",
+        "test-validation-engineer",
+        "code-review-governor"
+      ],
+      "commands": [
+        "rtk bash scripts/check-skills.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "agent-dev-kit 到 ~/codex 的生产交付门禁",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "imported_at": "2026-05-17"
+    },
+    {
       "name": "archive-curation",
       "enabled": true,
       "profiles": [

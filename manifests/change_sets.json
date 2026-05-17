@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "change_sets": [
+    {
+      "name": "adk-change-governance",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "root": "docs/changes",
+      "archive_root": "docs/changes/archive",
+      "commands": [
+        "rtk bash scripts/devkit.sh propose",
+        "rtk bash scripts/devkit.sh apply",
+        "rtk bash scripts/devkit.sh verify",
+        "rtk bash scripts/devkit.sh review",
+        "rtk bash scripts/devkit.sh archive"
+      ],
+      "required_files": [
+        "proposal.md",
+        "design.md",
+        "tasks.md",
+        "checklist.md",
+        "negative-results.md",
+        "verify-report.md",
+        "review-report.md"
+      ],
+      "description": "agent-dev-kit 变更工件、阶段门禁与证据索引规范",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "imported_at": "2026-05-17"
+    }
+  ]
+}
