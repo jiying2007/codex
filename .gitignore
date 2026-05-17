@@ -51,3 +51,6 @@ src/codex-home/mcp/secrets/*
 
 # Local backup artifacts
 AGENTS_.md
+# Handoff/export scratch artifacts (do not track)
+CODEX_HANDOFF.md
+manifest-fragments/

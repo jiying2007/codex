@@ -15,6 +15,27 @@
 
 允许长期保留的 live 本机差异记录在 `manifests/policies.json` 的 `allowed_live_drift_paths`。当前 `config.toml` 允许漂移，用于保留本机项目 trust、TUI 状态和运行时 notice。
 
+
+## Git 管理边界
+
+`~/codex` 是声明式交付仓库，必须记录可复现的构建输入；`~/.codex` 是运行态接收目录，不纳入 Git 管理。
+
+应纳入 Git 的内容：
+
+- `manifests/*.json`：profile、agent、skill、workflow、lock、change set 与 MCP 声明。
+- `src/codex-home/vendor/agents/agent-dev-kit/<version>/`：从 `agent-dev-kit` 导入并由 manifest 引用的版本化 agent 资产。
+- `src/codex-home/vendor/skills/adk-*/<version>/`：从 `agent-dev-kit` 导入并由 manifest 引用的版本化 skill 资产。
+- 其他被 `scripts/build.sh` 明确消费的声明式源文件。
+
+不得纳入 Git 的内容：
+
+- `~/.codex` 运行态目录及其认证、session、日志、缓存、密钥和本机私有配置。
+- `build/`、`.cache/`、`scratch/`、`inbox/`、`.backups/` 等可重建或本机临时目录。
+- `/tmp/adk-codex-handoff`、`CODEX_HANDOFF.md`、`manifest-fragments/` 等导出包辅助文件。
+- apply plan 和运行日志，除非作为脱敏审计证据单独归档到 `docs/archive/`。
+
+处理 `agent-dev-kit` 应用时，先将 handoff 合并到 `manifests/` 与 `src/codex-home/vendor/`，再运行 `build -> doctor -> plan/dry-run -> apply -> drift/diff -> check`。验证通过后只提交上述声明式资产，不提交运行态或临时产物。
+
 ## Profile / Agent / Skill / Workflow 治理
 
 本仓库把长期维护对象拆成六层：
