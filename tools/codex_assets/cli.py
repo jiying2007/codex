@@ -527,6 +527,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--deep", action="store_true")
     p.add_argument("--json", action="store_true")
     p.add_argument("--warn-thread-tokens", type=int, default=50_000_000)
+    p.add_argument("--top", type=int, default=3)
+    p.add_argument("--all", action="store_true")
+    p.add_argument("--state-file", default="")
+    p.add_argument("--reset-state", action="store_true")
+    p.add_argument("--no-cooldown", action="store_true")
     p.set_defaults(func=cmd_session_coach)
 
     p = sub.add_parser("usage-report", parents=[common])

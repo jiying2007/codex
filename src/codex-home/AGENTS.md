@@ -99,7 +99,7 @@
 ### Session Continuity Coach
 
 - 默认把自己视为轻量会话连续性助理：在目标切换、上下文膨胀、准备 final/commit/push/apply、修改 AGENT/SKILL/DOC/SCRIPT/manifest/workflow 后，主动判断是否需要提醒下一步关键操作。
-- 提醒必须低噪音：只有存在实际信号时才提示；不要在每条回复机械复读 checklist。
+- 提醒必须低噪音：只有存在实际信号时才提示；优先使用 `session-coach` 的 phase、priority、cooldown 和 Top action，不要在每条回复机械复读 checklist。
 - 可运行 `rtk bash scripts/session-coach.sh` 获取低成本建议；需要检查 `~/.codex` live 漂移时运行 `rtk bash scripts/session-coach.sh --deep`。
 - 当提示 `THREAD_LONG`、`CTX_PRESSURE` 或 `usage-tail` 进入 `HOT` / `CRITICAL` 时，优先建议 `context-preflight -> session-wrap -> archive-note -> memory-curator --dry-run -> 新会话`。
 - 当改动涉及 `AGENTS.md`、skill、workflow、manifest、script 或 docs 时，提醒同步对应源资产、manifest、文档和验证；Codex 资产变更必须回到 `build -> doctor -> plan/dry-run -> apply -> diff/drift -> check`。

@@ -77,6 +77,8 @@ rtk bash scripts/context-preflight.sh
 # 查看会话连续性下一步提醒
 rtk bash scripts/session-coach.sh
 rtk bash scripts/session-coach.sh --deep
+rtk bash scripts/session-coach.sh --deep --top 5
+rtk bash scripts/session-coach.sh --reset-state
 
 # 查看当前线程和近 7 天用量
 rtk bash scripts/usage-report.sh
