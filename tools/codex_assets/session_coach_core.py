@@ -11,6 +11,7 @@ from typing import Any
 from .core import read_json, write_json
 
 SEVERITY_RANK = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "INFO": 1}
+FAIL_ON_RANK = {"never": 0, "info": 1, "medium": 2, "high": 3, "critical": 4}
 
 
 @dataclass
@@ -30,15 +31,13 @@ class Notice:
     action: str
     commands: list[str] = field(default_factory=list)
     evidence: dict[str, Any] = field(default_factory=dict)
+    stable_key: str = ""
     fingerprint: str = ""
     repeated: bool = False
 
     def finalize(self) -> "Notice":
-        payload = json.dumps(
-            {"code": self.code, "phase": self.phase, "evidence": self.evidence},
-            ensure_ascii=False,
-            sort_keys=True,
-        )
+        source = {"stable_key": self.stable_key} if self.stable_key else {"code": self.code, "phase": self.phase, "evidence": self.evidence}
+        payload = json.dumps(source, ensure_ascii=False, sort_keys=True)
         self.fingerprint = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
         return self
 
@@ -71,10 +70,12 @@ def starts(path: str, prefixes: tuple[str, ...]) -> bool:
 def group_paths(changes: list[GitChange]) -> dict[str, list[str]]:
     paths = [change.path for change in changes]
     groups = {
+        "all": paths,
         "staged": [c.path for c in changes if c.index not in {" ", "?"}],
         "agents": [p for p in paths if p in {"AGENTS.md", "src/codex-home/AGENTS.md"}],
         "skills": [p for p in paths if starts(p, ("src/codex-home/vendor/skills/", "manifests/skills.json"))],
         "agents_manifest": [p for p in paths if starts(p, ("src/codex-home/vendor/agents/", "manifests/agents.json"))],
+        "mcp": [p for p in paths if starts(p, ("src/codex-home/mcp/", "manifests/mcp_servers.json"))],
         "workflows": [p for p in paths if starts(p, ("manifests/workflows.json",))],
         "manifests": [p for p in paths if starts(p, ("manifests/", "schemas/"))],
         "scripts": [p for p in paths if starts(p, ("scripts/", "tools/"))],
@@ -88,6 +89,7 @@ def group_paths(changes: list[GitChange]) -> dict[str, list[str]]:
         groups["agents"],
         groups["skills"],
         groups["agents_manifest"],
+        groups["mcp"],
         groups["workflows"],
         groups["manifests"],
         groups["scripts"],
@@ -110,6 +112,10 @@ def detect_phase(groups: dict[str, list[str]], token_pressure: bool, live_issue:
     return "steady"
 
 
+def event_phase(event: str, config: dict[str, Any]) -> str:
+    return config.get("events", {}).get(event, {}).get("phase", "")
+
+
 def make_notice(
     severity: str,
     code: str,
@@ -118,18 +124,32 @@ def make_notice(
     summary: str,
     action: str,
     commands: list[str] | None = None,
+    stable_key: str = "",
     **evidence: Any,
 ) -> Notice:
-    return Notice(severity, code, phase, priority, summary, action, commands or [], evidence).finalize()
+    return Notice(severity, code, phase, priority, summary, action, commands or [], evidence, stable_key).finalize()
 
 
 def load_state(path: pathlib.Path) -> dict[str, Any]:
     if not path.is_file():
-        return {"fingerprints": {}}
+        return {"fingerprints": {}, "acks": {}}
     try:
-        return read_json(path)
+        state = read_json(path)
     except Exception:
-        return {"fingerprints": {}}
+        return {"fingerprints": {}, "acks": {}}
+    state.setdefault("fingerprints", {})
+    state.setdefault("acks", {})
+    return state
+
+
+def ack_notice(path: pathlib.Path, code: str, clear: bool = False) -> dict[str, Any]:
+    state = load_state(path)
+    if clear:
+        state["acks"] = {}
+    elif code:
+        state.setdefault("acks", {})[code] = {"acked_at": int(time.time())}
+    write_json(path, state)
+    return state
 
 
 def apply_cooldown(notices: list[Notice], state_path: pathlib.Path, no_cooldown: bool, reset: bool) -> tuple[list[Notice], int]:
@@ -139,6 +159,7 @@ def apply_cooldown(notices: list[Notice], state_path: pathlib.Path, no_cooldown:
         return notices, 0
     state = load_state(state_path)
     seen = state.setdefault("fingerprints", {})
+    acks = state.setdefault("acks", {})
     now = int(time.time())
     kept: list[Notice] = []
     suppressed = 0
@@ -148,6 +169,9 @@ def apply_cooldown(notices: list[Notice], state_path: pathlib.Path, no_cooldown:
             notice.repeated = True
         payload = {"last_seen": now, "count": int((record or {}).get("count", 0)) + 1, "code": notice.code}
         seen[notice.fingerprint] = payload
+        if notice.code in acks and notice.severity in {"MEDIUM", "INFO"}:
+            suppressed += 1
+            continue
         if record and notice.severity in {"MEDIUM", "INFO"}:
             suppressed += 1
             continue
@@ -170,3 +194,10 @@ def overall_status(notices: list[Notice]) -> str:
     if "MEDIUM" in severities:
         return "WATCH"
     return "STABLE"
+
+
+def fail_on_triggered(notices: list[Notice], fail_on: str) -> bool:
+    threshold = FAIL_ON_RANK.get((fail_on or "never").lower(), 0)
+    if threshold <= 0:
+        return False
+    return any(SEVERITY_RANK.get(notice.severity, 0) >= threshold for notice in notices)

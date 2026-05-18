@@ -78,7 +78,16 @@ rtk bash scripts/context-preflight.sh
 rtk bash scripts/session-coach.sh
 rtk bash scripts/session-coach.sh --deep
 rtk bash scripts/session-coach.sh --deep --top 5
+rtk bash scripts/session-coach.sh --event final --deep
+rtk bash scripts/session-coach.sh --event commit --deep --fail-on high
 rtk bash scripts/session-coach.sh --reset-state
+rtk bash scripts/session-coach.sh --ack ARCHIVE_REVIEW
+
+# final / commit / apply 前门禁 wrapper
+rtk bash scripts/final-ready.sh
+rtk bash scripts/commit-ready.sh
+rtk bash scripts/apply-ready.sh
+SESSION_COACH_FAIL_ON=high rtk bash scripts/commit-ready.sh
 
 # 查看当前线程和近 7 天用量
 rtk bash scripts/usage-report.sh

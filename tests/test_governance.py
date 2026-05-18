@@ -144,6 +144,14 @@ def make_repo(test_case: unittest.TestCase) -> pathlib.Path:
             ],
         },
     )
+    write_json(
+        root / "manifests/session_coach.json",
+        {
+            "schema_version": 1,
+            "defaults": {"top": 3},
+            "events": {},
+        },
+    )
     return root
 
 

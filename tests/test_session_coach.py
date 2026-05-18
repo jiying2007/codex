@@ -6,12 +6,17 @@ import unittest
 
 from tools.codex_assets.session_coach import (
     Notice,
+    ack_notice,
     apply_cooldown,
     detect_phase,
     group_paths,
     parse_porcelain,
     rank_notices,
 )
+from tools.codex_assets.session_coach_checks import archive_quality_notices, event_policy_notices, evidence_notices
+from tools.codex_assets.session_coach_config import load_config, validate_config
+from tools.codex_assets.session_coach_core import fail_on_triggered, make_notice, overall_status
+from tools.codex_assets.session_coach_evidence import record_evidence
 
 
 class SessionCoachTest(unittest.TestCase):
@@ -20,12 +25,14 @@ class SessionCoachTest(unittest.TestCase):
             " M AGENTS.md\n"
             "?? scripts/session-coach.sh\n"
             "A  manifests/workflows.json\n"
+            " M manifests/mcp_servers.json\n"
             "?? docs/archive/memory-curation/note.md\n"
         )
         groups = group_paths(changes)
         self.assertEqual(["manifests/workflows.json"], groups["staged"])
         self.assertIn("AGENTS.md", groups["agents"])
         self.assertIn("scripts/session-coach.sh", groups["scripts"])
+        self.assertIn("manifests/mcp_servers.json", groups["mcp"])
         self.assertIn("docs/archive/memory-curation/note.md", groups["archive"])
         self.assertIn("manifests/workflows.json", groups["delivery"])
 
@@ -61,6 +68,80 @@ class SessionCoachTest(unittest.TestCase):
             self.assertEqual(["H"], [notice.code for notice in kept])
             self.assertTrue(kept[0].repeated)
             self.assertEqual(1, suppressed)
+
+    def test_ack_suppresses_medium_notice(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state = pathlib.Path(tmp) / "state.json"
+            ack_notice(state, "ARCHIVE_REVIEW")
+            medium = Notice("MEDIUM", "ARCHIVE_REVIEW", "archive", 10, "m", "m").finalize()
+            high = Notice("HIGH", "SCRIPT_CHANGED", "asset", 10, "h", "h").finalize()
+            kept, suppressed = apply_cooldown([medium, high], state, no_cooldown=False, reset=False)
+            self.assertEqual(["SCRIPT_CHANGED"], [notice.code for notice in kept])
+            self.assertEqual(1, suppressed)
+
+    def test_stable_key_ignores_dynamic_evidence(self) -> None:
+        first = make_notice("CRITICAL", "THREAD_LONG", "handoff", 100, "a", "a", stable_key="thread:1", tokens=1)
+        second = make_notice("CRITICAL", "THREAD_LONG", "handoff", 100, "a", "a", stable_key="thread:1", tokens=2)
+        self.assertEqual(first.fingerprint, second.fingerprint)
+
+    def test_status_uses_full_notice_set_not_top_slice(self) -> None:
+        notices = [Notice("CRITICAL", "C", "handoff", 100, "c", "c").finalize()]
+        self.assertEqual([], rank_notices(notices, top=0, show_all=False))
+        self.assertEqual("CRITICAL", overall_status(notices))
+
+    def test_fail_on_threshold(self) -> None:
+        notices = [Notice("HIGH", "H", "commit", 10, "h", "h").finalize()]
+        self.assertTrue(fail_on_triggered(notices, "high"))
+        self.assertFalse(fail_on_triggered(notices, "critical"))
+        self.assertFalse(fail_on_triggered(notices, "never"))
+
+    def test_config_loads_manifest_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / "manifests").mkdir()
+            (root / "manifests/session_coach.json").write_text('{"defaults":{"top":7},"events":{"final":{"phase":"handoff"}}}')
+            config = load_config(root)
+            self.assertEqual(7, config["defaults"]["top"])
+            self.assertEqual(50_000_000, config["defaults"]["warn_thread_tokens"])
+            self.assertEqual("handoff", config["events"]["final"]["phase"])
+
+    def test_config_validation_rejects_bad_values(self) -> None:
+        errors = validate_config({
+            "defaults": {"context_pressure_ratio": 2},
+            "events": {"bad-event": {"phase": "unknown"}},
+            "protected_archive_patterns": ["("],
+        })
+        self.assertTrue(any("context_pressure_ratio" in error for error in errors))
+        self.assertTrue(any("未知事件" in error for error in errors))
+        self.assertTrue(any("正则非法" in error for error in errors))
+
+    def test_event_policy_commit_requires_staged_files(self) -> None:
+        groups = group_paths(parse_porcelain(" M tools/codex_assets/session_coach.py\n"))
+        codes = [notice.code for notice in event_policy_notices(pathlib.Path("/tmp"), groups, "commit")]
+        self.assertIn("COMMIT_NOT_STAGED", codes)
+
+    def test_archive_quality_flags_meta_and_secret(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            path = root / "docs/archive/topic/note.md"
+            path.parent.mkdir(parents=True)
+            path.write_text("api_key = should-not-be-here\n")
+            groups = {"archive": ["docs/archive/topic/note.md"]}
+            config = {"defaults": {"archive_max_bytes": 1000}, "protected_archive_patterns": ["api_key"]}
+            codes = {notice.code for notice in archive_quality_notices(root, groups, config)}
+            self.assertIn("ARCHIVE_META_MISSING", codes)
+            self.assertIn("ARCHIVE_SECRET_PATTERN", codes)
+
+    def test_evidence_notice_clears_after_recent_record(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "evidence.json"
+            config = {
+                "defaults": {"evidence_fresh_minutes": 240},
+                "events": {"final": {"phase": "handoff", "required_evidence": "final-ready"}},
+            }
+            self.assertEqual(["EVIDENCE_MISSING"], [notice.code for notice in evidence_notices("final", config, path)])
+            record_evidence(path, "final-ready", "pass", "ok")
+            self.assertEqual([], evidence_notices("final", config, path))
 
 
 if __name__ == "__main__":
