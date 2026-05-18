@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "archived_at": "2026-05-16T22:25:03+08:00",
+  "source": "/home/leiwenjun/bin/llm_tools/docs/windows-builder-runbook.md",
+  "destination": "/home/leiwenjun/codex/docs/archive/debug-notes/20260516-222503-windows-builder-runbook.md",
+  "metadata": "/home/leiwenjun/codex/docs/archive/debug-notes/20260516-222503-windows-builder-runbook.md.meta.json",
+  "topic": "debug-notes",
+  "title": "llm_tools Windows 构建机发布链路排障与发布边界",
+  "description": "",
+  "mode": "copy"
+}

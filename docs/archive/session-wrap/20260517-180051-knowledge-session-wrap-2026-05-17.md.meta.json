@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "archived_at": "2026-05-17T18:00:51+08:00",
+  "source": "/tmp/knowledge-session-wrap-2026-05-17.md",
+  "destination": "/home/leiwenjun/codex/docs/archive/session-wrap/20260517-180051-knowledge-session-wrap-2026-05-17.md",
+  "metadata": "/home/leiwenjun/codex/docs/archive/session-wrap/20260517-180051-knowledge-session-wrap-2026-05-17.md.meta.json",
+  "topic": "session-wrap",
+  "title": "Embedded Knowledge Base 质量基线重整会话",
+  "description": "docs/tools 独立知识库全盘治理、单提交基线、验证门禁与记忆整理入口",
+  "mode": "copy"
+}
