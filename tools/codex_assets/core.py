@@ -409,7 +409,14 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
     return build
 
 
-def plan_apply(root: str | pathlib.Path, build: str | pathlib.Path, target: str | pathlib.Path, backup_root: str | pathlib.Path, overwrite: bool) -> dict[str, Any]:
+def plan_apply(
+    root: str | pathlib.Path,
+    build: str | pathlib.Path,
+    target: str | pathlib.Path,
+    backup_root: str | pathlib.Path,
+    overwrite: bool,
+    prune_stale: bool = False,
+) -> dict[str, Any]:
     repo = Repo.from_path(root)
     build_path = pathlib.Path(build).expanduser().resolve()
     target_path = pathlib.Path(target).expanduser()
@@ -420,7 +427,7 @@ def plan_apply(root: str | pathlib.Path, build: str | pathlib.Path, target: str 
     always_generated = {"skills/registry.csv", "control/state/active-profile.env", "control/state/managed-files.json"}
     previous_managed = managed_items(target_path)
     actions: list[dict[str, Any]] = [{"action": "mkdir", "path": "."}]
-    summary = {"copy": 0, "keep": 0, "overwrite": 0, "mkdir": 1, "skip": 0}
+    summary = {"copy": 0, "keep": 0, "overwrite": 0, "delete": 0, "mkdir": 1, "skip": 0}
 
     for src in sorted(build_path.rglob("*")):
         rel = src.relative_to(build_path).as_posix()
@@ -464,6 +471,24 @@ def plan_apply(root: str | pathlib.Path, build: str | pathlib.Path, target: str 
         else:
             actions.append({"action": "keep", "path": rel, "reason": "exists"})
             summary["keep"] += 1
+
+    if prune_stale:
+        built_paths = {path.relative_to(build_path).as_posix() for path in build_path.rglob("*")}
+        stale_items = [
+            item
+            for rel, item in previous_managed.items()
+            if rel not in built_paths and not matches_any(rel, protected)
+        ]
+        stale_items.sort(key=lambda item: (item["path"].count("/"), item["path"]), reverse=True)
+        for item in stale_items:
+            rel = item["path"]
+            actions.append({
+                "action": "delete",
+                "path": rel,
+                "kind": item.get("type", "unknown"),
+                "backup": (backup_path / rel).as_posix(),
+            })
+            summary["delete"] += 1
 
     return {
         "schema_version": 2,
@@ -540,6 +565,12 @@ def apply_plan(plan: dict[str, Any], dry_run: bool) -> None:
             if action["action"] == "overwrite":
                 backup_existing(target / rel, pathlib.Path(action["backup"]), dry_run)
             copy_one(build / rel, target / rel, dry_run)
+        elif action["action"] == "delete":
+            dest = target / rel
+            if dest.exists() or dest.is_symlink():
+                backup_existing(dest, pathlib.Path(action["backup"]), dry_run)
+                if not dry_run:
+                    remove_path(dest)
 
 
 def remove_path(path: pathlib.Path) -> None:
@@ -589,6 +620,15 @@ def rollback_plan(plan_path: str | pathlib.Path, dry_run: bool = False, remove_c
                 if not dry_run:
                     remove_path(dest)
                 summary["removed"] += 1
+        elif action.get("action") == "delete":
+            backup = pathlib.Path(action.get("backup", "")).expanduser()
+            if backup.exists() or backup.is_symlink():
+                print(f"[ROLLBACK] restore {rel}")
+                restore_path(backup, dest, dry_run)
+                summary["restored"] += 1
+            else:
+                print(f"[SKIP] {rel} (backup missing)")
+                summary["skipped"] += 1
     return summary
 
 

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BASE_TARGET="${1:-/tmp/codex-assets-smoke-home}"
-PROFILES=(minimal solo-dev team-collab)
+PROFILES=(minimal solo-dev team-collab superpowers-compat)
 
 rtk bash "$ROOT/scripts/doctor.sh" --scope repo
 
@@ -33,6 +33,10 @@ for profile in "${PROFILES[@]}"; do
       ;;
     solo-dev|team-collab)
       test -L "$TARGET/skills/skill-asset-manager"
+      ;;
+    superpowers-compat)
+      test -L "$TARGET/skills/writing-plans"
+      test ! -e "$TARGET/skills/adk-requirements-triage"
       ;;
   esac
 done

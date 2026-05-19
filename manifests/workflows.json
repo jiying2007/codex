@@ -202,15 +202,23 @@
         "完成前验证"
       ],
       "skills": [
-        "systematic-debugging",
-        "test-driven-development",
-        "requesting-code-review",
-        "receiving-code-review",
-        "verification-before-completion",
-        "executing-plans",
-        "writing-plans"
+        "adk-requirements-triage",
+        "adk-task-breakdown",
+        "adk-systematic-debugging",
+        "adk-test-strategy",
+        "adk-unit-test-embedded",
+        "adk-static-analysis-c-cpp",
+        "adk-code-review-loop",
+        "adk-commit-pr-quality-gate",
+        "adk-verification-before-completion",
+        "adk-planning-execution-loop",
+        "adk-runtime-router"
       ],
       "agents": [
+        "requirements-analyst",
+        "architecture-planner",
+        "test-validation-engineer",
+        "code-review-governor",
         "code-reviewer",
         "local-tester",
         "local-integrator"
@@ -220,7 +228,8 @@
       ],
       "verification": [
         "rtk bash scripts/check.sh"
-      ]
+      ],
+      "description": "实现、修复、重构和完成前验证的 adk-first 主链；Superpowers 已移入 superpowers-compat fallback profile。"
     },
     {
       "name": "parallel-collab",
@@ -236,9 +245,9 @@
       ],
       "skills": [
         "codex-parallel-collab",
-        "dispatching-parallel-agents",
-        "subagent-driven-development",
-        "using-git-worktrees",
+        "adk-parallel-agent-governance",
+        "adk-worktree-governance",
+        "adk-branch-closeout",
         "worktree-closeout"
       ],
       "agents": [
@@ -252,7 +261,46 @@
       ],
       "verification": [
         "rtk bash scripts/check.sh"
-      ]
+      ],
+      "description": "并行开发与 worktree 协作的 adk-first 主链；Superpowers 并行技能仅在 superpowers-compat 中保留。"
+    },
+    {
+      "name": "superpowers-compat-fallback",
+      "enabled": true,
+      "profiles": [
+        "superpowers-compat"
+      ],
+      "triggers": [
+        "Superpowers",
+        "显式 Superpowers fallback",
+        "兼容回归对照",
+        "adk 不适用"
+      ],
+      "skills": [
+        "brainstorming",
+        "dispatching-parallel-agents",
+        "executing-plans",
+        "finishing-a-development-branch",
+        "receiving-code-review",
+        "requesting-code-review",
+        "subagent-driven-development",
+        "systematic-debugging",
+        "test-driven-development",
+        "using-git-worktrees",
+        "using-superpowers",
+        "verification-before-completion",
+        "writing-plans"
+      ],
+      "agents": [],
+      "commands": [
+        "rtk bash scripts/check-routing-precedence.sh",
+        "rtk bash scripts/check-skills.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check-routing-precedence.sh",
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "Superpowers 兼容 fallback，仅在用户显式点名、迁移回归对照或 ADK 不适用时启用。"
     }
   ]
 }

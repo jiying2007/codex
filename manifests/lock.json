@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 584,
+  "managed_count": 573,
   "items": [
     {
       "kind": "skill",
@@ -9,6 +9,20 @@
       "version": "1.0.0",
       "source": "vendor/skills/adk-artifact-gated-lite/1.0.0",
       "sha256": "e961a8adb4598b7a34a48b3a0f2f66c1ced4eb030079bb1bd3a0016c0efb7b81"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-branch-closeout",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-branch-closeout/1.0.0",
+      "sha256": "5e32da0ca8a60e94805e4f5f06ccd686e20e259c250f3acbb63210b541ad8a45"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-code-review-loop",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-code-review-loop/1.0.0",
+      "sha256": "e6e7b2c298da15a222fe6b1347987c0ccd913d07668baca6013c3d998a73430b"
     },
     {
       "kind": "skill",
@@ -40,6 +54,13 @@
     },
     {
       "kind": "skill",
+      "name": "adk-parallel-agent-governance",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-parallel-agent-governance/1.0.0",
+      "sha256": "42587989a1b0e455826557f98b553a9af322b68a5ddc2eb5c8a8bc58899ee436"
+    },
+    {
+      "kind": "skill",
       "name": "adk-planning-execution-loop",
       "version": "1.0.0",
       "source": "vendor/skills/adk-planning-execution-loop/1.0.0",
@@ -58,6 +79,13 @@
       "version": "1.1.0",
       "source": "vendor/skills/adk-requirements-triage/1.1.0",
       "sha256": "b3a04045144c45bad7292469e25bdf20315b848ee048c62ff6ef2443d2ac7fa9"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-runtime-router",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-runtime-router/1.0.0",
+      "sha256": "224f9579cf1378d84204e29cc388d85daa1537db5a62308209fe1533d771d8da"
     },
     {
       "kind": "skill",
@@ -96,6 +124,13 @@
     },
     {
       "kind": "skill",
+      "name": "adk-test-strategy",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-test-strategy/1.0.0",
+      "sha256": "6a76003761e1cf91ceafae160a3c87150b1f4c76e0588c8b20cd99b7ebcede52"
+    },
+    {
+      "kind": "skill",
       "name": "adk-unit-test-embedded",
       "version": "1.0.0",
       "source": "vendor/skills/adk-unit-test-embedded/1.0.0",
@@ -110,10 +145,10 @@
     },
     {
       "kind": "skill",
-      "name": "brainstorming",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/brainstorming",
-      "sha256": "3839ee31365ad876effcb0398ac2cc4745594eb9819100022a11f80404541709"
+      "name": "adk-worktree-governance",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-worktree-governance/1.0.0",
+      "sha256": "58e746100721168893507dfa1106171613527926067e503dd67723a98b3775f9"
     },
     {
       "kind": "skill",
@@ -173,27 +208,6 @@
     },
     {
       "kind": "skill",
-      "name": "dispatching-parallel-agents",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
-      "sha256": "2e93defb50a6eec61139ffe729bdd2920dab791f43a92656a178f8b4180359ac"
-    },
-    {
-      "kind": "skill",
-      "name": "executing-plans",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/executing-plans",
-      "sha256": "aff3a16a420e59dc994e0b51acbb0a142e3929b4ffb73b66ab245bf8d75e2a53"
-    },
-    {
-      "kind": "skill",
-      "name": "finishing-a-development-branch",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/finishing-a-development-branch",
-      "sha256": "7bf286e6ef03bd88fcc1ddceb6fdffca882b7a9e193314b2b16082e20bce4f9d"
-    },
-    {
-      "kind": "skill",
       "name": "knowledge-archive",
       "version": "0.1.0",
       "source": "vendor/skills/knowledge-archive/0.1.0",
@@ -229,20 +243,6 @@
     },
     {
       "kind": "skill",
-      "name": "receiving-code-review",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/receiving-code-review",
-      "sha256": "1f7e8649c2807f2264a7290b3fcfdb1f44c8dbec7e1a097e61620adfc8effb3c"
-    },
-    {
-      "kind": "skill",
-      "name": "requesting-code-review",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/requesting-code-review",
-      "sha256": "f045b2cec9b75a62230464da650fd95a1972275b686df111db8e7e98fe19ce66"
-    },
-    {
-      "kind": "skill",
       "name": "research-note-wrap",
       "version": "3.1.0",
       "source": "vendor/skills/research-note-wrap/3.1.0",
@@ -264,59 +264,10 @@
     },
     {
       "kind": "skill",
-      "name": "subagent-driven-development",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/subagent-driven-development",
-      "sha256": "3743a478f045f70f18d849cdc6f97493eab283f868e10a3e2838dd6f0de26794"
-    },
-    {
-      "kind": "skill",
-      "name": "systematic-debugging",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/systematic-debugging",
-      "sha256": "b79916433d8dc6fd51dbc13393ce0f99e60b090815617ce3b7c230c7193835f5"
-    },
-    {
-      "kind": "skill",
-      "name": "test-driven-development",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/test-driven-development",
-      "sha256": "c268445b1a47533d2b4db9d654a17a4780e1eae38d48266d3a5173dafaea3bae"
-    },
-    {
-      "kind": "skill",
-      "name": "using-git-worktrees",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/using-git-worktrees",
-      "sha256": "463a12fa34198de1038ea9b4ffa92fbd9807dc2b69c10748d0ef0285445ad423"
-    },
-    {
-      "kind": "skill",
-      "name": "using-superpowers",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/using-superpowers",
-      "sha256": "b84fbd220218b06f07db0506e7b5527840ca6e75d29f41f026090d84ee2f290b"
-    },
-    {
-      "kind": "skill",
-      "name": "verification-before-completion",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/verification-before-completion",
-      "sha256": "3cca7a2f7d06174c198918e3aada61cf2d9b9786ff544b4c1026fd9d05207ed7"
-    },
-    {
-      "kind": "skill",
       "name": "worktree-closeout",
       "version": "3.1.0",
       "source": "vendor/skills/worktree-closeout/3.1.0",
       "sha256": "a713e1ae744a2fa956c68924e26fa50568671dde2153d57a3b596aa0838bdbf1"
-    },
-    {
-      "kind": "skill",
-      "name": "writing-plans",
-      "version": "1.1.9",
-      "source": "vendor/plugins/superpowers/1.1.9/skills/writing-plans",
-      "sha256": "edd18c4ec9e11e15ae7f93485c5a338691d862c2c104d8e0f1d91a68adc85960"
     }
   ]
 }

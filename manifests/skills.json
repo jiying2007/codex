@@ -24,6 +24,50 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-branch-closeout",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-branch-closeout/1.0.0",
+      "target_rel": "skills/adk-branch-closeout",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-branch-closeout/SKILL.md",
+      "imported_at": "2026-05-19",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-code-review-loop",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-code-review-loop/1.0.0",
+      "target_rel": "skills/adk-code-review-loop",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-code-review-loop/SKILL.md",
+      "imported_at": "2026-05-19",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-commit-pr-quality-gate",
       "enabled": true,
       "source_kind": "vendor",
@@ -112,6 +156,28 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-parallel-agent-governance",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-parallel-agent-governance/1.0.0",
+      "target_rel": "skills/adk-parallel-agent-governance",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-parallel-agent-governance/SKILL.md",
+      "imported_at": "2026-05-19",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-planning-execution-loop",
       "enabled": true,
       "source_kind": "vendor",
@@ -175,6 +241,28 @@
       "source_ref": "2.9.0",
       "source_path": "skills/adk-requirements-triage/SKILL.md",
       "imported_at": "2026-05-17",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-runtime-router",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-runtime-router/1.0.0",
+      "target_rel": "skills/adk-runtime-router",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-runtime-router/SKILL.md",
+      "imported_at": "2026-05-19",
       "review_status": "accepted"
     },
     {
@@ -288,6 +376,28 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-test-strategy",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-test-strategy/1.0.0",
+      "target_rel": "skills/adk-test-strategy",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-test-strategy/SKILL.md",
+      "imported_at": "2026-05-19",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-unit-test-embedded",
       "enabled": true,
       "source_kind": "vendor",
@@ -332,6 +442,28 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-worktree-governance",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-worktree-governance/1.0.0",
+      "target_rel": "skills/adk-worktree-governance",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-worktree-governance/SKILL.md",
+      "imported_at": "2026-05-19",
+      "review_status": "accepted"
+    },
+    {
       "name": "brainstorming",
       "enabled": true,
       "source_kind": "vendor",
@@ -339,10 +471,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/brainstorming",
       "target_rel": "skills/brainstorming",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -512,10 +645,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
       "target_rel": "skills/dispatching-parallel-agents",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -526,10 +660,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/executing-plans",
       "target_rel": "skills/executing-plans",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -540,10 +675,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/finishing-a-development-branch",
       "target_rel": "skills/finishing-a-development-branch",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -660,10 +796,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/receiving-code-review",
       "target_rel": "skills/receiving-code-review",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -674,10 +811,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/requesting-code-review",
       "target_rel": "skills/requesting-code-review",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -733,10 +871,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/subagent-driven-development",
       "target_rel": "skills/subagent-driven-development",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -747,10 +886,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/systematic-debugging",
       "target_rel": "skills/systematic-debugging",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -761,10 +901,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/test-driven-development",
       "target_rel": "skills/test-driven-development",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -775,10 +916,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/using-git-worktrees",
       "target_rel": "skills/using-git-worktrees",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -789,10 +931,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/using-superpowers",
       "target_rel": "skills/using-superpowers",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -803,10 +946,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/verification-before-completion",
       "target_rel": "skills/verification-before-completion",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     },
     {
@@ -832,10 +976,11 @@
       "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/writing-plans",
       "target_rel": "skills/writing-plans",
       "profiles": [
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "superpowers"
+        "superpowers",
+        "fallback"
       ]
     }
   ]

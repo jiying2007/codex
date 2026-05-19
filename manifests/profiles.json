@@ -35,7 +35,19 @@
         "dev",
         "design"
       ],
-      "notes": "激活 superpowers + 协作 agents + 扩展 mcp"
+      "notes": "adk-first 协作配置；Superpowers 已移入 superpowers-compat fallback profile"
+    },
+    {
+      "name": "superpowers-compat",
+      "description": "显式 Superpowers 兼容配置，仅用于用户点名、回归对照或 ADK 不适用的 fallback",
+      "max_parallel_agents": 4,
+      "max_depth": 3,
+      "default_agent_type": "worker",
+      "enabled_mcp_groups": [
+        "core",
+        "dev"
+      ],
+      "notes": "不作为默认 profile；默认 team-collab 已切换为 adk-first"
     }
   ]
 }

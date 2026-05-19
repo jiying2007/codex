@@ -48,7 +48,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
     build = pathlib.Path(args.build).expanduser().resolve() if args.build else repo.build
     target = pathlib.Path(args.target).expanduser()
     backup_root = pathlib.Path(args.backup_root).expanduser() if args.backup_root else repo.root / ".backups/apply" / datetime.now().strftime("%Y%m%d-%H%M%S")
-    plan = plan_apply(repo.root, build, target, backup_root, args.overwrite)
+    plan = plan_apply(repo.root, build, target, backup_root, args.overwrite, args.prune_stale)
     output = pathlib.Path(args.output).expanduser() if args.output else repo.root / "build/apply-plan.json"
     write_json(output, plan)
     print(f"[DONE] plan output={output} summary={plan['summary']}")
@@ -57,17 +57,21 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 def cmd_apply(args: argparse.Namespace) -> int:
     repo = Repo.from_path(args.root)
-    build = pathlib.Path(args.build).expanduser().resolve() if args.build else repo.build
-    if args.run_build and not args.dry_run:
-        build = build_repo(repo.root, args.profile or "", "", str(build))
-    target = pathlib.Path(args.target).expanduser()
-    backup_root = pathlib.Path(args.backup_root).expanduser() if args.backup_root else repo.root / ".backups/apply" / datetime.now().strftime("%Y%m%d-%H%M%S")
-    plan = plan_apply(repo.root, build, target, backup_root, args.overwrite)
+    if args.plan:
+        plan = read_json(pathlib.Path(args.plan).expanduser())
+        target = pathlib.Path(plan["target"]).expanduser()
+    else:
+        build = pathlib.Path(args.build).expanduser().resolve() if args.build else repo.build
+        if args.run_build and not args.dry_run:
+            build = build_repo(repo.root, args.profile or "", "", str(build))
+        target = pathlib.Path(args.target).expanduser()
+        backup_root = pathlib.Path(args.backup_root).expanduser() if args.backup_root else repo.root / ".backups/apply" / datetime.now().strftime("%Y%m%d-%H%M%S")
+        plan = plan_apply(repo.root, build, target, backup_root, args.overwrite, args.prune_stale)
     if args.plan_out:
         write_json(pathlib.Path(args.plan_out).expanduser(), plan)
     if args.dry_run:
         for action in plan["actions"]:
-            if action["action"] in {"copy", "overwrite", "skip"}:
+            if action["action"] in {"copy", "overwrite", "delete", "skip"}:
                 print(f"[DRY ] {action['action']} {action['path']}")
         print(f"[DONE] apply target={target} summary={plan['summary']} dry_run=1")
         return 0
@@ -426,6 +430,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--target", default="~/.codex")
     p.add_argument("--backup-root", default="")
     p.add_argument("--overwrite", action="store_true")
+    p.add_argument("--prune-stale", action="store_true", help="delete previously managed files absent from the current build")
     p.add_argument("--output", default="")
     p.set_defaults(func=cmd_plan)
 
@@ -433,8 +438,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--build", default="")
     p.add_argument("--target", default="~/.codex")
     p.add_argument("--profile", default="")
+    p.add_argument("--plan", default="")
     p.add_argument("--no-build", dest="run_build", action="store_false", default=True)
     p.add_argument("--overwrite", action="store_true")
+    p.add_argument("--prune-stale", action="store_true", help="delete previously managed files absent from the current build")
     p.add_argument("--backup-root", default="")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--plan-out", default="")

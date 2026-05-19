@@ -3,12 +3,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$ROOT"
 
 rtk bash "$ROOT/scripts/build.sh" --profile team-collab
 rtk bash "$ROOT/scripts/doctor.sh" --scope all
 rtk bash "$ROOT/scripts/doctor.sh" --scope governance
 rtk bash "$ROOT/scripts/governance-report.sh" --json
-rtk python3 -m unittest discover -s "$ROOT/tests" -p 'test_*.py'
+env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" rtk python3 -m unittest discover -s "$ROOT/tests" -p 'test_*.py'
+rtk bash "$ROOT/scripts/check-routing-precedence.sh"
 rtk bash "$ROOT/scripts/check-skills.sh"
 if [[ "${REQUIRE_MODERN_BWRAP:-0}" == "1" ]]; then
   rtk bash "$ROOT/scripts/check-bwrap-capability.sh" --require-modern --json-out "$ROOT/build/bwrap-capability.json"
@@ -16,7 +18,7 @@ else
   rtk bash "$ROOT/scripts/check-bwrap-capability.sh" --json-out "$ROOT/build/bwrap-capability.json"
 fi
 rtk bash "$ROOT/scripts/plan.sh" --target "$HOME/.codex" --output "$ROOT/build/apply-plan.check.json"
-rtk bash "$ROOT/scripts/apply.sh" --dry-run --no-build --target "$HOME/.codex" --plan-out "$ROOT/build/apply-plan.check-dry-run.json"
+rtk bash "$ROOT/scripts/apply.sh" --dry-run --no-build --prune-stale --target "$HOME/.codex" --plan-out "$ROOT/build/apply-plan.check-dry-run.json"
 rtk bash "$ROOT/tests/smoke.sh"
 rtk bash "$ROOT/scripts/diff.sh" --target "$HOME/.codex"
 rtk bash "$ROOT/scripts/drift.sh" --target "$HOME/.codex"
