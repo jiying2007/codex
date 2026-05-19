@@ -39,7 +39,7 @@
     "(?i)api[_-]?key",
     "(?i)authorization",
     "(?i)bearer",
-    "(?i)password",
+    "(?i)\\bpassword\\b\\s*[:=]\\s*['\\\"]?[^\\s'\\\"]{8,}",
     "(?i)private key",
     "BEGIN [A-Z ]*PRIVATE KEY",
     "sk-[A-Za-z0-9]"

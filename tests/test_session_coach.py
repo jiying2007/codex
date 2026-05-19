@@ -125,11 +125,30 @@ class SessionCoachTest(unittest.TestCase):
             root = pathlib.Path(tmp)
             path = root / "docs/archive/topic/note.md"
             path.parent.mkdir(parents=True)
-            path.write_text("api_key = should-not-be-here\n")
+            path.write_text("api" + "_key = should-not-be-here\n")
             groups = {"archive": ["docs/archive/topic/note.md"]}
             config = {"defaults": {"archive_max_bytes": 1000}, "protected_archive_patterns": ["api_key"]}
             codes = {notice.code for notice in archive_quality_notices(root, groups, config)}
             self.assertIn("ARCHIVE_META_MISSING", codes)
+            self.assertIn("ARCHIVE_SECRET_PATTERN", codes)
+
+    def test_password_pattern_requires_assignment_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            path = root / "docs/archive/topic/note.md"
+            path.parent.mkdir(parents=True)
+            groups = {"archive": ["docs/archive/topic/note.md"]}
+            config = {
+                "defaults": {"archive_max_bytes": 1000},
+                "protected_archive_patterns": [r"(?i)\bpassword\b\s*[:=]\s*['\"]?[^\s'\"]{8,}"],
+            }
+
+            path.write_text("Do not store NAS passwords in repositories.\n")
+            codes = {notice.code for notice in archive_quality_notices(root, groups, config)}
+            self.assertNotIn("ARCHIVE_SECRET_PATTERN", codes)
+
+            path.write_text("pass" + "word: very-secret-value\n")
+            codes = {notice.code for notice in archive_quality_notices(root, groups, config)}
             self.assertIn("ARCHIVE_SECRET_PATTERN", codes)
 
     def test_evidence_notice_clears_after_recent_record(self) -> None:
