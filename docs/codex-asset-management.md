@@ -92,6 +92,18 @@ rtk bash scripts/governance-report.sh --json
 
 ## Skill 接入
 
+本地沉淀和 Chronicle 派生 skill 是持续迭代的声明式资产。`adk-*`、Superpowers、OpenAI、Composio、Anthropic 等外部导入 skill 默认是版本化镜像，通过上游更新后重新导入，不在本仓直接迭代其正文。完整策略见 `docs/skill-lifecycle.md`。
+
+维护边界：
+
+- 本地 / Chronicle 派生 skill：`description` 负责触发，`SKILL.md` body 只保留执行必须知道的流程、边界和输出契约。
+- 本地 / Chronicle 派生 skill：manifest 必须可筛选，至少包含 `owner=local`、`source_repo=local/codex` 和 `tags=["local", ...]`；Chronicle 派生项额外包含 `chronicle-derived`。
+- Chronicle 派生 skill：`SKILL.md` frontmatter 和 README 使用 `origin: local-chronicle-derived` / `Lifecycle: iterative-local` 做人工识别。
+- 本地 / Chronicle 派生 skill：细节资料进入 `references/`，确定性重复操作进入 `scripts/`，长证据进入 `docs/archive/`。
+- 本地 / Chronicle 派生 skill：已提交并投入使用后，优先通过新版本目录迭代，再更新 `manifests/skills.json`。
+- 外部导入 skill：优先更新上游源或导入新版本；不得把本地需求直接改进外部 skill 正文形成隐式 fork。
+- routing 问题优先改 `description` 或 `manifests/workflows.json`，不要把大量触发词堆进正文。
+
 扫描运行目录：
 
 ```bash

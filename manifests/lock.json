@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 573,
+  "managed_count": 613,
   "items": [
     {
       "kind": "skill",
@@ -152,6 +152,13 @@
     },
     {
       "kind": "skill",
+      "name": "archive-governance",
+      "version": "1.0.0",
+      "source": "vendor/skills/archive-governance/1.0.0",
+      "sha256": "bdd9aff72cec3a6cc2cc01f995c00f5545c8d7ce5182244831bf21a4d311ac43"
+    },
+    {
+      "kind": "skill",
       "name": "browser-reader",
       "version": "0.1.0",
       "source": "vendor/skills/browser-reader/0.1.0",
@@ -163,6 +170,13 @@
       "version": "1.0.0",
       "source": "vendor/skills/caveman/1.0.0",
       "sha256": "88c7191e559dbe2749dfbe0b35627d2a5f359974cc38572b33789d54fba0b23d"
+    },
+    {
+      "kind": "skill",
+      "name": "chronicle-workflow-miner",
+      "version": "1.0.0",
+      "source": "vendor/skills/chronicle-workflow-miner/1.0.0",
+      "sha256": "c16c8114b47c6faebedaaeabacb3fe62c1826f70314aee6a737bc9d05a9c1c84"
     },
     {
       "kind": "skill",
@@ -208,6 +222,20 @@
     },
     {
       "kind": "skill",
+      "name": "embedded-diagnostic-harness",
+      "version": "1.0.0",
+      "source": "vendor/skills/embedded-diagnostic-harness/1.0.0",
+      "sha256": "05abb01ee1aac92db257975d604264e25fc736b76ef1629b9e013dd754890086"
+    },
+    {
+      "kind": "skill",
+      "name": "embedded-release-orchestration",
+      "version": "1.0.0",
+      "source": "vendor/skills/embedded-release-orchestration/1.0.0",
+      "sha256": "b9bc380a4198202e9b450151bed2d5a28dfe49bb066cb77d4f0ff7c0a780fc7b"
+    },
+    {
+      "kind": "skill",
       "name": "knowledge-archive",
       "version": "0.1.0",
       "source": "vendor/skills/knowledge-archive/0.1.0",
@@ -250,6 +278,13 @@
     },
     {
       "kind": "skill",
+      "name": "repo-drift-remediation",
+      "version": "1.0.0",
+      "source": "vendor/skills/repo-drift-remediation/1.0.0",
+      "sha256": "1317ecf77b1493f7c617a7dfbd82408ecbbbf1aac86e2ba9ab112083f2d25a4d"
+    },
+    {
+      "kind": "skill",
       "name": "session-wrap",
       "version": "3.1.0",
       "source": "vendor/skills/session-wrap/3.1.0",
@@ -260,7 +295,7 @@
       "name": "skill-asset-manager",
       "version": "0.2.0",
       "source": "vendor/skills/skill-asset-manager/0.2.0",
-      "sha256": "96928126d8210fcc3532a8e06bb3faf28f5589841a736e7abc07182f8ebc23ca"
+      "sha256": "16794d0595a393eb1fbde926a0ef7bb497ae58f8811a76aff677ef4c4ed2cb3d"
     },
     {
       "kind": "skill",

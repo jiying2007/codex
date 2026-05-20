@@ -129,6 +129,8 @@ rtk bash scripts/check.sh
 
 ## Skill 生命周期
 
+详细使用、迭代和长期维护规则见 `docs/skill-lifecycle.md`。日常原则是：通过自然语言或显式技能名触发；重复三次以上且有证据的本地流程再沉淀为 local/Chronicle-derived skill；使用 manifest 的 `local` / `chronicle-derived` 标签识别来源，不通过改名牺牲任务语义；`adk-*`、Superpowers 和其他第三方 skill 通过上游版本重新导入，不在本仓直接迭代正文。
+
 ```bash
 # 扫描运行目录中真实存在且未登记的 skill
 rtk bash scripts/scan-skills.sh --dry-run

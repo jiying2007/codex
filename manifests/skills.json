@@ -464,6 +464,30 @@
       "review_status": "accepted"
     },
     {
+      "name": "archive-governance",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/archive-governance/1.0.0",
+      "target_rel": "skills/archive-governance",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "archive",
+        "governance",
+        "local",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/archive-governance/1.0.0",
+      "imported_at": "2026-05-20",
+      "review_status": "accepted"
+    },
+    {
       "name": "brainstorming",
       "enabled": true,
       "source_kind": "vendor",
@@ -491,6 +515,7 @@
       "tags": [
         "browser",
         "reading",
+        "local",
         "verification"
       ],
       "owner": "local",
@@ -515,6 +540,30 @@
       "tags": [
         "compression"
       ]
+    },
+    {
+      "name": "chronicle-workflow-miner",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.0.0",
+      "target_rel": "skills/chronicle-workflow-miner",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "memory",
+        "workflow",
+        "skills",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.0.0",
+      "imported_at": "2026-05-20",
+      "review_status": "accepted"
     },
     {
       "name": "cli-creator",
@@ -583,6 +632,7 @@
       "tags": [
         "context",
         "compression",
+        "local",
         "handoff"
       ],
       "owner": "local",
@@ -635,6 +685,54 @@
       "source_ref": "500b0c00093ec3a8633d7ed1122d289ab1d23755",
       "source_path": "developer-growth-analysis",
       "imported_at": "2026-05-09",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-diagnostic-harness",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/embedded-diagnostic-harness/1.0.0",
+      "target_rel": "skills/embedded-diagnostic-harness",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "embedded",
+        "diagnostics",
+        "hil",
+        "local",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-diagnostic-harness/1.0.0",
+      "imported_at": "2026-05-20",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-release-orchestration",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/embedded-release-orchestration/1.0.0",
+      "target_rel": "skills/embedded-release-orchestration",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "embedded",
+        "release",
+        "ota",
+        "local",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-release-orchestration/1.0.0",
+      "imported_at": "2026-05-20",
       "review_status": "accepted"
     },
     {
@@ -696,6 +794,7 @@
       "tags": [
         "archive",
         "knowledge",
+        "local",
         "summary"
       ],
       "owner": "local",
@@ -742,6 +841,7 @@
       "tags": [
         "memory",
         "archive",
+        "local",
         "governance"
       ],
       "owner": "local",
@@ -764,6 +864,7 @@
       "tags": [
         "research",
         "search",
+        "local",
         "verification"
       ],
       "owner": "local",
@@ -834,6 +935,30 @@
       ]
     },
     {
+      "name": "repo-drift-remediation",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/repo-drift-remediation/1.0.0",
+      "target_rel": "skills/repo-drift-remediation",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "governance",
+        "quality",
+        "remediation",
+        "local",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/repo-drift-remediation/1.0.0",
+      "imported_at": "2026-05-20",
+      "review_status": "accepted"
+    },
+    {
       "name": "session-wrap",
       "enabled": true,
       "source_kind": "vendor",
@@ -860,8 +985,15 @@
         "team-collab"
       ],
       "tags": [
+        "local",
         "asset-management"
-      ]
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/skill-asset-manager/0.2.0",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "subagent-driven-development",

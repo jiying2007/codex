@@ -44,12 +44,26 @@
         "team-collab"
       ],
       "triggers": [
+        "保存到归档",
         "知识归档",
-        "记忆整理",
-        "调研纪要",
-        "会话总结归档"
+        "长期沉淀",
+        "会话总结归档",
+        "调研结论归档",
+        "归档治理",
+        "归档检查",
+        "归档门禁",
+        "归档修复",
+        "归档迁移",
+        "归档不合规",
+        "归档元数据修复",
+        "归档文件名规范",
+        "归档索引治理",
+        "归档未关闭会话检查",
+        "archive-check",
+        "archive-search"
       ],
       "skills": [
+        "archive-governance",
         "knowledge-archive",
         "memory-curator",
         "research-note-wrap",
@@ -230,6 +244,136 @@
         "rtk bash scripts/check.sh"
       ],
       "description": "实现、修复、重构和完成前验证的 adk-first 主链；Superpowers 已移入 superpowers-compat fallback profile。"
+    },
+    {
+      "name": "chronicle-skillization",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "Chronicle 记忆",
+        "重复工作流程",
+        "转化为技能",
+        "生成 skill",
+        "工作流沉淀"
+      ],
+      "skills": [
+        "chronicle-workflow-miner",
+        "memory-curator",
+        "skill-asset-manager"
+      ],
+      "agents": [
+        "local-integrator"
+      ],
+      "commands": [
+        "rtk bash scripts/check-skills.sh",
+        "rtk bash scripts/build.sh --profile team-collab"
+      ],
+      "verification": [
+        "rtk bash scripts/check-skills.sh",
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "从 Chronicle/Codex 历史和记忆中提炼重复流程，并转化为可注册、可验证的技能资产。"
+    },
+    {
+      "name": "repo-governance-remediation",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "全面检查",
+        "全面优化",
+        "飘移",
+        "偏离",
+        "冗余",
+        "残留",
+        "边界不清",
+        "提交前检查"
+      ],
+      "skills": [
+        "repo-drift-remediation",
+        "adk-code-review-loop",
+        "adk-commit-pr-quality-gate",
+        "adk-verification-before-completion"
+      ],
+      "agents": [
+        "code-review-governor",
+        "local-integrator"
+      ],
+      "commands": [
+        "rtk bash scripts/check.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "处理全仓目标漂移、冗余、残留、边界不清和提交前治理检查。"
+    },
+    {
+      "name": "embedded-release-operations",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "firmware-release-tools",
+        "ota-packager",
+        "NAS 发布",
+        "整机 OTA",
+        "SD 升级",
+        "MCU 发布",
+        "SOC 发布",
+        "量产发布"
+      ],
+      "skills": [
+        "embedded-release-orchestration",
+        "adk-release-versioning",
+        "adk-test-strategy",
+        "adk-verification-before-completion"
+      ],
+      "agents": [
+        "build-release-engineer",
+        "test-validation-engineer"
+      ],
+      "commands": [
+        "rtk bash scripts/check.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "编排 SoC/MCU/OTA 构建、打包、验证、tag、NAS/产线发布和发布指南。"
+    },
+    {
+      "name": "embedded-diagnostic-validation",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "prog_tool",
+        "diag",
+        "strict env",
+        "invoke_ret",
+        "诊断 CLI",
+        "HIL 验证"
+      ],
+      "skills": [
+        "embedded-diagnostic-harness",
+        "adk-systematic-debugging",
+        "adk-test-strategy"
+      ],
+      "agents": [
+        "driver-engineer",
+        "test-validation-engineer"
+      ],
+      "commands": [
+        "rtk bash scripts/check.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "治理嵌入式诊断 CLI、strict/env 套件、预期返回码和 HIL/SIL 证据。"
     },
     {
       "name": "parallel-collab",

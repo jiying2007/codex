@@ -70,6 +70,20 @@ For a skill-only health check, run:
 rtk bash scripts/check-skills.sh
 ```
 
+## Iteration Policy
+
+- Only local and Chronicle-derived skills are iterated directly in this repository.
+- Local skills must be identifiable with manifest `owner=local`, `source_repo=local/codex`, and `tags` containing `local`.
+- Chronicle-derived skills must also use the `chronicle-derived` tag plus `origin: local-chronicle-derived` and `lifecycle: iterative-local` metadata.
+- For local draft changes before commit, editing the current skill version is acceptable.
+- Once a local skill has been committed and used, prefer a new version directory and update `manifests/skills.json`.
+- External imported skills such as `adk-*`, Superpowers, OpenAI, Composio, or Anthropic skills should be updated by importing a new upstream version, not by silently editing the local mirror.
+- Routing misses for local skills should usually update `description` or `manifests/workflows.json`.
+- Chinese routing phrases should be precise object-action phrases; avoid broad standalone words and document cross-skill ambiguity in `docs/skill-lifecycle.md` or `AGENTS.md`.
+- Procedural misses for local skills should update `SKILL.md`; detailed references belong in `references/`.
+- Long evidence and usage history belong in `docs/archive/`, not in the loaded skill body.
+- See `docs/skill-lifecycle.md` for the full lifecycle and acceptance criteria.
+
 ## Rules
 
 - Treat `manifests/*.json` as the SSOT for activation and versioning.

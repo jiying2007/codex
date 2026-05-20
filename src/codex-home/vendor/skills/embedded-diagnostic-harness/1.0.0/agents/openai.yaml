@@ -1,0 +1,2 @@
+display_name: 'embedded-diagnostic-harness'
+short_description: '处理 prog_tool、diag strict/env、预期返回码、HIL/SIL 证据和诊断 CLI 验证'

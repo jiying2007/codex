@@ -59,10 +59,18 @@ Superpowers fallback 不应覆盖已有 adk 路由，除非满足第 2 节条件
 - 多源搜索 / 交叉验证 / 资料核验：`multi-search-engine`
 - 浏览器查看 / 微信公众号 / agent-browser：`browser-reader`
 - skill 资产 / 注册 / build / apply / rollback：`skill-asset-manager`
+- Chronicle 记忆 / 重复流程提炼 / 转化为 skill：`chronicle-workflow-miner`
+- 归档治理 / 归档检查 / 归档修复 / 归档迁移 / 归档不合规 / 元数据修复 / 文件名规范：`archive-governance`
+- 全仓漂移 / 偏离 / 冗余 / 残留 / 边界不清治理：`repo-drift-remediation`
+- 嵌入式 SoC/MCU/OTA/NAS/量产发布编排：`embedded-release-orchestration`
+- 嵌入式 prog_tool / diag / strict/env / HIL 诊断验证：`embedded-diagnostic-harness`
 - 并行开发规划 / 多 worktree 协作：`codex-parallel-collab`
 - 分支或 worktree 收口梳理：`worktree-closeout`
 - 多个总结类同时命中时，优先级为 `session-wrap -> commit-daily-summary -> project-daily-summary -> research-note-wrap`。
 - 归档类需求先生成对应总结或笔记，再用 `knowledge-archive` 归档。
+- 保存 / 新增 / 沉淀到归档优先 `knowledge-archive`；归档治理 / 检查 / 修复 / 迁移 / 不合规才使用 `archive-governance`。
+- 记忆整理 / 提升 / 清理优先 `memory-curator`；会话接力 / 恢复提示 / 上下文压缩优先 `context-compress-handoff`。
+- 仅查询历史归档时直接使用归档查询入口；只有索引、元数据、状态或命名异常时才升级为 `archive-governance`。
 - 本次使用过专用 skill 时，在回复中简短说明；未命中时说明未使用专用 skill。
 
 ## 5. 嵌入式全栈边界
@@ -172,6 +180,10 @@ adk 面向嵌入式全栈开发，覆盖芯片 / 板级约束、启动链、BSP�
 - 每个 managed skill 至少包含 `SKILL.md`、`README.md`、`LICENSE`。
 - `SKILL.md` frontmatter 至少包含 `name`、`description`、`version`、`last_updated`。
 - 推荐提供 `agents/openai.yaml`，至少包含 `display_name` 与 `short_description`。
+- 仅本地沉淀 / Chronicle 派生 skill 默认持续迭代；`adk-*`、Superpowers 和第三方导入 skill 通过上游版本更新后重新导入。
+- 本地派生 skill 使用 manifest `local` / `chronicle-derived` 标签和 `origin` / `lifecycle` 元数据识别，不为来源标记强制改名。
+- 本地派生 skill 的触发问题优先改 `description` / `manifests/workflows.json`，流程问题改 `SKILL.md`，长证据归档到 `docs/archive/`。
+- 已提交并投入使用的本地派生 skill 迭代优先新增版本目录并更新 `manifests/skills.json`；本地草稿可在提交前直接修当前版本。
 - `src/codex-home/vendor/plugins/**/skills/` 属于上游插件内容，默认不改写。
 - 批量修改 skills 后运行 `rtk bash ~/codex/scripts/check-skills.sh`。
 
