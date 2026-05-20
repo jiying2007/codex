@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "archived_at": "2026-05-10T15:07:28+08:00",
+  "source": "/home/leiwenjun/codex/scratch/20260510-150642-session-wrap.md",
+  "destination": "docs/archive/session-wrap/20260510-150728-session-wrap.md",
+  "metadata": "docs/archive/session-wrap/20260510-150728-session-wrap.md.meta.json",
+  "topic": "session-wrap",
+  "title": "会话收尾归档 2026-05-10",
+  "description": "上下文压缩前准备、sandbox 能力升级与验证",
+  "mode": "move",
+  "kind": "session-wrap",
+  "scope": "session-summary",
+  "content_sha256": "b0ac3a275e97dc68cb32b24666e552bef2b5391c504bb43f094ce7983560f240",
+  "sensitivity": "sanitized-no-secret-pattern-detected",
+  "tags": [
+    "bwrap",
+    "session-wrap"
+  ],
+  "governance_status": "active",
+  "retention": "keep",
+  "review_note": "Managed by archive governance cleanup on 2026-05-19; do not promote project-specific or superseded entries as global Codex rules without review.",
+  "contains_project_specific_refs": false,
+  "archive_id": "20260510-150728-session-wrap",
+  "source_repo": "",
+  "project_id": "",
+  "workstream_id": "",
+  "session_id": "20260510-150728-session-wrap",
+  "summary": "上下文压缩前准备、sandbox 能力升级与验证",
+  "status": "closed",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": ""
+}

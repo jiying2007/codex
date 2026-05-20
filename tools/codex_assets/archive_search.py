@@ -28,6 +28,15 @@ class Hit:
     title: str
     archived_at: str
     tags: list[str]
+    project_id: str
+    workstream_id: str
+    session_id: str
+    scope: str
+    status: str
+    governance_status: str
+    memory_action: str
+    owner: str
+    summary: str
 
 
 def parser() -> argparse.ArgumentParser:
@@ -42,6 +51,15 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--topic", action="append", default=[])
     p.add_argument("--tag", action="append", default=[])
     p.add_argument("--type", dest="kind", action="append", default=[])
+    p.add_argument("--project", action="append", default=[])
+    p.add_argument("--workstream", action="append", default=[])
+    p.add_argument("--session", action="append", default=[])
+    p.add_argument("--scope", action="append", default=[])
+    p.add_argument("--status", action="append", default=[])
+    p.add_argument("--governance-status", action="append", default=[])
+    p.add_argument("--memory-action", action="append", default=[])
+    p.add_argument("--owner", action="append", default=[])
+    p.add_argument("--open-only", action="store_true")
     p.add_argument("--since", default="")
     p.add_argument("--until", default="")
     return p
@@ -168,6 +186,15 @@ def connect(path: pathlib.Path) -> sqlite3.Connection:
             description text not null,
             archived_at text not null,
             tags text not null,
+            project_id text not null default '',
+            workstream_id text not null default '',
+            session_id text not null default '',
+            scope text not null default '',
+            status text not null default '',
+            governance_status text not null default '',
+            memory_action text not null default '',
+            owner text not null default '',
+            summary text not null default '',
             content text not null
         )
         """
@@ -181,12 +208,57 @@ def connect(path: pathlib.Path) -> sqlite3.Connection:
             title,
             description,
             tags,
+            project_id,
+            workstream_id,
+            session_id,
+            scope,
+            status,
+            governance_status,
+            memory_action,
+            owner,
+            summary,
             content,
             tokenize='unicode61'
         )
         """
     )
+    ensure_archive_columns(db)
     return db
+
+
+def ensure_archive_columns(db: sqlite3.Connection) -> None:
+    existing = {row["name"] for row in db.execute("pragma table_info(docs)").fetchall()}
+    for column in ["project_id", "workstream_id", "session_id", "scope", "status", "governance_status", "memory_action", "owner", "summary"]:
+        if column not in existing:
+            db.execute(f"alter table docs add column {column} text not null default ''")
+    fts_cols = {row["name"] for row in db.execute("pragma table_info(docs_fts)").fetchall()}
+    expected = {"project_id", "workstream_id", "session_id", "scope", "status", "governance_status", "memory_action", "owner", "summary"}
+    if not expected.issubset(fts_cols):
+        db.execute("drop table if exists docs_fts")
+        db.execute(
+            """
+            create virtual table docs_fts using fts5(
+                path unindexed,
+                topic,
+                kind,
+                title,
+                description,
+                tags,
+                project_id,
+                workstream_id,
+                session_id,
+                scope,
+                status,
+                governance_status,
+                memory_action,
+                owner,
+                summary,
+                content,
+                tokenize='unicode61'
+            )
+            """
+        )
+        db.execute("delete from docs")
 
 
 def metadata_for(path: pathlib.Path, repo: pathlib.Path, text: str) -> dict[str, Any]:
@@ -201,15 +273,28 @@ def metadata_for(path: pathlib.Path, repo: pathlib.Path, text: str) -> dict[str,
     tags = frontmatter.get("tags") or []
     if isinstance(tags, str):
         tags = [tags]
+    meta_tags = meta.get("tags") or []
+    if isinstance(meta_tags, str):
+        meta_tags = [meta_tags]
+    tags = list(tags) + [str(item) for item in meta_tags]
     kind = detect_kind(path_rel, topic)
     return {
         "path": path_rel,
         "topic": topic,
-        "kind": kind,
+        "kind": str(meta.get("kind") or kind),
         "title": title,
         "description": description,
         "archived_at": archived_at,
-        "tags": [str(item) for item in tags if str(item).strip()],
+        "tags": sorted({str(item) for item in tags if str(item).strip()}),
+        "project_id": str(meta.get("project_id") or meta.get("project") or ""),
+        "workstream_id": str(meta.get("workstream_id") or ""),
+        "session_id": str(meta.get("session_id") or ""),
+        "scope": str(meta.get("scope") or ""),
+        "status": str(meta.get("status") or ""),
+        "governance_status": str(meta.get("governance_status") or ""),
+        "memory_action": str(meta.get("memory_action") or ""),
+        "owner": str(meta.get("owner") or ""),
+        "summary": str(meta.get("summary") or description),
         "content": strip_frontmatter(text),
     }
 
@@ -230,8 +315,11 @@ def rebuild_index(db: sqlite3.Connection, repo: pathlib.Path, extra: Sequence[st
         path_rel = rel(path, repo)
         live[path_rel] = path
         stat = path.stat()
+        meta_path = path.with_name(path.name + ".meta.json")
+        meta_mtime_ns = meta_path.stat().st_mtime_ns if meta_path.is_file() else 0
+        mtime_ns = max(stat.st_mtime_ns, meta_mtime_ns)
         row = db.execute("select mtime_ns from docs where path = ?", (path_rel,)).fetchone()
-        if row and int(row["mtime_ns"]) == stat.st_mtime_ns:
+        if row and int(row["mtime_ns"]) == mtime_ns:
             continue
         text = safe_read(path)
         meta = metadata_for(path, repo, text)
@@ -240,25 +328,41 @@ def rebuild_index(db: sqlite3.Connection, repo: pathlib.Path, extra: Sequence[st
         db.execute("delete from docs_fts where path = ?", (path_rel,))
         db.execute(
             """
-            insert into docs(path, mtime_ns, topic, kind, title, description, archived_at, tags, content)
-            values(?, ?, ?, ?, ?, ?, ?, ?, ?)
+            insert into docs(
+                path, mtime_ns, topic, kind, title, description, archived_at, tags,
+                project_id, workstream_id, session_id, scope, status, governance_status,
+                memory_action, owner, summary, content
+            )
+            values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 path_rel,
-                stat.st_mtime_ns,
+                mtime_ns,
                 meta["topic"],
                 meta["kind"],
                 meta["title"],
                 meta["description"],
                 meta["archived_at"],
                 tags_json,
+                meta["project_id"],
+                meta["workstream_id"],
+                meta["session_id"],
+                meta["scope"],
+                meta["status"],
+                meta["governance_status"],
+                meta["memory_action"],
+                meta["owner"],
+                meta["summary"],
                 meta["content"],
             ),
         )
         db.execute(
             """
-            insert into docs_fts(path, topic, kind, title, description, tags, content)
-            values(?, ?, ?, ?, ?, ?, ?)
+            insert into docs_fts(
+                path, topic, kind, title, description, tags, project_id, workstream_id,
+                session_id, scope, status, governance_status, memory_action, owner, summary, content
+            )
+            values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 path_rel,
@@ -267,6 +371,15 @@ def rebuild_index(db: sqlite3.Connection, repo: pathlib.Path, extra: Sequence[st
                 meta["title"],
                 meta["description"],
                 " ".join(meta["tags"]),
+                meta["project_id"],
+                meta["workstream_id"],
+                meta["session_id"],
+                meta["scope"],
+                meta["status"],
+                meta["governance_status"],
+                meta["memory_action"],
+                meta["owner"],
+                meta["summary"],
                 meta["content"],
             ),
         )
@@ -307,6 +420,15 @@ def line_hits(
     title: str,
     archived_at: str,
     tags: list[str],
+    project_id: str = "",
+    workstream_id: str = "",
+    session_id: str = "",
+    scope: str = "",
+    status: str = "",
+    governance_status: str = "",
+    memory_action: str = "",
+    owner: str = "",
+    summary: str = "",
 ) -> list[Hit]:
     current_heading = ""
     hits: list[Hit] = []
@@ -335,6 +457,15 @@ def line_hits(
                         title=title,
                         archived_at=archived_at,
                         tags=tags,
+                        project_id=project_id,
+                        workstream_id=workstream_id,
+                        session_id=session_id,
+                        scope=scope,
+                        status=status,
+                        governance_status=governance_status,
+                        memory_action=memory_action,
+                        owner=owner,
+                        summary=summary,
                     )
                 )
     except OSError:
@@ -345,18 +476,29 @@ def line_hits(
 def where_filters(args: argparse.Namespace) -> tuple[str, list[Any]]:
     clauses: list[str] = []
     values: list[Any] = []
-    topics = [item.strip() for item in args.topic if item.strip()]
-    kinds = [item.strip() for item in args.kind if item.strip()]
+    for attr, column in [
+        ("topic", "topic"),
+        ("kind", "kind"),
+        ("project", "project_id"),
+        ("workstream", "workstream_id"),
+        ("session", "session_id"),
+        ("scope", "scope"),
+        ("status", "status"),
+        ("governance_status", "governance_status"),
+        ("memory_action", "memory_action"),
+        ("owner", "owner"),
+    ]:
+        items = [item.strip() for item in getattr(args, attr, []) if item.strip()]
+        if items:
+            clauses.append(f"docs.{column} in ({','.join('?' for _ in items)})")
+            values.extend(items)
     tags = [item.strip() for item in args.tag if item.strip()]
-    if topics:
-        clauses.append(f"docs.topic in ({','.join('?' for _ in topics)})")
-        values.extend(topics)
-    if kinds:
-        clauses.append(f"docs.kind in ({','.join('?' for _ in kinds)})")
-        values.extend(kinds)
     for tag in tags:
         clauses.append("docs.tags like ?")
         values.append(f'%"{tag}"%')
+    if getattr(args, "open_only", False):
+        clauses.append("docs.status = ?")
+        values.append("open")
     since = parse_date(args.since)
     until = parse_date(args.until)
     if since:
@@ -376,14 +518,18 @@ def query_candidates(db: sqlite3.Connection, args: argparse.Namespace) -> list[s
     if args.query.strip():
         sql = (
             "select docs.path, docs.topic, docs.kind, docs.title, docs.archived_at, docs.tags, "
-            "bm25(docs_fts, 1.0, 0.8, 0.6, 0.5, 0.4, 0.2) as rank "
+            "docs.project_id, docs.workstream_id, docs.session_id, docs.scope, docs.status, "
+            "docs.governance_status, docs.memory_action, docs.owner, docs.summary, "
+            "bm25(docs_fts) as rank "
             "from docs_fts join docs on docs.path = docs_fts.path "
             f"{where_sql} "
             "and docs_fts match ? "
             "order by rank limit ?"
         ) if where_sql else (
             "select docs.path, docs.topic, docs.kind, docs.title, docs.archived_at, docs.tags, "
-            "bm25(docs_fts, 1.0, 0.8, 0.6, 0.5, 0.4, 0.2) as rank "
+            "docs.project_id, docs.workstream_id, docs.session_id, docs.scope, docs.status, "
+            "docs.governance_status, docs.memory_action, docs.owner, docs.summary, "
+            "bm25(docs_fts) as rank "
             "from docs_fts join docs on docs.path = docs_fts.path "
             "where docs_fts match ? order by rank limit ?"
         )
@@ -391,7 +537,8 @@ def query_candidates(db: sqlite3.Connection, args: argparse.Namespace) -> list[s
         rows = db.execute(sql, [*values, match, max(args.limit * 4, 40)] if where_sql else [match, max(args.limit * 4, 40)]).fetchall()
         return rows
     sql = (
-        "select path, topic, kind, title, archived_at, tags, 0.0 as rank from docs"
+        "select path, topic, kind, title, archived_at, tags, project_id, workstream_id, "
+        "session_id, scope, status, governance_status, memory_action, owner, summary, 0.0 as rank from docs"
         f"{where_sql} order by archived_at desc, path limit ?"
     )
     return db.execute(sql, [*values, max(args.limit * 4, 40)]).fetchall()
@@ -404,6 +551,21 @@ def row_matches_filters(row: sqlite3.Row, args: argparse.Namespace) -> bool:
     if topics and str(row["topic"]) not in topics:
         return False
     if kinds and str(row["kind"]) not in kinds:
+        return False
+    for attr, column in [
+        ("project", "project_id"),
+        ("workstream", "workstream_id"),
+        ("session", "session_id"),
+        ("scope", "scope"),
+        ("status", "status"),
+        ("governance_status", "governance_status"),
+        ("memory_action", "memory_action"),
+        ("owner", "owner"),
+    ]:
+        values = {item.strip() for item in getattr(args, attr, []) if item.strip()}
+        if values and str(row[column]) not in values:
+            return False
+    if getattr(args, "open_only", False) and str(row["status"]) != "open":
         return False
     row_tags = set(json.loads(row["tags"] or "[]"))
     if tags and not (row_tags & tags):
@@ -427,13 +589,40 @@ def run(args: argparse.Namespace) -> int:
     terms = normalize_terms(args.query)
     if not rows:
         fallback = db.execute(
-            "select path, topic, kind, title, archived_at, tags, 0.0 as rank from docs order by archived_at desc, path"
+            "select path, topic, kind, title, archived_at, tags, project_id, workstream_id, "
+            "session_id, scope, status, governance_status, memory_action, owner, summary, "
+            "0.0 as rank from docs order by archived_at desc, path"
         ).fetchall()
         rows = [row for row in fallback if row_matches_filters(row, args)]
     hits: list[Hit] = []
     for row in rows:
-        path = repo / row["path"]
         tags = json.loads(row["tags"] or "[]")
+        if not terms:
+            hits.append(
+                Hit(
+                    path=str(row["path"]),
+                    line=0,
+                    heading="",
+                    text=str(row["summary"] or row["title"] or row["path"]),
+                    score=1.0,
+                    topic=str(row["topic"]),
+                    kind=str(row["kind"]),
+                    title=str(row["title"]),
+                    archived_at=str(row["archived_at"]),
+                    tags=tags,
+                    project_id=str(row["project_id"]),
+                    workstream_id=str(row["workstream_id"]),
+                    session_id=str(row["session_id"]),
+                    scope=str(row["scope"]),
+                    status=str(row["status"]),
+                    governance_status=str(row["governance_status"]),
+                    memory_action=str(row["memory_action"]),
+                    owner=str(row["owner"]),
+                    summary=str(row["summary"]),
+                )
+            )
+            continue
+        path = repo / row["path"]
         line_matches = line_hits(
             path,
             str(row["path"]),
@@ -443,6 +632,15 @@ def run(args: argparse.Namespace) -> int:
             str(row["title"]),
             str(row["archived_at"]),
             tags,
+            project_id=str(row["project_id"]),
+            workstream_id=str(row["workstream_id"]),
+            session_id=str(row["session_id"]),
+            scope=str(row["scope"]),
+            status=str(row["status"]),
+            governance_status=str(row["governance_status"]),
+            memory_action=str(row["memory_action"]),
+            owner=str(row["owner"]),
+            summary=str(row["summary"]),
         )
         for item in line_matches:
             rank = float(row["rank"] or 0.0)
@@ -463,6 +661,15 @@ def run(args: argparse.Namespace) -> int:
                 "title": item.title,
                 "archived_at": item.archived_at,
                 "tags": item.tags,
+                "project_id": item.project_id,
+                "workstream_id": item.workstream_id,
+                "session_id": item.session_id,
+                "scope": item.scope,
+                "status": item.status,
+                "governance_status": item.governance_status,
+                "memory_action": item.memory_action,
+                "owner": item.owner,
+                "summary": item.summary,
             }
             for item in trimmed
         ]
@@ -471,6 +678,10 @@ def run(args: argparse.Namespace) -> int:
     for item in trimmed:
         heading = f" [{item.heading}]" if item.heading else ""
         meta = f" topic={item.topic} type={item.kind}"
+        if item.project_id:
+            meta += f" project={item.project_id}"
+        if item.status:
+            meta += f" status={item.status}"
         if item.archived_at:
             meta += f" archived_at={item.archived_at[:10]}"
         print(f"{item.path}:{item.line}{heading}{meta}")

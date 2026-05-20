@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "archived_at": "2026-05-11T10:49:01+08:00",
+  "source": "/home/leiwenjun/codex/scratch/20260511-104829-session-wrap.md",
+  "destination": "docs/archive/session-wrap/20260511-104901-session-wrap.md",
+  "metadata": "docs/archive/session-wrap/20260511-104901-session-wrap.md.meta.json",
+  "topic": "session-wrap",
+  "title": "会话总结归档 2026-05-11",
+  "description": "usage observer 与轻交互 TUI 终版收口",
+  "mode": "move",
+  "kind": "session-wrap",
+  "scope": "session-summary",
+  "content_sha256": "a77391f979bde0b4336c7793b7c2ce71453a3f903af8d5dc636d16a61711076a",
+  "sensitivity": "sanitized-no-secret-pattern-detected",
+  "tags": [
+    "session-wrap"
+  ],
+  "governance_status": "active",
+  "retention": "keep",
+  "review_note": "Managed by archive governance cleanup on 2026-05-19; do not promote project-specific or superseded entries as global Codex rules without review.",
+  "contains_project_specific_refs": false,
+  "archive_id": "20260511-104901-session-wrap",
+  "source_repo": "",
+  "project_id": "",
+  "workstream_id": "",
+  "session_id": "20260511-104901-session-wrap",
+  "summary": "usage observer 与轻交互 TUI 终版收口",
+  "status": "closed",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": ""
+}

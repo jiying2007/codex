@@ -25,6 +25,7 @@ from .core import (
     write_json,
 )
 from .archive_search import run as run_archive_search
+from .archive_governance import ArchiveGovernanceError, run_check as run_archive_check
 from .governance import governance_errors, governance_report
 from .memory_curator import run as run_memory_curator
 from .session_coach import run as run_session_coach
@@ -309,11 +310,27 @@ def cmd_archive_note(args: argparse.Namespace) -> int:
         dest_arg=args.dest,
         title_arg=args.title,
         description=args.description,
+        project_arg=args.project,
+        source_repo_arg=args.source_repo,
+        workstream_arg=args.workstream,
+        session_arg=args.session,
+        status_arg=args.status,
+        scope_arg=args.scope,
+        kind_arg=args.kind,
+        owner_arg=args.owner,
+        next_action_arg=args.next_action,
+        memory_action_arg=args.memory_action,
+        tags_arg=args.tag,
+        no_project_detect=args.no_project_detect,
         move=args.move,
         dry_run=args.dry_run,
     )
     print(f"[DONE] archive-note destination={meta['destination']} dry_run={int(args.dry_run)}")
     return 0
+
+
+def cmd_archive_check(args: argparse.Namespace) -> int:
+    return run_archive_check(args.root, json_output=args.json)
 
 
 def cmd_curate_memory(args: argparse.Namespace) -> int:
@@ -342,6 +359,15 @@ def cmd_archive_search(args: argparse.Namespace) -> int:
         kind=args.kind,
         since=args.since,
         until=args.until,
+        project=args.project,
+        workstream=args.workstream,
+        session=args.session,
+        scope=args.scope,
+        status=args.status,
+        governance_status=args.governance_status,
+        memory_action=args.memory_action,
+        owner=args.owner,
+        open_only=args.open_only,
     )
     return run_archive_search(mapped)
 
@@ -502,9 +528,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dest", default="")
     p.add_argument("--title", default="")
     p.add_argument("--description", default="")
+    p.add_argument("--project", default="")
+    p.add_argument("--source-repo", default="")
+    p.add_argument("--workstream", default="")
+    p.add_argument("--session", default="")
+    p.add_argument("--status", default="closed", choices=["open", "closed", "blocked"])
+    p.add_argument("--scope", default="", choices=["", "codex-governance", "codex-knowledge", "project-specific", "session-summary", "legacy-local-runtime"])
+    p.add_argument("--kind", default="")
+    p.add_argument("--owner", default="")
+    p.add_argument("--next-action", default="")
+    p.add_argument("--memory-action", default="archive-only", choices=["archive-only", "candidate", "promote-to-agents", "write-to-memory", "drop-or-review"])
+    p.add_argument("--tag", action="append", default=[])
+    p.add_argument("--no-project-detect", action="store_true")
     p.add_argument("--move", action="store_true")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_archive_note)
+
+    p = sub.add_parser("archive-check", parents=[common])
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_archive_check)
 
     p = sub.add_parser("archive-search", parents=[common])
     p.add_argument("query")
@@ -516,6 +558,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--topic", action="append", default=[])
     p.add_argument("--tag", action="append", default=[])
     p.add_argument("--type", dest="kind", action="append", default=[])
+    p.add_argument("--project", action="append", default=[])
+    p.add_argument("--workstream", action="append", default=[])
+    p.add_argument("--session", action="append", default=[])
+    p.add_argument("--scope", action="append", default=[])
+    p.add_argument("--status", action="append", default=[])
+    p.add_argument("--governance-status", action="append", default=[])
+    p.add_argument("--memory-action", action="append", default=[])
+    p.add_argument("--owner", action="append", default=[])
+    p.add_argument("--open-only", action="store_true")
     p.add_argument("--since", default="")
     p.add_argument("--until", default="")
     p.set_defaults(func=cmd_archive_search)
@@ -587,6 +638,6 @@ def main() -> None:
     args = parser.parse_args()
     try:
         raise SystemExit(args.func(args))
-    except CodexAssetError as exc:
+    except (CodexAssetError, ArchiveGovernanceError) as exc:
         print(f"[FATAL] {exc}", file=sys.stderr)
         raise SystemExit(2)

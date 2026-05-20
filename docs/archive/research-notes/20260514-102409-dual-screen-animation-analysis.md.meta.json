@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "archived_at": "2026-05-14T10:24:09+08:00",
+  "source": "/home/leiwenjun/work/sigmastar/pcr02_ssc305_release/SourceCode/sdk/verify/xcrz_sigmastar_demo/modules/sensor/display/docs/2026-05-14-dual-screen-animation-analysis.md",
+  "destination": "docs/archive/research-notes/20260514-102409-dual-screen-animation-analysis.md",
+  "metadata": "docs/archive/research-notes/20260514-102409-dual-screen-animation-analysis.md.meta.json",
+  "topic": "research-notes",
+  "title": "Sigmastar 双屏动画实现分析",
+  "description": "",
+  "mode": "copy",
+  "kind": "knowledge-note",
+  "scope": "project-specific",
+  "project": "sigmastar",
+  "content_sha256": "04a4f26f5d48263ab05cdb700e23ea05cfb41a16bc32c672c6ae4e2e3b6343c4",
+  "sensitivity": "sanitized-no-secret-pattern-detected",
+  "tags": [
+    "sigmastar"
+  ],
+  "governance_status": "active",
+  "retention": "keep",
+  "review_note": "Managed by archive governance cleanup on 2026-05-19; do not promote project-specific or superseded entries as global Codex rules without review.",
+  "contains_project_specific_refs": true,
+  "archive_id": "20260514-102409-dual-screen-animation-analysis",
+  "source_repo": "/home/leiwenjun/work/sigmastar",
+  "project_id": "sigmastar",
+  "workstream_id": "general",
+  "session_id": "",
+  "summary": "Sigmastar 双屏动画实现分析",
+  "status": "closed",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": ""
+}

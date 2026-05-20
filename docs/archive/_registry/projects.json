@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "projects": [
+    {
+      "project_id": "codex",
+      "name": "Codex Asset Repository",
+      "repo_paths": [
+        "/home/leiwenjun/codex"
+      ],
+      "domain": "codex-assets",
+      "status": "active",
+      "aliases": [
+        "asset-repo",
+        "codex-home"
+      ],
+      "default_topics": [
+        "session-wrap",
+        "diag-architecture",
+        "memory-curation",
+        "archive-governance"
+      ]
+    },
+    {
+      "project_id": "pcr02-ssc305",
+      "name": "PCR02 SSC305 Embedded Workspace",
+      "repo_paths": [
+        "/home/leiwenjun/work/sigmastar/pcr02_ssc305_compile",
+        "/home/leiwenjun/work/sigmastar/pcr02_ssc305"
+      ],
+      "domain": "embedded-sigmastar",
+      "status": "active",
+      "aliases": [
+        "pcr02",
+        "ssc305",
+        "pcr02-ssc305-compile"
+      ],
+      "default_topics": [
+        "session-wrap",
+        "diag-architecture",
+        "tools"
+      ]
+    },
+    {
+      "project_id": "mcu-firmware",
+      "name": "MCU Firmware Workspace",
+      "repo_paths": [
+        "/home/leiwenjun/work/mcu",
+        "/home/leiwenjun/work/mcu/firmware-release-tools"
+      ],
+      "domain": "embedded-mcu",
+      "status": "active",
+      "aliases": [
+        "mcu",
+        "gd32",
+        "firmware-release"
+      ],
+      "default_topics": [
+        "session-wrap",
+        "tools",
+        "release-governance"
+      ]
+    },
+    {
+      "project_id": "llm-tools",
+      "name": "LLM Tools Workspace",
+      "repo_paths": [
+        "/home/leiwenjun/bin/llm_agent",
+        "/home/leiwenjun/work/llm_tools"
+      ],
+      "domain": "local-tooling",
+      "status": "active",
+      "aliases": [
+        "llm_tools"
+      ],
+      "default_topics": [
+        "session-wrap",
+        "release-governance",
+        "memory-curation"
+      ]
+    },
+    {
+      "project_id": "sigmastar",
+      "name": "Sigmastar Workspace",
+      "repo_paths": [
+        "/home/leiwenjun/work/sigmastar"
+      ],
+      "domain": "embedded-sigmastar",
+      "status": "active",
+      "aliases": [
+        "sigmastar-workspace"
+      ],
+      "default_topics": [
+        "research-notes",
+        "session-wrap"
+      ]
+    },
+    {
+      "project_id": "local-runtime",
+      "name": "Local Runtime Environment",
+      "repo_paths": [
+        "/usr/local/bin",
+        "/usr/bin"
+      ],
+      "domain": "local-runtime",
+      "status": "legacy",
+      "aliases": [
+        "bwrap"
+      ],
+      "default_topics": [
+        "control-archives"
+      ]
+    }
+  ]
+}

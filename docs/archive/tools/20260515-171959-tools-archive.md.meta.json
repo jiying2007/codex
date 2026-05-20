@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "archived_at": "2026-05-15T17:19:59+08:00",
+  "source": "/tmp/tools-archive-2026-05-15.md",
+  "destination": "docs/archive/tools/20260515-171959-tools-archive.md",
+  "metadata": "docs/archive/tools/20260515-171959-tools-archive.md.meta.json",
+  "topic": "tools",
+  "title": "tools 归档记录 2026-05-15",
+  "description": "",
+  "mode": "copy",
+  "kind": "knowledge-note",
+  "scope": "codex-knowledge",
+  "content_sha256": "17180085b85b89da1a71db491befefe21ab9dbb6288bcf72363d45e0732b84ab",
+  "sensitivity": "sanitized-no-secret-pattern-detected",
+  "tags": [
+    "sigmastar"
+  ],
+  "governance_status": "active",
+  "retention": "keep",
+  "review_note": "Managed by archive governance cleanup on 2026-05-19; do not promote project-specific or superseded entries as global Codex rules without review.",
+  "contains_project_specific_refs": false,
+  "archive_id": "20260515-171959-tools-archive",
+  "source_repo": "",
+  "project_id": "",
+  "workstream_id": "",
+  "session_id": "",
+  "summary": "tools 归档记录 2026-05-15",
+  "status": "closed",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": ""
+}

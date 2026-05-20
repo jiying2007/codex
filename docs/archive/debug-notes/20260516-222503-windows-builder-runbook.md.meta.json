@@ -1,11 +1,33 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "archived_at": "2026-05-16T22:25:03+08:00",
   "source": "/home/leiwenjun/bin/llm_tools/docs/windows-builder-runbook.md",
-  "destination": "/home/leiwenjun/codex/docs/archive/debug-notes/20260516-222503-windows-builder-runbook.md",
-  "metadata": "/home/leiwenjun/codex/docs/archive/debug-notes/20260516-222503-windows-builder-runbook.md.meta.json",
+  "destination": "docs/archive/debug-notes/20260516-222503-windows-builder-runbook.md",
+  "metadata": "docs/archive/debug-notes/20260516-222503-windows-builder-runbook.md.meta.json",
   "topic": "debug-notes",
   "title": "llm_tools Windows 构建机发布链路排障与发布边界",
   "description": "",
-  "mode": "copy"
+  "mode": "copy",
+  "kind": "knowledge-note",
+  "scope": "codex-knowledge",
+  "content_sha256": "9834e36cff48c76b3022f2957c612a140b0f11e19a84281d023139d455a26109",
+  "sensitivity": "sanitized-no-secret-pattern-detected",
+  "tags": [
+    "llm-tools",
+    "sigmastar"
+  ],
+  "governance_status": "active",
+  "retention": "keep",
+  "review_note": "Managed by archive governance cleanup on 2026-05-19; do not promote project-specific or superseded entries as global Codex rules without review.",
+  "contains_project_specific_refs": true,
+  "archive_id": "20260516-222503-windows-builder-runbook",
+  "source_repo": "/home/leiwenjun/bin/llm_agent",
+  "project_id": "llm-tools",
+  "workstream_id": "general",
+  "session_id": "",
+  "summary": "llm_tools Windows 构建机发布链路排障与发布边界",
+  "status": "closed",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": ""
 }

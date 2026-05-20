@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "archived_at": "2026-05-11T13:24:32+08:00",
+  "source": "legacy-or-manual-import",
+  "destination": "docs/archive/memory-curation/20260511-132432-memory-curation.md",
+  "metadata": "docs/archive/memory-curation/20260511-132432-memory-curation.md.meta.json",
+  "topic": "memory-curation",
+  "title": "Memory Curation 2026-05-11 13:24:32 +0800",
+  "description": "",
+  "mode": "generated",
+  "kind": "memory-curation-report",
+  "scope": "codex-governance",
+  "content_sha256": "54f43693eb72d4b93870cb22fa465d04208d79794a420477d91f79e282d1a0f1",
+  "sensitivity": "sanitized-no-secret-pattern-detected",
+  "tags": [
+    "memory-curation",
+    "superpowers"
+  ],
+  "governance_status": "active",
+  "retention": "keep",
+  "review_note": "Managed by archive governance cleanup on 2026-05-19; do not promote project-specific or superseded entries as global Codex rules without review.",
+  "contains_project_specific_refs": false,
+  "archive_id": "20260511-132432-memory-curation",
+  "source_repo": "",
+  "project_id": "",
+  "workstream_id": "",
+  "session_id": "",
+  "summary": "Memory Curation 2026-05-11 13:24:32 +0800",
+  "status": "closed",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": ""
+}

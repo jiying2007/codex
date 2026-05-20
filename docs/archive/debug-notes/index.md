@@ -1,8 +1,9 @@
-# llm_tools Windows 构建机发布链路排障与发布边界
+# Debug Notes Archive
 
-本目录由 `rtk bash scripts/archive-note.sh` 维护，用于沉淀不属于 Codex 运行态的知识材料。
+本目录由 `rtk bash scripts/archive-note.sh` 维护，用于沉淀已脱敏、可追溯的长期知识材料。
 
 - Topic: `debug-notes`
+- Index title is topic-level and must not be replaced by a single archived item title.
 
 | Item | Path |
 | --- | --- |

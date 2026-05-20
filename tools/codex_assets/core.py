@@ -15,6 +15,8 @@ from typing import Any
 
 import yaml
 
+from .archive_governance import build_meta_v2
+
 
 class CodexAssetError(RuntimeError):
     pass
@@ -126,6 +128,18 @@ def archive_note(
     dest_arg: str = "",
     title_arg: str = "",
     description: str = "",
+    project_arg: str = "",
+    source_repo_arg: str = "",
+    workstream_arg: str = "",
+    session_arg: str = "",
+    status_arg: str = "closed",
+    scope_arg: str = "",
+    kind_arg: str = "",
+    owner_arg: str = "",
+    next_action_arg: str = "",
+    memory_action_arg: str = "archive-only",
+    tags_arg: list[str] | None = None,
+    no_project_detect: bool = False,
     move: bool = False,
     dry_run: bool = False,
 ) -> dict[str, Any]:
@@ -146,18 +160,26 @@ def archive_note(
     item_name = f"{timestamp}-{source_slug}"
     dest = archive_root / f"{item_name}{source.suffix}" if source.is_file() else archive_root / item_name
     meta_path = archive_root / f"{dest.name}.meta.json"
-    meta = {
-        "schema_version": 1,
-        "archived_at": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "source": source.expanduser().resolve().as_posix(),
-        "destination": dest.as_posix(),
-        "metadata": meta_path.as_posix(),
-        "topic": topic,
-        "title": title_arg or topic,
+    meta_kwargs = {
+        "title": title_arg,
         "description": description,
         "mode": "move" if move else "copy",
+        "explicit_project": project_arg,
+        "source_repo": source_repo_arg,
+        "workstream_id": workstream_arg,
+        "session_id": session_arg,
+        "status": status_arg,
+        "scope": scope_arg,
+        "kind": kind_arg,
+        "owner": owner_arg,
+        "next_action": next_action_arg,
+        "memory_action": memory_action_arg,
+        "tags": tags_arg or [],
+        "no_project_detect": no_project_detect,
     }
+    meta: dict[str, Any] = {}
     if not dry_run:
+        build_meta_v2(repo.root, source, dest, meta_path, topic, **meta_kwargs)
         archive_root.mkdir(parents=True, exist_ok=True)
         if source.is_dir():
             if move:
@@ -170,23 +192,55 @@ def archive_note(
                 shutil.move(str(source), str(dest))
             else:
                 shutil.copy2(source, dest)
+        meta = build_meta_v2(repo.root, source, dest, meta_path, topic, **meta_kwargs)
         write_json(meta_path, meta)
-        update_archive_index(archive_root, topic, title_arg or topic)
+        update_archive_index(archive_root, topic)
+    else:
+        meta = {
+            "schema_version": 2,
+            "source": source.expanduser().resolve(strict=False).as_posix(),
+            "destination": dest.as_posix(),
+            "metadata": meta_path.as_posix(),
+            "topic": topic,
+            "title": title_arg or topic,
+            "description": description,
+            "mode": "move" if move else "copy",
+            "dry_run": True,
+        }
     return meta
 
 
-def update_archive_index(archive_root: pathlib.Path, topic: str, title: str) -> None:
+ARCHIVE_TOPIC_TITLES = {
+    "archive-governance": "Archive Governance",
+    "control-archives": "Legacy Control Archives",
+    "daily-summary": "Daily Summary Archive",
+    "debug-notes": "Debug Notes Archive",
+    "diag-architecture": "Diagnostic Architecture Archive",
+    "memory-curation": "Memory Curation Archive",
+    "release-governance": "Release Governance Archive",
+    "research-notes": "Research Notes Archive",
+    "session-wrap": "Session Wrap Archive",
+    "tools": "Tools Archive",
+}
+
+
+def archive_topic_title(topic: str) -> str:
+    return ARCHIVE_TOPIC_TITLES.get(topic, topic.replace("-", " ").title())
+
+
+def update_archive_index(archive_root: pathlib.Path, topic: str) -> None:
     rows = []
     for path in sorted(archive_root.iterdir(), key=lambda p: p.name):
         if path.name == "index.md" or path.name.endswith(".meta.json"):
             continue
         rows.append(f"| `{path.name}` | `{path.relative_to(archive_root).as_posix()}` |")
     content = [
-        f"# {title}",
+        f"# {archive_topic_title(topic)}",
         "",
-        "本目录由 `rtk bash scripts/archive-note.sh` 维护，用于沉淀不属于 Codex 运行态的知识材料。",
+        "本目录由 `rtk bash scripts/archive-note.sh` 维护，用于沉淀已脱敏、可追溯的长期知识材料。",
         "",
         f"- Topic: `{topic}`",
+        "- Index title is topic-level and must not be replaced by a single archived item title.",
         "",
         "| Item | Path |",
         "| --- | --- |",
