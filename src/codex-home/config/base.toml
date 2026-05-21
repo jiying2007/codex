@@ -19,7 +19,11 @@ model = "gpt-5.5"  # 默认前沿模型（适合复杂代码与资产管理任�
 # low    = 最省钱（推荐日常）
 # medium = 平衡
 # high   = 深度分析
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
+
+# 推理摘要和输出冗余控制
+model_reasoning_summary = "concise"
+model_verbosity = "medium"
 
 # 输出风格（影响长度 & 是否乱改代码）
 # none      = 无特别风格，默认最简洁的风格
@@ -34,14 +38,14 @@ personality = "pragmatic"
 
 # 最大上下文窗口（注意：不是越大越好）
 # 太大会导致扫描无关文件 -> token 暴涨
-model_context_window = 1000000
+model_context_window = 160000
 
 # 自动压缩阈值（超过就裁剪历史）
 # 防止对话越来越长
-model_auto_compact_token_limit = 1000000
+model_auto_compact_token_limit = 100000
 
 # 工具输出限制
-tool_output_token_limit = 30000
+tool_output_token_limit = 16000
 
 
 # ========================
@@ -52,6 +56,25 @@ tool_output_token_limit = 30000
 # true  = 自动跑命令（危险 + 烧 token）
 # false = 手动确认（推荐）
 auto_execute = false
+
+
+# ========================
+# 官方权限与运行边界
+# ========================
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+hide_agent_reasoning = true
+project_doc_max_bytes = 32768
+project_doc_fallback_filenames = []
+file_opener = "vscode"
+
+[sandbox_workspace_write]
+network_access = false
+writable_roots = [
+  "/home/leiwenjun/.codex/memories",
+]
 
 
 # ========================
@@ -95,6 +118,172 @@ run_commands = true
 # true  = 多代理协作
 # false = 单代理（推荐）
 multi_agent = true
+
+
+# ========================
+# 历史记录
+# ========================
+
+[history]
+persistence = "save-all"
+max_bytes = 52428800
+
+
+# ========================
+# TUI 状态栏
+# ========================
+
+# Codex CLI 内置状态栏片段。保持低噪音，优先显示排障和成本相关信息。
+[tui]
+notifications = false
+animations = false
+show_tooltips = false
+status_line = [
+  "model-with-reasoning",
+  "current-dir",
+  "git-branch",
+  "context-remaining",
+  "five-hour-limit",
+  "weekly-limit",
+  "fast-mode",
+]
+terminal_title = ["spinner", "project", "git-branch"]
+
+
+# ========================
+# 官方 Profile 模式
+# ========================
+
+# 长期推荐入口：
+#   codex --profile dev
+#   codex --profile debug
+#   codex --profile embedded
+#   codex --profile max
+# 这些 profile 只影响启动后的新会话；运行中的会话不热切换。
+
+[profiles.dev]
+model_reasoning_effort = "low"
+model_reasoning_summary = "concise"
+model_verbosity = "low"
+personality = "none"
+model_context_window = 60000
+model_auto_compact_token_limit = 40000
+tool_output_token_limit = 10000
+auto_execute = false
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+hide_agent_reasoning = true
+project_doc_max_bytes = 32768
+project_doc_fallback_filenames = []
+
+[profiles.dev.shell_environment_policy]
+inherit = "none"
+
+[profiles.dev.workspace]
+write = true
+run_commands = false
+
+[profiles.dev.features]
+multi_agent = false
+
+[profiles.dev.history]
+persistence = "save-all"
+max_bytes = 31457280
+
+
+[profiles.debug]
+model_reasoning_effort = "medium"
+model_reasoning_summary = "concise"
+model_verbosity = "medium"
+personality = "friendly"
+model_context_window = 100000
+model_auto_compact_token_limit = 70000
+tool_output_token_limit = 20000
+auto_execute = false
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+hide_agent_reasoning = true
+project_doc_max_bytes = 32768
+project_doc_fallback_filenames = []
+
+[profiles.debug.shell_environment_policy]
+inherit = "core"
+
+[profiles.debug.workspace]
+write = true
+run_commands = false
+
+[profiles.debug.features]
+multi_agent = false
+
+[profiles.debug.history]
+persistence = "save-all"
+max_bytes = 52428800
+
+
+[profiles.embedded]
+model_reasoning_effort = "low"
+model_reasoning_summary = "concise"
+model_verbosity = "low"
+personality = "none"
+model_context_window = 80000
+model_auto_compact_token_limit = 50000
+tool_output_token_limit = 12000
+auto_execute = false
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+hide_agent_reasoning = true
+project_doc_max_bytes = 32768
+project_doc_fallback_filenames = []
+
+[profiles.embedded.shell_environment_policy]
+inherit = "core"
+
+[profiles.embedded.workspace]
+write = true
+run_commands = false
+
+[profiles.embedded.features]
+multi_agent = false
+
+[profiles.embedded.history]
+persistence = "save-all"
+max_bytes = 31457280
+
+
+[profiles.max]
+model_reasoning_effort = "xhigh"
+model_reasoning_summary = "concise"
+model_verbosity = "medium"
+personality = "pragmatic"
+model_context_window = 1000000
+model_auto_compact_token_limit = 700000
+tool_output_token_limit = 30000
+auto_execute = false
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+hide_agent_reasoning = true
+project_doc_max_bytes = 32768
+project_doc_fallback_filenames = []
+
+[profiles.max.shell_environment_policy]
+inherit = "core"
+
+[profiles.max.workspace]
+write = true
+run_commands = true
+
+[profiles.max.features]
+multi_agent = true
+
+[profiles.max.history]
+persistence = "save-all"
+max_bytes = 104857600
+
 
 # ========================
 # 项目信任配置（按需添加本机路径）

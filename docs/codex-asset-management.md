@@ -15,6 +15,8 @@
 
 允许长期保留的 live 本机差异记录在 `manifests/policies.json` 的 `allowed_live_drift_paths`。当前 `config.toml` 允许漂移，用于保留本机项目 trust、TUI 状态和运行时 notice。
 
+Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-config-guide.md`。修改 `config*.toml` 时优先按该指南核对官方文档和本机 `codex --strict-config doctor` 结果。
+
 
 ## Git 管理边界
 

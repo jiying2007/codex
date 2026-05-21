@@ -31,3 +31,5 @@
 | `20260519-133320-memory-curation.md` | `20260519-133320-memory-curation.md` |
 | `20260519-221757-llm-tools-v1-release-memory-review.md` | `20260519-221757-llm-tools-v1-release-memory-review.md` |
 | `20260519-221757-pcr02-ssc305-post-release-memory-review.md` | `20260519-221757-pcr02-ssc305-post-release-memory-review.md` |
+| `20260521-091109-memory-curation.md` | `20260521-091109-memory-curation.md` |
+| `20260521-091203-memory-curation.md` | `20260521-091203-memory-curation.md` |

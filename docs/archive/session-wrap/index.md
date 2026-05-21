@@ -20,3 +20,4 @@
 | `20260517-180051-knowledge-session-wrap.md` | `20260517-180051-knowledge-session-wrap.md` |
 | `20260518-223626-mcu-session-wrap-firmware-release-nas.md` | `20260518-223626-mcu-session-wrap-firmware-release-nas.md` |
 | `20260518-223733-pcr02-ssc305-session-wrap.md` | `20260518-223733-pcr02-ssc305-session-wrap.md` |
+| `20260521-091035-session-wrap-hdi-warning-zero.md` | `20260521-091035-session-wrap-hdi-warning-zero.md` |
