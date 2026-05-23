@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "archive_id": "20260523-135801-wechat-all-cleared-handoff",
+  "archived_at": "2026-05-23T13:58:01+08:00",
+  "source": "/home/leiwenjun/bin/llm_agent/reports/context-compress-handoff-wechat-all-cleared-2026-05-23.md",
+  "source_repo": "/home/leiwenjun/bin/llm_agent",
+  "destination": "docs/archive/session-wrap/20260523-135801-wechat-all-cleared-handoff.md",
+  "metadata": "docs/archive/session-wrap/20260523-135801-wechat-all-cleared-handoff.md.meta.json",
+  "topic": "session-wrap",
+  "kind": "session-wrap",
+  "scope": "project-specific",
+  "project_id": "llm-tools",
+  "workstream_id": "general",
+  "session_id": "20260523-135801-wechat-all-cleared-handoff",
+  "title": "WeChat intake fully cleared handoff",
+  "summary": "WeChat intake fully cleared handoff",
+  "description": "",
+  "status": "closed",
+  "governance_status": "active",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": "",
+  "mode": "copy",
+  "tags": [
+    "llm-tools"
+  ],
+  "content_sha256": "5726c6a6d513391dc6af5aa3d98d98a2ad9380af2f1c5e315cb7384431e8f756",
+  "sensitivity": "sanitized-no-secret-pattern-detected"
+}

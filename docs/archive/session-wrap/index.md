@@ -21,3 +21,8 @@
 | `20260518-223626-mcu-session-wrap-firmware-release-nas.md` | `20260518-223626-mcu-session-wrap-firmware-release-nas.md` |
 | `20260518-223733-pcr02-ssc305-session-wrap.md` | `20260518-223733-pcr02-ssc305-session-wrap.md` |
 | `20260521-091035-session-wrap-hdi-warning-zero.md` | `20260521-091035-session-wrap-hdi-warning-zero.md` |
+| `20260523-082158-wechat-absorption.md` | `20260523-082158-wechat-absorption.md` |
+| `20260523-085953-wechat-p0-batches.md` | `20260523-085953-wechat-p0-batches.md` |
+| `20260523-101841-wechat-p0-context-handoff.md` | `20260523-101841-wechat-p0-context-handoff.md` |
+| `20260523-112927-context-compress-handoff-wechat-p0-after-006.md` | `20260523-112927-context-compress-handoff-wechat-p0-after-006.md` |
+| `20260523-135801-wechat-all-cleared-handoff.md` | `20260523-135801-wechat-all-cleared-handoff.md` |

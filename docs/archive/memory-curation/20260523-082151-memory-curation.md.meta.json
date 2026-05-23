@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "archive_id": "20260523-082151-memory-curation",
+  "archived_at": "2026-05-23T08:21:51+08:00",
+  "source": "rtk bash ~/codex/scripts/curate-memory.sh",
+  "source_repo": "/home/leiwenjun/codex",
+  "destination": "docs/archive/memory-curation/20260523-082151-memory-curation.md",
+  "metadata": "docs/archive/memory-curation/20260523-082151-memory-curation.md.meta.json",
+  "topic": "memory-curation",
+  "kind": "memory-curation",
+  "scope": "codex-knowledge",
+  "project_id": "",
+  "workstream_id": "memory-curation",
+  "session_id": "",
+  "title": "Memory Curation Report",
+  "summary": "Memory Curation Report",
+  "description": "Generated memory curation audit report.",
+  "status": "closed",
+  "governance_status": "active",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": "",
+  "mode": "generated",
+  "tags": [
+    "memory-curation"
+  ],
+  "content_sha256": "2aead83df5f19724a4b08726d28167b35e068af2d11ea4dae6c9d67e2b2d0c7f",
+  "sensitivity": "sanitized-no-secret-pattern-detected"
+}

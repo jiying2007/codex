@@ -33,3 +33,8 @@
 | `20260519-221757-pcr02-ssc305-post-release-memory-review.md` | `20260519-221757-pcr02-ssc305-post-release-memory-review.md` |
 | `20260521-091109-memory-curation.md` | `20260521-091109-memory-curation.md` |
 | `20260521-091203-memory-curation.md` | `20260521-091203-memory-curation.md` |
+| `20260523-082151-memory-curation.md` | `20260523-082151-memory-curation.md` |
+| `20260523-090006-memory-curation.md` | `20260523-090006-memory-curation.md` |
+| `20260523-090010-memory-curation.md` | `20260523-090010-memory-curation.md` |
+| `20260523-162209-memory-curation.md` | `20260523-162209-memory-curation.md` |
+| `20260523-193503-memory-curation.md` | `20260523-193503-memory-curation.md` |
