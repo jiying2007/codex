@@ -2,15 +2,22 @@
 name: adk-requirements-triage
 description: 将需求转为可实现、可验证的工程条目
 version: 1.1.0
-last_updated: 2026-05-06
+last_updated: 2026-05-18
 triggers:
   - "需求不清楚"
   - "需求模糊"
   - "需求不明确"
   - "跨团队需求"
+  - "新功能"
+  - "实现新功能"
+  - "目标边界"
+  - "验收标准"
+  - "需求梳理"
+  - "边界和验收"
 non_triggers:
   - 纯代码风格调整
   - 已有完整计划且只需按计划执行
+  - 仅执行已有明确任务包
 inputs:
   - 需求描述、上下文约束、现有代码入口
 outputs:
@@ -63,6 +70,11 @@ constraints:
    - 按风险拆：高风险先行验证
 8. **产出需求包**：目标、非目标、影响面、验收标准、回退条件。
 9. **明确下一步**：给出可执行任务切分与责任边界（owner/scope）。
+
+## Discovery Template
+- 嵌入式需求探索优先使用 `references/embedded-discovery-brief.md`。
+- 当任务涉及芯片/板级约束、启动链、BSP、OS/runtime、驱动、组件、协议栈、设备应用、上位机/产测/诊断工具、构建调试、验证、发布、量产或现场维护时，必须先补齐目标层级、运行环境、接口边界和验证约束。
+- 通用产品探索只作为辅助，不应冲淡 adk 的嵌入式全栈开发定位。
 
 ## Commands
 ```bash

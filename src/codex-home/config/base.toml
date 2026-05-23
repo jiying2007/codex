@@ -36,16 +36,16 @@ personality = "pragmatic"
 # Token / 上下文控制（核心优化区）
 # ========================
 
-# 最大上下文窗口（注意：不是越大越好）
-# 太大会导致扫描无关文件 -> token 暴涨
-model_context_window = 160000
+# 最大上下文窗口（按当前策略统一开到 Codex 最大值）
+# 大窗口仍需配合定向读取，避免扫描无关文件导致 token 暴涨
+model_context_window = 1000000
 
-# 自动压缩阈值（超过就裁剪历史）
-# 防止对话越来越长
-model_auto_compact_token_limit = 100000
+# 自动压缩阈值（保持足够高，避免 profile 过早裁剪历史）
+# 防止对话无限增长，同时尽量保留最大上下文空间
+model_auto_compact_token_limit = 700000
 
-# 工具输出限制
-tool_output_token_limit = 16000
+# 工具输出限制：默认足够覆盖定向验证日志，长日志交给 debug/max profile
+tool_output_token_limit = 20000
 
 
 # ========================
@@ -166,9 +166,9 @@ model_reasoning_effort = "low"
 model_reasoning_summary = "concise"
 model_verbosity = "low"
 personality = "none"
-model_context_window = 60000
-model_auto_compact_token_limit = 40000
-tool_output_token_limit = 10000
+model_context_window = 1000000
+model_auto_compact_token_limit = 700000
+tool_output_token_limit = 12000
 auto_execute = false
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
@@ -197,9 +197,9 @@ model_reasoning_effort = "medium"
 model_reasoning_summary = "concise"
 model_verbosity = "medium"
 personality = "friendly"
-model_context_window = 100000
-model_auto_compact_token_limit = 70000
-tool_output_token_limit = 20000
+model_context_window = 1000000
+model_auto_compact_token_limit = 700000
+tool_output_token_limit = 30000
 auto_execute = false
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
@@ -228,9 +228,9 @@ model_reasoning_effort = "low"
 model_reasoning_summary = "concise"
 model_verbosity = "low"
 personality = "none"
-model_context_window = 80000
-model_auto_compact_token_limit = 50000
-tool_output_token_limit = 12000
+model_context_window = 1000000
+model_auto_compact_token_limit = 700000
+tool_output_token_limit = 24000
 auto_execute = false
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
@@ -261,7 +261,7 @@ model_verbosity = "medium"
 personality = "pragmatic"
 model_context_window = 1000000
 model_auto_compact_token_limit = 700000
-tool_output_token_limit = 30000
+tool_output_token_limit = 50000
 auto_execute = false
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"

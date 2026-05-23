@@ -14,9 +14,14 @@
         "完成前验证"
       ],
       "skills": [
+        "adk-runtime-router",
         "adk-requirements-triage",
         "adk-task-breakdown",
+        "adk-test-strategy",
+        "adk-code-review-loop",
         "adk-verification-before-completion",
+        "adk-after-action-review",
+        "adk-token-context-governance",
         "adk-commit-pr-quality-gate"
       ],
       "agents": [
@@ -34,7 +39,7 @@
       "description": "agent-dev-kit 到 ~/codex 的生产交付门禁",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
-      "imported_at": "2026-05-17"
+      "imported_at": "2026-05-23"
     },
     {
       "name": "archive-curation",
@@ -107,6 +112,37 @@
       ]
     },
     {
+      "name": "chronicle-skillization",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "Chronicle 记忆",
+        "重复工作流程",
+        "转化为技能",
+        "生成 skill",
+        "工作流沉淀"
+      ],
+      "skills": [
+        "chronicle-workflow-miner",
+        "memory-curator",
+        "skill-asset-manager"
+      ],
+      "agents": [
+        "local-integrator"
+      ],
+      "commands": [
+        "rtk bash scripts/check-skills.sh",
+        "rtk bash scripts/build.sh --profile team-collab"
+      ],
+      "verification": [
+        "rtk bash scripts/check-skills.sh",
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "从 Chronicle/Codex 历史和记忆中提炼重复流程，并转化为可注册、可验证的技能资产。"
+    },
+    {
       "name": "context-handoff",
       "enabled": true,
       "profiles": [
@@ -136,46 +172,69 @@
       ]
     },
     {
-      "name": "session-continuity-coach",
+      "name": "embedded-diagnostic-validation",
       "enabled": true,
       "profiles": [
-        "solo-dev",
         "team-collab"
       ],
       "triggers": [
-        "下一步提醒",
-        "上下文提醒",
-        "省 token",
-        "会话收口",
-        "新开会话",
-        "AGENT/SKILL/DOC/SCRIPT 更新"
+        "prog_tool",
+        "diag",
+        "strict env",
+        "invoke_ret",
+        "诊断 CLI",
+        "HIL 验证"
       ],
       "skills": [
-        "context-compress-handoff",
-        "session-wrap",
-        "knowledge-archive",
-        "memory-curator",
-        "skill-asset-manager"
+        "embedded-diagnostic-harness",
+        "adk-systematic-debugging",
+        "adk-test-strategy"
       ],
       "agents": [
-        "local-context-curator"
+        "driver-engineer",
+        "test-validation-engineer"
       ],
       "commands": [
-        "rtk bash scripts/session-coach.sh",
-        "rtk bash scripts/usage-report.sh --json",
-        "rtk bash scripts/context-preflight.sh",
-        "rtk bash scripts/final-ready.sh",
-        "rtk bash scripts/commit-ready.sh",
-        "rtk bash scripts/apply-ready.sh"
-      ],
-      "verification": [
-        "rtk bash scripts/session-coach.sh --event final --deep",
-        "rtk bash scripts/session-coach.sh --event commit --deep",
-        "rtk bash scripts/session-coach.sh --event commit --deep --fail-on high",
-        "rtk bash scripts/session-coach.sh --event apply --deep",
         "rtk bash scripts/check.sh"
       ],
-      "description": "会话间主动提醒上下文压缩、归档、记忆整理、资产同步、ready 证据和省 token 动作"
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "治理嵌入式诊断 CLI、strict/env 套件、预期返回码和 HIL/SIL 证据。"
+    },
+    {
+      "name": "embedded-release-operations",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "firmware-release-tools",
+        "ota-packager",
+        "NAS 发布",
+        "整机 OTA",
+        "SD 升级",
+        "MCU 发布",
+        "SOC 发布",
+        "量产发布"
+      ],
+      "skills": [
+        "embedded-release-orchestration",
+        "adk-release-versioning",
+        "adk-test-strategy",
+        "adk-verification-before-completion"
+      ],
+      "agents": [
+        "build-release-engineer",
+        "test-validation-engineer"
+      ],
+      "commands": [
+        "rtk bash scripts/check.sh"
+      ],
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "编排 SoC/MCU/OTA 构建、打包、验证、tag、NAS/产线发布和发布指南。"
     },
     {
       "name": "external-research",
@@ -246,35 +305,37 @@
       "description": "实现、修复、重构和完成前验证的 adk-first 主链；Superpowers 已移入 superpowers-compat fallback profile。"
     },
     {
-      "name": "chronicle-skillization",
+      "name": "parallel-collab",
       "enabled": true,
       "profiles": [
         "team-collab"
       ],
       "triggers": [
-        "Chronicle 记忆",
-        "重复工作流程",
-        "转化为技能",
-        "生成 skill",
-        "工作流沉淀"
+        "并行施工",
+        "多 agent",
+        "worktree 方案",
+        "外部并行规划"
       ],
       "skills": [
-        "chronicle-workflow-miner",
-        "memory-curator",
-        "skill-asset-manager"
+        "codex-parallel-collab",
+        "adk-parallel-agent-governance",
+        "adk-worktree-governance",
+        "adk-branch-closeout",
+        "worktree-closeout"
       ],
       "agents": [
+        "local-architect",
+        "local-implementer",
+        "local-tester",
         "local-integrator"
       ],
       "commands": [
-        "rtk bash scripts/check-skills.sh",
-        "rtk bash scripts/build.sh --profile team-collab"
-      ],
-      "verification": [
-        "rtk bash scripts/check-skills.sh",
         "rtk bash scripts/check.sh"
       ],
-      "description": "从 Chronicle/Codex 历史和记忆中提炼重复流程，并转化为可注册、可验证的技能资产。"
+      "verification": [
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "并行开发与 worktree 协作的 adk-first 主链；Superpowers 并行技能仅在 superpowers-compat 中保留。"
     },
     {
       "name": "repo-governance-remediation",
@@ -311,102 +372,46 @@
       "description": "处理全仓目标漂移、冗余、残留、边界不清和提交前治理检查。"
     },
     {
-      "name": "embedded-release-operations",
+      "name": "session-continuity-coach",
       "enabled": true,
       "profiles": [
+        "solo-dev",
         "team-collab"
       ],
       "triggers": [
-        "firmware-release-tools",
-        "ota-packager",
-        "NAS 发布",
-        "整机 OTA",
-        "SD 升级",
-        "MCU 发布",
-        "SOC 发布",
-        "量产发布"
+        "下一步提醒",
+        "上下文提醒",
+        "省 token",
+        "会话收口",
+        "新开会话",
+        "AGENT/SKILL/DOC/SCRIPT 更新"
       ],
       "skills": [
-        "embedded-release-orchestration",
-        "adk-release-versioning",
-        "adk-test-strategy",
-        "adk-verification-before-completion"
+        "context-compress-handoff",
+        "session-wrap",
+        "knowledge-archive",
+        "memory-curator",
+        "skill-asset-manager"
       ],
       "agents": [
-        "build-release-engineer",
-        "test-validation-engineer"
+        "local-context-curator"
       ],
       "commands": [
-        "rtk bash scripts/check.sh"
+        "rtk bash scripts/session-coach.sh",
+        "rtk bash scripts/usage-report.sh --json",
+        "rtk bash scripts/context-preflight.sh",
+        "rtk bash scripts/final-ready.sh",
+        "rtk bash scripts/commit-ready.sh",
+        "rtk bash scripts/apply-ready.sh"
       ],
       "verification": [
+        "rtk bash scripts/session-coach.sh --event final --deep",
+        "rtk bash scripts/session-coach.sh --event commit --deep",
+        "rtk bash scripts/session-coach.sh --event commit --deep --fail-on high",
+        "rtk bash scripts/session-coach.sh --event apply --deep",
         "rtk bash scripts/check.sh"
       ],
-      "description": "编排 SoC/MCU/OTA 构建、打包、验证、tag、NAS/产线发布和发布指南。"
-    },
-    {
-      "name": "embedded-diagnostic-validation",
-      "enabled": true,
-      "profiles": [
-        "team-collab"
-      ],
-      "triggers": [
-        "prog_tool",
-        "diag",
-        "strict env",
-        "invoke_ret",
-        "诊断 CLI",
-        "HIL 验证"
-      ],
-      "skills": [
-        "embedded-diagnostic-harness",
-        "adk-systematic-debugging",
-        "adk-test-strategy"
-      ],
-      "agents": [
-        "driver-engineer",
-        "test-validation-engineer"
-      ],
-      "commands": [
-        "rtk bash scripts/check.sh"
-      ],
-      "verification": [
-        "rtk bash scripts/check.sh"
-      ],
-      "description": "治理嵌入式诊断 CLI、strict/env 套件、预期返回码和 HIL/SIL 证据。"
-    },
-    {
-      "name": "parallel-collab",
-      "enabled": true,
-      "profiles": [
-        "team-collab"
-      ],
-      "triggers": [
-        "并行施工",
-        "多 agent",
-        "worktree 方案",
-        "外部并行规划"
-      ],
-      "skills": [
-        "codex-parallel-collab",
-        "adk-parallel-agent-governance",
-        "adk-worktree-governance",
-        "adk-branch-closeout",
-        "worktree-closeout"
-      ],
-      "agents": [
-        "local-architect",
-        "local-implementer",
-        "local-tester",
-        "local-integrator"
-      ],
-      "commands": [
-        "rtk bash scripts/check.sh"
-      ],
-      "verification": [
-        "rtk bash scripts/check.sh"
-      ],
-      "description": "并行开发与 worktree 协作的 adk-first 主链；Superpowers 并行技能仅在 superpowers-compat 中保留。"
+      "description": "会话间主动提醒上下文压缩、归档、记忆整理、资产同步、ready 证据和省 token 动作"
     },
     {
       "name": "superpowers-compat-fallback",

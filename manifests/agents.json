@@ -25,11 +25,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "architecture-planner",
+      "description": "架构方案、模块边界和技术决策规划",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/architecture-planner/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
     {
@@ -42,11 +42,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "build-release-engineer",
+      "description": "构建、打包、版本发布和回滚链路",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/build-release-engineer/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
     {
@@ -59,11 +59,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "code-review-governor",
+      "description": "代码审查、反馈闭环和质量放行治理",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/code-review-governor/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
     {
@@ -91,11 +91,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "component-engineer",
+      "description": "组件接口、模块实现和集成边界治理",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/component-engineer/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
     {
@@ -108,11 +108,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "driver-engineer",
+      "description": "驱动实现、bring-up 和底层联调",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/driver-engineer/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
     {
@@ -199,11 +199,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "performance-reliability-engineer",
+      "description": "性能剖析、稳定性和可靠性风险治理",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/performance-reliability-engineer/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
     {
@@ -216,11 +216,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "requirements-analyst",
+      "description": "需求澄清、验收标准和范围边界分析",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/requirements-analyst/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
     {
@@ -233,11 +233,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "security-compliance-reviewer",
+      "description": "安全、合规、凭据和供应链风险审查",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/security-compliance-reviewer/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
     {
@@ -250,11 +250,11 @@
       "profiles": [
         "team-collab"
       ],
-      "description": "test-validation-engineer",
+      "description": "测试策略、验证证据和完成前门禁",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "agents/test-validation-engineer/AGENTS.md",
-      "imported_at": "2026-05-17",
+      "imported_at": "2026-05-23",
       "review_status": "accepted"
     }
   ]

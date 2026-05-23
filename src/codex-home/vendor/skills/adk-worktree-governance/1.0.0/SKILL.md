@@ -34,6 +34,7 @@ constraints:
 - 已确认当前工作区状态和是否存在用户未提交改动。
 - 已明确基础分支、目标分支名、任务范围和验证命令。
 - 已判断普通当前分支开发不足以满足隔离需求。
+- 若由外部 planner 或子代理创建 worktree，计划 schema 已通过校验：必填字段完整、依赖合法、无环、预算和 retry budget 明确。
 
 ## 准入条件
 
@@ -98,6 +99,7 @@ git worktree remove <path>
 - 删除 worktree 或分支前必须有用户明确确认。
 - worktree 内验证通过不代表主工作区可合并，必须回主线整体验证。
 - 根配置、依赖和 shared contract 变更必须串行收口。
+- 未通过计划 schema gate 的 worker/worktree 不得创建或继续执行。
 - 最终必须给出保留或清理决策。
 
 ## 合理化借口拦截

@@ -58,10 +58,11 @@ constraints:
 2. **判定风险等级**：检查是否涉及 shared contract、schema、根配置、CI、依赖、运行态 `~/.codex` 或发布链路。
 3. **选择 primary skill**：每个任务只能有一个 primary skill；其他 skill 只能补充检查项。
 4. **声明 supporting skills**：列出辅助 skill 的用途，避免辅助 skill 抢占入口。
-5. **检查 fallback**：只有 adk 缺失等价能力、用户明确点名、迁移期对照验证或平台约束时才 fallback。
-6. **输出路由裁决**：写明 primary/supporting/fallback/skip reason/verification path。
-7. **进入执行 skill**：加载 primary skill，并按其 workflow 推进。
-8. **完成前复核**：若产生改动，最终必须经过 `adk-verification-before-completion`。
+5. **路由裁决分层**：将 recall、reasoning、ranking、feedback 分开；LLM 只产出候选理解，执行裁决必须来自确定性规则、结构化校验或 owner approval。
+6. **检查 fallback**：只有 adk 缺失等价能力、用户明确点名、迁移期对照验证或平台约束时才 fallback。
+7. **输出路由裁决**：写明 primary/supporting/fallback/skip reason/verification path。
+8. **进入执行 skill**：加载 primary skill，并按其 workflow 推进。
+9. **完成前复核**：若产生改动，最终必须经过 `adk-verification-before-completion`。
 
 ## Route Decision Template
 ```md
@@ -102,6 +103,7 @@ bash ../scripts/check-runtime-routing.sh ..
 - fallback 必须有明确原因，不能只写“更熟悉”或“更方便”。
 - 不得同时声明两个 primary skill。
 - 修改 skill、manifest、workflow 或 routing 后必须运行匹配测试与严格校验。
+- 修改路由规则、阈值或分类器后必须补 benchmark case、负向边界、阈值标定和回归集证据。
 - 触发失败样例必须进入回归语料，防止同类请求再次漏匹配。
 
 ## 合理化借口拦截

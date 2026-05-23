@@ -54,18 +54,19 @@ hide_agent_reasoning = true
 ### 上下文与工具输出
 
 ```toml
-model_context_window = 160000
-model_auto_compact_token_limit = 100000
-tool_output_token_limit = 16000
+model_context_window = 1000000
+model_auto_compact_token_limit = 700000
+tool_output_token_limit = 20000
 project_doc_max_bytes = 32768
 project_doc_fallback_filenames = []
 ```
 
 策略：
 
-- 默认窗口不要盲目放到模型最大值；大窗口会鼓励读取无关文件并增加成本。
-- `tool_output_token_limit` 保持定向验证足够，不复述大日志。
-- `project_doc_max_bytes` 显式固定，避免超长 `AGENTS.md` 注入持续膨胀。
+- 所有官方 profile 统一开到 Codex 最大上下文窗口；读取文件时仍保持定向，避免无关上下文推高成本。
+- `model_auto_compact_token_limit` 与最大窗口策略配套上调，避免 profile 过早压缩历史。
+- `tool_output_token_limit` 分层控制：默认 `20000`、`dev` 为 `12000`、`debug` 为 `30000`、`embedded` 为 `24000`、`max` 为 `50000`。
+- `project_doc_max_bytes` 显式固定为 `32768`，足够覆盖当前项目规则，同时避免超长 `AGENTS.md` 注入持续膨胀。
 
 ### 权限、沙箱和网络
 

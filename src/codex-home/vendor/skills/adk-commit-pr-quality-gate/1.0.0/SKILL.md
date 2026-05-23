@@ -38,8 +38,10 @@ constraints:
 6. 配置漂移核验：若触及配置文件，必须输出配置摘要与行为影响结论（Config Drift Decision）。
 7. 技能候选核验：若触及技能资产，必须声明 `global-ready/project-bound` 与 `core/optional/reject`。
 8. 兼容性核验：显式声明 breaking change、迁移与回退路径。
-9. 发布链路核验：若触及 `scripts/` 或关键构建入口，追加 release gate 专项验证。
-10. Core/Optional 核验：确认能力归属是否应进 core，场景化能力应进入 optional。
+9. 所有权核验：AI-assisted output 必须有明确 human owner；草稿态、未复审或未验证的 AI 输出不得进入受保护分支。
+10. 结构变更核验：DB schema 变更必须带迁移/回滚证据；删除较大代码、公共 API 或 shared contract 前必须列调用点和 approval gate。
+11. 发布链路核验：若触及 `scripts/` 或关键构建入口，追加 release gate 专项验证。
+12. Core/Optional 核验：确认能力归属是否应进 core，场景化能力应进入 optional。
 
 ## Commands
 ```bash
@@ -56,6 +58,7 @@ git diff --name-only <base>...HEAD
 - Review Findings (B/M/m):
 - Config Drift Decision:
 - Skill Intake Decision:
+- Human Owner / Review Responsibility:
 - Breaking Change Decision:
 - Release Gate Decision:
 - Core/Optional Decision:
@@ -77,6 +80,8 @@ git diff --name-only <base>...HEAD
 - 若触及发布链路但无专项验证证据，结论必须为 `needs-fix`。
 - 若触及配置但无配置摘要或无行为影响结论，结论必须为 `needs-fix`。
 - 若触及技能资产但无安装范围或归属结论，结论必须为 `needs-fix`。
+- 若 AI-assisted output 缺少 human owner、复审责任或冲突修复证据，结论必须为 `needs-fix`。
+- 若 DB/schema/API 删除或迁移缺少调用点、迁移或 approval 证据，结论必须为 `needs-fix`。
 - 若缺少负结果或被证伪路径记录，结论必须为 `needs-fix`。
 
 ---
