@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "workflow_recipes": [
+    {
+      "name": "asset-governance-codex-home",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "asset-governance",
+      "context_inputs": [
+        "change request",
+        "affected manifests or source assets",
+        "source-to-live target profile",
+        "rollback expectation"
+      ],
+      "done_criteria": [
+        "declared source assets and generated live assets are consistent",
+        "governance report contains the changed manifest relationships",
+        "dry-run and real apply complete without protected path writes",
+        "final health checks pass or residual risk is explicitly recorded"
+      ],
+      "review_artifacts": [
+        "governance-report JSON summary",
+        "apply plan",
+        "doctor/check command results",
+        "changed file list"
+      ],
+      "failure_modes": [
+        "manifest references unknown profile, skill, agent or workflow",
+        "live drift is outside allowed policy",
+        "generated config differs from manifest source",
+        "secret or private endpoint appears in a manifest"
+      ],
+      "trigger_examples": [
+        "按建议优化 ~/codex 资产治理并同步到 ~/.codex",
+        "新增或修改 manifest 后完成 build doctor apply check"
+      ],
+      "negative_examples": [
+        "只解释某个普通业务函数如何工作",
+        "只做一次不涉及 Codex Home 的网页文案修改"
+      ],
+      "verification": [
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk bash scripts/plan.sh --target ~/.codex --prune-stale --output build/apply-plan.json",
+        "rtk bash scripts/apply.sh --plan build/apply-plan.json --dry-run",
+        "rtk bash scripts/check.sh"
+      ]
+    },
+    {
+      "name": "implementation-strong-goal",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "implementation-quality",
+      "context_inputs": [
+        "thread role",
+        "goal statement",
+        "scope and non-goals",
+        "success criteria",
+        "verification commands"
+      ],
+      "done_criteria": [
+        "implementation matches the stated scope",
+        "tests or smoke checks cover the success criteria",
+        "no unrelated user changes are reverted",
+        "completion claim is backed by command evidence"
+      ],
+      "review_artifacts": [
+        "diff",
+        "test report",
+        "failure or skipped-test note",
+        "final-ready summary"
+      ],
+      "failure_modes": [
+        "goal lacks executable validation",
+        "scope change was not reflected in the target template",
+        "tests pass only because the wrong target was exercised",
+        "completion statement exceeds the evidence"
+      ],
+      "trigger_examples": [
+        "按强目标模板实现这个功能并跑验证",
+        "修复这个 bug，范围限定在当前模块并给出测试证据"
+      ],
+      "negative_examples": [
+        "只总结今天读到的官方文档",
+        "只登记一个 MCP server，不改业务代码"
+      ],
+      "verification": [
+        "rtk bash scripts/final-ready.sh"
+      ]
+    },
+    {
+      "name": "external-research-review-note",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "external-research",
+      "context_inputs": [
+        "research question",
+        "allowed source domains",
+        "date sensitivity",
+        "decision expected from the research"
+      ],
+      "done_criteria": [
+        "sources are current for the stated date sensitivity",
+        "claims are attributed to primary or official sources when available",
+        "recommendations separate evidence from inference",
+        "reusable conclusions are routed to archive or memory candidate review"
+      ],
+      "review_artifacts": [
+        "research note",
+        "source list with retrieval dates",
+        "open questions",
+        "memory-curator dry-run output when relevant"
+      ],
+      "failure_modes": [
+        "unofficial source is treated as authoritative",
+        "current information is answered from stale memory",
+        "long quoted passages exceed citation limits",
+        "temporary research notes are promoted as permanent rules without review"
+      ],
+      "trigger_examples": [
+        "查 OpenAI 官方文档并总结可吸收的 Codex 优化点",
+        "核验最新官方 API 文档后给出迁移建议"
+      ],
+      "negative_examples": [
+        "不联网，只根据本仓代码修复测试",
+        "只运行本地 check.sh 并汇报结果"
+      ],
+      "verification": [
+        "rtk bash scripts/session-coach.sh --event target-switch --deep"
+      ]
+    }
+  ]
+}

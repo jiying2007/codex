@@ -382,9 +382,56 @@ def render_config(repo: Repo, build: pathlib.Path, profile: str) -> None:
         parts.append(path.read_text().rstrip() + "\n")
     if not parts:
         return
+    mcp_config = render_mcp_config(repo, profile)
+    if mcp_config:
+        parts.append(mcp_config)
     output = build / output_rel
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(parts))
+
+
+def toml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(toml_value(item) for item in value) + "]"
+    return json.dumps("" if value is None else str(value), ensure_ascii=False)
+
+
+def render_mcp_config(repo: Repo, profile: str) -> str:
+    manifest_path = repo.manifests_dir / "mcp_servers.json"
+    if not manifest_path.is_file():
+        return ""
+    servers = read_json(manifest_path).get("mcp_servers", [])
+    lines: list[str] = []
+    for item in servers:
+        profiles = item.get("profiles", [])
+        if profiles and profile not in profiles:
+            continue
+        name = item.get("name", "")
+        if not name:
+            continue
+        if not lines:
+            lines.extend([
+                "# >>> CODEX-MANAGED MCP START",
+                "# generated_from = manifests/mcp_servers.json",
+            ])
+        lines.append("")
+        lines.append(f"[mcp_servers.{name}]")
+        for key in ["url", "command", "args", "cwd", "enabled", "required", "supports_parallel_tool_calls"]:
+            if key in item:
+                lines.append(f"{key} = {toml_value(item[key])}")
+        env = item.get("env", {})
+        if isinstance(env, dict) and env:
+            lines.append("")
+            lines.append(f"[mcp_servers.{name}.env]")
+            for env_key in sorted(env):
+                lines.append(f"{env_key} = {toml_value(env[env_key])}")
+    if lines:
+        lines.extend(["", "# <<< CODEX-MANAGED MCP END", ""])
+    return "\n".join(lines)
 
 
 def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str = "", build_arg: str = "") -> pathlib.Path:

@@ -117,6 +117,11 @@ rtk bash scripts/check.sh
 | `manifests/skills.json` | skill 版本、来源、启用 profile 与激活路径 |
 | `manifests/agents.json` | agent 版本、来源、启用 profile 与激活路径 |
 | `manifests/workflows.json` | workflow 触发词、profile、skill、agent、命令与验证闭环 |
+| `manifests/workflow_recipes.json` | workflow 的上下文输入、完成标准、审查产物和失败模式 |
+| `manifests/automations.json` | 等待型/定时任务候选的只读边界、审批策略和停止条件 |
+| `manifests/mcp_servers.json` | MCP server 声明、空 env key、readiness 和回滚边界 |
+| `manifests/subagent_contracts.json` | 子代理读写范围、禁止路径、sandbox 和输出契约 |
+| `manifests/memory_candidates.json` | 长期记忆候选、人工审查、secret scan 与提升门禁 |
 | `manifests/project-templates.json` | 项目类型到默认 profile、workflow 与归档主题的映射 |
 | `manifests/overlays.json` | 个人、本地、团队和发布场景的允许漂移与阻断路径 |
 | `manifests/policies.json` | protected paths 与 apply 策略 |
@@ -147,6 +152,10 @@ rtk bash scripts/apply.sh --profile team-collab
 
 正式 skill 存放在 `src/codex-home/vendor/skills/<name>/<version>/`，激活入口由 `build.sh` 在 `build/codex-home/skills/<name>` 生成相对 symlink。不要把第三方 skill 直接放进 `src/codex-home/skills/`。
 
+## 工作模型
+
+`docs/codex-operating-model.md` 定义本机 Codex 的常驻线程、强目标、实时干预/任务排队、可审查产物、记忆边界、自动化边界和 MCP 治理规则。它是 `AGENTS.md` 的操作层补充：规则仍以 `AGENTS.md` 为准，具体工作台和收口模板参考该文档。
+
 ## 治理模型
 
 profile、agent、skill、workflow、项目模板和 overlay 分层管理：
@@ -154,6 +163,11 @@ profile、agent、skill、workflow、项目模板和 overlay 分层管理：
 - profile 决定当前启用的能力集合，例如 `minimal`、`solo-dev`、`team-collab`。
 - skill 与 agent 是可注入能力资产，由 `manifests/skills.json` 和 `manifests/agents.json` 记录版本、来源和 profile 绑定。
 - workflow 是可复用工作流编排，显式声明触发词、依赖 skill、依赖 agent、入口命令和验证命令。
+- workflow recipe 把 workflow 的输入、完成标准、审查产物和失败模式变成可评测契约。
+- automation 只登记候选任务的只读/报告边界、审批策略和停止条件，不直接启动后台调度。
+- MCP server 默认可以声明但禁用，支持 `stdio` 和 `http` transport；官方 OpenAI Docs MCP 使用 `openaiDeveloperDocs` + `https://developers.openai.com/mcp`，启用前必须补齐 readiness、凭证边界和 smoke 证据。
+- subagent contract 约束并行子代理的读写范围、禁止路径、sandbox、最大并行和输出格式。
+- memory candidate 只记录候选和提升门禁，不直接写入 `~/.codex/memories`。
 - project template 用路径模式把不同项目类型映射到默认 profile、推荐 workflow 和归档主题。
 - overlay 约束个人、本地、团队共享和发布场景下哪些 live 差异允许存在，哪些路径必须阻断。
 

@@ -294,38 +294,4 @@ max_bytes = 104857600
 
 
 
-# >>> CODEX-MANAGED MCP START
-# profile = team-collab
-# generated_at = 2026-05-09 19:34:26 +0800
-
-[mcp_servers.github]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-github"]
-enabled = false
-required = false
-supports_parallel_tool_calls = true
-
-[mcp_servers.github.env]
-GITHUB_PERSONAL_ACCESS_TOKEN = ""
-
-[mcp_servers.docs]
-command = "npx"
-args = ["-y", "@openai/docs-mcp"]
-enabled = false
-required = false
-supports_parallel_tool_calls = true
-
-[mcp_servers.docs.env]
-OPENAI_API_KEY = ""
-
-[mcp_servers.figma]
-command = "npx"
-args = ["-y", "figma-developer-mcp"]
-enabled = false
-required = false
-supports_parallel_tool_calls = false
-
-[mcp_servers.figma.env]
-FIGMA_ACCESS_TOKEN = ""
-
-# <<< CODEX-MANAGED MCP END
+# MCP server blocks are rendered from manifests/mcp_servers.json during build.

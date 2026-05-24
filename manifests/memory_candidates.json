@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "memory_candidates": [
+    {
+      "name": "codex-docs-mcp-source-of-truth",
+      "enabled": false,
+      "status": "candidate",
+      "source": "docs/codex-operating-model.md",
+      "proposed_action": "promote-to-agents",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Only promote after OpenAI Docs MCP remote config passes governance, smoke and source-to-live checks.",
+      "summary": "For OpenAI product or API questions, prefer the official read-only OpenAI Developer Docs MCP before fallback web search."
+    },
+    {
+      "name": "automation-report-only-default",
+      "enabled": false,
+      "status": "candidate",
+      "source": "manifests/automations.json",
+      "proposed_action": "promote-to-archive",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Keep as project knowledge unless the rule recurs across multiple repos.",
+      "summary": "Automation candidates default to disabled or report-only and must not send, submit, publish, delete or commit without explicit approval."
+    }
+  ]
+}

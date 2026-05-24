@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "name": "asset-governance-codex-home-positive",
+      "prompt": "按建议优化 ~/codex 资产治理并同步到 ~/.codex",
+      "expected_recipe": "asset-governance-codex-home"
+    },
+    {
+      "name": "implementation-strong-goal-positive",
+      "prompt": "按强目标模板实现这个功能并跑验证",
+      "expected_recipe": "implementation-strong-goal"
+    },
+    {
+      "name": "external-research-review-note-positive",
+      "prompt": "查 OpenAI 官方文档并总结可吸收的 Codex 优化点",
+      "expected_recipe": "external-research-review-note"
+    }
+  ]
+}

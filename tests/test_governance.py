@@ -155,6 +155,140 @@ def make_repo(test_case: unittest.TestCase) -> pathlib.Path:
     return root
 
 
+def write_optional_controls(root: pathlib.Path) -> None:
+    write_json(
+        root / "manifests/workflow_recipes.json",
+        {
+            "schema_version": 1,
+            "workflow_recipes": [
+                {
+                    "name": "context-handoff-recipe",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "workflow": "context-handoff",
+                    "context_inputs": ["thread role", "goal"],
+                    "done_criteria": ["handoff artifact exists"],
+                    "review_artifacts": ["preflight note"],
+                    "failure_modes": ["missing verification"],
+                    "trigger_examples": ["请生成会话接力模板"],
+                    "negative_examples": ["只修一个 Python 单元测试"],
+                    "verification": ["rtk bash scripts/context-preflight.sh"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/automations.json",
+        {
+            "schema_version": 1,
+            "automations": [
+                {
+                    "name": "health-report",
+                    "enabled": False,
+                    "mode": "report-only",
+                    "type": "scheduled",
+                    "profiles": ["team-collab"],
+                    "workflow": "context-handoff",
+                    "cadence": "daily",
+                    "scope": {"data_sources": ["local manifests"]},
+                    "sandbox": "read-only",
+                    "approval_policy": "manual",
+                    "worktree_policy": "read-current-only",
+                    "first_run_review": True,
+                    "risk_class": "read-only",
+                    "requires_worktree_for_write": False,
+                    "stop_condition": "after report",
+                    "triage_contract": {
+                        "destination": "test summary",
+                        "allowed_outputs": ["summary"],
+                        "forbidden_actions": ["commit"],
+                    },
+                    "output_artifacts": ["summary"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/mcp_servers.json",
+        {
+            "schema_version": 2,
+            "mcp_servers": [
+                {
+                    "name": "docs",
+                    "enabled": False,
+                    "transport": "stdio",
+                    "profiles": ["team-collab"],
+                    "command": "npx",
+                    "args": ["-y", "@openai/docs-mcp"],
+                    "required": False,
+                    "supports_parallel_tool_calls": True,
+                    "env": {"OPENAI_API_KEY": ""},
+                    "owner": "local",
+                    "purpose": "official docs lookup",
+                    "security_status": "declared-disabled",
+                    "rollback": "disable and rebuild",
+                    "readiness": {
+                        "scopes": ["docs lookup"],
+                        "network_targets": ["developers.openai.com"],
+                        "tool_inventory": ["pending-inspector"],
+                        "write_actions": [],
+                        "destructive_actions": [],
+                        "requires_human_confirmation": True,
+                        "deny_path_tests": [
+                            {"name": "reject-auth", "path": "auth.json", "expected_decision": "deny"}
+                        ],
+                        "log_redaction": True,
+                        "smoke": "rtk codex mcp list",
+                    },
+                }
+            ],
+        },
+    )
+
+
+def write_p2_controls(root: pathlib.Path) -> None:
+    write_json(
+        root / "manifests/subagent_contracts.json",
+        {
+            "schema_version": 1,
+            "subagent_contracts": [
+                {
+                    "name": "context-curator-readonly",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "agent": "local-context-curator",
+                    "scope_read": ["docs/**", "manifests/**"],
+                    "scope_write": [],
+                    "must_not_touch": ["auth.json", "sessions/**"],
+                    "output_contract": ["summary", "next actions"],
+                    "sandbox": "read-only",
+                    "max_parallel": 1,
+                    "verification": ["rtk bash scripts/doctor.sh --scope governance"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/memory_candidates.json",
+        {
+            "schema_version": 1,
+            "memory_candidates": [
+                {
+                    "name": "candidate-rule",
+                    "enabled": False,
+                    "status": "candidate",
+                    "source": "docs/example.md",
+                    "proposed_action": "promote-to-archive",
+                    "review_required": True,
+                    "secret_scan_required": True,
+                    "promotion_gate": "reviewed and scanned",
+                    "summary": "test candidate",
+                }
+            ],
+        },
+    )
+
+
 class GovernanceValidationTest(unittest.TestCase):
     def test_valid_governance_manifests_pass(self) -> None:
         root = make_repo(self)
@@ -191,6 +325,121 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertEqual(["context-handoff"], report["workflows"])
         self.assertEqual(["asset-repo"], report["project_templates"])
         self.assertEqual(["personal-local"], report["overlays"])
+
+    def test_optional_openai_developer_controls_pass_and_report(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+
+        self.assertEqual([], validate_repo(root))
+        report = governance_report(root)
+        self.assertEqual(["context-handoff-recipe"], report["workflow_recipes"])
+        self.assertEqual(["health-report"], report["automations"])
+        self.assertEqual(["docs"], report["mcp_servers"])
+        self.assertEqual("context-handoff", report["workflow_recipe_links"]["context-handoff-recipe"]["workflow"])
+        self.assertEqual("report-only", report["automation_links"]["health-report"]["mode"])
+
+    def test_workflow_recipe_rejects_unknown_workflow(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        manifest = json.loads((root / "manifests/workflow_recipes.json").read_text())
+        manifest["workflow_recipes"][0]["workflow"] = "missing-workflow"
+        write_json(root / "manifests/workflow_recipes.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("workflow_recipes:context-handoff-recipe 引用未知 workflow: missing-workflow", errors)
+
+    def test_automation_rejects_unsafe_policy(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        manifest = json.loads((root / "manifests/automations.json").read_text())
+        manifest["automations"][0]["approval_policy"] = "never"
+        manifest["automations"][0]["sandbox"] = "danger-full-access"
+        manifest["automations"][0]["first_run_review"] = False
+        write_json(root / "manifests/automations.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("automations:health-report approval_policy 不允许 never", errors)
+        self.assertIn("automations:health-report sandbox 非法或过宽: danger-full-access", errors)
+        self.assertIn("automations:health-report first_run_review 必须为 true", errors)
+
+    def test_mcp_rejects_secret_env_and_missing_confirmation(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        manifest = json.loads((root / "manifests/mcp_servers.json").read_text())
+        server = manifest["mcp_servers"][0]
+        server["env"]["OPENAI_API_KEY"] = "secret"
+        server["readiness"]["write_actions"] = ["remote_write"]
+        server["readiness"]["requires_human_confirmation"] = False
+        write_json(root / "manifests/mcp_servers.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("mcp_servers:docs env 不得在 manifest 中写入非空值: OPENAI_API_KEY", errors)
+        self.assertIn("mcp_servers:docs 写入或破坏性动作必须 requires_human_confirmation=true", errors)
+
+    def test_p2_controls_pass_and_report(self) -> None:
+        root = make_repo(self)
+        write_p2_controls(root)
+
+        self.assertEqual([], validate_repo(root))
+        report = governance_report(root)
+        self.assertEqual(["context-curator-readonly"], report["subagent_contracts"])
+        self.assertEqual(["candidate-rule"], report["memory_candidates"])
+        self.assertEqual(
+            "local-context-curator",
+            report["subagent_contract_links"]["context-curator-readonly"]["agent"],
+        )
+        self.assertEqual(
+            "promote-to-archive",
+            report["memory_candidate_links"]["candidate-rule"]["proposed_action"],
+        )
+
+    def test_subagent_contract_rejects_unknown_agent(self) -> None:
+        root = make_repo(self)
+        write_p2_controls(root)
+        manifest = json.loads((root / "manifests/subagent_contracts.json").read_text())
+        manifest["subagent_contracts"][0]["agent"] = "missing-agent"
+        write_json(root / "manifests/subagent_contracts.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("subagent_contracts:context-curator-readonly 引用未知 agent: missing-agent", errors)
+
+    def test_memory_candidate_rejects_enabled_candidate(self) -> None:
+        root = make_repo(self)
+        write_p2_controls(root)
+        manifest = json.loads((root / "manifests/memory_candidates.json").read_text())
+        manifest["memory_candidates"][0]["enabled"] = True
+        write_json(root / "manifests/memory_candidates.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("memory_candidates:candidate-rule 候选不得 enabled=true", errors)
+
+    def test_remote_mcp_requires_https_url_and_declared_host(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        manifest = json.loads((root / "manifests/mcp_servers.json").read_text())
+        server = manifest["mcp_servers"][0]
+        server["name"] = "openaiDeveloperDocs"
+        server["transport"] = "http"
+        server.pop("command")
+        server.pop("args")
+        server["url"] = "http://example.com/mcp"
+        server["env"] = {}
+        server["readiness"]["network_targets"] = ["developers.openai.com"]
+        write_json(root / "manifests/mcp_servers.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("mcp_servers:openaiDeveloperDocs http url 必须是 https URL", errors)
+
+    def test_automation_rejects_write_risk_without_worktree(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        manifest = json.loads((root / "manifests/automations.json").read_text())
+        manifest["automations"][0]["risk_class"] = "draft-write"
+        manifest["automations"][0]["requires_worktree_for_write"] = False
+        write_json(root / "manifests/automations.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("automations:health-report 写入类风险必须 requires_worktree_for_write=true", errors)
 
 
 if __name__ == "__main__":

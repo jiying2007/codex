@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Memory Candidates Manifest",
+  "type": "object",
+  "required": ["schema_version", "memory_candidates"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "memory_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "status",
+          "source",
+          "proposed_action",
+          "review_required",
+          "secret_scan_required",
+          "promotion_gate",
+          "summary"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["candidate", "accepted", "rejected", "superseded"]
+          },
+          "source": {
+            "type": "string"
+          },
+          "proposed_action": {
+            "type": "string",
+            "enum": ["promote-to-agents", "promote-to-archive", "promote-to-memory", "reject"]
+          },
+          "review_required": {
+            "type": "boolean"
+          },
+          "secret_scan_required": {
+            "type": "boolean"
+          },
+          "promotion_gate": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -29,6 +29,17 @@
 - Review / 提交 / PR 门禁优先使用 `adk-commit-pr-quality-gate`。
 - 完成前优先使用 `adk-verification-before-completion`。
 
+## 3.1 持久线程、强目标与产物
+
+- 一个线程默认服务一个长期职责；主题、目标或职责切换前优先 `context-preflight`，必要时收口后新开线程。
+- 强目标必须写清范围、非目标、成功标准、验证命令、可审查产物和阻塞条件；没有验证机制的目标只能作为探索任务。
+- 用户执行中补充指令时，先判断为 `steer`、`queue` 或 `scope-change`；改变目标或验收标准时先更新目标模板再继续。
+- 优先输出可审查产物：Markdown note、`index.html`、CSV/表格、diff、测试报告、截图或 artifact report；不要只输出过程描述。
+- 等待型或周期性自动化必须限定数据源、刷新频率、停止条件和人工审批点；默认不自动发送、提交、发布、删除或覆盖。
+- 可复用工作流的输入、完成标准、审查产物和失败模式优先沉淀到 `manifests/workflow_recipes.json`；等待型/定时任务只允许先登记到 `manifests/automations.json`，默认 `enabled=false` 或 `mode=report-only`。
+- 并行子代理默认遵循 `manifests/subagent_contracts.json` 的读写范围、禁止路径和输出契约；长期记忆候选先进入 `manifests/memory_candidates.json`，不得静默写入 `~/.codex/memories`。
+- 操作模型细节见 `docs/codex-operating-model.md`；与本文件冲突时以本文件为准。
+
 ## 4. adk 路由主干
 
 - 需求收敛：`adk-requirements-triage`
@@ -173,6 +184,8 @@ adk 面向嵌入式全栈开发，覆盖芯片 / 板级约束、启动链、BSP�
 - 长期经验优先沉淀到项目级 `AGENTS.md` 或 `~/codex/docs/archive/`，避免把一次性过程噪音写入长期规则。
 - 记忆整理默认只生成审计报告或候选，不静默覆盖 memory。
 - 归档材料不得写入 `src/codex-home/`、`build/` 或 control 产物目录。
+- MCP server、connector、桌面 GUI 或登录态工作流必须先声明 transport、权限边界、凭证边界、工具清单、deny-path、日志脱敏和回退方式；未完成安全和供应链审查前不得启用外部写操作。
+- OpenAI 官方文档查询优先使用官方只读 Docs MCP `openaiDeveloperDocs`；未启用或不可用时才 fallback 到官方域名网页检索。
 
 ## 16. Skill 资产治理
 

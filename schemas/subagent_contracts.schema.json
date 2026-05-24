@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Subagent Contracts Manifest",
+  "type": "object",
+  "required": ["schema_version", "subagent_contracts"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "subagent_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "profiles",
+          "agent",
+          "scope_read",
+          "scope_write",
+          "must_not_touch",
+          "output_contract",
+          "sandbox",
+          "max_parallel",
+          "verification"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "agent": {
+            "type": "string"
+          },
+          "scope_read": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope_write": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "must_not_touch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output_contract": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sandbox": {
+            "type": "string",
+            "enum": ["read-only", "workspace-write"]
+          },
+          "max_parallel": {
+            "type": "integer"
+          },
+          "verification": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

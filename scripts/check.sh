@@ -8,6 +8,7 @@ cd "$ROOT"
 rtk bash "$ROOT/scripts/build.sh" --profile team-collab
 rtk bash "$ROOT/scripts/doctor.sh" --scope all
 rtk bash "$ROOT/scripts/doctor.sh" --scope governance
+rtk bash "$ROOT/scripts/check-mcp-deny-paths.sh"
 rtk bash "$ROOT/scripts/archive-check.sh"
 rtk bash "$ROOT/scripts/governance-report.sh" --json
 env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" rtk python3 -m unittest discover -s "$ROOT/tests" -p 'test_*.py'

@@ -13,6 +13,7 @@ Session Continuity Coach 是一个轻量、常驻的会话连续性规则集。�
 - `usage-report.sh` / `usage-tail.sh` 负责 token 观测。
 - `context-preflight.sh`、`session-wrap`、`archive-note`、`scripts/curate-memory.sh --dry-run` 负责会话收口。
 - `build -> doctor -> plan/dry-run -> apply -> diff/drift -> check` 负责 Codex 资产变更闭环。
+- `docs/codex-operating-model.md` 负责常驻线程、强目标、可审查产物、自动化边界和 MCP 治理的操作层约定。
 
 ## 推荐触发点
 
@@ -20,6 +21,7 @@ Session Continuity Coach 是一个轻量、常驻的会话连续性规则集。�
 
 - 会话开始、恢复、目标切换时。
 - 长任务进入新阶段前。
+- 目标从探索升级为强目标，或用户把指令改成等待型/周期性自动化时。
 - 准备 final、commit、push、apply 前。
 - 修改 `AGENTS.md`、skill、workflow、manifest、script 或 docs 后。
 - `usage-tail` 进入 `HOT` / `CRITICAL`，或最近一次输入明显过大时。
@@ -70,7 +72,9 @@ P2 版本按以下顺序综合判断：
 - 只改一侧 `AGENTS.md` 时提示同步根规则与 `src/codex-home/AGENTS.md`。
 - 改 skill 或 `manifests/skills.json` 时提示运行 `check-skills.sh`。
 - 改 agent 资产或 `manifests/agents.json` 时提示检查 agent manifest、openai.yaml 与 profile link。
-- 改 MCP 资产或 `manifests/mcp_servers.json` 时提示检查声明、权限边界和运行态配置，避免提交 secrets。
+- 改 MCP 资产或 `manifests/mcp_servers.json` 时提示检查声明、readiness、权限边界和运行态配置，避免提交 secrets。
+- 改 `manifests/workflow_recipes.json` 或 `manifests/automations.json` 时提示检查 workflow 引用、审批策略、停止条件和 report-only 边界。
+- 改 `manifests/subagent_contracts.json` 或 `manifests/memory_candidates.json` 时提示检查 agent 引用、读写边界、人工审查和 secret scan 门禁。
 - 改 `scripts/` 或 `tools/` 时提示从非仓库 cwd 验证 help/dry-run。
 - 改 workflow、schema 或 manifest 时提示 governance 检查。
 - 改声明式交付资产时提示完整 `build -> doctor -> plan/dry-run -> apply -> diff/drift -> check`。

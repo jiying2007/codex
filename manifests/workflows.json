@@ -94,7 +94,16 @@
         "skill 同步",
         "资产治理",
         "profile 调整",
-        "agent 调整"
+        "agent 调整",
+        "MCP 治理",
+        "mcp_servers",
+        "Docs MCP",
+        "OpenAI Docs MCP",
+        "workflow_recipes",
+        "automations",
+        "subagent_contracts",
+        "memory_candidates",
+        "自动化声明"
       ],
       "skills": [
         "skill-asset-manager"
@@ -153,7 +162,10 @@
         "上下文压缩",
         "会话接力",
         "resume prompt",
-        "90 秒模板"
+        "90 秒模板",
+        "强目标模板",
+        "可审查产物",
+        "线程角色"
       ],
       "skills": [
         "context-compress-handoff",
@@ -384,7 +396,11 @@
         "省 token",
         "会话收口",
         "新开会话",
-        "AGENT/SKILL/DOC/SCRIPT 更新"
+        "AGENT/SKILL/DOC/SCRIPT 更新",
+        "常驻线程",
+        "目标切换",
+        "等待型自动化",
+        "操作模型"
       ],
       "skills": [
         "context-compress-handoff",

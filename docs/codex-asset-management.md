@@ -24,7 +24,7 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 
 应纳入 Git 的内容：
 
-- `manifests/*.json`：profile、agent、skill、workflow、lock、change set 与 MCP 声明。
+- `manifests/*.json`：profile、agent、skill、workflow、workflow recipe、automation、subagent contract、memory candidate、lock、change set 与 MCP 声明。
 - `src/codex-home/vendor/agents/agent-dev-kit/<version>/`：从 `agent-dev-kit` 导入并由 manifest 引用的版本化 agent 资产。
 - `src/codex-home/vendor/skills/adk-*/<version>/`：从 `agent-dev-kit` 导入并由 manifest 引用的版本化 skill 资产。
 - 其他被 `scripts/build.sh` 明确消费的声明式源文件。
@@ -46,6 +46,10 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 - `skills`：可复用操作能力，存放版本、来源、目标路径和启用 profile。
 - `agents`：可用子代理或本地 agent 配置，按 profile 激活。
 - `workflows`：把触发词、skill、agent、命令和验证命令串成可复用流程。
+- `workflow_recipes`：把 workflow 的上下文输入、完成标准、审查产物和失败模式固化为可审计契约。
+- `automations`：只登记等待型或定时任务的只读/报告边界，不直接创建调度器或后台执行器。
+- `subagent_contracts`：约束子代理读写范围、禁止路径、sandbox 和输出契约。
+- `memory_candidates`：登记长期记忆候选、人工审查、secret scan 和提升门禁。
 - `project_templates`：把不同项目路径映射到默认 profile、推荐 workflow 和归档主题。
 - `overlays`：定义个人、本地、团队共享和发布场景的允许漂移与阻断路径。
 
@@ -64,6 +68,21 @@ rtk bash scripts/governance-report.sh --json
 - project template 只能引用已登记 workflow，并明确默认 profile。
 - overlay 的 `allowed_live_drift_paths` 不能覆盖 protected path，例如认证、session、日志、缓存、密钥和系统 skill。
 - 团队共享或发布前优先使用 `team-shared` / `release-sanitized` 视角审查，个人本机状态只保留在 live 目录或 `personal-local` overlay。
+
+## Codex 工作模型
+
+`docs/codex-operating-model.md` 约束日常使用层：常驻线程、强目标、实时干预/任务排队、可审查产物、记忆边界、自动化边界和 MCP 治理。
+
+维护原则：
+
+- 一个线程服务一个长期职责；跨职责切换前先 `context-preflight`。
+- 强目标必须包含成功标准、验证命令和可审查产物；没有验证机制的任务只能标为探索。
+- UI、数据、文档、代码和高风险变更优先输出可审查产物，而不是只输出过程描述。
+- 等待型或周期性自动化必须限定数据源、频率、停止条件和人工审批点。
+- 可复用 workflow 的操作契约进入 `manifests/workflow_recipes.json`；周期性或等待型任务先进入 `manifests/automations.json`，默认保持禁用或 report-only。
+- 并行子代理的边界进入 `manifests/subagent_contracts.json`；长期记忆候选进入 `manifests/memory_candidates.json`，不得绕过审查直接写 memory。
+- MCP server 先进入 `manifests/mcp_servers.json`，再由 build 渲染到 `config.toml`；启用前必须有 transport、权限边界、凭证边界、工具清单、可执行 deny-path、日志脱敏、smoke 和回滚方式。
+- `manifests/mcp_servers.json` 只存声明和空 env key，不存真实 token；`tools.codex_assets` 会在 build 时把匹配 profile 的条目渲染到 `config.toml`。
 
 ## 脚本与 Python 入口规范
 

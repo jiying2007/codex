@@ -38,11 +38,21 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 `manifests/workflows.json` 定义可复用工作流编排。每个 workflow 必须显式声明启用 profile、触发词、依赖 skill、依赖 agent、入口命令和验证命令。
 
+`manifests/workflow_recipes.json` 定义 workflow 的执行契约。recipe 不替代 workflow，而是补充上下文输入、完成标准、审查产物、失败模式和验证命令，用于把“会用”变成“可评测”。
+
+`manifests/automations.json` 定义等待型或定时任务候选。automation manifest 只声明数据源、频率、sandbox、approval policy、worktree policy、停止条件和输出产物；默认不创建真实调度器，也不得绕过人工审批执行外部写操作。
+
+`manifests/mcp_servers.json` 定义 MCP server 声明和 readiness。build 只把匹配 profile 的 server 渲染到 `config.toml`；manifest 支持 `stdio` 和 `http` transport。官方 OpenAI Docs MCP 使用 `openaiDeveloperDocs` + `https://developers.openai.com/mcp`，只读、无 env token。启用前必须有工具清单、网络目标、可执行 deny-path、日志脱敏、smoke 和回滚边界。
+
+`manifests/subagent_contracts.json` 定义子代理契约。它约束 agent、profile、读范围、写范围、禁止路径、sandbox、最大并行和输出契约，用于避免并行代理跨边界写入。
+
+`manifests/memory_candidates.json` 定义长期记忆候选。它只记录候选状态、来源、拟提升动作、人工审查和 secret scan 门禁，不直接写入 `~/.codex/memories`。
+
 `manifests/project-templates.json` 定义项目类型映射。它用路径模式把项目归类到默认 profile、推荐 workflow 和归档主题，解决“不同项目之间如何复用同一套 Codex 工作流”的问题。
 
 `manifests/overlays.json` 定义场景覆盖层。overlay 用来约束个人本地、团队共享、发布脱敏等场景下哪些 live 差异允许存在，哪些路径必须阻断。
 
-治理 manifest 只描述关系，不直接改变 build 复制内容；关系正确性由 `doctor --scope governance` 和 `scripts/check.sh` 检查。
+治理 manifest 只描述关系，不直接改变 build 复制内容；关系正确性由 `doctor --scope governance` 和 `scripts/check.sh` 检查。例外是 `manifests/mcp_servers.json` 会被 build 读取并生成禁用优先的 MCP 配置块，但真实凭证和启用决策仍留在人工审查边界内。
 
 ## 构建
 
@@ -88,13 +98,13 @@ rtk bash scripts/governance-report.sh --json
 rtk bash scripts/drift.sh
 ```
 
-`repo` 检查仓库结构、manifest、脚本语法和旧入口残留，并执行语义校验：profile 引用、source 路径存在性、target 冲突、protected path 写入、lock 与 build state 一致性。`governance` 只检查 workflow、project template 和 overlay 的跨 manifest 引用关系与路径边界。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
+`repo` 检查仓库结构、manifest、脚本语法和旧入口残留，并执行语义校验：profile 引用、source 路径存在性、target 冲突、protected path 写入、lock 与 build state 一致性。`governance` 检查 workflow、workflow recipe、automation、subagent contract、memory candidate、project template、overlay 和 MCP readiness 的跨 manifest 引用关系与路径/权限边界。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
 
 `drift.sh` 基于 live 的 `control/state/managed-files.json` 检查运行目录是否被手工改动，区别于 `diff.sh` 的 build/live 当前差异比较。
 
 ## Schema 与测试
 
-`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/test_governance.py` 覆盖 workflow、project template、overlay 的引用错误与报告输出。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`team-collab` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
+`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/test_governance.py` 覆盖 workflow、workflow recipe、automation、subagent contract、memory candidate、MCP readiness、project template、overlay 的引用错误与报告输出。`tests/test_agent_routing_eval.py` 用 fixture 固化 recipe 路由样例。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`team-collab` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
 
 ## 回滚
 

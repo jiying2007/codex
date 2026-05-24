@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "automations": [
+    {
+      "name": "codex-home-health-report",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "scheduled",
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "asset-governance",
+      "cadence": "daily 09:00 Asia/Hong_Kong",
+      "scope": {
+        "data_sources": [
+          "local git status",
+          "manifests",
+          "build state",
+          "live managed state"
+        ],
+        "write_boundary": "report only; do not modify source, build, live or remote systems"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop after report generation or after two consecutive health-check failures",
+      "triage_contract": {
+        "destination": "Codex triage summary",
+        "allowed_outputs": [
+          "health summary",
+          "action queue",
+          "verification command list"
+        ],
+        "forbidden_actions": [
+          "modify files",
+          "commit or push",
+          "enable MCP servers"
+        ]
+      },
+      "output_artifacts": [
+        "health summary",
+        "action queue",
+        "verification command list"
+      ]
+    },
+    {
+      "name": "external-feedback-triage",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "thread",
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "context-handoff",
+      "cadence": "every 30 minutes while explicitly authorized",
+      "scope": {
+        "data_sources": [
+          "user-approved PR comments",
+          "user-approved document comments",
+          "user-approved Slack or Gmail summaries"
+        ],
+        "write_boundary": "draft only; never send, submit, merge, delete or publish"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop when authorization expires, source access changes or the thread is handed off",
+      "triage_contract": {
+        "destination": "current thread action queue",
+        "allowed_outputs": [
+          "prioritized action queue",
+          "draft replies",
+          "blocked items"
+        ],
+        "forbidden_actions": [
+          "send messages",
+          "submit forms",
+          "merge or close pull requests"
+        ]
+      },
+      "output_artifacts": [
+        "prioritized action queue",
+        "draft replies",
+        "blocked items"
+      ]
+    },
+    {
+      "name": "official-docs-watch",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "scheduled",
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "external-research",
+      "cadence": "weekly Monday 09:30 Asia/Hong_Kong",
+      "scope": {
+        "data_sources": [
+          "official OpenAI developer documentation",
+          "official OpenAI Codex documentation"
+        ],
+        "write_boundary": "research note only; no config, manifest or memory writes without a separate task"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop after producing a dated change note or when official sources cannot be verified",
+      "triage_contract": {
+        "destination": "dated research note",
+        "allowed_outputs": [
+          "dated research note",
+          "candidate optimization list",
+          "source links"
+        ],
+        "forbidden_actions": [
+          "edit manifests",
+          "write memories",
+          "enable external connectors"
+        ]
+      },
+      "output_artifacts": [
+        "dated research note",
+        "candidate optimization list",
+        "source links"
+      ]
+    }
+  ]
+}

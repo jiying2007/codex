@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "subagent_contracts": [
+    {
+      "name": "local-architect-readonly",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "agent": "local-architect",
+      "scope_read": [
+        "AGENTS.md",
+        "README.md",
+        "docs/**",
+        "manifests/**",
+        "tools/codex_assets/**",
+        "tests/**"
+      ],
+      "scope_write": [],
+      "must_not_touch": [
+        "auth.json",
+        "sessions/**",
+        "logs/**",
+        "build/**",
+        ".git/**"
+      ],
+      "output_contract": [
+        "finding summary",
+        "risk list",
+        "recommended file-level changes",
+        "verification plan"
+      ],
+      "sandbox": "read-only",
+      "max_parallel": 2,
+      "verification": [
+        "rtk bash scripts/doctor.sh --scope governance"
+      ]
+    },
+    {
+      "name": "local-implementer-scoped",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "agent": "local-implementer",
+      "scope_read": [
+        "AGENTS.md",
+        "docs/**",
+        "manifests/**",
+        "schemas/**",
+        "tools/codex_assets/**",
+        "tests/**"
+      ],
+      "scope_write": [
+        "docs/**",
+        "manifests/**",
+        "schemas/**",
+        "tools/codex_assets/**",
+        "tests/**"
+      ],
+      "must_not_touch": [
+        "auth.json",
+        "sessions/**",
+        "logs/**",
+        "build/**",
+        ".git/**"
+      ],
+      "output_contract": [
+        "changed file list",
+        "behavior summary",
+        "validation commands",
+        "residual risk"
+      ],
+      "sandbox": "workspace-write",
+      "max_parallel": 3,
+      "verification": [
+        "rtk python3 -m unittest discover -s tests -p test_*.py",
+        "rtk bash scripts/check.sh"
+      ]
+    }
+  ]
+}

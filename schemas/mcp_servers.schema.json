@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex MCP Servers Manifest",
+  "type": "object",
+  "required": ["schema_version", "mcp_servers"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "mcp_servers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "transport",
+          "profiles",
+          "required",
+          "supports_parallel_tool_calls",
+          "env",
+          "owner",
+          "purpose",
+          "security_status",
+          "rollback",
+          "readiness"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "transport": {
+            "type": "string",
+            "enum": ["stdio", "http"]
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "command": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cwd": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "supports_parallel_tool_calls": {
+            "type": "boolean"
+          },
+          "env": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "owner": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "security_status": {
+            "type": "string"
+          },
+          "rollback": {
+            "type": "string"
+          },
+          "readiness": {
+            "type": "object",
+            "required": [
+              "scopes",
+              "network_targets",
+              "tool_inventory",
+              "write_actions",
+              "destructive_actions",
+              "requires_human_confirmation",
+              "deny_path_tests",
+              "log_redaction",
+              "smoke"
+            ],
+            "properties": {
+              "scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "network_targets": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tool_inventory": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "write_actions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "destructive_actions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requires_human_confirmation": {
+                "type": "boolean"
+              },
+              "deny_path_tests": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "path", "expected_decision"],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "expected_decision": {
+                      "type": "string",
+                      "enum": ["deny"]
+                    }
+                  }
+                }
+              },
+              "log_redaction": {
+                "type": "boolean"
+              },
+              "smoke": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

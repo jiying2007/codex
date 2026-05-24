@@ -44,7 +44,6 @@ def validate_repo(root: str | pathlib.Path) -> list[str]:
     if errors:
         return errors
     errors.extend(governance_errors(repo))
-
     assets = repo.assets
     source = repo.source
     policies = repo.policies

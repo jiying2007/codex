@@ -1,4 +1,163 @@
 {
   "schema_version": 2,
-  "mcp_servers": []
+  "mcp_servers": [
+    {
+      "name": "github",
+      "enabled": false,
+      "transport": "stdio",
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "required": false,
+      "supports_parallel_tool_calls": true,
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
+      },
+      "owner": "local",
+      "purpose": "GitHub issue, PR and repository integration after explicit credential review.",
+      "security_status": "declared-disabled",
+      "rollback": "Set enabled=false or remove the manifest entry, rebuild and apply.",
+      "readiness": {
+        "scopes": [
+          "repo metadata",
+          "issues",
+          "pull requests"
+        ],
+        "network_targets": [
+          "api.github.com",
+          "github.com"
+        ],
+        "tool_inventory": [
+          "pending-inspector"
+        ],
+        "write_actions": [
+          "issue_comment",
+          "pull_request_comment",
+          "repository_mutation"
+        ],
+        "destructive_actions": [
+          "merge_or_close_pr",
+          "delete_or_modify_remote_content"
+        ],
+        "requires_human_confirmation": true,
+        "deny_path_tests": [
+          {
+            "name": "reject-auth-json",
+            "path": "auth.json",
+            "expected_decision": "deny"
+          },
+          {
+            "name": "reject-sessions",
+            "path": "sessions/example.jsonl",
+            "expected_decision": "deny"
+          }
+        ],
+        "log_redaction": true,
+        "smoke": "rtk codex mcp list, then inspector smoke after token scope review"
+      }
+    },
+    {
+      "name": "openaiDeveloperDocs",
+      "enabled": false,
+      "transport": "http",
+      "profiles": [
+        "team-collab"
+      ],
+      "url": "https://developers.openai.com/mcp",
+      "required": false,
+      "supports_parallel_tool_calls": true,
+      "env": {},
+      "owner": "local",
+      "purpose": "Official OpenAI developer documentation lookup through the public read-only Docs MCP server.",
+      "security_status": "declared-disabled",
+      "rollback": "Set enabled=false or remove the manifest entry, rebuild and apply.",
+      "readiness": {
+        "scopes": [
+          "official documentation lookup"
+        ],
+        "network_targets": [
+          "developers.openai.com"
+        ],
+        "tool_inventory": [
+          "search_openai_docs",
+          "fetch_openai_doc",
+          "list_openai_docs"
+        ],
+        "write_actions": [],
+        "destructive_actions": [],
+        "requires_human_confirmation": true,
+        "deny_path_tests": [
+          {
+            "name": "reject-auth-json",
+            "path": "auth.json",
+            "expected_decision": "deny"
+          },
+          {
+            "name": "reject-sessions",
+            "path": "sessions/example.jsonl",
+            "expected_decision": "deny"
+          }
+        ],
+        "log_redaction": true,
+        "smoke": "rtk codex mcp list, then OpenAI docs search/fetch smoke after explicit enablement"
+      }
+    },
+    {
+      "name": "figma",
+      "enabled": false,
+      "transport": "stdio",
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "npx",
+      "args": [
+        "-y",
+        "figma-developer-mcp"
+      ],
+      "required": false,
+      "supports_parallel_tool_calls": false,
+      "env": {
+        "FIGMA_ACCESS_TOKEN": ""
+      },
+      "owner": "local",
+      "purpose": "Figma design context lookup after explicit token and project scope review.",
+      "security_status": "declared-disabled",
+      "rollback": "Set enabled=false or remove the manifest entry, rebuild and apply.",
+      "readiness": {
+        "scopes": [
+          "selected Figma file metadata",
+          "selected Figma design context"
+        ],
+        "network_targets": [
+          "api.figma.com",
+          "www.figma.com"
+        ],
+        "tool_inventory": [
+          "pending-inspector"
+        ],
+        "write_actions": [],
+        "destructive_actions": [],
+        "requires_human_confirmation": true,
+        "deny_path_tests": [
+          {
+            "name": "reject-auth-json",
+            "path": "auth.json",
+            "expected_decision": "deny"
+          },
+          {
+            "name": "reject-sessions",
+            "path": "sessions/example.jsonl",
+            "expected_decision": "deny"
+          }
+        ],
+        "log_redaction": true,
+        "smoke": "rtk codex mcp list, then selected-file read smoke after token scope review"
+      }
+    }
+  ]
 }

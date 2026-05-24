@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Workflow Recipes Manifest",
+  "type": "object",
+  "required": ["schema_version", "workflow_recipes"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "workflow_recipes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "profiles",
+          "workflow",
+          "context_inputs",
+          "done_criteria",
+          "review_artifacts",
+          "failure_modes",
+          "trigger_examples",
+          "negative_examples",
+          "verification"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflow": {
+            "type": "string"
+          },
+          "context_inputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "done_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "review_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "failure_modes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "trigger_examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "negative_examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verification": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}
