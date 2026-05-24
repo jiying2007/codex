@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Prompt Experiments Manifest",
+  "type": "object",
+  "required": ["schema_version", "prompt_experiments"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "prompt_experiments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "profiles",
+          "target",
+          "target_paths",
+          "hypothesis",
+          "variants",
+          "evaluation_suite",
+          "sample_cases",
+          "grader",
+          "human_review_required",
+          "success_metric",
+          "rollback",
+          "artifacts"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "target": {
+            "type": "string"
+          },
+          "target_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hypothesis": {
+            "type": "string"
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "evaluation_suite": {
+            "type": "string"
+          },
+          "sample_cases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grader": {
+            "type": "object"
+          },
+          "human_review_required": {
+            "type": "boolean"
+          },
+          "success_metric": {
+            "type": "string"
+          },
+          "rollback": {
+            "type": "string"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

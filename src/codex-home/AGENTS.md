@@ -39,6 +39,8 @@
 - 可复用工作流的输入、完成标准、审查产物和失败模式优先沉淀到 `manifests/workflow_recipes.json`；等待型/定时任务只允许先登记到 `manifests/automations.json`，默认 `enabled=false` 或 `mode=report-only`。
 - 并行子代理默认遵循 `manifests/subagent_contracts.json` 的读写范围、禁止路径和输出契约；长期记忆候选先进入 `manifests/memory_candidates.json`，不得静默写入 `~/.codex/memories`。
 - workflow、slash command、目标模板和指导规则提升必须可评测：routing/governance/completion eval 进入 `manifests/eval_suites.json`，slash command 控制面进入 `manifests/cli_command_contracts.json`，规则提升路径进入 `manifests/guidance_promotions.json`，强目标模板进入 `manifests/goal_templates.json`。
+- prompt / AGENTS / skill 指导规则实验进入 `manifests/prompt_experiments.json`，trace 过程评分进入 `manifests/trace_eval_contracts.json`，上下文状态契约进入 `manifests/context_state_contracts.json`，automation 单次运行记录进入 `manifests/automation_run_records.json`。
+- skill 依赖 MCP、slash command 运行态审计、官方文档 freshness gate 分别进入 `manifests/skill_mcp_dependencies.json`、`manifests/slash_command_runtime_audits.json` 和 `manifests/official_docs_freshness_gates.json`；官方资料提升必须有 source URL、retrieved_at、review_status 和 expires_at。
 - 上下文压缩必须区分 stable、dynamic、evidence 和 excluded context；长期提升前先满足 `docs/context-layout.md` 与 `manifests/guidance_promotions.json` 的 review、secret scan 和 rollback 门禁。
 - 操作模型细节见 `docs/codex-operating-model.md`；与本文件冲突时以本文件为准。
 

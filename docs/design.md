@@ -56,6 +56,20 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 `manifests/goal_templates.json` 定义 weak、strong、continuous 目标模板。强目标必须包含范围、成功标准、验证命令和可审查产物；continuous 目标必须额外明确数据源、刷新边界和停止条件。
 
+`manifests/prompt_experiments.json` 定义 prompt、AGENTS 或 skill 指导规则实验。实验必须声明目标路径、假设、至少两个 variant、eval suite、样例、grader、人工评审、成功指标、产物和回退方式。
+
+`manifests/trace_eval_contracts.json` 定义过程轨迹评分契约。它不只看最终结果，还约束必须出现的工作事件、禁止事件、rubric 权重、最低分、验证命令和可审查产物。
+
+`manifests/context_state_contracts.json` 定义上下文状态契约。stable、dynamic、evidence 和 excluded 四层必须各自声明必填字段、默认去向和 promotion gate，excluded 层必须永不提升。
+
+`manifests/automation_run_records.json` 定义 automation 单次运行记录。记录只承载 triage、清理、保留、人工审查状态和禁止动作，不创建真实调度器，也不得替代人工审批。
+
+`manifests/skill_mcp_dependencies.json` 定义 skill 对 MCP server 和 tool 的依赖。它声明访问模式、所需工具、允许动作、禁止动作、审批要求、fallback 和验证命令，防止 skill 隐式启用外部能力。
+
+`manifests/slash_command_runtime_audits.json` 定义 slash command 的运行态审计。它绑定 `manifests/cli_command_contracts.json` 中的 command contract，记录 audit events、runtime controls、required evidence、retention 和禁止动作。
+
+`manifests/official_docs_freshness_gates.json` 定义官方文档 freshness gate。官方资料提升到长期规则前，必须有官方 source URL、retrieved_at、review_status、expires_at、stale action、验证命令和回退方式。
+
 `manifests/project-templates.json` 定义项目类型映射。它用路径模式把项目归类到默认 profile、推荐 workflow 和归档主题，解决“不同项目之间如何复用同一套 Codex 工作流”的问题。
 
 `manifests/overlays.json` 定义场景覆盖层。overlay 用来约束个人本地、团队共享、发布脱敏等场景下哪些 live 差异允许存在，哪些路径必须阻断。

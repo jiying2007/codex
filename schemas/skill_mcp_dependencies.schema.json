@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Skill MCP Dependencies Manifest",
+  "type": "object",
+  "required": ["schema_version", "skill_mcp_dependencies"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "skill_mcp_dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "profiles",
+          "skill",
+          "mcp_servers",
+          "access_mode",
+          "required_tools",
+          "allowed_actions",
+          "forbidden_actions",
+          "approval_required",
+          "fallback",
+          "verification",
+          "artifacts"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "skill": {
+            "type": "string"
+          },
+          "mcp_servers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "access_mode": {
+            "type": "string",
+            "enum": ["read-only", "draft-write", "external-write"]
+          },
+          "required_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowed_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "forbidden_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "approval_required": {
+            "type": "boolean"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "verification": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

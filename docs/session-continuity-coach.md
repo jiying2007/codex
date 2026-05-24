@@ -76,6 +76,8 @@ P2 版本按以下顺序综合判断：
 - 改 `manifests/workflow_recipes.json` 或 `manifests/automations.json` 时提示检查 workflow 引用、审批策略、停止条件和 report-only 边界。
 - 改 `manifests/subagent_contracts.json` 或 `manifests/memory_candidates.json` 时提示检查 agent 引用、读写边界、人工审查和 secret scan 门禁。
 - 改 `manifests/eval_suites.json`、`manifests/cli_command_contracts.json`、`manifests/guidance_promotions.json` 或 `manifests/goal_templates.json` 时提示检查 cases、命令契约、提升门禁、强目标字段和负例。
+- 改 `manifests/prompt_experiments.json`、`manifests/trace_eval_contracts.json`、`manifests/context_state_contracts.json` 或 `manifests/automation_run_records.json` 时提示检查实验样例、trace rubric、上下文分层、运行记录和人工审查边界。
+- 改 `manifests/skill_mcp_dependencies.json`、`manifests/slash_command_runtime_audits.json` 或 `manifests/official_docs_freshness_gates.json` 时提示检查 MCP 依赖、运行态审计、官方来源 freshness、审批和回退边界。
 - 改 `docs/context-layout.md` 或 `scripts/context-preflight.sh` 时提示检查 stable/dynamic/evidence/excluded context 输出。
 - 改 `scripts/` 或 `tools/` 时提示从非仓库 cwd 验证 help/dry-run。
 - 改 workflow、schema 或 manifest 时提示 governance 检查。

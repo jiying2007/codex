@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "prompt_experiments": [
+    {
+      "name": "agents-guidance-promotion-experiment",
+      "enabled": false,
+      "profiles": [
+        "team-collab"
+      ],
+      "target": "agents-guidance",
+      "target_paths": [
+        "AGENTS.md",
+        "src/codex-home/AGENTS.md"
+      ],
+      "hypothesis": "official-docs-derived guidance should reduce missed review, secret-scan and rollback gates before long-term promotion",
+      "variants": [
+        {
+          "name": "baseline",
+          "change_summary": "current guidance promotion rules"
+        },
+        {
+          "name": "explicit-evidence-gate",
+          "change_summary": "require source URL, retrieval date, eval evidence and rollback text before promotion"
+        }
+      ],
+      "evaluation_suite": "governance-contract-eval",
+      "sample_cases": [
+        "official docs rule promotion",
+        "session lesson promotion",
+        "rejected one-off preference"
+      ],
+      "grader": {
+        "type": "human-plus-tests",
+        "rubric": [
+          "rejects unsourced long-term rules",
+          "requires review and secret scan",
+          "keeps dynamic context out of stable rules"
+        ]
+      },
+      "human_review_required": true,
+      "success_metric": "candidate variant improves promotion clarity without weakening governance-contract-eval",
+      "rollback": "drop the variant and keep baseline AGENTS guidance",
+      "artifacts": [
+        "governance report",
+        "test_governance prompt experiment fixture",
+        "review note"
+      ]
+    }
+  ]
+}

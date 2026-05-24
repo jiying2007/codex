@@ -114,6 +114,12 @@ MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `c
 - 可复用 workflow 和治理能力必须有 eval 契约。routing、governance、completion 和 prompt 行为登记到 `manifests/eval_suites.json`，至少包含 cases、成功指标、负例、命令和 promotion gate。
 - slash command 是控制面入口，登记到 `manifests/cli_command_contracts.json`。命令契约必须说明输入、允许动作、禁止动作、输出、review 和验证要求；禁止绕过验证。
 - 会话经验、官方资料、归档结论和 manifest 决策要提升为长期规则前，先匹配 `manifests/guidance_promotions.json`。提升必须有来源、review、secret scan、最小证据、验证和回退。
+- AGENTS、skill 或 prompt 指导规则变更优先登记到 `manifests/prompt_experiments.json`，用样例、grader、人工评审和 rollback 证明收益，再提升为长期规则。
+- 重要交付不只评估结果，也评估过程轨迹。`manifests/trace_eval_contracts.json` 用 required events、forbidden events、rubric 和 min score 约束可审计执行过程。
+- automation 每次运行或模板化运行记录进入 `manifests/automation_run_records.json`，必须保留 triage、cleanup、retention、human review 和禁止动作边界。
+- skill 使用 MCP 前先检查 `manifests/skill_mcp_dependencies.json`。依赖契约必须声明 MCP server、tool、访问模式、审批、fallback、禁止动作和验证命令；不得静默启用外部能力。
+- slash command 运行态审计进入 `manifests/slash_command_runtime_audits.json`。审计契约必须绑定已有 command contract，记录事件、证据、保留策略和禁止动作。
+- 官方 OpenAI 资料提升为长期规则前先匹配 `manifests/official_docs_freshness_gates.json`。必须记录 source URL、retrieved_at、review_status、expires_at、stale action 和 rollback。
 - 上下文压缩按 `docs/context-layout.md` 分层：stable context 才能进入长期规则候选，dynamic context 只用于恢复当前线程，evidence context 支撑交付声明，excluded context 不沉淀。
 
 ## 收口

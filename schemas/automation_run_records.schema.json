@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Automation Run Records Manifest",
+  "type": "object",
+  "required": ["schema_version", "automation_run_records"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "automation_run_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "automation",
+          "run_id",
+          "run_at",
+          "trigger",
+          "status",
+          "triage",
+          "cleanup",
+          "retention",
+          "human_review",
+          "artifacts"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "automation": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "run_at": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "triage": {
+            "type": "object"
+          },
+          "cleanup": {
+            "type": "object"
+          },
+          "retention": {
+            "type": "object"
+          },
+          "human_review": {
+            "type": "object"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

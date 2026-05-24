@@ -107,6 +107,13 @@
         "cli_command_contracts",
         "guidance_promotions",
         "goal_templates",
+        "prompt_experiments",
+        "trace_eval_contracts",
+        "context_state_contracts",
+        "automation_run_records",
+        "skill_mcp_dependencies",
+        "slash_command_runtime_audits",
+        "official_docs_freshness_gates",
         "context-layout",
         "自动化声明"
       ],

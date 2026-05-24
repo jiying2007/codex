@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Context State Contracts Manifest",
+  "type": "object",
+  "required": ["schema_version", "context_state_contracts"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "context_state_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "profiles",
+          "scope",
+          "layers",
+          "validation_commands",
+          "forbidden_promotions",
+          "artifacts"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "string"
+          },
+          "layers": {
+            "type": "object"
+          },
+          "validation_commands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "forbidden_promotions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

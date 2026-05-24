@@ -57,6 +57,7 @@ conversation -> context-preflight -> docs/archive or manifest candidate -> revie
 - 有验证命令或可复查产物。
 - 有回退方式。
 - `manifests/guidance_promotions.json` 中存在匹配的提升策略。
+- `manifests/context_state_contracts.json` 中存在匹配的上下文状态契约，且没有把 dynamic 或 excluded context 误提升为 stable context。
 
 ## Preflight 输出
 

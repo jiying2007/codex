@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "official_docs_freshness_gates": [
+    {
+      "name": "openai-developer-docs-freshness",
+      "enabled": true,
+      "source": "openai-developer-docs",
+      "mcp_server": "openaiDeveloperDocs",
+      "source_domains": [
+        "developers.openai.com",
+        "platform.openai.com"
+      ],
+      "source_urls": [
+        "https://developers.openai.com/learn/docs-mcp",
+        "https://developers.openai.com/codex/concepts/customization",
+        "https://developers.openai.com/codex/app/automations",
+        "https://developers.openai.com/codex/cli/slash-commands"
+      ],
+      "retrieval_required": true,
+      "max_age_days": 45,
+      "required_metadata": [
+        "source_url",
+        "retrieved_at",
+        "review_status",
+        "expires_at"
+      ],
+      "review_status": "review-required",
+      "stale_action": "re-fetch official source before promoting or editing long-term guidance",
+      "promotion_targets": [
+        "AGENTS.md",
+        "src/codex-home/AGENTS.md",
+        "manifests/guidance_promotions.json",
+        "docs/archive"
+      ],
+      "verification": [
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk bash scripts/governance-report.sh --json"
+      ],
+      "rollback": "remove the promoted rule or revert to the last reviewed official-docs source snapshot",
+      "artifacts": [
+        "source URL list",
+        "retrieval date",
+        "review note",
+        "staleness decision"
+      ]
+    }
+  ]
+}

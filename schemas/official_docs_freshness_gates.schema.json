@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Official Docs Freshness Gates Manifest",
+  "type": "object",
+  "required": ["schema_version", "official_docs_freshness_gates"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "official_docs_freshness_gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "source",
+          "mcp_server",
+          "source_domains",
+          "source_urls",
+          "retrieval_required",
+          "max_age_days",
+          "required_metadata",
+          "review_status",
+          "stale_action",
+          "promotion_targets",
+          "verification",
+          "rollback",
+          "artifacts"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          },
+          "mcp_server": {
+            "type": "string"
+          },
+          "source_domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "retrieval_required": {
+            "type": "boolean"
+          },
+          "max_age_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "required_metadata": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "review_status": {
+            "type": "string"
+          },
+          "stale_action": {
+            "type": "string"
+          },
+          "promotion_targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verification": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rollback": {
+            "type": "string"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

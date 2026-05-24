@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Trace Eval Contracts Manifest",
+  "type": "object",
+  "required": ["schema_version", "trace_eval_contracts"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "trace_eval_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "profiles",
+          "scope",
+          "trace_sources",
+          "rubric",
+          "min_score",
+          "required_events",
+          "forbidden_events",
+          "commands",
+          "artifacts",
+          "promotion_gate"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "string"
+          },
+          "trace_sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rubric": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "min_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "required_events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "forbidden_events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "commands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "promotion_gate": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

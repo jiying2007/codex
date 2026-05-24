@@ -393,6 +393,225 @@ def write_p3_p4_controls(root: pathlib.Path) -> None:
     )
 
 
+def write_p5_controls(root: pathlib.Path) -> None:
+    write_json(
+        root / "manifests/prompt_experiments.json",
+        {
+            "schema_version": 1,
+            "prompt_experiments": [
+                {
+                    "name": "agents-guidance-experiment",
+                    "enabled": False,
+                    "profiles": ["team-collab"],
+                    "target": "agents-guidance",
+                    "target_paths": ["AGENTS.md", "src/codex-home/AGENTS.md"],
+                    "hypothesis": "explicit evidence gate improves guidance promotion",
+                    "variants": [
+                        {"name": "baseline", "change_summary": "current guidance"},
+                        {"name": "evidence-gate", "change_summary": "require evidence"},
+                    ],
+                    "evaluation_suite": "routing-eval",
+                    "sample_cases": ["official docs promotion", "session lesson"],
+                    "grader": {"type": "human-plus-tests", "rubric": ["rejects unsourced rules"]},
+                    "human_review_required": True,
+                    "success_metric": "no governance regression",
+                    "rollback": "drop variant",
+                    "artifacts": ["review note"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/trace_eval_contracts.json",
+        {
+            "schema_version": 1,
+            "trace_eval_contracts": [
+                {
+                    "name": "governance-trace-eval",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "scope": "asset governance",
+                    "trace_sources": ["plan", "commands"],
+                    "rubric": [
+                        {"criterion": "read before edit", "weight": 0.5},
+                        {"criterion": "verify before final", "weight": 0.5},
+                    ],
+                    "min_score": 0.9,
+                    "required_events": ["status checked", "tests run"],
+                    "forbidden_events": ["completion without verification"],
+                    "commands": ["rtk bash scripts/final-ready.sh"],
+                    "artifacts": ["final-ready summary"],
+                    "promotion_gate": "trace evidence reviewed",
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/context_state_contracts.json",
+        {
+            "schema_version": 1,
+            "context_state_contracts": [
+                {
+                    "name": "handoff-context-state",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "scope": "context handoff",
+                    "layers": {
+                        "stable": {
+                            "required_fields": ["rules"],
+                            "destinations": ["AGENTS.md"],
+                            "promotion_gate": "reviewed",
+                        },
+                        "dynamic": {
+                            "required_fields": ["current goal"],
+                            "destinations": ["context-preflight"],
+                            "promotion_gate": "expires before promotion",
+                        },
+                        "evidence": {
+                            "required_fields": ["command"],
+                            "destinations": ["final evidence"],
+                            "promotion_gate": "reproducible",
+                        },
+                        "excluded": {
+                            "required_fields": ["secrets"],
+                            "destinations": ["none"],
+                            "promotion_gate": "never promote",
+                        },
+                    },
+                    "validation_commands": ["rtk bash scripts/context-preflight.sh"],
+                    "forbidden_promotions": ["excluded-to-memory"],
+                    "artifacts": ["context-preflight markdown"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/automation_run_records.json",
+        {
+            "schema_version": 1,
+            "automation_run_records": [
+                {
+                    "name": "health-report-record-template",
+                    "enabled": False,
+                    "automation": "health-report",
+                    "run_id": "template",
+                    "run_at": "manual-template",
+                    "trigger": "scheduled",
+                    "status": "record-template",
+                    "triage": {
+                        "summary": "record triage",
+                        "priority": "review",
+                        "allowed_outputs": ["summary"],
+                        "forbidden_actions": ["send", "commit", "delete", "publish"],
+                    },
+                    "cleanup": {"performed": False, "actions": ["discard transient logs"]},
+                    "retention": {"policy": "summary-only", "expires_after": "next run"},
+                    "human_review": {"required": True, "status": "pending", "reviewer": "human"},
+                    "artifacts": ["triage summary"],
+                }
+            ],
+        },
+    )
+
+
+def write_p6_controls(root: pathlib.Path) -> None:
+    mcp_manifest = json.loads((root / "manifests/mcp_servers.json").read_text())
+    docs_server = dict(mcp_manifest["mcp_servers"][0])
+    docs_server["name"] = "openaiDeveloperDocs"
+    docs_server["transport"] = "http"
+    docs_server.pop("command", None)
+    docs_server.pop("args", None)
+    docs_server["url"] = "https://developers.openai.com/mcp"
+    docs_server["env"] = {}
+    docs_server["readiness"]["network_targets"] = ["developers.openai.com"]
+    docs_server["readiness"]["tool_inventory"] = [
+        "search_openai_docs",
+        "fetch_openai_doc",
+        "list_openai_docs",
+    ]
+    docs_server["readiness"]["write_actions"] = []
+    docs_server["readiness"]["destructive_actions"] = []
+    mcp_manifest["mcp_servers"].append(docs_server)
+    write_json(root / "manifests/mcp_servers.json", mcp_manifest)
+    write_json(
+        root / "manifests/skill_mcp_dependencies.json",
+        {
+            "schema_version": 1,
+            "skill_mcp_dependencies": [
+                {
+                    "name": "docs-skill-dependency",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "skill": "session-wrap",
+                    "mcp_servers": ["openaiDeveloperDocs"],
+                    "access_mode": "read-only",
+                    "required_tools": ["search_openai_docs", "fetch_openai_doc"],
+                    "allowed_actions": ["search docs", "fetch docs"],
+                    "forbidden_actions": [
+                        "external-write",
+                        "credential-access",
+                        "destructive-action",
+                        "silent-enable-mcp",
+                    ],
+                    "approval_required": True,
+                    "fallback": "official-domain fallback",
+                    "verification": ["rtk codex mcp list"],
+                    "artifacts": ["source URL list"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/slash_command_runtime_audits.json",
+        {
+            "schema_version": 1,
+            "slash_command_runtime_audits": [
+                {
+                    "name": "compact-runtime-audit",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "command_contract": "goal-command",
+                    "command": "/goal",
+                    "risk_class": "goal-control",
+                    "audit_events": ["command invoked", "verification checked"],
+                    "runtime_controls": ["keep scope explicit"],
+                    "required_evidence": ["goal summary"],
+                    "forbidden_actions": ["bypass-verification", "silent-memory-write"],
+                    "retention": "audit summary only",
+                    "review_required": True,
+                    "verification": ["rtk bash scripts/final-ready.sh"],
+                    "artifacts": ["audit summary"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/official_docs_freshness_gates.json",
+        {
+            "schema_version": 1,
+            "official_docs_freshness_gates": [
+                {
+                    "name": "openai-docs-freshness",
+                    "enabled": True,
+                    "source": "openai-developer-docs",
+                    "mcp_server": "openaiDeveloperDocs",
+                    "source_domains": ["developers.openai.com"],
+                    "source_urls": ["https://developers.openai.com/learn/docs-mcp"],
+                    "retrieval_required": True,
+                    "max_age_days": 45,
+                    "required_metadata": ["source_url", "retrieved_at", "review_status", "expires_at"],
+                    "review_status": "review-required",
+                    "stale_action": "re-fetch before promotion",
+                    "promotion_targets": ["AGENTS.md"],
+                    "verification": ["rtk bash scripts/doctor.sh --scope governance"],
+                    "rollback": "remove promoted rule",
+                    "artifacts": ["review note"],
+                }
+            ],
+        },
+    )
+
+
 class GovernanceValidationTest(unittest.TestCase):
     def test_valid_governance_manifests_pass(self) -> None:
         root = make_repo(self)
@@ -619,6 +838,170 @@ class GovernanceValidationTest(unittest.TestCase):
 
         errors = validate_repo(root)
         self.assertIn("automations:health-report 缺少字段 run_lifecycle", errors)
+
+    def test_p5_controls_pass_and_report(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p3_p4_controls(root)
+        write_p5_controls(root)
+
+        self.assertEqual([], validate_repo(root))
+        report = governance_report(root)
+        self.assertEqual(["agents-guidance-experiment"], report["prompt_experiments"])
+        self.assertEqual(["governance-trace-eval"], report["trace_eval_contracts"])
+        self.assertEqual(["handoff-context-state"], report["context_state_contracts"])
+        self.assertEqual(["health-report-record-template"], report["automation_run_records"])
+        self.assertEqual(
+            "routing-eval",
+            report["prompt_experiment_links"]["agents-guidance-experiment"]["evaluation_suite"],
+        )
+        self.assertEqual(
+            0.9,
+            report["trace_eval_contract_links"]["governance-trace-eval"]["min_score"],
+        )
+        self.assertEqual(
+            ["dynamic", "evidence", "excluded", "stable"],
+            report["context_state_contract_links"]["handoff-context-state"]["layers"],
+        )
+        self.assertEqual(
+            "health-report",
+            report["automation_run_record_links"]["health-report-record-template"]["automation"],
+        )
+
+    def test_prompt_experiment_rejects_unknown_eval_suite_and_missing_review(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p3_p4_controls(root)
+        write_p5_controls(root)
+        manifest = json.loads((root / "manifests/prompt_experiments.json").read_text())
+        experiment = manifest["prompt_experiments"][0]
+        experiment["evaluation_suite"] = "missing-eval"
+        experiment["human_review_required"] = False
+        write_json(root / "manifests/prompt_experiments.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("prompt_experiments:agents-guidance-experiment 引用未知 evaluation_suite: missing-eval", errors)
+        self.assertIn("prompt_experiments:agents-guidance-experiment human_review_required 必须为 true", errors)
+
+    def test_trace_eval_rejects_bad_weight_and_score(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p3_p4_controls(root)
+        write_p5_controls(root)
+        manifest = json.loads((root / "manifests/trace_eval_contracts.json").read_text())
+        contract = manifest["trace_eval_contracts"][0]
+        contract["rubric"][0]["weight"] = 0.2
+        contract["min_score"] = 1.5
+        write_json(root / "manifests/trace_eval_contracts.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("trace_eval_contracts:governance-trace-eval rubric.weight 总和必须为 1", errors)
+        self.assertIn("trace_eval_contracts:governance-trace-eval min_score 必须在 0..1", errors)
+
+    def test_context_state_requires_excluded_never_gate(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p3_p4_controls(root)
+        write_p5_controls(root)
+        manifest = json.loads((root / "manifests/context_state_contracts.json").read_text())
+        manifest["context_state_contracts"][0]["layers"]["excluded"]["promotion_gate"] = "review first"
+        write_json(root / "manifests/context_state_contracts.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("context_state_contracts:handoff-context-state excluded promotion_gate 必须包含 never", errors)
+
+    def test_automation_run_record_rejects_enabled_and_missing_forbidden_action(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p5_controls(root)
+        manifest = json.loads((root / "manifests/automation_run_records.json").read_text())
+        record = manifest["automation_run_records"][0]
+        record["enabled"] = True
+        record["triage"]["forbidden_actions"] = ["send", "commit", "delete"]
+        write_json(root / "manifests/automation_run_records.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("automation_run_records:health-report-record-template 运行记录不得 enabled=true", errors)
+        self.assertIn("automation_run_records:health-report-record-template triage.forbidden_actions 必须包含 publish", errors)
+
+    def test_p6_controls_pass_and_report(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p3_p4_controls(root)
+        write_p6_controls(root)
+
+        self.assertEqual([], validate_repo(root))
+        report = governance_report(root)
+        self.assertEqual(["docs-skill-dependency"], report["skill_mcp_dependencies"])
+        self.assertEqual(["compact-runtime-audit"], report["slash_command_runtime_audits"])
+        self.assertEqual(["openai-docs-freshness"], report["official_docs_freshness_gates"])
+        self.assertEqual(
+            "session-wrap",
+            report["skill_mcp_dependency_links"]["docs-skill-dependency"]["skill"],
+        )
+        self.assertEqual(
+            "/goal",
+            report["slash_command_runtime_audit_links"]["compact-runtime-audit"]["command"],
+        )
+        self.assertEqual(
+            "openaiDeveloperDocs",
+            report["official_docs_freshness_gate_links"]["openai-docs-freshness"]["mcp_server"],
+        )
+
+    def test_skill_mcp_dependency_rejects_unknown_skill_and_missing_approval(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p6_controls(root)
+        manifest = json.loads((root / "manifests/skill_mcp_dependencies.json").read_text())
+        dependency = manifest["skill_mcp_dependencies"][0]
+        dependency["skill"] = "missing-skill"
+        dependency["approval_required"] = False
+        dependency["forbidden_actions"] = ["external-write"]
+        write_json(root / "manifests/skill_mcp_dependencies.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("skill_mcp_dependencies:docs-skill-dependency 引用未知 skill: missing-skill", errors)
+        self.assertIn("skill_mcp_dependencies:docs-skill-dependency approval_required 必须为 true", errors)
+        self.assertIn(
+            "skill_mcp_dependencies:docs-skill-dependency forbidden_actions 缺少: credential-access, destructive-action, silent-enable-mcp",
+            errors,
+        )
+
+    def test_slash_command_runtime_audit_rejects_mismatched_command(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p3_p4_controls(root)
+        write_p6_controls(root)
+        manifest = json.loads((root / "manifests/slash_command_runtime_audits.json").read_text())
+        audit = manifest["slash_command_runtime_audits"][0]
+        audit["command"] = "/review"
+        audit["forbidden_actions"] = ["silent-memory-write"]
+        write_json(root / "manifests/slash_command_runtime_audits.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("slash_command_runtime_audits:compact-runtime-audit command 必须匹配 command_contract: /goal", errors)
+        self.assertIn("slash_command_runtime_audits:compact-runtime-audit forbidden_actions 必须包含 bypass-verification", errors)
+
+    def test_official_docs_freshness_gate_rejects_unofficial_source(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p6_controls(root)
+        manifest = json.loads((root / "manifests/official_docs_freshness_gates.json").read_text())
+        gate = manifest["official_docs_freshness_gates"][0]
+        gate["source_domains"] = ["example.com"]
+        gate["source_urls"] = ["https://example.com/docs"]
+        gate["required_metadata"] = ["source_url"]
+        gate["retrieval_required"] = False
+        write_json(root / "manifests/official_docs_freshness_gates.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("official_docs_freshness_gates:openai-docs-freshness retrieval_required 必须为 true", errors)
+        self.assertIn("official_docs_freshness_gates:openai-docs-freshness source_domains 必须包含 OpenAI 官方域名", errors)
+        self.assertIn("official_docs_freshness_gates:openai-docs-freshness source_urls 必须使用 OpenAI 官方域名: example.com", errors)
+        self.assertIn(
+            "official_docs_freshness_gates:openai-docs-freshness required_metadata 缺少: expires_at, retrieved_at, review_status",
+            errors,
+        )
 
 
 if __name__ == "__main__":

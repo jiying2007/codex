@@ -126,6 +126,13 @@ rtk bash scripts/check.sh
 | `manifests/cli_command_contracts.json` | slash command 的输入、允许动作、禁止动作、输出和验证契约 |
 | `manifests/guidance_promotions.json` | 从会话、归档、manifest 或官方资料提升到 AGENTS/skill/archive/memory 的门禁 |
 | `manifests/goal_templates.json` | weak、strong、continuous 目标模板及验证/产物契约 |
+| `manifests/prompt_experiments.json` | AGENTS、skill 和 prompt 指导规则实验、grader、人工评审和回退契约 |
+| `manifests/trace_eval_contracts.json` | 过程轨迹评分契约，约束必要事件、禁止事件、rubric 和最低分 |
+| `manifests/context_state_contracts.json` | stable/dynamic/evidence/excluded context 的可验证状态契约 |
+| `manifests/automation_run_records.json` | automation 单次运行记录模板、triage、清理、保留和人工审查状态 |
+| `manifests/skill_mcp_dependencies.json` | skill 对 MCP server/tool 的依赖、权限、禁止动作、审批和 fallback |
+| `manifests/slash_command_runtime_audits.json` | slash command 运行态审计事件、证据、保留策略和禁止动作 |
+| `manifests/official_docs_freshness_gates.json` | 官方文档来源 URL、检索时间、审查状态、过期和回退门禁 |
 | `manifests/project-templates.json` | 项目类型到默认 profile、workflow 与归档主题的映射 |
 | `manifests/overlays.json` | 个人、本地、团队和发布场景的允许漂移与阻断路径 |
 | `manifests/policies.json` | protected paths 与 apply 策略 |
@@ -176,6 +183,13 @@ profile、agent、skill、workflow、项目模板和 overlay 分层管理：
 - CLI command contract 约束 `/goal`、`/review`、`/compact` 等控制面的输入、输出、禁止动作和验证要求。
 - guidance promotion 定义从资料或会话经验提升到长期规则、skill、archive 或 memory 的审查和回退路径。
 - goal template 定义 weak、strong、continuous 目标的必填字段、验证契约、产物契约和停止条件。
+- prompt experiment 用小规模样例、grader、人工评审和 rollback 验证 AGENTS、skill 或 prompt 指导规则变更。
+- trace eval contract 把“过程是否可靠”纳入评分，要求必要事件、禁止事件、rubric 权重和最低通过分。
+- context state contract 把上下文分层从文档约定提升为可校验契约，避免 dynamic/excluded context 进入长期规则。
+- automation run record 只记录单次运行 triage、清理、保留、人工审查和禁止动作，不启动调度器。
+- skill MCP dependency 把 skill 和 MCP server/tool 的读写边界、审批、fallback 和禁止动作显式化。
+- slash command runtime audit 把 `/goal`、`/review`、`/compact` 等控制面动作的运行态事件、证据和保留策略纳入治理。
+- official docs freshness gate 要求官方资料提升前具备 source URL、retrieved_at、review_status、expires_at、stale action 和 rollback。
 - project template 用路径模式把不同项目类型映射到默认 profile、推荐 workflow 和归档主题。
 - overlay 约束个人、本地、团队共享和发布场景下哪些 live 差异允许存在，哪些路径必须阻断。
 

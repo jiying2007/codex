@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "automation_run_records": [
+    {
+      "name": "health-report-record-template",
+      "enabled": false,
+      "automation": "codex-home-health-report",
+      "run_id": "template",
+      "run_at": "manual-template",
+      "trigger": "scheduled-or-thread-wakeup",
+      "status": "record-template",
+      "triage": {
+        "summary": "record source, priority and recommended human action",
+        "priority": "review",
+        "allowed_outputs": [
+          "summary",
+          "draft"
+        ],
+        "forbidden_actions": [
+          "send",
+          "commit",
+          "delete",
+          "publish"
+        ]
+      },
+      "cleanup": {
+        "performed": false,
+        "actions": [
+          "discard transient logs",
+          "keep sanitized summary only"
+        ]
+      },
+      "retention": {
+        "policy": "summary-only",
+        "expires_after": "next successful run unless archived"
+      },
+      "human_review": {
+        "required": true,
+        "status": "pending",
+        "reviewer": "human"
+      },
+      "artifacts": [
+        "automation triage summary",
+        "sanitized run note"
+      ]
+    }
+  ]
+}

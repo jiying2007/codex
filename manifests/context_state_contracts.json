@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "context_state_contracts": [
+    {
+      "name": "session-continuity-context-state",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "scope": "context-preflight and session handoff artifacts",
+      "layers": {
+        "stable": {
+          "required_fields": [
+            "repo rules",
+            "durable decisions",
+            "validated workflow contracts"
+          ],
+          "destinations": [
+            "AGENTS.md",
+            "docs/archive",
+            "manifest"
+          ],
+          "promotion_gate": "reviewed, secret-scanned and covered by guidance_promotions"
+        },
+        "dynamic": {
+          "required_fields": [
+            "current goal",
+            "worktree state",
+            "next command",
+            "blockers"
+          ],
+          "destinations": [
+            "context-preflight",
+            "session summary"
+          ],
+          "promotion_gate": "must expire or be reclassified before long-term promotion"
+        },
+        "evidence": {
+          "required_fields": [
+            "command",
+            "result",
+            "artifact",
+            "negative result"
+          ],
+          "destinations": [
+            "final evidence",
+            "commit evidence",
+            "archive note"
+          ],
+          "promotion_gate": "must remain tied to reproducible command or artifact"
+        },
+        "excluded": {
+          "required_fields": [
+            "secrets",
+            "session raw logs",
+            "cache",
+            "unreviewed memory"
+          ],
+          "destinations": [
+            "none"
+          ],
+          "promotion_gate": "never promote"
+        }
+      },
+      "validation_commands": [
+        "rtk bash scripts/context-preflight.sh",
+        "rtk rg -n \"Stable Context|Dynamic Context|Evidence Context|Excluded Context\""
+      ],
+      "forbidden_promotions": [
+        "dynamic-to-AGENTS-without-review",
+        "excluded-to-memory",
+        "raw-session-log-to-archive"
+      ],
+      "artifacts": [
+        "context-preflight markdown",
+        "docs/context-layout.md"
+      ]
+    }
+  ]
+}

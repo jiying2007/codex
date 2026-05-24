@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "skill_mcp_dependencies": [
+    {
+      "name": "openai-docs-readonly-dependency",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "skill": "multi-search-engine",
+      "mcp_servers": [
+        "openaiDeveloperDocs"
+      ],
+      "access_mode": "read-only",
+      "required_tools": [
+        "search_openai_docs",
+        "fetch_openai_doc",
+        "list_openai_docs"
+      ],
+      "allowed_actions": [
+        "search official OpenAI developer docs",
+        "fetch official OpenAI developer docs",
+        "summarize with source URLs and retrieval dates"
+      ],
+      "forbidden_actions": [
+        "external-write",
+        "credential-access",
+        "destructive-action",
+        "silent-enable-mcp"
+      ],
+      "approval_required": true,
+      "fallback": "If the Docs MCP is disabled or unavailable, restrict fallback browsing to official OpenAI domains and cite retrieval dates.",
+      "verification": [
+        "rtk codex mcp list",
+        "rtk bash scripts/doctor.sh --scope governance"
+      ],
+      "artifacts": [
+        "source URL list",
+        "retrieval date",
+        "governance report"
+      ]
+    }
+  ]
+}

@@ -25,6 +25,17 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
     cli_command_contracts = optional_manifest_items(repo, "cli_command_contracts.json", "cli_command_contracts")
     guidance_promotions = optional_manifest_items(repo, "guidance_promotions.json", "guidance_promotions")
     goal_templates = optional_manifest_items(repo, "goal_templates.json", "goal_templates")
+    prompt_experiments = optional_manifest_items(repo, "prompt_experiments.json", "prompt_experiments")
+    trace_eval_contracts = optional_manifest_items(repo, "trace_eval_contracts.json", "trace_eval_contracts")
+    context_state_contracts = optional_manifest_items(repo, "context_state_contracts.json", "context_state_contracts")
+    automation_run_records = optional_manifest_items(repo, "automation_run_records.json", "automation_run_records")
+    skill_mcp_dependencies = optional_manifest_items(repo, "skill_mcp_dependencies.json", "skill_mcp_dependencies")
+    slash_command_runtime_audits = optional_manifest_items(
+        repo, "slash_command_runtime_audits.json", "slash_command_runtime_audits"
+    )
+    official_docs_freshness_gates = optional_manifest_items(
+        repo, "official_docs_freshness_gates.json", "official_docs_freshness_gates"
+    )
     return {
         "schema_version": 1,
         "default_profile": repo.assets.get("default_profile", ""),
@@ -40,6 +51,17 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
         "cli_command_contracts": sorted(item.get("name", "") for item in cli_command_contracts if item.get("name")),
         "guidance_promotions": sorted(item.get("name", "") for item in guidance_promotions if item.get("name")),
         "goal_templates": sorted(item.get("name", "") for item in goal_templates if item.get("name")),
+        "prompt_experiments": sorted(item.get("name", "") for item in prompt_experiments if item.get("name")),
+        "trace_eval_contracts": sorted(item.get("name", "") for item in trace_eval_contracts if item.get("name")),
+        "context_state_contracts": sorted(item.get("name", "") for item in context_state_contracts if item.get("name")),
+        "automation_run_records": sorted(item.get("name", "") for item in automation_run_records if item.get("name")),
+        "skill_mcp_dependencies": sorted(item.get("name", "") for item in skill_mcp_dependencies if item.get("name")),
+        "slash_command_runtime_audits": sorted(
+            item.get("name", "") for item in slash_command_runtime_audits if item.get("name")
+        ),
+        "official_docs_freshness_gates": sorted(
+            item.get("name", "") for item in official_docs_freshness_gates if item.get("name")
+        ),
         "workflows": sorted(item.get("name", "") for item in workflows if item.get("name")),
         "project_templates": sorted(item.get("name", "") for item in templates if item.get("name")),
         "overlays": sorted(item.get("name", "") for item in overlays if item.get("name")),
@@ -52,6 +74,13 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
         "cli_command_contract_links": cli_command_contract_links(cli_command_contracts),
         "guidance_promotion_links": guidance_promotion_links(guidance_promotions),
         "goal_template_links": goal_template_links(goal_templates),
+        "prompt_experiment_links": prompt_experiment_links(prompt_experiments),
+        "trace_eval_contract_links": trace_eval_contract_links(trace_eval_contracts),
+        "context_state_contract_links": context_state_contract_links(context_state_contracts),
+        "automation_run_record_links": automation_run_record_links(automation_run_records),
+        "skill_mcp_dependency_links": skill_mcp_dependency_links(skill_mcp_dependencies),
+        "slash_command_runtime_audit_links": slash_command_runtime_audit_links(slash_command_runtime_audits),
+        "official_docs_freshness_gate_links": official_docs_freshness_gate_links(official_docs_freshness_gates),
         "template_links": template_links(templates),
     }
 
@@ -73,18 +102,37 @@ def governance_errors(repo: Repo) -> list[str]:
     cli_command_contracts = optional_manifest_items(repo, "cli_command_contracts.json", "cli_command_contracts")
     guidance_promotions = optional_manifest_items(repo, "guidance_promotions.json", "guidance_promotions")
     goal_templates = optional_manifest_items(repo, "goal_templates.json", "goal_templates")
+    prompt_experiments = optional_manifest_items(repo, "prompt_experiments.json", "prompt_experiments")
+    trace_eval_contracts = optional_manifest_items(repo, "trace_eval_contracts.json", "trace_eval_contracts")
+    context_state_contracts = optional_manifest_items(repo, "context_state_contracts.json", "context_state_contracts")
+    automation_run_records = optional_manifest_items(repo, "automation_run_records.json", "automation_run_records")
+    skill_mcp_dependencies = optional_manifest_items(repo, "skill_mcp_dependencies.json", "skill_mcp_dependencies")
+    slash_command_runtime_audits = optional_manifest_items(
+        repo, "slash_command_runtime_audits.json", "slash_command_runtime_audits"
+    )
+    official_docs_freshness_gates = optional_manifest_items(
+        repo, "official_docs_freshness_gates.json", "official_docs_freshness_gates"
+    )
     workflow_names = item_names("workflows", workflows, errors)
+    automation_names = item_names("automations", automations, errors)
+    eval_suite_names = item_names("eval_suites", eval_suites, errors)
+    mcp_server_names = {item.get("name", "") for item in mcp_servers if item.get("name")}
     workflow_profiles = {item.get("name", ""): set(list_value(item, "profiles")) for item in workflows if item.get("name")}
     item_names("project-templates", templates, errors)
     item_names("overlays", overlays, errors)
     item_names("workflow_recipes", workflow_recipes, errors)
-    item_names("automations", automations, errors)
     item_names("subagent_contracts", subagent_contracts, errors)
     item_names("memory_candidates", memory_candidates, errors)
-    item_names("eval_suites", eval_suites, errors)
-    item_names("cli_command_contracts", cli_command_contracts, errors)
+    cli_command_contract_names = item_names("cli_command_contracts", cli_command_contracts, errors)
     item_names("guidance_promotions", guidance_promotions, errors)
     item_names("goal_templates", goal_templates, errors)
+    item_names("prompt_experiments", prompt_experiments, errors)
+    item_names("trace_eval_contracts", trace_eval_contracts, errors)
+    item_names("context_state_contracts", context_state_contracts, errors)
+    item_names("automation_run_records", automation_run_records, errors)
+    item_names("skill_mcp_dependencies", skill_mcp_dependencies, errors)
+    item_names("slash_command_runtime_audits", slash_command_runtime_audits, errors)
+    item_names("official_docs_freshness_gates", official_docs_freshness_gates, errors)
     validate_workflows(workflows, profile_names, skill_names, agent_names, errors)
     validate_project_templates(templates, profile_names, workflow_names, errors)
     validate_overlays(overlays, repo.policies.get("protected_paths", []), errors)
@@ -97,6 +145,19 @@ def governance_errors(repo: Repo) -> list[str]:
     validate_cli_command_contracts(cli_command_contracts, profile_names, errors)
     validate_guidance_promotions(guidance_promotions, errors)
     validate_goal_templates(goal_templates, profile_names, workflow_names, workflow_profiles, errors)
+    validate_prompt_experiments(prompt_experiments, profile_names, eval_suite_names, errors)
+    validate_trace_eval_contracts(trace_eval_contracts, profile_names, errors)
+    validate_context_state_contracts(context_state_contracts, profile_names, errors)
+    validate_automation_run_records(automation_run_records, automation_names, errors)
+    validate_skill_mcp_dependencies(skill_mcp_dependencies, profile_names, skill_names, mcp_server_names, errors)
+    validate_slash_command_runtime_audits(
+        slash_command_runtime_audits,
+        profile_names,
+        cli_command_contract_names,
+        cli_command_contracts,
+        errors,
+    )
+    validate_official_docs_freshness_gates(official_docs_freshness_gates, mcp_server_names, errors)
     return errors
 
 
@@ -667,6 +728,428 @@ def validate_goal_templates(
                 errors.append(f"goal_templates:{name} {field} 不能为空")
 
 
+def validate_prompt_experiments(
+    items: list[dict[str, Any]],
+    profile_names: set[str],
+    eval_suite_names: set[str],
+    errors: list[str],
+) -> None:
+    allowed_targets = {"agents-guidance", "skill", "workflow", "slash-command", "system-prompt", "docs"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "target",
+            "target_paths",
+            "hypothesis",
+            "variants",
+            "evaluation_suite",
+            "sample_cases",
+            "grader",
+            "human_review_required",
+            "success_metric",
+            "rollback",
+            "artifacts",
+        ]:
+            if field not in item:
+                errors.append(f"prompt_experiments:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"prompt_experiments:{name} 引用未知 profile: {profile}")
+        target = str(item.get("target", ""))
+        if target and target not in allowed_targets:
+            errors.append(f"prompt_experiments:{name} target 非法: {target}")
+        for path in list_value(item, "target_paths"):
+            if unsafe_path(path):
+                errors.append(f"prompt_experiments:{name} target_paths 包含不安全路径: {path}")
+        if not list_value(item, "target_paths"):
+            errors.append(f"prompt_experiments:{name} target_paths 不能为空")
+        if not str(item.get("hypothesis", "")).strip():
+            errors.append(f"prompt_experiments:{name} hypothesis 不能为空")
+        variants = list_dict_value(item, "variants")
+        if len(variants) < 2:
+            errors.append(f"prompt_experiments:{name} variants 至少需要 2 个")
+        for variant in variants:
+            if not str(variant.get("name", "")).strip():
+                errors.append(f"prompt_experiments:{name} variants 条目缺少 name")
+            if not str(variant.get("change_summary", "")).strip():
+                errors.append(f"prompt_experiments:{name} variants 条目缺少 change_summary")
+        suite = str(item.get("evaluation_suite", ""))
+        if suite and suite not in eval_suite_names:
+            errors.append(f"prompt_experiments:{name} 引用未知 evaluation_suite: {suite}")
+        if not list_value(item, "sample_cases"):
+            errors.append(f"prompt_experiments:{name} sample_cases 不能为空")
+        grader = item.get("grader", {})
+        if not isinstance(grader, dict):
+            errors.append(f"prompt_experiments:{name} grader 必须是 object")
+        elif not str(grader.get("type", "")).strip() or not list_value(grader, "rubric"):
+            errors.append(f"prompt_experiments:{name} grader 必须包含 type 和 rubric")
+        if item.get("human_review_required") is not True:
+            errors.append(f"prompt_experiments:{name} human_review_required 必须为 true")
+        for field in ["success_metric", "rollback"]:
+            if not str(item.get(field, "")).strip():
+                errors.append(f"prompt_experiments:{name} {field} 不能为空")
+        if not list_value(item, "artifacts"):
+            errors.append(f"prompt_experiments:{name} artifacts 不能为空")
+
+
+def validate_trace_eval_contracts(
+    items: list[dict[str, Any]],
+    profile_names: set[str],
+    errors: list[str],
+) -> None:
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "scope",
+            "trace_sources",
+            "rubric",
+            "min_score",
+            "required_events",
+            "forbidden_events",
+            "commands",
+            "artifacts",
+            "promotion_gate",
+        ]:
+            if field not in item:
+                errors.append(f"trace_eval_contracts:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"trace_eval_contracts:{name} 引用未知 profile: {profile}")
+        if not str(item.get("scope", "")).strip():
+            errors.append(f"trace_eval_contracts:{name} scope 不能为空")
+        for field in ["trace_sources", "required_events", "forbidden_events", "commands", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"trace_eval_contracts:{name} {field} 不能为空")
+        rubric = list_dict_value(item, "rubric")
+        if not rubric:
+            errors.append(f"trace_eval_contracts:{name} rubric 不能为空")
+        total_weight = 0.0
+        for rule in rubric:
+            if not str(rule.get("criterion", "")).strip():
+                errors.append(f"trace_eval_contracts:{name} rubric 条目缺少 criterion")
+            weight = rule.get("weight", 0)
+            if not isinstance(weight, (int, float)) or weight <= 0:
+                errors.append(f"trace_eval_contracts:{name} rubric.weight 必须大于 0")
+            else:
+                total_weight += float(weight)
+        if rubric and abs(total_weight - 1.0) > 0.001:
+            errors.append(f"trace_eval_contracts:{name} rubric.weight 总和必须为 1")
+        score = item.get("min_score", 0)
+        if not isinstance(score, (int, float)) or score < 0 or score > 1:
+            errors.append(f"trace_eval_contracts:{name} min_score 必须在 0..1")
+        if not str(item.get("promotion_gate", "")).strip():
+            errors.append(f"trace_eval_contracts:{name} promotion_gate 不能为空")
+
+
+def validate_context_state_contracts(
+    items: list[dict[str, Any]],
+    profile_names: set[str],
+    errors: list[str],
+) -> None:
+    required_layers = ["stable", "dynamic", "evidence", "excluded"]
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "scope",
+            "layers",
+            "validation_commands",
+            "forbidden_promotions",
+            "artifacts",
+        ]:
+            if field not in item:
+                errors.append(f"context_state_contracts:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"context_state_contracts:{name} 引用未知 profile: {profile}")
+        if not str(item.get("scope", "")).strip():
+            errors.append(f"context_state_contracts:{name} scope 不能为空")
+        layers = item.get("layers", {})
+        if not isinstance(layers, dict):
+            errors.append(f"context_state_contracts:{name} layers 必须是 object")
+        else:
+            for layer_name in required_layers:
+                layer = layers.get(layer_name)
+                if not isinstance(layer, dict):
+                    errors.append(f"context_state_contracts:{name} layers 缺少 {layer_name}")
+                    continue
+                for field in ["required_fields", "destinations", "promotion_gate"]:
+                    if field not in layer:
+                        errors.append(f"context_state_contracts:{name} layers.{layer_name} 缺少字段 {field}")
+                if not list_value(layer, "required_fields"):
+                    errors.append(f"context_state_contracts:{name} layers.{layer_name}.required_fields 不能为空")
+                if not list_value(layer, "destinations"):
+                    errors.append(f"context_state_contracts:{name} layers.{layer_name}.destinations 不能为空")
+                if not str(layer.get("promotion_gate", "")).strip():
+                    errors.append(f"context_state_contracts:{name} layers.{layer_name}.promotion_gate 不能为空")
+            excluded = layers.get("excluded", {})
+            if isinstance(excluded, dict) and "never" not in str(excluded.get("promotion_gate", "")).lower():
+                errors.append(f"context_state_contracts:{name} excluded promotion_gate 必须包含 never")
+        for field in ["validation_commands", "forbidden_promotions", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"context_state_contracts:{name} {field} 不能为空")
+
+
+def validate_automation_run_records(
+    items: list[dict[str, Any]],
+    automation_names: set[str],
+    errors: list[str],
+) -> None:
+    allowed_status = {"record-template", "pending-review", "reviewed", "archived", "discarded"}
+    allowed_priorities = {"low", "review", "high", "urgent"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "automation",
+            "run_id",
+            "run_at",
+            "trigger",
+            "status",
+            "triage",
+            "cleanup",
+            "retention",
+            "human_review",
+            "artifacts",
+        ]:
+            if field not in item:
+                errors.append(f"automation_run_records:{name} 缺少字段 {field}")
+        if item.get("enabled"):
+            errors.append(f"automation_run_records:{name} 运行记录不得 enabled=true")
+        automation = str(item.get("automation", ""))
+        if automation and automation not in automation_names:
+            errors.append(f"automation_run_records:{name} 引用未知 automation: {automation}")
+        for field in ["run_id", "run_at", "trigger"]:
+            if not str(item.get(field, "")).strip():
+                errors.append(f"automation_run_records:{name} {field} 不能为空")
+        status = str(item.get("status", ""))
+        if status and status not in allowed_status:
+            errors.append(f"automation_run_records:{name} status 非法: {status}")
+        triage = item.get("triage", {})
+        if not isinstance(triage, dict):
+            errors.append(f"automation_run_records:{name} triage 必须是 object")
+        else:
+            for field in ["summary", "priority", "allowed_outputs", "forbidden_actions"]:
+                if field not in triage:
+                    errors.append(f"automation_run_records:{name} triage 缺少字段 {field}")
+            if not str(triage.get("summary", "")).strip():
+                errors.append(f"automation_run_records:{name} triage.summary 不能为空")
+            priority = str(triage.get("priority", ""))
+            if priority and priority not in allowed_priorities:
+                errors.append(f"automation_run_records:{name} triage.priority 非法: {priority}")
+            if not list_value(triage, "allowed_outputs"):
+                errors.append(f"automation_run_records:{name} triage.allowed_outputs 不能为空")
+            forbidden = set(list_value(triage, "forbidden_actions"))
+            for action in ["send", "commit", "delete", "publish"]:
+                if action not in forbidden:
+                    errors.append(f"automation_run_records:{name} triage.forbidden_actions 必须包含 {action}")
+        cleanup = item.get("cleanup", {})
+        if not isinstance(cleanup, dict):
+            errors.append(f"automation_run_records:{name} cleanup 必须是 object")
+        else:
+            if "performed" not in cleanup:
+                errors.append(f"automation_run_records:{name} cleanup 缺少字段 performed")
+            if not list_value(cleanup, "actions"):
+                errors.append(f"automation_run_records:{name} cleanup.actions 不能为空")
+        retention = item.get("retention", {})
+        if not isinstance(retention, dict):
+            errors.append(f"automation_run_records:{name} retention 必须是 object")
+        else:
+            for field in ["policy", "expires_after"]:
+                if not str(retention.get(field, "")).strip():
+                    errors.append(f"automation_run_records:{name} retention.{field} 不能为空")
+        human_review = item.get("human_review", {})
+        if not isinstance(human_review, dict):
+            errors.append(f"automation_run_records:{name} human_review 必须是 object")
+        else:
+            if human_review.get("required") is not True:
+                errors.append(f"automation_run_records:{name} human_review.required 必须为 true")
+            if not str(human_review.get("status", "")).strip():
+                errors.append(f"automation_run_records:{name} human_review.status 不能为空")
+            if not str(human_review.get("reviewer", "")).strip():
+                errors.append(f"automation_run_records:{name} human_review.reviewer 不能为空")
+        if not list_value(item, "artifacts"):
+            errors.append(f"automation_run_records:{name} artifacts 不能为空")
+
+
+def validate_skill_mcp_dependencies(
+    items: list[dict[str, Any]],
+    profile_names: set[str],
+    skill_names: set[str],
+    mcp_server_names: set[str],
+    errors: list[str],
+) -> None:
+    allowed_modes = {"read-only", "draft-write", "external-write"}
+    required_forbidden = {"credential-access", "destructive-action", "silent-enable-mcp"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "skill",
+            "mcp_servers",
+            "access_mode",
+            "required_tools",
+            "allowed_actions",
+            "forbidden_actions",
+            "approval_required",
+            "fallback",
+            "verification",
+            "artifacts",
+        ]:
+            if field not in item:
+                errors.append(f"skill_mcp_dependencies:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"skill_mcp_dependencies:{name} 引用未知 profile: {profile}")
+        skill = str(item.get("skill", ""))
+        if skill and skill not in skill_names:
+            errors.append(f"skill_mcp_dependencies:{name} 引用未知 skill: {skill}")
+        for server in list_value(item, "mcp_servers"):
+            if server not in mcp_server_names:
+                errors.append(f"skill_mcp_dependencies:{name} 引用未知 mcp_server: {server}")
+        mode = str(item.get("access_mode", ""))
+        if mode and mode not in allowed_modes:
+            errors.append(f"skill_mcp_dependencies:{name} access_mode 非法: {mode}")
+        for field in ["mcp_servers", "required_tools", "allowed_actions", "forbidden_actions", "verification", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"skill_mcp_dependencies:{name} {field} 不能为空")
+        if item.get("approval_required") is not True:
+            errors.append(f"skill_mcp_dependencies:{name} approval_required 必须为 true")
+        forbidden = set(list_value(item, "forbidden_actions"))
+        missing_forbidden = sorted(required_forbidden - forbidden)
+        if missing_forbidden:
+            errors.append(f"skill_mcp_dependencies:{name} forbidden_actions 缺少: {', '.join(missing_forbidden)}")
+        if mode in {"draft-write", "external-write"} and "external-write" not in forbidden:
+            errors.append(f"skill_mcp_dependencies:{name} 写入类依赖必须禁止 external-write，除非单独建受审契约")
+        if not str(item.get("fallback", "")).strip():
+            errors.append(f"skill_mcp_dependencies:{name} fallback 不能为空")
+
+
+def validate_slash_command_runtime_audits(
+    items: list[dict[str, Any]],
+    profile_names: set[str],
+    cli_command_contract_names: set[str],
+    cli_command_contracts: list[dict[str, Any]],
+    errors: list[str],
+) -> None:
+    allowed_risk = {"context-control", "review-control", "goal-control", "permission-control", "model-control"}
+    contracts_by_name = {item.get("name", ""): item for item in cli_command_contracts if item.get("name")}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "command_contract",
+            "command",
+            "risk_class",
+            "audit_events",
+            "runtime_controls",
+            "required_evidence",
+            "forbidden_actions",
+            "retention",
+            "review_required",
+            "verification",
+            "artifacts",
+        ]:
+            if field not in item:
+                errors.append(f"slash_command_runtime_audits:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"slash_command_runtime_audits:{name} 引用未知 profile: {profile}")
+        contract_name = str(item.get("command_contract", ""))
+        if contract_name and contract_name not in cli_command_contract_names:
+            errors.append(f"slash_command_runtime_audits:{name} 引用未知 command_contract: {contract_name}")
+        command = str(item.get("command", ""))
+        if not command.startswith("/"):
+            errors.append(f"slash_command_runtime_audits:{name} command 必须以 / 开头")
+        contract = contracts_by_name.get(contract_name, {})
+        if contract and command != str(contract.get("command", "")):
+            errors.append(f"slash_command_runtime_audits:{name} command 必须匹配 command_contract: {contract.get('command', '')}")
+        risk = str(item.get("risk_class", ""))
+        if risk and risk not in allowed_risk:
+            errors.append(f"slash_command_runtime_audits:{name} risk_class 非法: {risk}")
+        for field in ["audit_events", "runtime_controls", "required_evidence", "forbidden_actions", "verification", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"slash_command_runtime_audits:{name} {field} 不能为空")
+        if item.get("review_required") is not True:
+            errors.append(f"slash_command_runtime_audits:{name} review_required 必须为 true")
+        forbidden = set(list_value(item, "forbidden_actions"))
+        if "bypass-verification" not in forbidden:
+            errors.append(f"slash_command_runtime_audits:{name} forbidden_actions 必须包含 bypass-verification")
+        retention = str(item.get("retention", "")).lower()
+        if not retention.strip():
+            errors.append(f"slash_command_runtime_audits:{name} retention 不能为空")
+        elif "raw session" in retention or "raw-session" in retention:
+            errors.append(f"slash_command_runtime_audits:{name} retention 不得保留 raw session")
+
+
+def validate_official_docs_freshness_gates(
+    items: list[dict[str, Any]],
+    mcp_server_names: set[str],
+    errors: list[str],
+) -> None:
+    required_metadata = {"source_url", "retrieved_at", "review_status", "expires_at"}
+    allowed_review_status = {"review-required", "reviewed", "stale", "rejected"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "source",
+            "mcp_server",
+            "source_domains",
+            "source_urls",
+            "retrieval_required",
+            "max_age_days",
+            "required_metadata",
+            "review_status",
+            "stale_action",
+            "promotion_targets",
+            "verification",
+            "rollback",
+            "artifacts",
+        ]:
+            if field not in item:
+                errors.append(f"official_docs_freshness_gates:{name} 缺少字段 {field}")
+        server = str(item.get("mcp_server", ""))
+        if server and server not in mcp_server_names:
+            errors.append(f"official_docs_freshness_gates:{name} 引用未知 mcp_server: {server}")
+        if server and server != "openaiDeveloperDocs":
+            errors.append(f"official_docs_freshness_gates:{name} mcp_server 必须是 openaiDeveloperDocs")
+        if item.get("retrieval_required") is not True:
+            errors.append(f"official_docs_freshness_gates:{name} retrieval_required 必须为 true")
+        max_age = item.get("max_age_days", 0)
+        if not isinstance(max_age, int) or max_age < 1 or max_age > 365:
+            errors.append(f"official_docs_freshness_gates:{name} max_age_days 必须在 1..365")
+        domains = set(list_value(item, "source_domains"))
+        if not domains:
+            errors.append(f"official_docs_freshness_gates:{name} source_domains 不能为空")
+        if not any(domain in {"developers.openai.com", "platform.openai.com"} for domain in domains):
+            errors.append(f"official_docs_freshness_gates:{name} source_domains 必须包含 OpenAI 官方域名")
+        for url in list_value(item, "source_urls"):
+            validate_official_docs_url(name, url, domains, errors)
+        if not list_value(item, "source_urls"):
+            errors.append(f"official_docs_freshness_gates:{name} source_urls 不能为空")
+        metadata = set(list_value(item, "required_metadata"))
+        missing_metadata = sorted(required_metadata - metadata)
+        if missing_metadata:
+            errors.append(f"official_docs_freshness_gates:{name} required_metadata 缺少: {', '.join(missing_metadata)}")
+        review_status = str(item.get("review_status", ""))
+        if review_status and review_status not in allowed_review_status:
+            errors.append(f"official_docs_freshness_gates:{name} review_status 非法: {review_status}")
+        for field in ["stale_action", "rollback"]:
+            if not str(item.get(field, "")).strip():
+                errors.append(f"official_docs_freshness_gates:{name} {field} 不能为空")
+        for field in ["promotion_targets", "verification", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"official_docs_freshness_gates:{name} {field} 不能为空")
+
+
 def list_value(item: dict[str, Any], key: str) -> list[str]:
     value = item.get(key, [])
     if not isinstance(value, list):
@@ -691,6 +1174,18 @@ def validate_mcp_url(name: str, url: str, network_targets: list[str], errors: li
         errors.append(f"mcp_servers:{name} url host 必须列入 readiness.network_targets: {host}")
     if name == "openaiDeveloperDocs" and host != "developers.openai.com":
         errors.append("mcp_servers:openaiDeveloperDocs 必须使用官方 developers.openai.com MCP")
+
+
+def validate_official_docs_url(name: str, url: str, allowed_domains: set[str], errors: list[str]) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        errors.append(f"official_docs_freshness_gates:{name} source_urls 必须是 https URL: {url}")
+        return
+    host = parsed.hostname or ""
+    if host not in allowed_domains:
+        errors.append(f"official_docs_freshness_gates:{name} source_urls host 未列入 source_domains: {host}")
+    if host not in {"developers.openai.com", "platform.openai.com"}:
+        errors.append(f"official_docs_freshness_gates:{name} source_urls 必须使用 OpenAI 官方域名: {host}")
 
 
 def validate_deny_path_test(name: str, test: dict[str, Any], errors: list[str]) -> None:
@@ -835,6 +1330,94 @@ def goal_template_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]
             "workflow": item.get("workflow", ""),
             "goal_strength": item.get("goal_strength", ""),
             "profiles": list_value(item, "profiles"),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def prompt_experiment_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "target": item.get("target", ""),
+            "profiles": list_value(item, "profiles"),
+            "evaluation_suite": item.get("evaluation_suite", ""),
+            "human_review_required": item.get("human_review_required", False),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def trace_eval_contract_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "profiles": list_value(item, "profiles"),
+            "min_score": item.get("min_score", 0),
+            "required_events": list_value(item, "required_events"),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def context_state_contract_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "profiles": list_value(item, "profiles"),
+            "scope": item.get("scope", ""),
+            "layers": sorted((item.get("layers", {}) or {}).keys()) if isinstance(item.get("layers", {}), dict) else [],
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def automation_run_record_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "automation": item.get("automation", ""),
+            "run_id": item.get("run_id", ""),
+            "status": item.get("status", ""),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def skill_mcp_dependency_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "skill": item.get("skill", ""),
+            "mcp_servers": list_value(item, "mcp_servers"),
+            "access_mode": item.get("access_mode", ""),
+            "approval_required": item.get("approval_required", False),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def slash_command_runtime_audit_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "command_contract": item.get("command_contract", ""),
+            "command": item.get("command", ""),
+            "risk_class": item.get("risk_class", ""),
+            "review_required": item.get("review_required", False),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def official_docs_freshness_gate_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "mcp_server": item.get("mcp_server", ""),
+            "max_age_days": item.get("max_age_days", 0),
+            "review_status": item.get("review_status", ""),
+            "source_domains": list_value(item, "source_domains"),
         }
         for item in items
         if item.get("name")
