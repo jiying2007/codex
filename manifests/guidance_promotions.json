@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "guidance_promotions": [
+    {
+      "name": "official-docs-to-agents",
+      "enabled": true,
+      "source_kind": "external-docs",
+      "source_patterns": [
+        "docs/codex-operating-model.md",
+        "docs/context-layout.md",
+        "docs/archive/**"
+      ],
+      "destination": "agents",
+      "review_required": true,
+      "secret_scan_required": true,
+      "min_evidence": [
+        "official source URL or local official-docs summary",
+        "behavioral implication",
+        "rollback wording"
+      ],
+      "verification": [
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk bash scripts/check.sh"
+      ],
+      "rollback": "remove the AGENTS rule, rebuild, apply and rerun final-ready"
+    },
+    {
+      "name": "repeated-workflow-to-skill",
+      "enabled": true,
+      "source_kind": "docs-archive",
+      "source_patterns": [
+        "docs/archive/**",
+        "manifests/workflow_recipes.json"
+      ],
+      "destination": "skill",
+      "review_required": true,
+      "secret_scan_required": true,
+      "min_evidence": [
+        "three or more repeated uses",
+        "clear trigger and non-trigger",
+        "verification command"
+      ],
+      "verification": [
+        "rtk bash scripts/check-skills.sh",
+        "rtk bash scripts/check.sh"
+      ],
+      "rollback": "disable the skill manifest entry or revert the promoted version, then rebuild and apply"
+    },
+    {
+      "name": "session-learning-to-memory-candidate",
+      "enabled": true,
+      "source_kind": "conversation",
+      "source_patterns": [
+        "docs/archive/session-wrap/**",
+        "docs/archive/memory-curation/**"
+      ],
+      "destination": "memory",
+      "review_required": true,
+      "secret_scan_required": true,
+      "min_evidence": [
+        "stable user preference or repeated operational fact",
+        "not project-private or secret-bearing",
+        "clear expiry or review condition"
+      ],
+      "verification": [
+        "rtk bash scripts/curate-memory.sh --dry-run",
+        "rtk bash scripts/final-ready.sh"
+      ],
+      "rollback": "mark the memory candidate rejected or superseded; do not directly edit ~/.codex/memories without approval"
+    }
+  ]
+}

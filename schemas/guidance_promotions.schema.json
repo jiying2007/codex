@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Guidance Promotions Manifest",
+  "type": "object",
+  "required": ["schema_version", "guidance_promotions"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "guidance_promotions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "source_kind",
+          "source_patterns",
+          "destination",
+          "review_required",
+          "secret_scan_required",
+          "min_evidence",
+          "verification",
+          "rollback"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": ["conversation", "docs-archive", "manifest", "test", "external-docs"]
+          },
+          "source_patterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "destination": {
+            "type": "string",
+            "enum": ["agents", "skill", "archive", "memory", "reject"]
+          },
+          "review_required": {
+            "type": "boolean"
+          },
+          "secret_scan_required": {
+            "type": "boolean"
+          },
+          "min_evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verification": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rollback": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -203,6 +203,14 @@ def write_optional_controls(root: pathlib.Path) -> None:
                         "allowed_outputs": ["summary"],
                         "forbidden_actions": ["commit"],
                     },
+                    "run_lifecycle": {
+                        "first_run": "manual review",
+                        "steady_state": "report and stop",
+                        "stale_after": "one day",
+                        "retry_budget": 1,
+                        "cleanup": ["discard transient logs"],
+                        "retention": "summary only",
+                    },
                     "output_artifacts": ["summary"],
                 }
             ],
@@ -283,6 +291,102 @@ def write_p2_controls(root: pathlib.Path) -> None:
                     "secret_scan_required": True,
                     "promotion_gate": "reviewed and scanned",
                     "summary": "test candidate",
+                }
+            ],
+        },
+    )
+
+
+def write_p3_p4_controls(root: pathlib.Path) -> None:
+    write_json(
+        root / "tests/fixtures/routing_eval/workflow_cases.json",
+        {"cases": [{"name": "case", "prompt": "请生成会话接力模板", "expected_recipe": "context-handoff-recipe"}]},
+    )
+    write_json(
+        root / "manifests/eval_suites.json",
+        {
+            "schema_version": 1,
+            "eval_suites": [
+                {
+                    "name": "routing-eval",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "kind": "routing",
+                    "owner": "test",
+                    "cases_path": "tests/fixtures/routing_eval/workflow_cases.json",
+                    "success_metric": "all cases pass",
+                    "min_pass_rate": 1.0,
+                    "negative_cases_required": True,
+                    "commands": ["rtk python3 -m unittest tests.test_agent_routing_eval"],
+                    "artifacts": ["routing fixture"],
+                    "promotion_gate": "examples reviewed",
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/cli_command_contracts.json",
+        {
+            "schema_version": 1,
+            "cli_command_contracts": [
+                {
+                    "name": "goal-command",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "command": "/goal",
+                    "purpose": "strong goal",
+                    "input_contract": ["goal"],
+                    "allowed_actions": ["plan"],
+                    "forbidden_actions": ["bypass-verification"],
+                    "output_contract": ["evidence"],
+                    "review_required": True,
+                    "verification": ["rtk bash scripts/final-ready.sh"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/guidance_promotions.json",
+        {
+            "schema_version": 1,
+            "guidance_promotions": [
+                {
+                    "name": "docs-to-agents",
+                    "enabled": True,
+                    "source_kind": "external-docs",
+                    "source_patterns": ["docs/**"],
+                    "destination": "agents",
+                    "review_required": True,
+                    "secret_scan_required": True,
+                    "min_evidence": ["source", "verification"],
+                    "verification": ["rtk bash scripts/check.sh"],
+                    "rollback": "remove promoted rule",
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/goal_templates.json",
+        {
+            "schema_version": 1,
+            "goal_templates": [
+                {
+                    "name": "handoff-strong-goal",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "workflow": "context-handoff",
+                    "goal_strength": "strong",
+                    "required_fields": [
+                        "goal",
+                        "scope",
+                        "success_criteria",
+                        "verification_commands",
+                        "review_artifacts",
+                    ],
+                    "verification_contract": ["rtk bash scripts/context-preflight.sh"],
+                    "artifact_contract": ["preflight note"],
+                    "stop_conditions": ["pass", "blocked"],
+                    "negative_examples": ["no verification"],
                 }
             ],
         },
@@ -440,6 +544,81 @@ class GovernanceValidationTest(unittest.TestCase):
 
         errors = validate_repo(root)
         self.assertIn("automations:health-report 写入类风险必须 requires_worktree_for_write=true", errors)
+
+    def test_p3_p4_controls_pass_and_report(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        write_p3_p4_controls(root)
+
+        self.assertEqual([], validate_repo(root))
+        report = governance_report(root)
+        self.assertEqual(["routing-eval"], report["eval_suites"])
+        self.assertEqual(["goal-command"], report["cli_command_contracts"])
+        self.assertEqual(["docs-to-agents"], report["guidance_promotions"])
+        self.assertEqual(["handoff-strong-goal"], report["goal_templates"])
+        self.assertEqual("routing", report["eval_suite_links"]["routing-eval"]["kind"])
+        self.assertEqual("/goal", report["cli_command_contract_links"]["goal-command"]["command"])
+        self.assertEqual("agents", report["guidance_promotion_links"]["docs-to-agents"]["destination"])
+        self.assertEqual("context-handoff", report["goal_template_links"]["handoff-strong-goal"]["workflow"])
+
+    def test_eval_suite_rejects_missing_cases_path(self) -> None:
+        root = make_repo(self)
+        write_p3_p4_controls(root)
+        manifest = json.loads((root / "manifests/eval_suites.json").read_text())
+        manifest["eval_suites"][0]["cases_path"] = "tests/missing.json"
+        write_json(root / "manifests/eval_suites.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("eval_suites:routing-eval cases_path 不存在: tests/missing.json", errors)
+
+    def test_cli_command_contract_requires_slash_and_verification_denial(self) -> None:
+        root = make_repo(self)
+        write_p3_p4_controls(root)
+        manifest = json.loads((root / "manifests/cli_command_contracts.json").read_text())
+        contract = manifest["cli_command_contracts"][0]
+        contract["command"] = "goal"
+        contract["forbidden_actions"] = ["skip-review"]
+        write_json(root / "manifests/cli_command_contracts.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("cli_command_contracts:goal-command command 必须以 / 开头", errors)
+        self.assertIn("cli_command_contracts:goal-command forbidden_actions 必须包含 bypass-verification", errors)
+
+    def test_guidance_promotion_requires_review_and_secret_scan(self) -> None:
+        root = make_repo(self)
+        write_p3_p4_controls(root)
+        manifest = json.loads((root / "manifests/guidance_promotions.json").read_text())
+        promotion = manifest["guidance_promotions"][0]
+        promotion["review_required"] = False
+        promotion["secret_scan_required"] = False
+        write_json(root / "manifests/guidance_promotions.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("guidance_promotions:docs-to-agents review_required 必须为 true", errors)
+        self.assertIn("guidance_promotions:docs-to-agents secret_scan_required 必须为 true", errors)
+
+    def test_goal_template_requires_core_goal_fields(self) -> None:
+        root = make_repo(self)
+        write_p3_p4_controls(root)
+        manifest = json.loads((root / "manifests/goal_templates.json").read_text())
+        manifest["goal_templates"][0]["required_fields"] = ["goal"]
+        write_json(root / "manifests/goal_templates.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn(
+            "goal_templates:handoff-strong-goal required_fields 缺少: review_artifacts, scope, success_criteria, verification_commands",
+            errors,
+        )
+
+    def test_automation_requires_run_lifecycle(self) -> None:
+        root = make_repo(self)
+        write_optional_controls(root)
+        manifest = json.loads((root / "manifests/automations.json").read_text())
+        del manifest["automations"][0]["run_lifecycle"]
+        write_json(root / "manifests/automations.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("automations:health-report 缺少字段 run_lifecycle", errors)
 
 
 if __name__ == "__main__":

@@ -40,6 +40,17 @@
           "enable MCP servers"
         ]
       },
+      "run_lifecycle": {
+        "first_run": "manual review of health summary before any recurring use",
+        "steady_state": "produce a dated report and stop without modifying source, build, live or remote systems",
+        "stale_after": "one business day or two consecutive health-check failures",
+        "retry_budget": 1,
+        "cleanup": [
+          "discard transient command logs after summary",
+          "keep only action queue and verification command list"
+        ],
+        "retention": "retain report summary only when user asks to archive it"
+      },
       "output_artifacts": [
         "health summary",
         "action queue",
@@ -84,6 +95,17 @@
           "merge or close pull requests"
         ]
       },
+      "run_lifecycle": {
+        "first_run": "manual review of approved data sources and draft-only boundary",
+        "steady_state": "refresh approved summaries, draft responses and stop at human approval gates",
+        "stale_after": "authorization expiry, source access change or 30 minutes without new signal",
+        "retry_budget": 1,
+        "cleanup": [
+          "remove stale draft replies after handoff",
+          "keep unresolved questions in the action queue"
+        ],
+        "retention": "retain only sanitized action queue or archived research note"
+      },
       "output_artifacts": [
         "prioritized action queue",
         "draft replies",
@@ -126,6 +148,17 @@
           "write memories",
           "enable external connectors"
         ]
+      },
+      "run_lifecycle": {
+        "first_run": "manual review of official source scope and citation requirements",
+        "steady_state": "check official sources, produce a dated note and route reusable items to review",
+        "stale_after": "one week or when official sources cannot be verified",
+        "retry_budget": 2,
+        "cleanup": [
+          "do not keep raw page dumps",
+          "route reusable conclusions to archive or memory candidate review"
+        ],
+        "retention": "retain dated note only when source links and retrieval date are present"
       },
       "output_artifacts": [
         "dated research note",

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex CLI Command Contracts Manifest",
+  "type": "object",
+  "required": ["schema_version", "cli_command_contracts"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "cli_command_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "profiles",
+          "command",
+          "purpose",
+          "input_contract",
+          "allowed_actions",
+          "forbidden_actions",
+          "output_contract",
+          "review_required",
+          "verification"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "command": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "input_contract": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowed_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "forbidden_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output_contract": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "review_required": {
+            "type": "boolean"
+          },
+          "verification": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

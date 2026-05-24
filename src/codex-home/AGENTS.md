@@ -38,6 +38,8 @@
 - 等待型或周期性自动化必须限定数据源、刷新频率、停止条件和人工审批点；默认不自动发送、提交、发布、删除或覆盖。
 - 可复用工作流的输入、完成标准、审查产物和失败模式优先沉淀到 `manifests/workflow_recipes.json`；等待型/定时任务只允许先登记到 `manifests/automations.json`，默认 `enabled=false` 或 `mode=report-only`。
 - 并行子代理默认遵循 `manifests/subagent_contracts.json` 的读写范围、禁止路径和输出契约；长期记忆候选先进入 `manifests/memory_candidates.json`，不得静默写入 `~/.codex/memories`。
+- workflow、slash command、目标模板和指导规则提升必须可评测：routing/governance/completion eval 进入 `manifests/eval_suites.json`，slash command 控制面进入 `manifests/cli_command_contracts.json`，规则提升路径进入 `manifests/guidance_promotions.json`，强目标模板进入 `manifests/goal_templates.json`。
+- 上下文压缩必须区分 stable、dynamic、evidence 和 excluded context；长期提升前先满足 `docs/context-layout.md` 与 `manifests/guidance_promotions.json` 的 review、secret scan 和 rollback 门禁。
 - 操作模型细节见 `docs/codex-operating-model.md`；与本文件冲突时以本文件为准。
 
 ## 4. adk 路由主干

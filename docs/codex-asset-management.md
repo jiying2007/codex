@@ -50,6 +50,10 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 - `automations`：只登记等待型或定时任务的只读/报告边界，不直接创建调度器或后台执行器。
 - `subagent_contracts`：约束子代理读写范围、禁止路径、sandbox 和输出契约。
 - `memory_candidates`：登记长期记忆候选、人工审查、secret scan 和提升门禁。
+- `eval_suites`：登记 routing、governance、completion 和 prompt eval 的 cases、通过率、负例和 promotion gate。
+- `cli_command_contracts`：登记 slash command 控制面的输入、允许动作、禁止动作、输出和验证契约。
+- `guidance_promotions`：登记从会话、归档、manifest、测试或官方资料提升到长期规则、skill、archive 或 memory 的审查路径。
+- `goal_templates`：登记 weak、strong、continuous 目标模板和验证/产物契约。
 - `project_templates`：把不同项目路径映射到默认 profile、推荐 workflow 和归档主题。
 - `overlays`：定义个人、本地、团队共享和发布场景的允许漂移与阻断路径。
 
@@ -83,6 +87,8 @@ rtk bash scripts/governance-report.sh --json
 - 并行子代理的边界进入 `manifests/subagent_contracts.json`；长期记忆候选进入 `manifests/memory_candidates.json`，不得绕过审查直接写 memory。
 - MCP server 先进入 `manifests/mcp_servers.json`，再由 build 渲染到 `config.toml`；启用前必须有 transport、权限边界、凭证边界、工具清单、可执行 deny-path、日志脱敏、smoke 和回滚方式。
 - `manifests/mcp_servers.json` 只存声明和空 env key，不存真实 token；`tools.codex_assets` 会在 build 时把匹配 profile 的条目渲染到 `config.toml`。
+- eval、slash command、guidance promotion 和 goal template 也属于治理输入。新增或修改后必须运行 `doctor --scope governance`、相关单元测试和 `check.sh`。
+- 上下文压缩遵循 `docs/context-layout.md`，把 stable、dynamic、evidence 和 excluded context 分开，避免把短期工作区状态提升为长期规则。
 
 ## 脚本与 Python 入口规范
 

@@ -103,6 +103,11 @@
         "automations",
         "subagent_contracts",
         "memory_candidates",
+        "eval_suites",
+        "cli_command_contracts",
+        "guidance_promotions",
+        "goal_templates",
+        "context-layout",
         "自动化声明"
       ],
       "skills": [

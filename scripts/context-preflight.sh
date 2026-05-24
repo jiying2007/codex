@@ -48,6 +48,30 @@ RECENT_LOG="$(rtk git log --oneline -5 2>/dev/null || true)"
   printf "%s\n\n" "### 最近提交"
   printf "%s\n%s\n%s\n\n" '```text' "${RECENT_LOG:-<empty>}" '```'
 
+  printf "%s\n" "## Context Layout"
+  printf "%s\n" "### Stable Context"
+  printf "%s\n" "- 仓库硬规则："
+  printf "%s\n" "- 长期决策："
+  printf "%s\n" "- 可复用工作流："
+  printf "%s\n\n" "- 可提升候选："
+
+  printf "%s\n" "### Dynamic Context"
+  printf "%s\n" "- 当前目标："
+  printf "%s\n" "- 当前范围："
+  printf "%s\n" "- 当前工作区状态：见上方工作区状态和变更规模"
+  printf "%s\n" "- 最近验证："
+  printf "%s\n\n" "- 下一条命令："
+
+  printf "%s\n" "### Evidence Context"
+  printf "%s\n" "- 命令 / 退出码："
+  printf "%s\n" "- 工件路径："
+  printf "%s\n" "- 负结果或被排除路径："
+  printf "%s\n\n" "- 证据缺口："
+
+  printf "%s\n" "### Excluded Context"
+  printf "%s\n" "- 不写入：secrets、auth、sessions、长日志、缓存、未审查 memory"
+  printf "%s\n\n" "- 需要脱敏后再归档："
+
   printf "%s\n" "## 关键决策（只保留可复用）"
   printf "%s\n" "- 决策 1："
   printf "%s\n\n" "- 决策 2："

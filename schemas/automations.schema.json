@@ -28,6 +28,7 @@
           "requires_worktree_for_write",
           "stop_condition",
           "triage_contract",
+          "run_lifecycle",
           "output_artifacts"
         ],
         "properties": {
@@ -102,6 +103,35 @@
                 "items": {
                   "type": "string"
                 }
+              }
+            }
+          },
+          "run_lifecycle": {
+            "type": "object",
+            "required": ["first_run", "steady_state", "stale_after", "retry_budget", "cleanup", "retention"],
+            "properties": {
+              "first_run": {
+                "type": "string"
+              },
+              "steady_state": {
+                "type": "string"
+              },
+              "stale_after": {
+                "type": "string"
+              },
+              "retry_budget": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5
+              },
+              "cleanup": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "retention": {
+                "type": "string"
               }
             }
           },

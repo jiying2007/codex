@@ -34,6 +34,8 @@
 完成后收口动作：
 ```
 
+目标模板的可维护版本登记在 `manifests/goal_templates.json`。新增强目标类型时，必须同时声明必填字段、验证契约、产物契约、停止条件和反例。
+
 目标强度：
 
 - `weak`：只有方向或计划，适合探索、拆解、估算；输出必须标注未验证假设。
@@ -90,6 +92,7 @@
 - 线程持续任务必须带上下文收口机制，避免无限滚动。
 - 草稿可以生成，发送、提交、发布、删除、覆盖和外部写入必须人工确认。
 - 自动化候选先登记到 `manifests/automations.json`，默认保持 `enabled=false` 或 `mode=report-only`；不得仅凭文档声明创建真实后台调度。
+- 自动化必须声明 run lifecycle：首跑审查、稳定运行行为、stale threshold、retry budget、cleanup 和 retention。缺少 lifecycle 的自动化不得进入 source-to-live 链路。
 - 任何 connector、MCP、桌面 GUI 或登录态操作都必须先声明权限边界、凭证边界和回退方式。
 
 ## MCP 治理
@@ -105,6 +108,13 @@ MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `c
 
 - 并行子代理默认遵循 `manifests/subagent_contracts.json`，必须声明读写范围、禁止路径、sandbox、输出契约和最终整合验证。
 - 长期记忆候选默认进入 `manifests/memory_candidates.json`，保持 `enabled=false`，经人工 review、secret scan 和 promotion gate 后再决定提升到 `AGENTS.md`、`docs/archive/` 或 memory。
+
+## Eval、命令与提升路径
+
+- 可复用 workflow 和治理能力必须有 eval 契约。routing、governance、completion 和 prompt 行为登记到 `manifests/eval_suites.json`，至少包含 cases、成功指标、负例、命令和 promotion gate。
+- slash command 是控制面入口，登记到 `manifests/cli_command_contracts.json`。命令契约必须说明输入、允许动作、禁止动作、输出、review 和验证要求；禁止绕过验证。
+- 会话经验、官方资料、归档结论和 manifest 决策要提升为长期规则前，先匹配 `manifests/guidance_promotions.json`。提升必须有来源、review、secret scan、最小证据、验证和回退。
+- 上下文压缩按 `docs/context-layout.md` 分层：stable context 才能进入长期规则候选，dynamic context 只用于恢复当前线程，evidence context 支撑交付声明，excluded context 不沉淀。
 
 ## 收口
 

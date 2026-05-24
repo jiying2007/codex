@@ -48,6 +48,14 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 `manifests/memory_candidates.json` 定义长期记忆候选。它只记录候选状态、来源、拟提升动作、人工审查和 secret scan 门禁，不直接写入 `~/.codex/memories`。
 
+`manifests/eval_suites.json` 定义 routing、governance、completion 和 prompt 级 eval 契约。每个 suite 必须声明 cases 路径、成功指标、最低通过率、负例要求、命令、产物和 promotion gate。
+
+`manifests/cli_command_contracts.json` 定义 Codex slash command 控制面契约，例如 `/goal`、`/review`、`/compact`。它约束输入、允许动作、禁止动作、输出格式和验证命令，防止命令入口绕过验证或静默扩大权限。
+
+`manifests/guidance_promotions.json` 定义指导规则提升路径。任何从会话、归档、manifest、测试或官方资料提升到 `AGENTS.md`、skill、archive 或 memory 的内容，都必须有来源、review、secret scan、最小证据、验证和回退方式。
+
+`manifests/goal_templates.json` 定义 weak、strong、continuous 目标模板。强目标必须包含范围、成功标准、验证命令和可审查产物；continuous 目标必须额外明确数据源、刷新边界和停止条件。
+
 `manifests/project-templates.json` 定义项目类型映射。它用路径模式把项目归类到默认 profile、推荐 workflow 和归档主题，解决“不同项目之间如何复用同一套 Codex 工作流”的问题。
 
 `manifests/overlays.json` 定义场景覆盖层。overlay 用来约束个人本地、团队共享、发布脱敏等场景下哪些 live 差异允许存在，哪些路径必须阻断。
@@ -98,13 +106,13 @@ rtk bash scripts/governance-report.sh --json
 rtk bash scripts/drift.sh
 ```
 
-`repo` 检查仓库结构、manifest、脚本语法和旧入口残留，并执行语义校验：profile 引用、source 路径存在性、target 冲突、protected path 写入、lock 与 build state 一致性。`governance` 检查 workflow、workflow recipe、automation、subagent contract、memory candidate、project template、overlay 和 MCP readiness 的跨 manifest 引用关系与路径/权限边界。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
+`repo` 检查仓库结构、manifest、脚本语法和旧入口残留，并执行语义校验：profile 引用、source 路径存在性、target 冲突、protected path 写入、lock 与 build state 一致性。`governance` 检查 workflow、workflow recipe、automation、subagent contract、memory candidate、eval suite、CLI command contract、guidance promotion、goal template、project template、overlay 和 MCP readiness 的跨 manifest 引用关系与路径/权限边界。`build` 检查构建产物和 profile 激活 symlink。`live` 检查目标运行目录的 managed state 与系统 skill 状态。
 
 `drift.sh` 基于 live 的 `control/state/managed-files.json` 检查运行目录是否被手工改动，区别于 `diff.sh` 的 build/live 当前差异比较。
 
 ## Schema 与测试
 
-`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/test_governance.py` 覆盖 workflow、workflow recipe、automation、subagent contract、memory candidate、MCP readiness、project template、overlay 的引用错误与报告输出。`tests/test_agent_routing_eval.py` 用 fixture 固化 recipe 路由样例。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`team-collab` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
+`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/test_governance.py` 覆盖 workflow、workflow recipe、automation、subagent contract、memory candidate、eval suite、CLI command contract、guidance promotion、goal template、MCP readiness、project template、overlay 的引用错误与报告输出。`tests/test_agent_routing_eval.py` 用 fixture 固化 recipe 路由样例。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`team-collab` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
 
 ## 回滚
 

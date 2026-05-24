@@ -21,6 +21,10 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
     automations = optional_manifest_items(repo, "automations.json", "automations")
     subagent_contracts = optional_manifest_items(repo, "subagent_contracts.json", "subagent_contracts")
     memory_candidates = optional_manifest_items(repo, "memory_candidates.json", "memory_candidates")
+    eval_suites = optional_manifest_items(repo, "eval_suites.json", "eval_suites")
+    cli_command_contracts = optional_manifest_items(repo, "cli_command_contracts.json", "cli_command_contracts")
+    guidance_promotions = optional_manifest_items(repo, "guidance_promotions.json", "guidance_promotions")
+    goal_templates = optional_manifest_items(repo, "goal_templates.json", "goal_templates")
     return {
         "schema_version": 1,
         "default_profile": repo.assets.get("default_profile", ""),
@@ -32,6 +36,10 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
         "automations": sorted(item.get("name", "") for item in automations if item.get("name")),
         "subagent_contracts": sorted(item.get("name", "") for item in subagent_contracts if item.get("name")),
         "memory_candidates": sorted(item.get("name", "") for item in memory_candidates if item.get("name")),
+        "eval_suites": sorted(item.get("name", "") for item in eval_suites if item.get("name")),
+        "cli_command_contracts": sorted(item.get("name", "") for item in cli_command_contracts if item.get("name")),
+        "guidance_promotions": sorted(item.get("name", "") for item in guidance_promotions if item.get("name")),
+        "goal_templates": sorted(item.get("name", "") for item in goal_templates if item.get("name")),
         "workflows": sorted(item.get("name", "") for item in workflows if item.get("name")),
         "project_templates": sorted(item.get("name", "") for item in templates if item.get("name")),
         "overlays": sorted(item.get("name", "") for item in overlays if item.get("name")),
@@ -40,6 +48,10 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
         "automation_links": automation_links(automations),
         "subagent_contract_links": subagent_contract_links(subagent_contracts),
         "memory_candidate_links": memory_candidate_links(memory_candidates),
+        "eval_suite_links": eval_suite_links(eval_suites),
+        "cli_command_contract_links": cli_command_contract_links(cli_command_contracts),
+        "guidance_promotion_links": guidance_promotion_links(guidance_promotions),
+        "goal_template_links": goal_template_links(goal_templates),
         "template_links": template_links(templates),
     }
 
@@ -57,6 +69,10 @@ def governance_errors(repo: Repo) -> list[str]:
     automations = optional_manifest_items(repo, "automations.json", "automations")
     subagent_contracts = optional_manifest_items(repo, "subagent_contracts.json", "subagent_contracts")
     memory_candidates = optional_manifest_items(repo, "memory_candidates.json", "memory_candidates")
+    eval_suites = optional_manifest_items(repo, "eval_suites.json", "eval_suites")
+    cli_command_contracts = optional_manifest_items(repo, "cli_command_contracts.json", "cli_command_contracts")
+    guidance_promotions = optional_manifest_items(repo, "guidance_promotions.json", "guidance_promotions")
+    goal_templates = optional_manifest_items(repo, "goal_templates.json", "goal_templates")
     workflow_names = item_names("workflows", workflows, errors)
     workflow_profiles = {item.get("name", ""): set(list_value(item, "profiles")) for item in workflows if item.get("name")}
     item_names("project-templates", templates, errors)
@@ -65,6 +81,10 @@ def governance_errors(repo: Repo) -> list[str]:
     item_names("automations", automations, errors)
     item_names("subagent_contracts", subagent_contracts, errors)
     item_names("memory_candidates", memory_candidates, errors)
+    item_names("eval_suites", eval_suites, errors)
+    item_names("cli_command_contracts", cli_command_contracts, errors)
+    item_names("guidance_promotions", guidance_promotions, errors)
+    item_names("goal_templates", goal_templates, errors)
     validate_workflows(workflows, profile_names, skill_names, agent_names, errors)
     validate_project_templates(templates, profile_names, workflow_names, errors)
     validate_overlays(overlays, repo.policies.get("protected_paths", []), errors)
@@ -73,6 +93,10 @@ def governance_errors(repo: Repo) -> list[str]:
     validate_automations(automations, profile_names, workflow_names, workflow_profiles, errors)
     validate_subagent_contracts(subagent_contracts, profile_names, agent_names, errors)
     validate_memory_candidates(memory_candidates, errors)
+    validate_eval_suites(eval_suites, profile_names, repo.root, errors)
+    validate_cli_command_contracts(cli_command_contracts, profile_names, errors)
+    validate_guidance_promotions(guidance_promotions, errors)
+    validate_goal_templates(goal_templates, profile_names, workflow_names, workflow_profiles, errors)
     return errors
 
 
@@ -321,6 +345,7 @@ def validate_automations(
             "risk_class",
             "triage_contract",
             "requires_worktree_for_write",
+            "run_lifecycle",
         ]:
             if field not in item:
                 errors.append(f"automations:{name} 缺少字段 {field}")
@@ -377,6 +402,21 @@ def validate_automations(
                 errors.append(f"automations:{name} triage_contract.allowed_outputs 不能为空")
             if not list_value(triage_contract, "forbidden_actions"):
                 errors.append(f"automations:{name} triage_contract.forbidden_actions 不能为空")
+        lifecycle = item.get("run_lifecycle", {})
+        if not isinstance(lifecycle, dict):
+            errors.append(f"automations:{name} run_lifecycle 必须是 object")
+        else:
+            for field in ["first_run", "steady_state", "stale_after", "retry_budget", "cleanup", "retention"]:
+                if field not in lifecycle:
+                    errors.append(f"automations:{name} run_lifecycle 缺少字段 {field}")
+            for field in ["first_run", "steady_state", "stale_after", "retention"]:
+                if not str(lifecycle.get(field, "")).strip():
+                    errors.append(f"automations:{name} run_lifecycle.{field} 不能为空")
+            retry_budget = lifecycle.get("retry_budget", 0)
+            if not isinstance(retry_budget, int) or retry_budget < 0 or retry_budget > 5:
+                errors.append(f"automations:{name} run_lifecycle.retry_budget 必须在 0..5")
+            if not list_value(lifecycle, "cleanup"):
+                errors.append(f"automations:{name} run_lifecycle.cleanup 不能为空")
 
 
 def validate_subagent_contracts(
@@ -455,6 +495,176 @@ def validate_memory_candidates(items: list[dict[str, Any]], errors: list[str]) -
         source = str(item.get("source", ""))
         if source and unsafe_path(source):
             errors.append(f"memory_candidates:{name} source 包含不安全路径: {source}")
+
+
+def validate_eval_suites(
+    items: list[dict[str, Any]],
+    profile_names: set[str],
+    root: pathlib.Path,
+    errors: list[str],
+) -> None:
+    allowed_kinds = {"routing", "governance", "completion", "prompt"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "kind",
+            "owner",
+            "cases_path",
+            "success_metric",
+            "min_pass_rate",
+            "negative_cases_required",
+            "commands",
+            "artifacts",
+            "promotion_gate",
+        ]:
+            if field not in item:
+                errors.append(f"eval_suites:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"eval_suites:{name} 引用未知 profile: {profile}")
+        kind = str(item.get("kind", ""))
+        if kind and kind not in allowed_kinds:
+            errors.append(f"eval_suites:{name} kind 非法: {kind}")
+        cases_path = str(item.get("cases_path", ""))
+        if not cases_path:
+            errors.append(f"eval_suites:{name} cases_path 不能为空")
+        elif unsafe_path(cases_path):
+            errors.append(f"eval_suites:{name} cases_path 包含不安全路径: {cases_path}")
+        elif not (root / cases_path).exists():
+            errors.append(f"eval_suites:{name} cases_path 不存在: {cases_path}")
+        rate = item.get("min_pass_rate", 0)
+        if not isinstance(rate, (int, float)) or rate < 0 or rate > 1:
+            errors.append(f"eval_suites:{name} min_pass_rate 必须在 0..1")
+        if item.get("negative_cases_required") is not True:
+            errors.append(f"eval_suites:{name} negative_cases_required 必须为 true")
+        for field in ["commands", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"eval_suites:{name} {field} 不能为空")
+        if not str(item.get("success_metric", "")).strip():
+            errors.append(f"eval_suites:{name} success_metric 不能为空")
+        if not str(item.get("promotion_gate", "")).strip():
+            errors.append(f"eval_suites:{name} promotion_gate 不能为空")
+
+
+def validate_cli_command_contracts(
+    items: list[dict[str, Any]],
+    profile_names: set[str],
+    errors: list[str],
+) -> None:
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "command",
+            "purpose",
+            "input_contract",
+            "allowed_actions",
+            "forbidden_actions",
+            "output_contract",
+            "review_required",
+            "verification",
+        ]:
+            if field not in item:
+                errors.append(f"cli_command_contracts:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"cli_command_contracts:{name} 引用未知 profile: {profile}")
+        command = str(item.get("command", ""))
+        if not command.startswith("/"):
+            errors.append(f"cli_command_contracts:{name} command 必须以 / 开头")
+        for field in ["input_contract", "allowed_actions", "forbidden_actions", "output_contract", "verification"]:
+            if not list_value(item, field):
+                errors.append(f"cli_command_contracts:{name} {field} 不能为空")
+        if item.get("review_required") is not True:
+            errors.append(f"cli_command_contracts:{name} review_required 必须为 true")
+        forbidden = set(list_value(item, "forbidden_actions"))
+        if "bypass-verification" not in forbidden:
+            errors.append(f"cli_command_contracts:{name} forbidden_actions 必须包含 bypass-verification")
+
+
+def validate_guidance_promotions(items: list[dict[str, Any]], errors: list[str]) -> None:
+    allowed_source = {"conversation", "docs-archive", "manifest", "test", "external-docs"}
+    allowed_destination = {"agents", "skill", "archive", "memory", "reject"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "source_kind",
+            "source_patterns",
+            "destination",
+            "review_required",
+            "secret_scan_required",
+            "min_evidence",
+            "verification",
+            "rollback",
+        ]:
+            if field not in item:
+                errors.append(f"guidance_promotions:{name} 缺少字段 {field}")
+        source_kind = str(item.get("source_kind", ""))
+        if source_kind and source_kind not in allowed_source:
+            errors.append(f"guidance_promotions:{name} source_kind 非法: {source_kind}")
+        destination = str(item.get("destination", ""))
+        if destination and destination not in allowed_destination:
+            errors.append(f"guidance_promotions:{name} destination 非法: {destination}")
+        for path in list_value(item, "source_patterns"):
+            if unsafe_path(path):
+                errors.append(f"guidance_promotions:{name} source_patterns 包含不安全路径: {path}")
+        for field in ["source_patterns", "min_evidence", "verification"]:
+            if not list_value(item, field):
+                errors.append(f"guidance_promotions:{name} {field} 不能为空")
+        if item.get("review_required") is not True:
+            errors.append(f"guidance_promotions:{name} review_required 必须为 true")
+        if item.get("secret_scan_required") is not True:
+            errors.append(f"guidance_promotions:{name} secret_scan_required 必须为 true")
+        if not str(item.get("rollback", "")).strip():
+            errors.append(f"guidance_promotions:{name} rollback 不能为空")
+
+
+def validate_goal_templates(
+    items: list[dict[str, Any]],
+    profile_names: set[str],
+    workflow_names: set[str],
+    workflow_profiles: dict[str, set[str]],
+    errors: list[str],
+) -> None:
+    allowed_strengths = {"weak", "strong", "continuous"}
+    required_goal_fields = {"goal", "scope", "success_criteria", "verification_commands", "review_artifacts"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "workflow",
+            "goal_strength",
+            "required_fields",
+            "verification_contract",
+            "artifact_contract",
+            "stop_conditions",
+            "negative_examples",
+        ]:
+            if field not in item:
+                errors.append(f"goal_templates:{name} 缺少字段 {field}")
+        workflow = str(item.get("workflow", ""))
+        if workflow and workflow not in workflow_names:
+            errors.append(f"goal_templates:{name} 引用未知 workflow: {workflow}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"goal_templates:{name} 引用未知 profile: {profile}")
+            elif workflow in workflow_profiles and profile not in workflow_profiles[workflow]:
+                errors.append(f"goal_templates:{name} profile {profile} 未在 workflow:{workflow} 启用")
+        strength = str(item.get("goal_strength", ""))
+        if strength and strength not in allowed_strengths:
+            errors.append(f"goal_templates:{name} goal_strength 非法: {strength}")
+        fields = set(list_value(item, "required_fields"))
+        missing = sorted(required_goal_fields - fields)
+        if missing:
+            errors.append(f"goal_templates:{name} required_fields 缺少: {', '.join(missing)}")
+        for field in ["verification_contract", "artifact_contract", "stop_conditions", "negative_examples"]:
+            if not list_value(item, field):
+                errors.append(f"goal_templates:{name} {field} 不能为空")
 
 
 def list_value(item: dict[str, Any], key: str) -> list[str]:
@@ -576,6 +786,55 @@ def memory_candidate_links(items: list[dict[str, Any]]) -> dict[str, dict[str, A
             "status": item.get("status", ""),
             "proposed_action": item.get("proposed_action", ""),
             "source": item.get("source", ""),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def eval_suite_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "kind": item.get("kind", ""),
+            "profiles": list_value(item, "profiles"),
+            "cases_path": item.get("cases_path", ""),
+            "min_pass_rate": item.get("min_pass_rate", 0),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def cli_command_contract_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "command": item.get("command", ""),
+            "profiles": list_value(item, "profiles"),
+            "review_required": item.get("review_required", False),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def guidance_promotion_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "source_kind": item.get("source_kind", ""),
+            "destination": item.get("destination", ""),
+            "review_required": item.get("review_required", False),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def goal_template_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "workflow": item.get("workflow", ""),
+            "goal_strength": item.get("goal_strength", ""),
+            "profiles": list_value(item, "profiles"),
         }
         for item in items
         if item.get("name")

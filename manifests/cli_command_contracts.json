@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "cli_command_contracts": [
+    {
+      "name": "slash-goal-strong-target",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "/goal",
+      "purpose": "turn an ambitious task into an explicit endpoint with validation evidence",
+      "input_contract": [
+        "goal statement",
+        "scope and non-goals",
+        "success criteria",
+        "verification commands",
+        "review artifacts"
+      ],
+      "allowed_actions": [
+        "create or update goal template",
+        "run declared verification",
+        "summarize open blockers"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "silently widen scope",
+        "claim completion without evidence"
+      ],
+      "output_contract": [
+        "goal closure summary",
+        "verification evidence",
+        "open items"
+      ],
+      "review_required": true,
+      "verification": [
+        "rtk bash scripts/final-ready.sh"
+      ]
+    },
+    {
+      "name": "slash-review-quality-gate",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "/review",
+      "purpose": "review code or asset changes for correctness, risk and missing tests before delivery",
+      "input_contract": [
+        "changed file list",
+        "intended behavior",
+        "verification already run",
+        "known risks"
+      ],
+      "allowed_actions": [
+        "inspect diffs",
+        "classify findings",
+        "recommend focused fixes"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "hide blocker findings",
+        "rewrite unrelated user changes"
+      ],
+      "output_contract": [
+        "findings ordered by severity",
+        "test gaps",
+        "residual risk"
+      ],
+      "review_required": true,
+      "verification": [
+        "rtk git diff --check",
+        "rtk bash scripts/check.sh"
+      ]
+    },
+    {
+      "name": "slash-compact-context-handoff",
+      "enabled": true,
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "command": "/compact",
+      "purpose": "prepare a stable and dynamic context handoff before thread switch or context pressure",
+      "input_contract": [
+        "current goal",
+        "stable decisions",
+        "dynamic worktree state",
+        "next executable action"
+      ],
+      "allowed_actions": [
+        "generate context preflight",
+        "separate stable and dynamic context",
+        "record resume prompt"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "write long-term memory without review",
+        "discard unresolved blockers"
+      ],
+      "output_contract": [
+        "context preflight artifact",
+        "resume prompt",
+        "open items"
+      ],
+      "review_required": true,
+      "verification": [
+        "rtk bash scripts/context-preflight.sh /tmp/context-preflight-check.md"
+      ]
+    }
+  ]
+}

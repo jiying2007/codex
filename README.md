@@ -122,6 +122,10 @@ rtk bash scripts/check.sh
 | `manifests/mcp_servers.json` | MCP server 声明、空 env key、readiness 和回滚边界 |
 | `manifests/subagent_contracts.json` | 子代理读写范围、禁止路径、sandbox 和输出契约 |
 | `manifests/memory_candidates.json` | 长期记忆候选、人工审查、secret scan 与提升门禁 |
+| `manifests/eval_suites.json` | routing、governance、completion 等 eval 契约和 promotion gate |
+| `manifests/cli_command_contracts.json` | slash command 的输入、允许动作、禁止动作、输出和验证契约 |
+| `manifests/guidance_promotions.json` | 从会话、归档、manifest 或官方资料提升到 AGENTS/skill/archive/memory 的门禁 |
+| `manifests/goal_templates.json` | weak、strong、continuous 目标模板及验证/产物契约 |
 | `manifests/project-templates.json` | 项目类型到默认 profile、workflow 与归档主题的映射 |
 | `manifests/overlays.json` | 个人、本地、团队和发布场景的允许漂移与阻断路径 |
 | `manifests/policies.json` | protected paths 与 apply 策略 |
@@ -164,10 +168,14 @@ profile、agent、skill、workflow、项目模板和 overlay 分层管理：
 - skill 与 agent 是可注入能力资产，由 `manifests/skills.json` 和 `manifests/agents.json` 记录版本、来源和 profile 绑定。
 - workflow 是可复用工作流编排，显式声明触发词、依赖 skill、依赖 agent、入口命令和验证命令。
 - workflow recipe 把 workflow 的输入、完成标准、审查产物和失败模式变成可评测契约。
-- automation 只登记候选任务的只读/报告边界、审批策略和停止条件，不直接启动后台调度。
+- automation 只登记候选任务的只读/报告边界、审批策略、run lifecycle、清理/保留策略和停止条件，不直接启动后台调度。
 - MCP server 默认可以声明但禁用，支持 `stdio` 和 `http` transport；官方 OpenAI Docs MCP 使用 `openaiDeveloperDocs` + `https://developers.openai.com/mcp`，启用前必须补齐 readiness、凭证边界和 smoke 证据。
 - subagent contract 约束并行子代理的读写范围、禁止路径、sandbox、最大并行和输出格式。
 - memory candidate 只记录候选和提升门禁，不直接写入 `~/.codex/memories`。
+- eval suite 把 routing、governance、completion 和 prompt 行为固化为可复跑的测试契约。
+- CLI command contract 约束 `/goal`、`/review`、`/compact` 等控制面的输入、输出、禁止动作和验证要求。
+- guidance promotion 定义从资料或会话经验提升到长期规则、skill、archive 或 memory 的审查和回退路径。
+- goal template 定义 weak、strong、continuous 目标的必填字段、验证契约、产物契约和停止条件。
 - project template 用路径模式把不同项目类型映射到默认 profile、推荐 workflow 和归档主题。
 - overlay 约束个人、本地、团队共享和发布场景下哪些 live 差异允许存在，哪些路径必须阻断。
 

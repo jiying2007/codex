@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Eval Suites Manifest",
+  "type": "object",
+  "required": ["schema_version", "eval_suites"],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "eval_suites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "profiles",
+          "kind",
+          "owner",
+          "cases_path",
+          "success_metric",
+          "min_pass_rate",
+          "negative_cases_required",
+          "commands",
+          "artifacts",
+          "promotion_gate"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["routing", "governance", "completion", "prompt"]
+          },
+          "owner": {
+            "type": "string"
+          },
+          "cases_path": {
+            "type": "string"
+          },
+          "success_metric": {
+            "type": "string"
+          },
+          "min_pass_rate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "negative_cases_required": {
+            "type": "boolean"
+          },
+          "commands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "promotion_gate": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}
