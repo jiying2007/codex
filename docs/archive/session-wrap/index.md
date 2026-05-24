@@ -26,3 +26,4 @@
 | `20260523-101841-wechat-p0-context-handoff.md` | `20260523-101841-wechat-p0-context-handoff.md` |
 | `20260523-112927-context-compress-handoff-wechat-p0-after-006.md` | `20260523-112927-context-compress-handoff-wechat-p0-after-006.md` |
 | `20260523-135801-wechat-all-cleared-handoff.md` | `20260523-135801-wechat-all-cleared-handoff.md` |
+| `20260524-141359-gd32l235-app-boot-v1-session-wrap-20260524.md` | `20260524-141359-gd32l235-app-boot-v1-session-wrap-20260524.md` |
