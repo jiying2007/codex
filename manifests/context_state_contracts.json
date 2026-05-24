@@ -75,6 +75,86 @@
         "context-preflight markdown",
         "docs/context-layout.md"
       ]
+    },
+    {
+      "name": "official-conversation-state-layering",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "scope": "OpenAI conversation-state concepts mapped to local context preflight, handoff and memory-promotion boundaries",
+      "layers": {
+        "stable": {
+          "required_fields": [
+            "durable user preferences",
+            "reviewed repository rules",
+            "versioned manifest contracts"
+          ],
+          "destinations": [
+            "AGENTS.md",
+            "manifest",
+            "reviewed skill"
+          ],
+          "promotion_gate": "reviewed, secret-scanned, expires_at checked and covered by governance eval"
+        },
+        "dynamic": {
+          "required_fields": [
+            "current turn intent",
+            "latest worktree status",
+            "temporary plan state",
+            "active blockers"
+          ],
+          "destinations": [
+            "session summary",
+            "context-preflight",
+            "final response"
+          ],
+          "promotion_gate": "must be revalidated after resume and cannot become stable without explicit promotion review"
+        },
+        "evidence": {
+          "required_fields": [
+            "command",
+            "exit code or result",
+            "source URL",
+            "retrieved_at",
+            "artifact"
+          ],
+          "destinations": [
+            "final evidence",
+            "governance report",
+            "archive note"
+          ],
+          "promotion_gate": "must remain reproducible or tied to official freshness metadata"
+        },
+        "excluded": {
+          "required_fields": [
+            "secrets",
+            "private credentials",
+            "raw session logs",
+            "unreviewed personal memory",
+            "unredacted private code snippets for external docs lookup"
+          ],
+          "destinations": [
+            "none"
+          ],
+          "promotion_gate": "never promote"
+        }
+      },
+      "validation_commands": [
+        "rtk bash scripts/context-preflight.sh /tmp/context-preflight-check.md",
+        "rtk bash scripts/doctor.sh --scope governance"
+      ],
+      "forbidden_promotions": [
+        "previous-response-state-to-AGENTS-without-review",
+        "dynamic-plan-to-memory",
+        "excluded-context-to-docs-mcp",
+        "raw-session-log-to-archive"
+      ],
+      "artifacts": [
+        "context-preflight markdown",
+        "official docs freshness gate",
+        "conversation state layering review"
+      ]
     }
   ]
 }

@@ -42,7 +42,7 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 `manifests/automations.json` 定义等待型或定时任务候选。automation manifest 只声明数据源、频率、sandbox、approval policy、worktree policy、停止条件和输出产物；默认不创建真实调度器，也不得绕过人工审批执行外部写操作。
 
-`manifests/mcp_servers.json` 定义 MCP server 声明和 readiness。build 只把匹配 profile 的 server 渲染到 `config.toml`；manifest 支持 `stdio` 和 `http` transport。官方 OpenAI Docs MCP 使用 `openaiDeveloperDocs` + `https://developers.openai.com/mcp`，只读、无 env token。启用前必须有工具清单、网络目标、可执行 deny-path、日志脱敏、smoke 和回滚边界。
+`manifests/mcp_servers.json` 定义 MCP server 声明和 readiness。build 只把匹配 profile 的 server 渲染到 `config.toml`；manifest 支持 `stdio` 和 `http` transport。官方 OpenAI Docs MCP 使用 `openaiDeveloperDocs` + `https://developers.openai.com/mcp`，只读、无 env token。启用前必须有工具清单、网络目标、可执行 deny-path、日志脱敏、smoke 和回滚边界；启用后仍不得把私有代码、凭证或未脱敏日志作为查询内容。
 
 `manifests/subagent_contracts.json` 定义子代理契约。它约束 agent、profile、读范围、写范围、禁止路径、sandbox、最大并行和输出契约，用于避免并行代理跨边界写入。
 
@@ -70,11 +70,17 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 `manifests/official_docs_freshness_gates.json` 定义官方文档 freshness gate。官方资料提升到长期规则前，必须有官方 source URL、retrieved_at、review_status、expires_at、stale action、验证命令和回退方式。
 
+`manifests/permission_profiles.json` 定义本地权限边界审计。它把有效 sandbox、approval、filesystem、network、forbidden modes 和 rollback 写成可验证契约；当前默认仍使用旧 `sandbox_mode`，不得和 beta `default_permissions` 混用。
+
+`manifests/exec_rules.json` 定义 Codex command rules 的声明式审计。每条 prefix rule 必须带 match / not_match 样例和 justification；治理校验会拒绝 broad allow `bash`、`python`、`git`、`curl`、`npx` 等高风险前缀。
+
+`manifests/hook_contracts.json` 定义 Codex hook 的设计契约。hook contract 只声明事件、matcher、输入/输出、允许动作、禁止动作、retention 和验证；默认 disabled/report-only，不等同于已安装或完整执行边界。
+
 `manifests/project-templates.json` 定义项目类型映射。它用路径模式把项目归类到默认 profile、推荐 workflow 和归档主题，解决“不同项目之间如何复用同一套 Codex 工作流”的问题。
 
 `manifests/overlays.json` 定义场景覆盖层。overlay 用来约束个人本地、团队共享、发布脱敏等场景下哪些 live 差异允许存在，哪些路径必须阻断。
 
-治理 manifest 只描述关系，不直接改变 build 复制内容；关系正确性由 `doctor --scope governance` 和 `scripts/check.sh` 检查。例外是 `manifests/mcp_servers.json` 会被 build 读取并生成禁用优先的 MCP 配置块，但真实凭证和启用决策仍留在人工审查边界内。
+治理 manifest 只描述关系，不直接改变 build 复制内容；关系正确性由 `doctor --scope governance` 和 `scripts/check.sh` 检查。例外是 `manifests/mcp_servers.json` 会被 build 读取并生成禁用优先的 MCP 配置块，但真实凭证和启用决策仍留在人工审查边界内。`permission_profiles`、`exec_rules` 和 `hook_contracts` 是本地审计契约；除已纳入 `src/codex-home/rules/default.rules` 的 rules 文件外，不自动生成或安装运行态权限和 hook。
 
 ## 构建
 

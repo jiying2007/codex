@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "exec_rules": [
+    {
+      "name": "default-local-command-rules",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "src/codex-home/rules/default.rules",
+      "rules": [
+        {
+          "name": "allow-rtk-wrapper",
+          "pattern": [
+            "rtk"
+          ],
+          "decision": "allow",
+          "justification": "all shell commands are routed through rtk so the repository can enforce command policy consistently",
+          "match": [
+            "rtk bash scripts/check.sh",
+            "rtk git status --short",
+            "rtk python3 -m unittest tests.test_governance"
+          ],
+          "not_match": [
+            "bash scripts/check.sh",
+            "git status --short",
+            "python3 -m unittest tests.test_governance"
+          ]
+        },
+        {
+          "name": "allow-sort-readonly",
+          "pattern": [
+            "sort"
+          ],
+          "decision": "allow",
+          "justification": "sort is a read-only formatting helper used in command pipelines and does not grant filesystem or network writes",
+          "match": [
+            "sort",
+            "sort manifests.txt"
+          ],
+          "not_match": [
+            "bash -lc sort",
+            "python3 sort"
+          ]
+        }
+      ],
+      "verification": [
+        "rtk sed -n '1,120p' src/codex-home/rules/default.rules",
+        "rtk bash scripts/doctor.sh --scope governance"
+      ],
+      "rollback": "remove or tighten the affected prefix_rule in src/codex-home/rules/default.rules and rebuild Codex home",
+      "artifacts": [
+        "src/codex-home/rules/default.rules",
+        "governance report"
+      ]
+    }
+  ]
+}

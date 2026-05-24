@@ -37,6 +37,43 @@
       ]
     },
     {
+      "name": "official-docs-curator-readonly",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "agent": "local-context-curator",
+      "scope_read": [
+        "AGENTS.md",
+        "README.md",
+        "docs/**",
+        "manifests/**",
+        "schemas/**",
+        "tests/fixtures/routing_eval/**"
+      ],
+      "scope_write": [],
+      "must_not_touch": [
+        "auth.json",
+        "sessions/**",
+        "logs/**",
+        "build/**",
+        ".git/**"
+      ],
+      "output_contract": [
+        "official source URL list with retrieval dates",
+        "short claim-to-artifact mapping",
+        "recommended manifest layer",
+        "negative cases or stale-source risks",
+        "summary only, no raw page dumps"
+      ],
+      "sandbox": "read-only",
+      "max_parallel": 2,
+      "verification": [
+        "rtk codex mcp list",
+        "rtk bash scripts/doctor.sh --scope governance"
+      ]
+    },
+    {
       "name": "local-implementer-scoped",
       "enabled": true,
       "profiles": [

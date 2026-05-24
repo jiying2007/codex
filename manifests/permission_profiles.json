@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "permission_profiles": [
+    {
+      "name": "local-workspace-boundary",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "mode": "workspace-write",
+      "active_config_mode": "legacy-sandbox",
+      "approval_policy": "on-request",
+      "filesystem": {
+        "write_roots": [
+          "<active workspace>",
+          "/home/leiwenjun/.codex/memories"
+        ],
+        "deny_paths": [
+          "auth.json",
+          "sessions/**",
+          "mcp/secrets/**",
+          "skills/.system/**"
+        ],
+        "protected_live_drift": [
+          "config.toml is allowed drift but must not be overwritten to bypass declared assets"
+        ]
+      },
+      "network": {
+        "default": "deny",
+        "allowed_domains": [
+          "developers.openai.com",
+          "platform.openai.com"
+        ],
+        "approval_required_for_unlisted": true
+      },
+      "allowed_sandbox_modes": [
+        "read-only",
+        "workspace-write"
+      ],
+      "forbidden_modes": [
+        "danger-full-access"
+      ],
+      "source_urls": [
+        "https://developers.openai.com/codex/permissions",
+        "https://openai.com/index/running-codex-safely/"
+      ],
+      "verification": [
+        "rtk codex --strict-config doctor --summary --ascii",
+        "rtk bash scripts/check-routing-precedence.sh"
+      ],
+      "rollback": "keep default_permissions unset, restore legacy sandbox_mode workspace-write and require human approval for out-of-sandbox actions",
+      "artifacts": [
+        "config doctor summary",
+        "permission profile audit",
+        "routing precedence check"
+      ]
+    },
+    {
+      "name": "local-readonly-research-boundary",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "mode": "read-only",
+      "active_config_mode": "legacy-sandbox",
+      "approval_policy": "manual",
+      "filesystem": {
+        "write_roots": [
+          "none"
+        ],
+        "deny_paths": [
+          "auth.json",
+          "sessions/**",
+          "mcp/secrets/**",
+          "~/.codex/memories/**"
+        ],
+        "protected_live_drift": [
+          "no direct live writes during research"
+        ]
+      },
+      "network": {
+        "default": "deny",
+        "allowed_domains": [
+          "developers.openai.com",
+          "platform.openai.com"
+        ],
+        "approval_required_for_unlisted": true
+      },
+      "allowed_sandbox_modes": [
+        "read-only"
+      ],
+      "forbidden_modes": [
+        "workspace-write-without-task",
+        "danger-full-access"
+      ],
+      "source_urls": [
+        "https://developers.openai.com/codex/permissions",
+        "https://developers.openai.com/codex/rules"
+      ],
+      "verification": [
+        "rtk bash scripts/doctor.sh --scope governance"
+      ],
+      "rollback": "drop research-specific boundary and fall back to local-workspace-boundary",
+      "artifacts": [
+        "research boundary note",
+        "official source URLs"
+      ]
+    }
+  ]
+}

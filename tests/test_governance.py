@@ -612,6 +612,93 @@ def write_p6_controls(root: pathlib.Path) -> None:
     )
 
 
+def write_p7_runtime_boundary_controls(root: pathlib.Path) -> None:
+    write_json(
+        root / "manifests/permission_profiles.json",
+        {
+            "schema_version": 1,
+            "permission_profiles": [
+                {
+                    "name": "local-workspace-boundary",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "mode": "workspace-write",
+                    "active_config_mode": "legacy-sandbox",
+                    "approval_policy": "on-request",
+                    "filesystem": {
+                        "write_roots": ["<workspace>", "/home/leiwenjun/.codex/memories"],
+                        "deny_paths": ["auth.json", "sessions/**", "mcp/secrets/**"],
+                    },
+                    "network": {
+                        "default": "deny",
+                        "allowed_domains": ["developers.openai.com"],
+                        "approval_required_for_unlisted": True,
+                    },
+                    "allowed_sandbox_modes": ["read-only", "workspace-write"],
+                    "forbidden_modes": ["danger-full-access"],
+                    "source_urls": ["https://developers.openai.com/codex/permissions"],
+                    "verification": ["rtk codex --strict-config doctor --summary --ascii"],
+                    "rollback": "restore legacy sandbox config and keep default_permissions disabled",
+                    "artifacts": ["config audit summary"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/exec_rules.json",
+        {
+            "schema_version": 1,
+            "exec_rules": [
+                {
+                    "name": "default-local-command-rules",
+                    "enabled": True,
+                    "profiles": ["team-collab"],
+                    "source_path": "src/codex-home/rules/default.rules",
+                    "rules": [
+                        {
+                            "name": "allow-rtk-wrapper",
+                            "pattern": ["rtk"],
+                            "decision": "allow",
+                            "justification": "repo policy requires all shell commands to go through rtk",
+                            "match": ["rtk bash scripts/check.sh"],
+                            "not_match": ["bash scripts/check.sh"],
+                        }
+                    ],
+                    "verification": ["rtk bash scripts/doctor.sh --scope governance"],
+                    "rollback": "remove the matching prefix_rule and rebuild Codex home",
+                    "artifacts": ["rules/default.rules"],
+                }
+            ],
+        },
+    )
+    write_json(
+        root / "manifests/hook_contracts.json",
+        {
+            "schema_version": 1,
+            "hook_contracts": [
+                {
+                    "name": "pretooluse-rtk-guard-contract",
+                    "enabled": False,
+                    "profiles": ["team-collab"],
+                    "event": "PreToolUse",
+                    "matcher": "Bash",
+                    "mode": "report-only",
+                    "input_contract": ["tool_name", "command", "cwd"],
+                    "output_contract": ["systemMessage", "stopReason"],
+                    "allowed_actions": ["warn about non-rtk shell commands"],
+                    "forbidden_actions": ["bypass-sandbox", "claim-complete-enforcement"],
+                    "review_required": True,
+                    "retention": "sanitized hook summary only",
+                    "source_urls": ["https://developers.openai.com/codex/hooks"],
+                    "verification": ["rtk bash scripts/doctor.sh --scope governance"],
+                    "rollback": "keep hook disabled and remove contract entry",
+                    "artifacts": ["hook contract summary"],
+                }
+            ],
+        },
+    )
+
+
 class GovernanceValidationTest(unittest.TestCase):
     def test_valid_governance_manifests_pass(self) -> None:
         root = make_repo(self)
@@ -1000,6 +1087,65 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertIn("official_docs_freshness_gates:openai-docs-freshness source_urls 必须使用 OpenAI 官方域名: example.com", errors)
         self.assertIn(
             "official_docs_freshness_gates:openai-docs-freshness required_metadata 缺少: expires_at, retrieved_at, review_status",
+            errors,
+        )
+
+    def test_p7_runtime_boundary_controls_pass_and_report(self) -> None:
+        root = make_repo(self)
+        write_p7_runtime_boundary_controls(root)
+
+        self.assertEqual([], validate_repo(root))
+        report = governance_report(root)
+        self.assertEqual(["local-workspace-boundary"], report["permission_profiles"])
+        self.assertEqual(["default-local-command-rules"], report["exec_rules"])
+        self.assertEqual(["pretooluse-rtk-guard-contract"], report["hook_contracts"])
+        self.assertEqual(
+            "legacy-sandbox",
+            report["permission_profile_links"]["local-workspace-boundary"]["active_config_mode"],
+        )
+        self.assertEqual(1, report["exec_rule_links"]["default-local-command-rules"]["rule_count"])
+        self.assertEqual("PreToolUse", report["hook_contract_links"]["pretooluse-rtk-guard-contract"]["event"])
+
+    def test_permission_profile_rejects_broad_access(self) -> None:
+        root = make_repo(self)
+        write_p7_runtime_boundary_controls(root)
+        manifest = json.loads((root / "manifests/permission_profiles.json").read_text())
+        profile = manifest["permission_profiles"][0]
+        profile["approval_policy"] = "never"
+        profile["allowed_sandbox_modes"] = ["danger-full-access"]
+        profile["network"]["default"] = "allow"
+        write_json(root / "manifests/permission_profiles.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("permission_profiles:local-workspace-boundary approval_policy 不允许 never", errors)
+        self.assertIn(
+            "permission_profiles:local-workspace-boundary allowed_sandbox_modes 不允许 danger-full-access",
+            errors,
+        )
+        self.assertIn("permission_profiles:local-workspace-boundary network.default 不允许 allow", errors)
+
+    def test_exec_rules_reject_broad_allow_prefix(self) -> None:
+        root = make_repo(self)
+        write_p7_runtime_boundary_controls(root)
+        manifest = json.loads((root / "manifests/exec_rules.json").read_text())
+        rule = manifest["exec_rules"][0]["rules"][0]
+        rule["pattern"] = ["bash"]
+        write_json(root / "manifests/exec_rules.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn("exec_rules:default-local-command-rules:allow-rtk-wrapper 不允许 broad allow prefix: bash", errors)
+
+    def test_hook_contract_rejects_unenforceable_pretooluse_claim(self) -> None:
+        root = make_repo(self)
+        write_p7_runtime_boundary_controls(root)
+        manifest = json.loads((root / "manifests/hook_contracts.json").read_text())
+        contract = manifest["hook_contracts"][0]
+        contract["forbidden_actions"] = ["bypass-sandbox"]
+        write_json(root / "manifests/hook_contracts.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn(
+            "hook_contracts:pretooluse-rtk-guard-contract PreToolUse 必须禁止 claim-complete-enforcement",
             errors,
         )
 

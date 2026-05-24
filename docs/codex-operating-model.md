@@ -97,7 +97,7 @@
 
 ## MCP 治理
 
-MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `config.toml`。默认可以声明但禁用；OpenAI 官方文档优先使用只读 remote MCP `openaiDeveloperDocs`，URL 为 `https://developers.openai.com/mcp`。启用前必须满足：
+MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `config.toml`。默认可以声明但禁用；`openaiDeveloperDocs` 是只读、无凭证、已审查的官方文档例外，URL 为 `https://developers.openai.com/mcp`。启用任何 MCP 前必须满足：
 
 - 声明 `transport`、profiles、用途和 owner；`stdio` 需要 `command/args`，`http` 需要 `url`。
 - 不提交真实 token、API key 或本机私有 endpoint。
@@ -120,6 +120,9 @@ MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `c
 - skill 使用 MCP 前先检查 `manifests/skill_mcp_dependencies.json`。依赖契约必须声明 MCP server、tool、访问模式、审批、fallback、禁止动作和验证命令；不得静默启用外部能力。
 - slash command 运行态审计进入 `manifests/slash_command_runtime_audits.json`。审计契约必须绑定已有 command contract，记录事件、证据、保留策略和禁止动作。
 - 官方 OpenAI 资料提升为长期规则前先匹配 `manifests/official_docs_freshness_gates.json`。必须记录 source URL、retrieved_at、review_status、expires_at、stale action 和 rollback。
+- 本地权限边界进入 `manifests/permission_profiles.json`。当前默认运行态仍使用旧 `sandbox_mode`，禁止和 beta permission profile 配置混用；任何放宽 sandbox、network 或 approval 的变更都必须补 strict-config doctor 和回退路径。
+- Codex command rules 进入 `manifests/exec_rules.json`。只允许 exact prefix rule，必须有 match / not_match 样例和 justification；不得 broad allow 高风险命令前缀。
+- Hook 设计进入 `manifests/hook_contracts.json`。默认 disabled/report-only，必须写明官方 hook 覆盖限制、retention 和禁止动作；未审查 runner 前不得把 hook 当作完整 enforcement boundary。
 - 上下文压缩按 `docs/context-layout.md` 分层：stable context 才能进入长期规则候选，dynamic context 只用于恢复当前线程，evidence context 支撑交付声明，excluded context 不沉淀。
 
 ## 收口

@@ -40,6 +40,89 @@
         "context preflight markdown",
         "runtime audit summary"
       ]
+    },
+    {
+      "name": "slash-mcp-runtime-audit",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command_contract": "slash-mcp-local-readonly-audit",
+      "command": "/mcp",
+      "risk_class": "permission-control",
+      "audit_events": [
+        "command invoked",
+        "manifest readiness inspected",
+        "runtime mcp list checked",
+        "credential boundary checked"
+      ],
+      "runtime_controls": [
+        "do not enable new MCP servers from the command contract",
+        "do not write credentials",
+        "do not upload private code or logs"
+      ],
+      "required_evidence": [
+        "rtk codex mcp list summary",
+        "manifest readiness summary",
+        "fallback policy summary"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "silent-enable-mcp",
+        "credential-write",
+        "private-code-upload"
+      ],
+      "retention": "sanitized audit summary only",
+      "review_required": true,
+      "verification": [
+        "rtk codex mcp list",
+        "rtk bash scripts/doctor.sh --scope governance"
+      ],
+      "artifacts": [
+        "MCP audit summary",
+        "governance report"
+      ]
+    },
+    {
+      "name": "slash-status-runtime-audit",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command_contract": "slash-status-local-audit",
+      "command": "/status",
+      "risk_class": "review-control",
+      "audit_events": [
+        "command invoked",
+        "worktree status inspected",
+        "drift state inspected",
+        "verification state summarized"
+      ],
+      "runtime_controls": [
+        "status command is read-only",
+        "do not apply live changes",
+        "report dirty worktree without reverting it"
+      ],
+      "required_evidence": [
+        "git status summary",
+        "drift summary",
+        "final-ready summary when delivery is requested"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "modify-files",
+        "apply-live-changes"
+      ],
+      "retention": "sanitized status summary only",
+      "review_required": true,
+      "verification": [
+        "rtk git status --short",
+        "rtk bash scripts/drift.sh"
+      ],
+      "artifacts": [
+        "status summary",
+        "drift summary"
+      ]
     }
   ]
 }

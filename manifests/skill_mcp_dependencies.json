@@ -20,16 +20,19 @@
       "allowed_actions": [
         "search official OpenAI developer docs",
         "fetch official OpenAI developer docs",
-        "summarize with source URLs and retrieval dates"
+        "summarize with source URLs and retrieval dates",
+        "refresh official-docs freshness gate evidence for guidance promotion"
       ],
       "forbidden_actions": [
         "external-write",
         "credential-access",
         "destructive-action",
-        "silent-enable-mcp"
+        "silent-enable-mcp",
+        "private-code-upload",
+        "unsourced-long-term-guidance"
       ],
       "approval_required": true,
-      "fallback": "If the Docs MCP is disabled or unavailable, restrict fallback browsing to official OpenAI domains and cite retrieval dates.",
+      "fallback": "If the Docs MCP is disabled or unavailable, restrict fallback browsing to official OpenAI domains, cite retrieval dates, and do not promote guidance until the freshness gate metadata is complete.",
       "verification": [
         "rtk codex mcp list",
         "rtk bash scripts/doctor.sh --scope governance"

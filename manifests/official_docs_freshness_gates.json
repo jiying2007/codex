@@ -8,13 +8,32 @@
       "mcp_server": "openaiDeveloperDocs",
       "source_domains": [
         "developers.openai.com",
-        "platform.openai.com"
+        "platform.openai.com",
+        "openai.com"
       ],
       "source_urls": [
         "https://developers.openai.com/learn/docs-mcp",
-        "https://developers.openai.com/codex/concepts/customization",
+        "https://developers.openai.com/codex/guides/agents-md",
+        "https://developers.openai.com/codex/skills",
+        "https://developers.openai.com/codex/concepts/subagents",
+        "https://developers.openai.com/codex/workflows",
+        "https://developers.openai.com/api/docs/guides/agent-evals",
+        "https://developers.openai.com/api/docs/guides/trace-grading",
+        "https://developers.openai.com/api/docs/guides/prompting",
+        "https://developers.openai.com/api/docs/guides/prompt-optimizer",
+        "https://developers.openai.com/api/docs/guides/model-optimization",
+        "https://developers.openai.com/blog/skills-agents-sdk",
+        "https://developers.openai.com/codex/permissions",
+        "https://developers.openai.com/codex/rules",
+        "https://developers.openai.com/codex/hooks",
         "https://developers.openai.com/codex/app/automations",
-        "https://developers.openai.com/codex/cli/slash-commands"
+        "https://developers.openai.com/codex/app/commands",
+        "https://developers.openai.com/codex/enterprise/governance",
+        "https://developers.openai.com/api/docs/guides/structured-outputs",
+        "https://developers.openai.com/api/docs/guides/function-calling",
+        "https://developers.openai.com/api/docs/guides/tools",
+        "https://developers.openai.com/api/docs/guides/conversation-state",
+        "https://openai.com/index/running-codex-safely/"
       ],
       "retrieval_required": true,
       "max_age_days": 45,
@@ -24,12 +43,26 @@
         "review_status",
         "expires_at"
       ],
-      "review_status": "review-required",
+      "review_status": "reviewed",
+      "retrieved_at": "2026-05-24",
+      "expires_at": "2026-07-08",
+      "review_note": "Official OpenAI developer docs reviewed for Codex AGENTS layering, skills progressive disclosure, workflow done criteria, subagent boundaries, eval/trace grading, prompt versioning, Docs MCP readiness, local permissions, command rules, hooks, automations, app command contracts, governance observability, structured schemas, tool/function design and context state layering.",
       "stale_action": "re-fetch official source before promoting or editing long-term guidance",
       "promotion_targets": [
         "AGENTS.md",
         "src/codex-home/AGENTS.md",
+        "manifests/workflow_recipes.json",
+        "manifests/eval_suites.json",
+        "manifests/prompt_experiments.json",
+        "manifests/trace_eval_contracts.json",
+        "manifests/subagent_contracts.json",
         "manifests/guidance_promotions.json",
+        "manifests/permission_profiles.json",
+        "manifests/exec_rules.json",
+        "manifests/hook_contracts.json",
+        "manifests/automations.json",
+        "manifests/cli_command_contracts.json",
+        "manifests/context_state_contracts.json",
         "docs/archive"
       ],
       "verification": [

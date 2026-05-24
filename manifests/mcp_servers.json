@@ -63,7 +63,7 @@
     },
     {
       "name": "openaiDeveloperDocs",
-      "enabled": false,
+      "enabled": true,
       "transport": "http",
       "profiles": [
         "team-collab"
@@ -74,14 +74,15 @@
       "env": {},
       "owner": "local",
       "purpose": "Official OpenAI developer documentation lookup through the public read-only Docs MCP server.",
-      "security_status": "declared-disabled",
+      "security_status": "reviewed",
       "rollback": "Set enabled=false or remove the manifest entry, rebuild and apply.",
       "readiness": {
         "scopes": [
           "official documentation lookup"
         ],
         "network_targets": [
-          "developers.openai.com"
+          "developers.openai.com",
+          "platform.openai.com"
         ],
         "tool_inventory": [
           "search_openai_docs",
@@ -90,7 +91,7 @@
         ],
         "write_actions": [],
         "destructive_actions": [],
-        "requires_human_confirmation": true,
+        "requires_human_confirmation": false,
         "deny_path_tests": [
           {
             "name": "reject-auth-json",
@@ -104,7 +105,7 @@
           }
         ],
         "log_redaction": true,
-        "smoke": "rtk codex mcp list, then OpenAI docs search/fetch smoke after explicit enablement"
+        "smoke": "rtk codex mcp list, then OpenAI docs search/fetch smoke with non-secret documentation query"
       }
     },
     {

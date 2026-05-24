@@ -45,6 +45,30 @@
       "promotion_gate": "new governance manifest classes require pass and reject tests before source-to-live apply"
     },
     {
+      "name": "official-docs-freshness-eval",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "kind": "governance",
+      "owner": "asset-governance",
+      "cases_path": "manifests/official_docs_freshness_gates.json",
+      "success_metric": "official-docs-derived guidance has OpenAI source URLs, retrieved_at, review_status, expires_at, stale action and rollback before promotion",
+      "min_pass_rate": 1.0,
+      "negative_cases_required": true,
+      "commands": [
+        "rtk codex mcp list",
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk python3 -m unittest tests.test_governance"
+      ],
+      "artifacts": [
+        "official docs source URL list",
+        "freshness gate metadata",
+        "governance validation output"
+      ],
+      "promotion_gate": "OpenAI official guidance cannot be promoted to AGENTS, skill bodies or workflow recipes while freshness metadata is missing or stale"
+    },
+    {
       "name": "completion-gate-eval",
       "enabled": true,
       "profiles": [
@@ -65,6 +89,31 @@
         "check command output summary"
       ],
       "promotion_gate": "delivery claims must be backed by final-ready plus check.sh evidence"
+    },
+    {
+      "name": "local-runtime-boundary-eval",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "kind": "governance",
+      "owner": "asset-governance",
+      "cases_path": "manifests/permission_profiles.json",
+      "success_metric": "local permission profiles, exec rules and hook contracts reject broad access, open network defaults and unenforceable hook claims",
+      "min_pass_rate": 1.0,
+      "negative_cases_required": true,
+      "commands": [
+        "rtk python3 -m unittest tests.test_governance",
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk codex --strict-config doctor --summary --ascii"
+      ],
+      "artifacts": [
+        "permission profile manifest",
+        "exec rule manifest",
+        "hook contract manifest",
+        "negative governance assertions"
+      ],
+      "promotion_gate": "local runtime boundary changes must pass governance validation and Codex strict-config doctor before source-to-live apply"
     }
   ]
 }

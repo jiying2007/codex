@@ -36,6 +36,9 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
     official_docs_freshness_gates = optional_manifest_items(
         repo, "official_docs_freshness_gates.json", "official_docs_freshness_gates"
     )
+    permission_profiles = optional_manifest_items(repo, "permission_profiles.json", "permission_profiles")
+    exec_rules = optional_manifest_items(repo, "exec_rules.json", "exec_rules")
+    hook_contracts = optional_manifest_items(repo, "hook_contracts.json", "hook_contracts")
     return {
         "schema_version": 1,
         "default_profile": repo.assets.get("default_profile", ""),
@@ -62,6 +65,9 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
         "official_docs_freshness_gates": sorted(
             item.get("name", "") for item in official_docs_freshness_gates if item.get("name")
         ),
+        "permission_profiles": sorted(item.get("name", "") for item in permission_profiles if item.get("name")),
+        "exec_rules": sorted(item.get("name", "") for item in exec_rules if item.get("name")),
+        "hook_contracts": sorted(item.get("name", "") for item in hook_contracts if item.get("name")),
         "workflows": sorted(item.get("name", "") for item in workflows if item.get("name")),
         "project_templates": sorted(item.get("name", "") for item in templates if item.get("name")),
         "overlays": sorted(item.get("name", "") for item in overlays if item.get("name")),
@@ -81,6 +87,9 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
         "skill_mcp_dependency_links": skill_mcp_dependency_links(skill_mcp_dependencies),
         "slash_command_runtime_audit_links": slash_command_runtime_audit_links(slash_command_runtime_audits),
         "official_docs_freshness_gate_links": official_docs_freshness_gate_links(official_docs_freshness_gates),
+        "permission_profile_links": permission_profile_links(permission_profiles),
+        "exec_rule_links": exec_rule_links(exec_rules),
+        "hook_contract_links": hook_contract_links(hook_contracts),
         "template_links": template_links(templates),
     }
 
@@ -113,6 +122,9 @@ def governance_errors(repo: Repo) -> list[str]:
     official_docs_freshness_gates = optional_manifest_items(
         repo, "official_docs_freshness_gates.json", "official_docs_freshness_gates"
     )
+    permission_profiles = optional_manifest_items(repo, "permission_profiles.json", "permission_profiles")
+    exec_rules = optional_manifest_items(repo, "exec_rules.json", "exec_rules")
+    hook_contracts = optional_manifest_items(repo, "hook_contracts.json", "hook_contracts")
     workflow_names = item_names("workflows", workflows, errors)
     automation_names = item_names("automations", automations, errors)
     eval_suite_names = item_names("eval_suites", eval_suites, errors)
@@ -133,6 +145,9 @@ def governance_errors(repo: Repo) -> list[str]:
     item_names("skill_mcp_dependencies", skill_mcp_dependencies, errors)
     item_names("slash_command_runtime_audits", slash_command_runtime_audits, errors)
     item_names("official_docs_freshness_gates", official_docs_freshness_gates, errors)
+    item_names("permission_profiles", permission_profiles, errors)
+    item_names("exec_rules", exec_rules, errors)
+    item_names("hook_contracts", hook_contracts, errors)
     validate_workflows(workflows, profile_names, skill_names, agent_names, errors)
     validate_project_templates(templates, profile_names, workflow_names, errors)
     validate_overlays(overlays, repo.policies.get("protected_paths", []), errors)
@@ -158,6 +173,9 @@ def governance_errors(repo: Repo) -> list[str]:
         errors,
     )
     validate_official_docs_freshness_gates(official_docs_freshness_gates, mcp_server_names, errors)
+    validate_permission_profiles(permission_profiles, profile_names, errors)
+    validate_exec_rules(exec_rules, profile_names, errors)
+    validate_hook_contracts(hook_contracts, profile_names, errors)
     return errors
 
 
@@ -1129,7 +1147,7 @@ def validate_official_docs_freshness_gates(
         domains = set(list_value(item, "source_domains"))
         if not domains:
             errors.append(f"official_docs_freshness_gates:{name} source_domains 不能为空")
-        if not any(domain in {"developers.openai.com", "platform.openai.com"} for domain in domains):
+        if not any(domain in {"developers.openai.com", "platform.openai.com", "openai.com"} for domain in domains):
             errors.append(f"official_docs_freshness_gates:{name} source_domains 必须包含 OpenAI 官方域名")
         for url in list_value(item, "source_urls"):
             validate_official_docs_url(name, url, domains, errors)
@@ -1148,6 +1166,181 @@ def validate_official_docs_freshness_gates(
         for field in ["promotion_targets", "verification", "artifacts"]:
             if not list_value(item, field):
                 errors.append(f"official_docs_freshness_gates:{name} {field} 不能为空")
+
+
+def validate_permission_profiles(items: list[dict[str, Any]], profile_names: set[str], errors: list[str]) -> None:
+    allowed_modes = {"read-only", "workspace-write"}
+    allowed_config_modes = {"legacy-sandbox", "permission-profile"}
+    allowed_approval = {"on-request", "on-failure", "manual"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "mode",
+            "active_config_mode",
+            "approval_policy",
+            "filesystem",
+            "network",
+            "allowed_sandbox_modes",
+            "forbidden_modes",
+            "source_urls",
+            "verification",
+            "rollback",
+            "artifacts",
+        ]:
+            if field not in item:
+                errors.append(f"permission_profiles:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"permission_profiles:{name} 引用未知 profile: {profile}")
+        mode = str(item.get("mode", ""))
+        if mode and mode not in allowed_modes:
+            errors.append(f"permission_profiles:{name} mode 非法或过宽: {mode}")
+        active_config_mode = str(item.get("active_config_mode", ""))
+        if active_config_mode and active_config_mode not in allowed_config_modes:
+            errors.append(f"permission_profiles:{name} active_config_mode 非法: {active_config_mode}")
+        approval_policy = str(item.get("approval_policy", ""))
+        if approval_policy == "never":
+            errors.append(f"permission_profiles:{name} approval_policy 不允许 never")
+        elif approval_policy and approval_policy not in allowed_approval:
+            errors.append(f"permission_profiles:{name} approval_policy 非法: {approval_policy}")
+        filesystem = item.get("filesystem", {})
+        if not isinstance(filesystem, dict):
+            errors.append(f"permission_profiles:{name} filesystem 必须是 object")
+        else:
+            if not list_value(filesystem, "write_roots"):
+                errors.append(f"permission_profiles:{name} filesystem.write_roots 不能为空")
+            if not list_value(filesystem, "deny_paths"):
+                errors.append(f"permission_profiles:{name} filesystem.deny_paths 不能为空")
+        network = item.get("network", {})
+        if not isinstance(network, dict):
+            errors.append(f"permission_profiles:{name} network 必须是 object")
+        else:
+            if str(network.get("default", "")) == "allow":
+                errors.append(f"permission_profiles:{name} network.default 不允许 allow")
+            if "*" in list_value(network, "allowed_domains"):
+                errors.append(f"permission_profiles:{name} network.allowed_domains 不允许通配符")
+        allowed_sandboxes = set(list_value(item, "allowed_sandbox_modes"))
+        if not allowed_sandboxes:
+            errors.append(f"permission_profiles:{name} allowed_sandbox_modes 不能为空")
+        elif "danger-full-access" in allowed_sandboxes:
+            errors.append(f"permission_profiles:{name} allowed_sandbox_modes 不允许 danger-full-access")
+        if "danger-full-access" not in set(list_value(item, "forbidden_modes")):
+            errors.append(f"permission_profiles:{name} forbidden_modes 必须包含 danger-full-access")
+        for url in list_value(item, "source_urls"):
+            validate_openai_source_url("permission_profiles", name, url, errors)
+        for field in ["source_urls", "verification", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"permission_profiles:{name} {field} 不能为空")
+        if not str(item.get("rollback", "")).strip():
+            errors.append(f"permission_profiles:{name} rollback 不能为空")
+
+
+def validate_exec_rules(items: list[dict[str, Any]], profile_names: set[str], errors: list[str]) -> None:
+    allowed_decisions = {"allow", "prompt", "deny"}
+    broad_allow_prefixes = {"bash", "sh", "python", "python3", "node", "npx", "git", "rm", "curl", "wget"}
+    for item in items:
+        name = item.get("name", "")
+        for field in ["enabled", "profiles", "source_path", "rules", "verification", "rollback", "artifacts"]:
+            if field not in item:
+                errors.append(f"exec_rules:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"exec_rules:{name} 引用未知 profile: {profile}")
+        source_path = str(item.get("source_path", ""))
+        if unsafe_path(source_path) or not source_path.startswith("src/codex-home/rules/"):
+            errors.append(f"exec_rules:{name} source_path 必须位于 src/codex-home/rules/")
+        rules = list_dict_value(item, "rules")
+        if not rules:
+            errors.append(f"exec_rules:{name} rules 不能为空")
+        for rule in rules:
+            rule_name = str(rule.get("name", ""))
+            pattern = list_value(rule, "pattern")
+            decision = str(rule.get("decision", ""))
+            if not rule_name:
+                errors.append(f"exec_rules:{name} rules 条目缺少 name")
+            if not pattern:
+                errors.append(f"exec_rules:{name}:{rule_name} pattern 不能为空")
+            if decision and decision not in allowed_decisions:
+                errors.append(f"exec_rules:{name}:{rule_name} decision 非法: {decision}")
+            if decision == "allow" and len(pattern) == 1 and pattern[0] in broad_allow_prefixes:
+                errors.append(f"exec_rules:{name}:{rule_name} 不允许 broad allow prefix: {pattern[0]}")
+            if not str(rule.get("justification", "")).strip():
+                errors.append(f"exec_rules:{name}:{rule_name} justification 不能为空")
+            for field in ["match", "not_match"]:
+                if not list_value(rule, field):
+                    errors.append(f"exec_rules:{name}:{rule_name} {field} 不能为空")
+        for field in ["verification", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"exec_rules:{name} {field} 不能为空")
+        if not str(item.get("rollback", "")).strip():
+            errors.append(f"exec_rules:{name} rollback 不能为空")
+
+
+def validate_hook_contracts(items: list[dict[str, Any]], profile_names: set[str], errors: list[str]) -> None:
+    allowed_events = {
+        "SessionStart",
+        "PreCompact",
+        "PostCompact",
+        "UserPromptSubmit",
+        "SubagentStart",
+        "SubagentStop",
+        "PreToolUse",
+        "PostToolUse",
+        "PermissionRequest",
+        "Stop",
+    }
+    allowed_modes = {"disabled", "report-only", "blocking", "context-injection"}
+    for item in items:
+        name = item.get("name", "")
+        for field in [
+            "enabled",
+            "profiles",
+            "event",
+            "matcher",
+            "mode",
+            "input_contract",
+            "output_contract",
+            "allowed_actions",
+            "forbidden_actions",
+            "review_required",
+            "retention",
+            "source_urls",
+            "verification",
+            "rollback",
+            "artifacts",
+        ]:
+            if field not in item:
+                errors.append(f"hook_contracts:{name} 缺少字段 {field}")
+        for profile in list_value(item, "profiles"):
+            if profile not in profile_names:
+                errors.append(f"hook_contracts:{name} 引用未知 profile: {profile}")
+        event = str(item.get("event", ""))
+        if event and event not in allowed_events:
+            errors.append(f"hook_contracts:{name} event 非法: {event}")
+        mode = str(item.get("mode", ""))
+        if mode and mode not in allowed_modes:
+            errors.append(f"hook_contracts:{name} mode 非法: {mode}")
+        for field in ["input_contract", "output_contract", "allowed_actions", "forbidden_actions", "source_urls", "verification", "artifacts"]:
+            if not list_value(item, field):
+                errors.append(f"hook_contracts:{name} {field} 不能为空")
+        if item.get("review_required") is not True:
+            errors.append(f"hook_contracts:{name} review_required 必须为 true")
+        forbidden = set(list_value(item, "forbidden_actions"))
+        if "bypass-sandbox" not in forbidden:
+            errors.append(f"hook_contracts:{name} forbidden_actions 必须包含 bypass-sandbox")
+        if event == "PreToolUse" and "claim-complete-enforcement" not in forbidden:
+            errors.append(f"hook_contracts:{name} PreToolUse 必须禁止 claim-complete-enforcement")
+        retention = str(item.get("retention", "")).lower()
+        if not retention.strip():
+            errors.append(f"hook_contracts:{name} retention 不能为空")
+        elif "raw session" in retention or "raw-session" in retention:
+            errors.append(f"hook_contracts:{name} retention 不得保留 raw session")
+        for url in list_value(item, "source_urls"):
+            validate_openai_source_url("hook_contracts", name, url, errors)
+        if not str(item.get("rollback", "")).strip():
+            errors.append(f"hook_contracts:{name} rollback 不能为空")
 
 
 def list_value(item: dict[str, Any], key: str) -> list[str]:
@@ -1184,8 +1377,18 @@ def validate_official_docs_url(name: str, url: str, allowed_domains: set[str], e
     host = parsed.hostname or ""
     if host not in allowed_domains:
         errors.append(f"official_docs_freshness_gates:{name} source_urls host 未列入 source_domains: {host}")
-    if host not in {"developers.openai.com", "platform.openai.com"}:
+    if host not in {"developers.openai.com", "platform.openai.com", "openai.com"}:
         errors.append(f"official_docs_freshness_gates:{name} source_urls 必须使用 OpenAI 官方域名: {host}")
+
+
+def validate_openai_source_url(label: str, name: str, url: str, errors: list[str]) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        errors.append(f"{label}:{name} source_urls 必须是 https URL: {url}")
+        return
+    host = parsed.hostname or ""
+    if host not in {"developers.openai.com", "platform.openai.com", "openai.com"}:
+        errors.append(f"{label}:{name} source_urls 必须使用 OpenAI 官方域名: {host}")
 
 
 def validate_deny_path_test(name: str, test: dict[str, Any], errors: list[str]) -> None:
@@ -1418,6 +1621,44 @@ def official_docs_freshness_gate_links(items: list[dict[str, Any]]) -> dict[str,
             "max_age_days": item.get("max_age_days", 0),
             "review_status": item.get("review_status", ""),
             "source_domains": list_value(item, "source_domains"),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def permission_profile_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "profiles": list_value(item, "profiles"),
+            "mode": item.get("mode", ""),
+            "active_config_mode": item.get("active_config_mode", ""),
+            "approval_policy": item.get("approval_policy", ""),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def exec_rule_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "profiles": list_value(item, "profiles"),
+            "source_path": item.get("source_path", ""),
+            "rule_count": len(list_dict_value(item, "rules")),
+        }
+        for item in items
+        if item.get("name")
+    }
+
+
+def hook_contract_links(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        item["name"]: {
+            "profiles": list_value(item, "profiles"),
+            "event": item.get("event", ""),
+            "mode": item.get("mode", ""),
+            "review_required": item.get("review_required", False),
         }
         for item in items
         if item.get("name")

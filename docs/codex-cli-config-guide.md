@@ -87,6 +87,9 @@ writable_roots = [
 - 默认保留 human approval，不使用 `never`。
 - 默认不开放 sandbox network；需要联网时由任务显式请求或使用 CLI override。
 - 默认 `web_search = "cached"`，实时信息再临时开启 live search。
+- 当前配置使用旧 `sandbox_mode` / `sandbox_workspace_write`；不要同时启用 beta `default_permissions`。本地期望边界先登记到 `manifests/permission_profiles.json`，通过 governance 和 strict-config doctor 验证后再考虑运行态迁移。
+- Command rules 只允许 exact prefix 审计，例如 `rtk` wrapper。新增 allow rule 前先登记到 `manifests/exec_rules.json`，不得直接 broad allow `bash`、`python`、`git`、`curl` 或 `npx`。
+- Hook 先作为 `manifests/hook_contracts.json` 的 disabled/report-only 契约管理。没有单独 runner 审查前，不把 hook 当作完整命令拦截或权限执行边界。
 
 ### Shell 环境
 

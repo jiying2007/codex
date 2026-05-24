@@ -15,6 +15,16 @@
       "name": "external-research-review-note-positive",
       "prompt": "查 OpenAI 官方文档并总结可吸收的 Codex 优化点",
       "expected_recipe": "external-research-review-note"
+    },
+    {
+      "name": "official-docs-to-governance-positive",
+      "prompt": "按 OpenAI 官方 Developers 内容全面优化 ~/codex 并落地",
+      "expected_recipe": "official-docs-to-governance"
+    },
+    {
+      "name": "local-runtime-boundary-governance-positive",
+      "prompt": "按官方 permissions/rules/hooks 建本地 Codex 运行边界，不接外部集成",
+      "expected_recipe": "local-runtime-boundary-governance"
     }
   ]
 }

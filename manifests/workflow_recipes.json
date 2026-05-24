@@ -133,6 +133,105 @@
       "verification": [
         "rtk bash scripts/session-coach.sh --event target-switch --deep"
       ]
+    },
+    {
+      "name": "official-docs-to-governance",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "asset-governance",
+      "context_inputs": [
+        "official OpenAI source URLs",
+        "retrieved_at and expires_at dates",
+        "target manifest or guidance file",
+        "before/after behavior expectation",
+        "rollback path"
+      ],
+      "done_criteria": [
+        "OpenAI Docs MCP is used first when available, with official-domain fallback recorded when unavailable",
+        "source_urls and review metadata are recorded in official_docs_freshness_gates before long-term promotion",
+        "guidance changes are represented as workflow, eval, prompt experiment or trace contracts before expanding AGENTS text",
+        "build, governance doctor, apply dry-run and final-ready evidence support the completion claim"
+      ],
+      "review_artifacts": [
+        "official source URL list",
+        "freshness gate metadata",
+        "manifest diff",
+        "routing or governance eval output",
+        "final-ready summary"
+      ],
+      "failure_modes": [
+        "official docs MCP is disabled and fallback source is not restricted to OpenAI domains",
+        "a dynamic or one-off source is promoted into stable guidance without expiry",
+        "AGENTS.md grows with long procedural text that should live in a skill or recipe",
+        "prompt or policy behavior changes without before/after samples and rollback"
+      ],
+      "trigger_examples": [
+        "按 OpenAI 官方 Developers 内容全面优化 ~/codex 并落地",
+        "把 OpenAI 官方 Codex workflows 和 eval 建议转成本仓 governance manifest"
+      ],
+      "negative_examples": [
+        "只查一个 OpenAI API 参数怎么用",
+        "只根据本地测试失败修一个普通代码 bug"
+      ],
+      "verification": [
+        "rtk codex mcp list",
+        "rtk python3 -m unittest tests.test_agent_routing_eval",
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk bash scripts/final-ready.sh"
+      ]
+    },
+    {
+      "name": "local-runtime-boundary-governance",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "asset-governance",
+      "context_inputs": [
+        "requested permission or command behavior",
+        "active sandbox and approval policy",
+        "affected rule or hook contract",
+        "local-only constraint",
+        "verification commands"
+      ],
+      "done_criteria": [
+        "permission profiles keep danger-full-access and open network defaults forbidden",
+        "exec rules use exact prefix examples and non-examples instead of broad command allowlists",
+        "hook contracts state unsupported coverage and remain disabled until separately reviewed",
+        "automations remain report-only or manually reviewed and do not create real schedulers",
+        "governance tests, doctor and strict-config doctor support the completion claim"
+      ],
+      "review_artifacts": [
+        "permission profile manifest",
+        "exec rules manifest",
+        "hook contracts manifest",
+        "governance-report JSON summary",
+        "strict-config doctor summary"
+      ],
+      "failure_modes": [
+        "default config mixes beta permission profiles with legacy sandbox_mode without review",
+        "a broad allow rule grants bash, python, git, curl or npx directly",
+        "a hook contract claims complete enforcement while official hook coverage is incomplete",
+        "a local automation silently starts a recurring background job",
+        "Cloud, GitHub, Slack or Linear integration is introduced despite local-only scope"
+      ],
+      "trigger_examples": [
+        "按官方 permissions/rules/hooks 建本地 Codex 运行边界",
+        "把 Codex app automations 建成本地 report-only 审计，不接外部集成"
+      ],
+      "negative_examples": [
+        "只查一个 OpenAI API 参数",
+        "集成 GitHub Action 或 Slack bot",
+        "为单个业务项目新增 CI 配置"
+      ],
+      "verification": [
+        "rtk python3 -m unittest tests.test_governance",
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk codex --strict-config doctor --summary --ascii",
+        "rtk bash scripts/final-ready.sh"
+      ]
     }
   ]
 }

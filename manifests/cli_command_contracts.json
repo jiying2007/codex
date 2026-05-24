@@ -105,6 +105,116 @@
       "verification": [
         "rtk bash scripts/context-preflight.sh /tmp/context-preflight-check.md"
       ]
+    },
+    {
+      "name": "slash-plan-execution-contract",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "/plan",
+      "purpose": "turn a medium or large local task into staged work with scope, risks, evidence and stop conditions",
+      "input_contract": [
+        "goal statement",
+        "scope and non-goals",
+        "risk assumptions",
+        "verification commands",
+        "stop conditions"
+      ],
+      "allowed_actions": [
+        "create or update task plan",
+        "identify blocked items",
+        "select local verification commands"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "start external integration",
+        "hide unresolved blockers"
+      ],
+      "output_contract": [
+        "staged plan",
+        "risk ledger",
+        "verification map",
+        "open blockers"
+      ],
+      "review_required": true,
+      "verification": [
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk bash scripts/final-ready.sh"
+      ]
+    },
+    {
+      "name": "slash-status-local-audit",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "/status",
+      "purpose": "summarize local repo, asset, drift and verification state without modifying files",
+      "input_contract": [
+        "current goal or status request",
+        "desired scope: repo, assets, live drift or checks",
+        "known blockers"
+      ],
+      "allowed_actions": [
+        "inspect git status",
+        "inspect governance report",
+        "inspect drift and final-ready state"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "modify files",
+        "apply live changes"
+      ],
+      "output_contract": [
+        "changed file summary",
+        "verification state",
+        "drift state",
+        "next local action"
+      ],
+      "review_required": true,
+      "verification": [
+        "rtk git status --short",
+        "rtk bash scripts/drift.sh",
+        "rtk bash scripts/final-ready.sh"
+      ]
+    },
+    {
+      "name": "slash-mcp-local-readonly-audit",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "/mcp",
+      "purpose": "audit local MCP declarations, enabled state, tool inventory and fallback policy without enabling new external writes",
+      "input_contract": [
+        "MCP server name or audit scope",
+        "read/write expectation",
+        "fallback requirement",
+        "approval boundary"
+      ],
+      "allowed_actions": [
+        "list configured MCP servers",
+        "compare manifest readiness with runtime state",
+        "summarize deny-path and credential boundaries"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "enable external-write MCP",
+        "write credentials",
+        "upload private code"
+      ],
+      "output_contract": [
+        "MCP status summary",
+        "permission boundary",
+        "fallback decision",
+        "verification evidence"
+      ],
+      "review_required": true,
+      "verification": [
+        "rtk codex mcp list",
+        "rtk bash scripts/doctor.sh --scope governance"
+      ]
     }
   ]
 }

@@ -165,6 +165,66 @@
         "candidate optimization list",
         "source links"
       ]
+    },
+    {
+      "name": "local-runtime-boundary-review",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "scheduled",
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "asset-governance",
+      "cadence": "weekly Monday 10:00 Asia/Hong_Kong after explicit authorization",
+      "scope": {
+        "data_sources": [
+          "src/codex-home/config/base.toml",
+          "src/codex-home/rules/default.rules",
+          "manifests/permission_profiles.json",
+          "manifests/exec_rules.json",
+          "manifests/hook_contracts.json",
+          "manifests/slash_command_runtime_audits.json"
+        ],
+        "write_boundary": "report only; do not edit source, live config, rules or hook files"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop after producing a boundary report, when config/rules drift is detected, or after two validation failures",
+      "triage_contract": {
+        "destination": "Codex triage summary",
+        "allowed_outputs": [
+          "permission drift summary",
+          "command rule review",
+          "hook readiness checklist",
+          "recommended local-only follow-ups"
+        ],
+        "forbidden_actions": [
+          "modify config",
+          "write hook files",
+          "enable external connectors",
+          "start background scheduler"
+        ]
+      },
+      "run_lifecycle": {
+        "first_run": "manual review of local-only scope, disabled hook status and report-only boundary",
+        "steady_state": "inspect local manifests and config, produce a sanitized report, then stop",
+        "stale_after": "one week, Codex CLI version change or config/rules drift",
+        "retry_budget": 1,
+        "cleanup": [
+          "discard transient command logs after summary",
+          "keep only drift summary and command list"
+        ],
+        "retention": "retain sanitized boundary report only when user asks to archive it"
+      },
+      "output_artifacts": [
+        "permission drift summary",
+        "command rule review",
+        "hook readiness checklist"
+      ]
     }
   ]
 }

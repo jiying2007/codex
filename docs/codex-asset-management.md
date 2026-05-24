@@ -61,6 +61,9 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 - `skill_mcp_dependencies`：登记 skill 对 MCP server/tool 的依赖、访问模式、审批、fallback 和禁止动作。
 - `slash_command_runtime_audits`：登记 slash command 运行态审计事件、证据、保留策略和禁止动作。
 - `official_docs_freshness_gates`：登记官方文档来源、检索时间要求、审查状态、过期策略和回退方式。
+- `permission_profiles`：登记本地权限、sandbox、网络和审批边界；当前只审计旧 `sandbox_mode` 运行态，不混用 beta `default_permissions`。
+- `exec_rules`：登记 Codex rules 文件中的 prefix rule、匹配/反匹配样例、justification 和 broad allow 禁止项。
+- `hook_contracts`：登记 hook 事件、输入/输出、允许动作、禁止动作和保留策略；默认 disabled，不创建真实 hook runner。
 - `project_templates`：把不同项目路径映射到默认 profile、推荐 workflow 和归档主题。
 - `overlays`：定义个人、本地、团队共享和发布场景的允许漂移与阻断路径。
 
@@ -94,8 +97,30 @@ rtk bash scripts/governance-report.sh --json
 - 并行子代理的边界进入 `manifests/subagent_contracts.json`；长期记忆候选进入 `manifests/memory_candidates.json`，不得绕过审查直接写 memory。
 - MCP server 先进入 `manifests/mcp_servers.json`，再由 build 渲染到 `config.toml`；启用前必须有 transport、权限边界、凭证边界、工具清单、可执行 deny-path、日志脱敏、smoke 和回滚方式。
 - `manifests/mcp_servers.json` 只存声明和空 env key，不存真实 token；`tools.codex_assets` 会在 build 时把匹配 profile 的条目渲染到 `config.toml`。
-- eval、slash command、guidance promotion、goal template、prompt experiment、trace eval、context state contract、automation run record、skill MCP dependency、slash runtime audit 和 official docs freshness gate 也属于治理输入。新增或修改后必须运行 `doctor --scope governance`、相关单元测试和 `check.sh`。
+- eval、slash command、guidance promotion、goal template、prompt experiment、trace eval、context state contract、automation run record、skill MCP dependency、slash runtime audit、official docs freshness gate、permission profile、exec rule 和 hook contract 也属于治理输入。新增或修改后必须运行 `doctor --scope governance`、相关单元测试和 `check.sh`。
 - 上下文压缩遵循 `docs/context-layout.md`，把 stable、dynamic、evidence 和 excluded context 分开，避免把短期工作区状态提升为长期规则。
+
+## OpenAI 官方开发者资料吸收路径
+
+OpenAI Developers 内容只能通过可追溯路径提升为长期规则。默认先用只读 `openaiDeveloperDocs` MCP；若 MCP 不可用，只允许 fallback 到 `developers.openai.com` 或 `platform.openai.com`，并记录检索日期。不得把一次性网页结论直接写进 `AGENTS.md` 或 skill 正文。
+
+落地顺序：
+
+1. 在 `manifests/official_docs_freshness_gates.json` 登记 source URL、`retrieved_at`、`expires_at`、review 状态、stale action 和 rollback。
+2. 选择最小持久层：workflow 行为进 `workflow_recipes`，routing/completion/prompt 质量进 `eval_suites`，过程要求进 `trace_eval_contracts`，提示词或策略实验进 `prompt_experiments`，子代理边界进 `subagent_contracts`。
+3. 只有当 manifest 契约无法表达稳定规则时，才提升到 `AGENTS.md`；提升前必须有 before/after 样例、负例、验证命令和回退方式。
+4. 执行 `build -> doctor -> plan -> dry-run -> final-ready`，需要同步运行目录时再执行 apply。
+
+当前官方资料基线覆盖 Docs MCP、AGENTS 分层、Codex skills 渐进披露、Codex workflows、subagents、agent evals、trace grading、prompting、prompt optimizer、model optimization、permissions、rules、hooks、automations、app commands、governance/observability、structured outputs、function calling、tools 和 conversation state。该基线在 `official_docs_freshness_gates` 中有过期时间；过期后必须重新检索，不能沿用旧结论。
+
+### 本地运行边界吸收
+
+官方 permissions、rules 和 hooks 资料只落成本地可审计边界，不直接放宽运行权限：
+
+- `manifests/permission_profiles.json` 记录期望的 read-only / workspace-write 边界、禁止 `danger-full-access`、网络默认拒绝和人工审批策略。当前运行配置仍使用旧 `sandbox_mode`，不同时启用 beta `default_permissions`。
+- `manifests/exec_rules.json` 记录 `src/codex-home/rules/default.rules` 中的 exact prefix rule。允许项必须有 match / not_match 样例和 justification；不得 broad allow `bash`、`python`、`git`、`curl`、`npx` 等高风险前缀。
+- `manifests/hook_contracts.json` 记录 `SessionStart`、`PreToolUse`、`PostToolUse`、`PreCompact` 等 hook 设计契约。所有条目默认 disabled/report-only；在没有单独 runner 审查前，不得声称 hook 能完整拦截所有工具路径。
+- `manifests/automations.json` 中的本地自动化只作为 report-only 候选，不创建真实 scheduler。首跑审查、retry budget、cleanup、retention 和 triage destination 必填。
 
 ## 脚本与 Python 入口规范
 

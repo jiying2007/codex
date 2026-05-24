@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "hook_contracts": [
+    {
+      "name": "sessionstart-local-context-contract",
+      "enabled": false,
+      "profiles": [
+        "team-collab"
+      ],
+      "event": "SessionStart",
+      "matcher": "startup|resume|compact",
+      "mode": "context-injection",
+      "input_contract": [
+        "source",
+        "cwd",
+        "active profile"
+      ],
+      "output_contract": [
+        "additionalContext with workspace conventions only",
+        "systemMessage when context is stale"
+      ],
+      "allowed_actions": [
+        "surface AGENTS and profile reminders",
+        "surface stale-context warning"
+      ],
+      "forbidden_actions": [
+        "bypass-sandbox",
+        "write files",
+        "enable external connectors"
+      ],
+      "review_required": true,
+      "retention": "sanitized hook summary only",
+      "source_urls": [
+        "https://developers.openai.com/codex/hooks"
+      ],
+      "verification": [
+        "rtk bash scripts/doctor.sh --scope governance"
+      ],
+      "rollback": "keep hook disabled and remove the contract entry",
+      "artifacts": [
+        "hook contract summary",
+        "context injection review note"
+      ]
+    },
+    {
+      "name": "pretooluse-rtk-guard-contract",
+      "enabled": false,
+      "profiles": [
+        "team-collab"
+      ],
+      "event": "PreToolUse",
+      "matcher": "Bash|apply_patch",
+      "mode": "report-only",
+      "input_contract": [
+        "tool_name",
+        "command or patch summary",
+        "cwd"
+      ],
+      "output_contract": [
+        "systemMessage warning",
+        "stopReason only after separate enforcement review"
+      ],
+      "allowed_actions": [
+        "warn about non-rtk shell commands",
+        "warn about direct live writes",
+        "warn about unreviewed apply_patch scope"
+      ],
+      "forbidden_actions": [
+        "bypass-sandbox",
+        "claim-complete-enforcement",
+        "assume all tool paths are intercepted"
+      ],
+      "review_required": true,
+      "retention": "sanitized hook summary only",
+      "source_urls": [
+        "https://developers.openai.com/codex/hooks",
+        "https://developers.openai.com/codex/rules"
+      ],
+      "verification": [
+        "rtk bash scripts/doctor.sh --scope governance"
+      ],
+      "rollback": "keep hook disabled and rely on AGENTS plus exec_rules until a reviewed runner exists",
+      "artifacts": [
+        "hook contract summary",
+        "unsupported coverage note"
+      ]
+    },
+    {
+      "name": "posttooluse-evidence-contract",
+      "enabled": false,
+      "profiles": [
+        "team-collab"
+      ],
+      "event": "PostToolUse",
+      "matcher": "Bash|apply_patch",
+      "mode": "report-only",
+      "input_contract": [
+        "tool_name",
+        "exit status",
+        "changed files",
+        "verification command"
+      ],
+      "output_contract": [
+        "systemMessage for missing evidence",
+        "stopReason for reviewed blocker only"
+      ],
+      "allowed_actions": [
+        "flag missing verification evidence",
+        "flag broad file churn"
+      ],
+      "forbidden_actions": [
+        "bypass-sandbox",
+        "silently mutate evidence",
+        "retain raw session logs"
+      ],
+      "review_required": true,
+      "retention": "sanitized evidence index only",
+      "source_urls": [
+        "https://developers.openai.com/codex/hooks"
+      ],
+      "verification": [
+        "rtk bash scripts/final-ready.sh"
+      ],
+      "rollback": "keep hook disabled and use final-ready evidence checks",
+      "artifacts": [
+        "evidence index",
+        "final-ready summary"
+      ]
+    },
+    {
+      "name": "precompact-context-layer-contract",
+      "enabled": false,
+      "profiles": [
+        "team-collab"
+      ],
+      "event": "PreCompact",
+      "matcher": "compact",
+      "mode": "report-only",
+      "input_contract": [
+        "current goal",
+        "stable context",
+        "dynamic context",
+        "evidence context",
+        "excluded context"
+      ],
+      "output_contract": [
+        "systemMessage when layers are missing",
+        "sanitized handoff reminder"
+      ],
+      "allowed_actions": [
+        "warn about missing context layers",
+        "route excluded context away from long-term memory"
+      ],
+      "forbidden_actions": [
+        "bypass-sandbox",
+        "write memories",
+        "promote excluded context"
+      ],
+      "review_required": true,
+      "retention": "sanitized context checklist only",
+      "source_urls": [
+        "https://developers.openai.com/codex/hooks",
+        "https://developers.openai.com/api/docs/guides/conversation-state"
+      ],
+      "verification": [
+        "rtk bash scripts/context-preflight.sh /tmp/context-preflight-check.md"
+      ],
+      "rollback": "keep hook disabled and use manual context-preflight",
+      "artifacts": [
+        "context layer checklist",
+        "context-preflight markdown"
+      ]
+    }
+  ]
+}
