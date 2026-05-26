@@ -38,3 +38,5 @@
 | `20260523-090010-memory-curation.md` | `20260523-090010-memory-curation.md` |
 | `20260523-162209-memory-curation.md` | `20260523-162209-memory-curation.md` |
 | `20260523-193503-memory-curation.md` | `20260523-193503-memory-curation.md` |
+| `20260524-231343-memory-curation.md` | `20260524-231343-memory-curation.md` |
+| `20260524-231447-memory-curation.md` | `20260524-231447-memory-curation.md` |
