@@ -40,7 +40,7 @@ Use this skill for user-authorized browser reading when normal HTTP fetch cannot
    - Main points
    - Evidence snippets within copyright limits
    - Original URL
-4. If the result should be retained, route to `knowledge-archive`.
+4. If the result should be retained, route to `adk-knowledge-archive`.
 
 ## WeChat Public Account Notes
 

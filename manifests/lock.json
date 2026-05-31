@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 631,
+  "managed_count": 625,
   "items": [
     {
       "kind": "skill",
@@ -9,6 +9,13 @@
       "version": "1.0.0",
       "source": "vendor/skills/adk-after-action-review/1.0.0",
       "sha256": "40e9473a8e636469368c74a61fa87b4ee66eb9609340a06b48295f0cff23ab23"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-archive-governance",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-archive-governance/1.0.0",
+      "sha256": "f18e289d7845c6286b9444e46ac0ede681afddc12a034c0091f57f627e8861f5"
     },
     {
       "kind": "skill",
@@ -40,10 +47,38 @@
     },
     {
       "kind": "skill",
+      "name": "adk-context-compress-handoff",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-context-compress-handoff/1.0.0",
+      "sha256": "1ad9b4670be0813e9e7e7962d5b1fa215c3496a49afd485059a1ad0fbd041bd2"
+    },
+    {
+      "kind": "skill",
       "name": "adk-cross-team-handoff",
       "version": "1.0.0",
       "source": "vendor/skills/adk-cross-team-handoff/1.0.0",
       "sha256": "d0039b7dea9aca4b1989efced95d420edaad7709f04e1f8f713b92774f80ce4d"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-developer-growth-review",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-developer-growth-review/1.0.0",
+      "sha256": "46d46c36f1eaa9775ea4fa1a548019ee95831b8e1d9e682dd60c7caea4693da3"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-embedded-diagnostic-harness",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-embedded-diagnostic-harness/1.0.0",
+      "sha256": "62437ee140a891db11adb9fd0bda9680067c138f348efe559aaeb2d94b112474"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-embedded-release-orchestration",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-embedded-release-orchestration/1.0.0",
+      "sha256": "b637426b3e42c244f84e095f3caee97fc9bf595b6d892fcc18afb8508611e7eb"
     },
     {
       "kind": "skill",
@@ -61,10 +96,31 @@
     },
     {
       "kind": "skill",
+      "name": "adk-knowledge-archive",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-knowledge-archive/1.0.0",
+      "sha256": "5e4ababc8e9a8ad43cd1598d3a19b8a08d3e1d54fb2d69ba308c47785d88efb2"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-memory-curator",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-memory-curator/1.0.0",
+      "sha256": "9310765dfc9aac6c353cd7ca443500dd98a3f42104c7eaa3736ba4e72ffb4e3d"
+    },
+    {
+      "kind": "skill",
       "name": "adk-parallel-agent-governance",
       "version": "1.0.0",
       "source": "vendor/skills/adk-parallel-agent-governance/1.0.0",
       "sha256": "d3788675a3819e20513f906b8e214795474efd0040500da9c4c197b87aa052ca"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-plan-lite",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-plan-lite/1.0.0",
+      "sha256": "b0ed306f17f4f8e4b23d89cf31b2015e4b4a4bb85fce8eb13b45947f0396115b"
     },
     {
       "kind": "skill",
@@ -79,6 +135,13 @@
       "version": "1.1.0",
       "source": "vendor/skills/adk-release-versioning/1.1.0",
       "sha256": "e7ca02de5276a9cee62a08ae631b1d1ab5c06aab59ec3110464ad1f748906121"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-repo-drift-remediation",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-repo-drift-remediation/1.0.0",
+      "sha256": "6669532416c932e8549e563b4d56c7a4a4442b4149696d80e5503ba439915b46"
     },
     {
       "kind": "skill",
@@ -166,17 +229,10 @@
     },
     {
       "kind": "skill",
-      "name": "archive-governance",
-      "version": "1.0.0",
-      "source": "vendor/skills/archive-governance/1.0.0",
-      "sha256": "bdd9aff72cec3a6cc2cc01f995c00f5545c8d7ce5182244831bf21a4d311ac43"
-    },
-    {
-      "kind": "skill",
       "name": "browser-reader",
       "version": "0.1.0",
       "source": "vendor/skills/browser-reader/0.1.0",
-      "sha256": "136fe3e642718fcbbb1dca14038347255f9bbeb09600d40850a2d7e9f95aa8d9"
+      "sha256": "28a23fc7fead11f88a166e5c6d38c51b147d851810f82b8f9eaf0ce653434f65"
     },
     {
       "kind": "skill",
@@ -215,59 +271,10 @@
     },
     {
       "kind": "skill",
-      "name": "context-compress-handoff",
-      "version": "0.1.0",
-      "source": "vendor/skills/context-compress-handoff/0.1.0",
-      "sha256": "a3a9c512297ed364b0343fdaa0b0f862d98b50bdd4d10ea3b81916fd12934eb1"
-    },
-    {
-      "kind": "skill",
-      "name": "create-plan",
-      "version": "0.1.0",
-      "source": "vendor/skills/create-plan/0.1.0",
-      "sha256": "93e6f8a6b0cb01b3d3aac9ab24060c43589c17a397818a5acf63984380579aa8"
-    },
-    {
-      "kind": "skill",
-      "name": "developer-growth-analysis",
-      "version": "0.1.0",
-      "source": "vendor/skills/developer-growth-analysis/0.1.0",
-      "sha256": "d43aeaffa3c1af8c1ec198332b3e14b658b30ad8328ad0f6d9685443b21a2544"
-    },
-    {
-      "kind": "skill",
-      "name": "embedded-diagnostic-harness",
-      "version": "1.0.0",
-      "source": "vendor/skills/embedded-diagnostic-harness/1.0.0",
-      "sha256": "05abb01ee1aac92db257975d604264e25fc736b76ef1629b9e013dd754890086"
-    },
-    {
-      "kind": "skill",
-      "name": "embedded-release-orchestration",
-      "version": "1.0.0",
-      "source": "vendor/skills/embedded-release-orchestration/1.0.0",
-      "sha256": "b9bc380a4198202e9b450151bed2d5a28dfe49bb066cb77d4f0ff7c0a780fc7b"
-    },
-    {
-      "kind": "skill",
-      "name": "knowledge-archive",
-      "version": "0.1.0",
-      "source": "vendor/skills/knowledge-archive/0.1.0",
-      "sha256": "8b586780d5d5b1b5bb27f7b91d2c1ecf79feb09a7bce6fcdda9feb952a3553c8"
-    },
-    {
-      "kind": "skill",
       "name": "mcp-builder",
       "version": "0.1.0",
       "source": "vendor/skills/mcp-builder/0.1.0",
       "sha256": "4254ed52302c8f9ee258f1af7f1770a7155faaa65d8e47007d9c997c39cbff8f"
-    },
-    {
-      "kind": "skill",
-      "name": "memory-curator",
-      "version": "0.1.0",
-      "source": "vendor/skills/memory-curator/0.1.0",
-      "sha256": "66042e6745b21da0a7ee3cc83ea41fb3e26a3e3c671b471c8397b134b00b3c7e"
     },
     {
       "kind": "skill",
@@ -282,13 +289,6 @@
       "version": "3.1.0",
       "source": "vendor/skills/project-daily-summary/3.1.0",
       "sha256": "7fc33a359aca7c11d261afe5bf67265dc16997ff7ad55d70b04b70144f63135d"
-    },
-    {
-      "kind": "skill",
-      "name": "repo-drift-remediation",
-      "version": "1.0.0",
-      "source": "vendor/skills/repo-drift-remediation/1.0.0",
-      "sha256": "1317ecf77b1493f7c617a7dfbd82408ecbbbf1aac86e2ba9ab112083f2d25a4d"
     },
     {
       "kind": "skill",

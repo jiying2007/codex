@@ -1,4 +1,0 @@
-interface:
-  display_name: "knowledge-archive"
-  short_description: "将日报、会话总结、调研和排障结论归档到 docs/archive"
-  default_prompt: "Use $knowledge-archive to sanitize and archive durable Codex knowledge into ~/codex/docs/archive/<topic>/."

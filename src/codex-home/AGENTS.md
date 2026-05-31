@@ -68,24 +68,24 @@ Superpowers fallback 不应覆盖已有 adk 路由，除非满足第 2 节条件
 - 提交总结 / commit 日报：`commit-daily-summary`
 - 项目日报 / 按项目总结：`project-daily-summary`
 - 调研纪要 / 分析结论：`research-note-wrap`
-- 知识归档 / 长期沉淀 / 保存到 docs/archive：`knowledge-archive`
-- memory / memories / 记忆整理：`memory-curator`
-- 上下文压缩 / 会话接力 / resume prompt / 90 秒模板：`context-compress-handoff`
+- 知识归档 / 长期沉淀 / 保存到 docs/archive：`adk-knowledge-archive`
+- memory / memories / 记忆整理：`adk-memory-curator`
+- 上下文压缩 / 会话接力 / resume prompt / 90 秒模板：`adk-context-compress-handoff`
 - 多源搜索 / 交叉验证 / 资料核验：`multi-search-engine`
 - 浏览器查看 / 微信公众号 / agent-browser：`browser-reader`
 - skill 资产 / 注册 / build / apply / rollback：`skill-asset-manager`
 - Chronicle 记忆 / 重复流程提炼 / 转化为 skill：`chronicle-workflow-miner`
-- 归档治理 / 归档检查 / 归档修复 / 归档迁移 / 归档不合规 / 元数据修复 / 文件名规范：`archive-governance`
-- 全仓漂移 / 偏离 / 冗余 / 残留 / 边界不清治理：`repo-drift-remediation`
-- 嵌入式 SoC/MCU/OTA/NAS/量产发布编排：`embedded-release-orchestration`
-- 嵌入式 prog_tool / diag / strict/env / HIL 诊断验证：`embedded-diagnostic-harness`
+- 归档治理 / 归档检查 / 归档修复 / 归档迁移 / 归档不合规 / 元数据修复 / 文件名规范：`adk-archive-governance`
+- 全仓漂移 / 偏离 / 冗余 / 残留 / 边界不清治理：`adk-repo-drift-remediation`
+- 嵌入式 SoC/MCU/OTA/NAS/量产发布编排：`adk-embedded-release-orchestration`
+- 嵌入式 prog_tool / diag / strict/env / HIL 诊断验证：`adk-embedded-diagnostic-harness`
 - 并行开发规划 / 多 worktree 协作：`codex-parallel-collab`
 - 分支或 worktree 收口梳理：`worktree-closeout`
 - 多个总结类同时命中时，优先级为 `session-wrap -> commit-daily-summary -> project-daily-summary -> research-note-wrap`。
-- 归档类需求先生成对应总结或笔记，再用 `knowledge-archive` 归档。
-- 保存 / 新增 / 沉淀到归档优先 `knowledge-archive`；归档治理 / 检查 / 修复 / 迁移 / 不合规才使用 `archive-governance`。
-- 记忆整理 / 提升 / 清理优先 `memory-curator`；会话接力 / 恢复提示 / 上下文压缩优先 `context-compress-handoff`。
-- 仅查询历史归档时直接使用归档查询入口；只有索引、元数据、状态或命名异常时才升级为 `archive-governance`。
+- 归档类需求先生成对应总结或笔记，再用 `adk-knowledge-archive` 归档。
+- 保存 / 新增 / 沉淀到归档优先 `adk-knowledge-archive`；归档治理 / 检查 / 修复 / 迁移 / 不合规才使用 `adk-archive-governance`。
+- 记忆整理 / 提升 / 清理优先 `adk-memory-curator`；会话接力 / 恢复提示 / 上下文压缩优先 `adk-context-compress-handoff`。
+- 仅查询历史归档时直接使用归档查询入口；只有索引、元数据、状态或命名异常时才升级为 `adk-archive-governance`。
 - 本次使用过专用 skill 时，在回复中简短说明；未命中时说明未使用专用 skill。
 
 ## 5. adk 通用边界与嵌入式 profile

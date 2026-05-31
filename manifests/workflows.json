@@ -68,9 +68,9 @@
         "archive-search"
       ],
       "skills": [
-        "archive-governance",
-        "knowledge-archive",
-        "memory-curator",
+        "adk-archive-governance",
+        "adk-knowledge-archive",
+        "adk-memory-curator",
         "research-note-wrap",
         "session-wrap"
       ],
@@ -147,7 +147,7 @@
       ],
       "skills": [
         "chronicle-workflow-miner",
-        "memory-curator",
+        "adk-memory-curator",
         "skill-asset-manager"
       ],
       "agents": [
@@ -180,10 +180,10 @@
         "线程角色"
       ],
       "skills": [
-        "context-compress-handoff",
+        "adk-context-compress-handoff",
         "session-wrap",
-        "knowledge-archive",
-        "memory-curator"
+        "adk-knowledge-archive",
+        "adk-memory-curator"
       ],
       "agents": [
         "local-context-curator"
@@ -210,7 +210,7 @@
         "HIL 验证"
       ],
       "skills": [
-        "embedded-diagnostic-harness",
+        "adk-embedded-diagnostic-harness",
         "adk-systematic-debugging",
         "adk-test-strategy"
       ],
@@ -243,7 +243,7 @@
         "量产发布"
       ],
       "skills": [
-        "embedded-release-orchestration",
+        "adk-embedded-release-orchestration",
         "adk-release-versioning",
         "adk-test-strategy",
         "adk-verification-before-completion"
@@ -378,7 +378,7 @@
         "提交前检查"
       ],
       "skills": [
-        "repo-drift-remediation",
+        "adk-repo-drift-remediation",
         "adk-code-review-loop",
         "adk-commit-pr-quality-gate",
         "adk-verification-before-completion"
@@ -415,10 +415,10 @@
         "操作模型"
       ],
       "skills": [
-        "context-compress-handoff",
+        "adk-context-compress-handoff",
         "session-wrap",
-        "knowledge-archive",
-        "memory-curator",
+        "adk-knowledge-archive",
+        "adk-memory-curator",
         "skill-asset-manager"
       ],
       "agents": [

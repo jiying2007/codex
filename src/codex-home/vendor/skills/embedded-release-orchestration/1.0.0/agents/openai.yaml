@@ -1,2 +1,0 @@
-display_name: 'embedded-release-orchestration'
-short_description: '编排 SoC/MCU/OTA 构建、验证、打 tag、NAS/产线发布和发布指南'

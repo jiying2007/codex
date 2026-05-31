@@ -24,6 +24,30 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-archive-governance",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-archive-governance/1.0.0",
+      "target_rel": "skills/adk-archive-governance",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "archive",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-archive-governance/SKILL.md",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-artifact-gated-lite",
       "enabled": true,
       "source_kind": "vendor",
@@ -112,6 +136,30 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-context-compress-handoff",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-context-compress-handoff/1.0.0",
+      "target_rel": "skills/adk-context-compress-handoff",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "context",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-context-compress-handoff/SKILL.md",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-cross-team-handoff",
       "enabled": true,
       "source_kind": "vendor",
@@ -131,6 +179,80 @@
       "source_ref": "2.9.0",
       "source_path": "optional-skills/adk-cross-team-handoff/SKILL.md",
       "imported_at": "2026-05-23",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-developer-growth-review",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-developer-growth-review/1.0.0",
+      "target_rel": "skills/adk-developer-growth-review",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "growth",
+        "summary",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-developer-growth-review/SKILL.md",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-embedded-diagnostic-harness",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-embedded-diagnostic-harness/1.0.0",
+      "target_rel": "skills/adk-embedded-diagnostic-harness",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "embedded",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-embedded-diagnostic-harness/SKILL.md",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-embedded-release-orchestration",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-embedded-release-orchestration/1.0.0",
+      "target_rel": "skills/adk-embedded-release-orchestration",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "embedded",
+        "release",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-embedded-release-orchestration/SKILL.md",
+      "imported_at": "2026-05-31",
       "review_status": "accepted"
     },
     {
@@ -178,6 +300,55 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-knowledge-archive",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-knowledge-archive/1.0.0",
+      "target_rel": "skills/adk-knowledge-archive",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "archive",
+        "knowledge",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-knowledge-archive/SKILL.md",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-memory-curator",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-memory-curator/1.0.0",
+      "target_rel": "skills/adk-memory-curator",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "memory",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-memory-curator/SKILL.md",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-parallel-agent-governance",
       "enabled": true,
       "source_kind": "vendor",
@@ -197,6 +368,30 @@
       "source_ref": "2.9.0",
       "source_path": "skills/adk-parallel-agent-governance/SKILL.md",
       "imported_at": "2026-05-23",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-plan-lite",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-plan-lite/1.0.0",
+      "target_rel": "skills/adk-plan-lite",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "planning",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-plan-lite/SKILL.md",
+      "imported_at": "2026-05-31",
       "review_status": "accepted"
     },
     {
@@ -241,6 +436,30 @@
       "source_ref": "2.9.0",
       "source_path": "skills/adk-release-versioning/SKILL.md",
       "imported_at": "2026-05-23",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-repo-drift-remediation",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-repo-drift-remediation/1.0.0",
+      "target_rel": "skills/adk-repo-drift-remediation",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "repo-governance",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-repo-drift-remediation/SKILL.md",
+      "imported_at": "2026-05-31",
       "review_status": "accepted"
     },
     {
@@ -508,30 +727,6 @@
       "review_status": "accepted"
     },
     {
-      "name": "archive-governance",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/archive-governance/1.0.0",
-      "target_rel": "skills/archive-governance",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "archive",
-        "governance",
-        "local",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/archive-governance/1.0.0",
-      "imported_at": "2026-05-20",
-      "review_status": "accepted"
-    },
-    {
       "name": "brainstorming",
       "enabled": true,
       "source_kind": "vendor",
@@ -663,75 +858,6 @@
       ]
     },
     {
-      "name": "context-compress-handoff",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/context-compress-handoff/0.1.0",
-      "target_rel": "skills/context-compress-handoff",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "context",
-        "compression",
-        "local",
-        "handoff"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/context-compress-handoff/0.1.0",
-      "imported_at": "2026-05-10",
-      "review_status": "accepted"
-    },
-    {
-      "name": "create-plan",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/create-plan/0.1.0",
-      "target_rel": "skills/create-plan",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "planning",
-        "codex"
-      ],
-      "owner": "composiohq",
-      "source_repo": "ComposioHQ/awesome-codex-skills",
-      "source_ref": "500b0c00093ec3a8633d7ed1122d289ab1d23755",
-      "source_path": "create-plan",
-      "imported_at": "2026-05-09",
-      "review_status": "accepted"
-    },
-    {
-      "name": "developer-growth-analysis",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/developer-growth-analysis/0.1.0",
-      "target_rel": "skills/developer-growth-analysis",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "growth",
-        "summary",
-        "research"
-      ],
-      "owner": "composiohq",
-      "source_repo": "ComposioHQ/awesome-codex-skills",
-      "source_ref": "500b0c00093ec3a8633d7ed1122d289ab1d23755",
-      "source_path": "developer-growth-analysis",
-      "imported_at": "2026-05-09",
-      "review_status": "accepted"
-    },
-    {
       "name": "dispatching-parallel-agents",
       "enabled": true,
       "source_kind": "vendor",
@@ -745,54 +871,6 @@
         "superpowers",
         "fallback"
       ]
-    },
-    {
-      "name": "embedded-diagnostic-harness",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/embedded-diagnostic-harness/1.0.0",
-      "target_rel": "skills/embedded-diagnostic-harness",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "embedded",
-        "diagnostics",
-        "hil",
-        "local",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-diagnostic-harness/1.0.0",
-      "imported_at": "2026-05-20",
-      "review_status": "accepted"
-    },
-    {
-      "name": "embedded-release-orchestration",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/embedded-release-orchestration/1.0.0",
-      "target_rel": "skills/embedded-release-orchestration",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "embedded",
-        "release",
-        "ota",
-        "local",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-release-orchestration/1.0.0",
-      "imported_at": "2026-05-20",
-      "review_status": "accepted"
     },
     {
       "name": "executing-plans",
@@ -825,30 +903,6 @@
       ]
     },
     {
-      "name": "knowledge-archive",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/knowledge-archive/0.1.0",
-      "target_rel": "skills/knowledge-archive",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "archive",
-        "knowledge",
-        "local",
-        "summary"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/knowledge-archive/0.1.0",
-      "imported_at": "2026-05-10",
-      "review_status": "accepted"
-    },
-    {
       "name": "mcp-builder",
       "enabled": true,
       "source_kind": "vendor",
@@ -869,30 +923,6 @@
       "source_ref": "f458cee31a7577a47ba0c9a101976fa599385174",
       "source_path": "skills/mcp-builder",
       "imported_at": "2026-05-09",
-      "review_status": "accepted"
-    },
-    {
-      "name": "memory-curator",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/memory-curator/0.1.0",
-      "target_rel": "skills/memory-curator",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "memory",
-        "archive",
-        "local",
-        "governance"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/memory-curator/0.1.0",
-      "imported_at": "2026-05-10",
       "review_status": "accepted"
     },
     {
@@ -947,30 +977,6 @@
         "superpowers",
         "fallback"
       ]
-    },
-    {
-      "name": "repo-drift-remediation",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/repo-drift-remediation/1.0.0",
-      "target_rel": "skills/repo-drift-remediation",
-      "profiles": [
-        "team-collab"
-      ],
-      "tags": [
-        "governance",
-        "quality",
-        "remediation",
-        "local",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/repo-drift-remediation/1.0.0",
-      "imported_at": "2026-05-20",
-      "review_status": "accepted"
     },
     {
       "name": "requesting-code-review",

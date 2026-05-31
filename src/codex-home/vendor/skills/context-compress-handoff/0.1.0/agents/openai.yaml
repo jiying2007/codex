@@ -1,4 +1,0 @@
-interface:
-  display_name: "context-compress-handoff"
-  short_description: "压缩前收口与会话接力模板化流程"
-  default_prompt: "Use $context-compress-handoff to generate a pre-compression preflight, archive the session handoff, and prepare resume-ready context."

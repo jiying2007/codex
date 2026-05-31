@@ -1,0 +1,2 @@
+display_name: ADK Embedded Release Orchestration
+short_description: Orchestrate embedded firmware release bundles, gates, evidence, and non-overwrite publishing.

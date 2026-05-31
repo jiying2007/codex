@@ -27,7 +27,7 @@ rtk bash ~/codex/scripts/check.sh
 
 ## 知识沉淀
 
-当用户要求“知识归档”“日报归档”“会话总结归档”“排障结论归档”时，路由到 `knowledge-archive`，固定归档到：
+当用户要求“知识归档”“日报归档”“会话总结归档”“排障结论归档”时，路由到 `adk-knowledge-archive`，固定归档到：
 
 ```text
 ~/codex/docs/archive/<topic>/
@@ -37,7 +37,7 @@ rtk bash ~/codex/scripts/check.sh
 
 ## 记忆整理
 
-当用户要求“记忆整理”“整理 memories”“周期性整理记忆”时，路由到 `memory-curator`。默认只生成审计报告：
+当用户要求“记忆整理”“整理 memories”“周期性整理记忆”时，路由到 `adk-memory-curator`。默认只生成审计报告：
 
 ```bash
 rtk bash ~/codex/scripts/curate-memory.sh
@@ -53,7 +53,7 @@ rtk bash ~/codex/scripts/curate-memory.sh
 
 ## 上下文压缩与会话接力
 
-当用户要求“上下文压缩前处理”“会话接力”“恢复上下文”“resume prompt”时，路由到 `context-compress-handoff`。
+当用户要求“上下文压缩前处理”“会话接力”“恢复上下文”“resume prompt”时，路由到 `adk-context-compress-handoff`。
 
 入口：
 
@@ -65,8 +65,8 @@ rtk bash ~/codex/scripts/context-preflight.sh
 
 - 生成 preflight 模板
 - `session-wrap` 产出会话总结
-- `knowledge-archive` 归档总结
-- `memory-curator --dry-run` 生成记忆审计建议
+- `adk-knowledge-archive` 归档总结
+- `adk-memory-curator --dry-run` 生成记忆审计建议
 
 ## 多源搜索
 

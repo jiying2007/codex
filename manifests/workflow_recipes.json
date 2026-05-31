@@ -114,7 +114,7 @@
         "research note",
         "source list with retrieval dates",
         "open questions",
-        "memory-curator dry-run output when relevant"
+        "adk-memory-curator dry-run output when relevant"
       ],
       "failure_modes": [
         "unofficial source is treated as authoritative",
