@@ -51,6 +51,14 @@
       "retention": "keep-latest-and-audit"
     },
     {
+      "topic": "patent-disclosure",
+      "title": "Patent Disclosure Archive",
+      "allowed_kinds": [
+        "patent-portfolio"
+      ],
+      "retention": "keep"
+    },
+    {
       "topic": "release-governance",
       "title": "Release Governance Archive",
       "allowed_kinds": [

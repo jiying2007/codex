@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "archive_id": "20260530-215617-patent_skill_archive_note_20260530215400",
+  "archived_at": "2026-05-30T21:56:17+08:00",
+  "source": "/home/leiwenjun/work/sigmastar/xcrz_sigmastar_demo/examples/lvgl/outputs/patent_disclosure/patent_skill_archive_note_20260530215400.md",
+  "source_repo": "/home/leiwenjun/work/sigmastar/xcrz_sigmastar_demo",
+  "destination": "docs/archive/patent-disclosure/20260530-215617-patent_skill_archive_note_20260530215400.md",
+  "metadata": "docs/archive/patent-disclosure/20260530-215617-patent_skill_archive_note_20260530215400.md.meta.json",
+  "topic": "patent-disclosure",
+  "kind": "research-note",
+  "scope": "project-specific",
+  "project_id": "sigmastar",
+  "workstream_id": "patent-disclosure",
+  "session_id": "",
+  "title": "Patent Disclosure Skill And Four Patent Portfolio Archive",
+  "summary": "Patent Disclosure Skill And Four Patent Portfolio Archive",
+  "description": "",
+  "status": "closed",
+  "governance_status": "active",
+  "memory_action": "archive-only",
+  "owner": "leiwenjun",
+  "next_action": "",
+  "mode": "copy",
+  "tags": [
+    "sigmastar"
+  ],
+  "content_sha256": "f56d0fa121fe06de11467018d8a8b98d0150b4679cca4cfc62b4ceb7a927d702",
+  "sensitivity": "sanitized-no-secret-pattern-detected"
+}
