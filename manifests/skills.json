@@ -805,6 +805,31 @@
       "review_status": "accepted"
     },
     {
+      "name": "codex-usage-telemetry",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/codex-usage-telemetry/0.1.0",
+      "target_rel": "skills/codex-usage-telemetry",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "codex",
+        "usage",
+        "telemetry",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/codex-usage-telemetry/0.1.0",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
       "name": "cli-creator",
       "enabled": true,
       "source_kind": "vendor",
@@ -856,6 +881,31 @@
       "tags": [
         "summary"
       ]
+    },
+    {
+      "name": "external-practice-absorption",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/external-practice-absorption/0.1.0",
+      "target_rel": "skills/external-practice-absorption",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "research",
+        "archive",
+        "workflow",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/external-practice-absorption/0.1.0",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
     },
     {
       "name": "dispatching-parallel-agents",
@@ -946,6 +996,31 @@
       "source_ref": "workspace",
       "source_path": "src/codex-home/vendor/skills/multi-search-engine/0.1.0",
       "imported_at": "2026-05-10",
+      "review_status": "accepted"
+    },
+    {
+      "name": "patent-disclosure-normalization",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/patent-disclosure-normalization/0.1.0",
+      "target_rel": "skills/patent-disclosure-normalization",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "patent",
+        "disclosure",
+        "workflow",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/patent-disclosure-normalization/0.1.0",
+      "imported_at": "2026-05-31",
       "review_status": "accepted"
     },
     {

@@ -1,0 +1,6 @@
+interface:
+  display_name: "External Practice Absorption"
+  short_description: "Turn external articles and repos into governed local improvements"
+  default_prompt: "Use $external-practice-absorption to evaluate external material and convert durable lessons into local Codex assets."
+policy:
+  allow_implicit_invocation: true

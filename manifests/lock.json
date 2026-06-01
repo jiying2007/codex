@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 625,
+  "managed_count": 649,
   "items": [
     {
       "kind": "skill",
@@ -250,6 +250,13 @@
     },
     {
       "kind": "skill",
+      "name": "codex-usage-telemetry",
+      "version": "0.1.0",
+      "source": "vendor/skills/codex-usage-telemetry/0.1.0",
+      "sha256": "6998e2bf80269aac99f6b2cbc70121800450aa7d0b1d7c1a55ace8c4a99f2b60"
+    },
+    {
+      "kind": "skill",
       "name": "cli-creator",
       "version": "0.1.0",
       "source": "vendor/skills/cli-creator/0.1.0",
@@ -271,6 +278,13 @@
     },
     {
       "kind": "skill",
+      "name": "external-practice-absorption",
+      "version": "0.1.0",
+      "source": "vendor/skills/external-practice-absorption/0.1.0",
+      "sha256": "dbec8e3e6481a0196e283de8e7fb2e6a8ca5e933b9ea26e2bdbc7690a98ce55a"
+    },
+    {
+      "kind": "skill",
       "name": "mcp-builder",
       "version": "0.1.0",
       "source": "vendor/skills/mcp-builder/0.1.0",
@@ -282,6 +296,13 @@
       "version": "0.1.0",
       "source": "vendor/skills/multi-search-engine/0.1.0",
       "sha256": "94710e2cc9290a844f193eceaa63aca6ba5b50b7ee0bc1d32d04dc34044a68cc"
+    },
+    {
+      "kind": "skill",
+      "name": "patent-disclosure-normalization",
+      "version": "0.1.0",
+      "source": "vendor/skills/patent-disclosure-normalization/0.1.0",
+      "sha256": "7d83107c9fcb9ced80c2c8722f2b07b7ad02297e4922a6638d8044b32ae76d20"
     },
     {
       "kind": "skill",

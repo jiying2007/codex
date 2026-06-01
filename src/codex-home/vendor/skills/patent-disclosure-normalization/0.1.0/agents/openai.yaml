@@ -1,0 +1,6 @@
+interface:
+  display_name: "Patent Disclosure Normalization"
+  short_description: "Normalize invention disclosures and claim drafts"
+  default_prompt: "Use $patent-disclosure-normalization to extract invention points and normalize patent disclosure drafts."
+policy:
+  allow_implicit_invocation: true
