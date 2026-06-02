@@ -1,4 +1,4 @@
-# adk-developer-growth-review
+# adk-engineering-growth-review
 
 本地开发者成长复盘与学习建议 skill。用于宽读本地 Codex 历史、归档、日报、session wrap 和项目证据，识别长期趋势、重复问题和训练计划。
 

@@ -182,12 +182,12 @@
       "review_status": "accepted"
     },
     {
-      "name": "adk-developer-growth-review",
+      "name": "adk-engineering-growth-review",
       "enabled": true,
       "source_kind": "vendor",
       "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-developer-growth-review/1.0.0",
-      "target_rel": "skills/adk-developer-growth-review",
+      "vendor_rel": "vendor/skills/adk-engineering-growth-review/1.0.0",
+      "target_rel": "skills/adk-engineering-growth-review",
       "profiles": [
         "solo-dev",
         "team-collab"
@@ -202,7 +202,7 @@
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
-      "source_path": "skills/adk-developer-growth-review/SKILL.md",
+      "source_path": "skills/adk-engineering-growth-review/SKILL.md",
       "imported_at": "2026-05-31",
       "review_status": "accepted"
     },
@@ -256,12 +256,12 @@
       "review_status": "accepted"
     },
     {
-      "name": "adk-grill-with-docs",
+      "name": "adk-structured-requirements-questioning",
       "enabled": true,
       "source_kind": "vendor",
       "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-grill-with-docs/1.0.0",
-      "target_rel": "skills/adk-grill-with-docs",
+      "vendor_rel": "vendor/skills/adk-structured-requirements-questioning/1.0.0",
+      "target_rel": "skills/adk-structured-requirements-questioning",
       "profiles": [
         "team-collab"
       ],
@@ -273,7 +273,7 @@
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
-      "source_path": "skills/adk-grill-with-docs/SKILL.md",
+      "source_path": "skills/adk-structured-requirements-questioning/SKILL.md",
       "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
@@ -371,12 +371,12 @@
       "review_status": "accepted"
     },
     {
-      "name": "adk-plan-lite",
+      "name": "adk-lightweight-planning",
       "enabled": true,
       "source_kind": "vendor",
       "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-plan-lite/1.0.0",
-      "target_rel": "skills/adk-plan-lite",
+      "vendor_rel": "vendor/skills/adk-lightweight-planning/1.0.0",
+      "target_rel": "skills/adk-lightweight-planning",
       "profiles": [
         "solo-dev",
         "team-collab"
@@ -390,7 +390,7 @@
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
-      "source_path": "skills/adk-plan-lite/SKILL.md",
+      "source_path": "skills/adk-lightweight-planning/SKILL.md",
       "imported_at": "2026-05-31",
       "review_status": "accepted"
     },

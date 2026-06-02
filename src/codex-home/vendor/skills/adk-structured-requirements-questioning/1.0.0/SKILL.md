@@ -1,6 +1,6 @@
 ---
-name: adk-grill-with-docs
-description: 烤问式需求对齐——通过结构化提问消除模糊需求
+name: adk-structured-requirements-questioning
+description: 结构化需求提问对齐，通过有序问题消除模糊需求
 version: 1.0.0
 last_updated: 2026-05-06
 triggers:
@@ -23,7 +23,7 @@ constraints:
   - 不允许假设用户意图
 ---
 
-# 烤问式需求对齐
+# 结构化需求提问对齐
 
 ## Goal
 - 通过结构化提问消除模糊需求，确保在动手实现前对齐理解。
@@ -58,7 +58,7 @@ constraints:
 5. 生成结构化文档：输出标准需求格式
 
 ## 与 adk-requirements-triage 的区别
-- adk-grill-with-docs: 通过结构化提问消除模糊需求
+- adk-structured-requirements-questioning: 通过结构化提问消除模糊需求
 - adk-requirements-triage: 将明确需求转为可验证的工程条目
 
 ## Quality Gate

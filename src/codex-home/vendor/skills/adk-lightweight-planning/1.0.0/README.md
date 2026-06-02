@@ -1,4 +1,4 @@
-# adk-plan-lite
+# adk-lightweight-planning
 
 轻量只读计划生成 skill。用于用户明确要求先给计划、暂不执行代码修改的编码任务。
 

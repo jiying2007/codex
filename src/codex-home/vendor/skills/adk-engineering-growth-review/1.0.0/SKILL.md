@@ -1,6 +1,6 @@
 ---
-name: adk-developer-growth-review
-description: 本地开发者成长复盘与学习建议，宽读本地 Codex 历史、归档、日报和项目证据，识别长期趋势、重复问题和训练计划
+name: adk-engineering-growth-review
+description: 本地工程成长复盘与学习建议，宽读本地 Codex 历史、归档、日报和项目证据，识别长期趋势、重复问题和训练计划
 version: 1.0.0
 last_updated: 2026-05-31
 triggers:
@@ -28,10 +28,10 @@ constraints:
   - 联网查学习资源或外部发送必须由用户显式授权
 ---
 
-# adk-developer-growth-review
+# adk-engineering-growth-review
 
 ## Goal
-- 基于本地开发证据生成开发者成长复盘和学习建议。
+- 基于本地开发证据生成工程成长复盘和学习建议。
 - 识别跨项目、跨会话的重复问题、能力短板、稳定优势、风险模式和下一步训练计划。
 - 替代外部 `developer-growth-analysis` 的核心价值，同时把外部发送和联网资源检索降级为显式可选动作。
 
@@ -78,7 +78,7 @@ constraints:
 
 ## Report Template
 ```md
-# Developer Growth Review
+# Engineering Growth Review
 
 - Period:
 - Sources:

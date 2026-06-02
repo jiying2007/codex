@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 649,
+  "managed_count": 665,
   "items": [
     {
       "kind": "skill",
@@ -61,10 +61,10 @@
     },
     {
       "kind": "skill",
-      "name": "adk-developer-growth-review",
+      "name": "adk-engineering-growth-review",
       "version": "1.0.0",
-      "source": "vendor/skills/adk-developer-growth-review/1.0.0",
-      "sha256": "46d46c36f1eaa9775ea4fa1a548019ee95831b8e1d9e682dd60c7caea4693da3"
+      "source": "vendor/skills/adk-engineering-growth-review/1.0.0",
+      "sha256": "f94ad1a7db88d29c442216a9e55c70d2c67a58870f8865dbfb22ffc8d542fb79"
     },
     {
       "kind": "skill",
@@ -82,10 +82,10 @@
     },
     {
       "kind": "skill",
-      "name": "adk-grill-with-docs",
+      "name": "adk-structured-requirements-questioning",
       "version": "1.0.0",
-      "source": "vendor/skills/adk-grill-with-docs/1.0.0",
-      "sha256": "b5bb44d1e942c0eca6a2a9f33cc4a52bd0a39b37d53bd637161b3a5be78cafce"
+      "source": "vendor/skills/adk-structured-requirements-questioning/1.0.0",
+      "sha256": "ebfd91f38e59e5ffdd4bcf6040b538e51028f945dc93e739c320e2240270b0ae"
     },
     {
       "kind": "skill",
@@ -117,10 +117,10 @@
     },
     {
       "kind": "skill",
-      "name": "adk-plan-lite",
+      "name": "adk-lightweight-planning",
       "version": "1.0.0",
-      "source": "vendor/skills/adk-plan-lite/1.0.0",
-      "sha256": "b0ed306f17f4f8e4b23d89cf31b2015e4b4a4bb85fce8eb13b45947f0396115b"
+      "source": "vendor/skills/adk-lightweight-planning/1.0.0",
+      "sha256": "b9d92ade678ebc49c4ff7041c486f7544cef0f94e3f422f7a6b48600985475da"
     },
     {
       "kind": "skill",
@@ -148,7 +148,7 @@
       "name": "adk-requirements-triage",
       "version": "1.1.0",
       "source": "vendor/skills/adk-requirements-triage/1.1.0",
-      "sha256": "6230249b6a37a2c481880c97f47ee9aceac01b722ba6035906d12d77aff9bbb2"
+      "sha256": "47ae63c49a3709f780309f11e37af76ecba4d58eeba7aca77351d1ef54883189"
     },
     {
       "kind": "skill",

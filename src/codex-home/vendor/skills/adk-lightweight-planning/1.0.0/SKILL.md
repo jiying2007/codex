@@ -1,5 +1,5 @@
 ---
-name: adk-plan-lite
+name: adk-lightweight-planning
 description: 轻量只读计划生成能力，用于用户明确要求先给计划但尚未要求执行或写文件的编码任务
 version: 1.0.0
 last_updated: 2026-05-31
@@ -28,7 +28,7 @@ constraints:
   - 计划必须简洁、可执行、可验证，不输出代码实现
 ---
 
-# adk-plan-lite
+# adk-lightweight-planning
 
 ## Goal
 - 把用户的编码任务请求转成一份轻量、可执行、可验证的计划。

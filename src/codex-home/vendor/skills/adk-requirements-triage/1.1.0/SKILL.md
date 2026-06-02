@@ -115,9 +115,9 @@ rg -n "import|require|include|#include" <target_path> | head -20
 - 优先级无法判定时，标记为 P2 并注明待确认。
 - 需求分类模糊时，选择风险更高的类别处理。
 
-## 与 adk-grill-with-docs 的区别
+## 与 adk-structured-requirements-questioning 的区别
 - adk-requirements-triage: 需求结构化拆解与验收标准固化
-- adk-grill-with-docs: 烤问式需求对齐，通过提问消除模糊
+- adk-structured-requirements-questioning: 结构化需求提问对齐，通过提问消除模糊
 
 ## Quality Gate
 - 输出必须包含目标、非目标、影响面、验收标准四项。
