@@ -30,3 +30,4 @@
 | `20260524-231336-gd32l235-app-boot-v1-session-wrap.md` | `20260524-231336-gd32l235-app-boot-v1-session-wrap.md` |
 | `20260524-231443-codex-session-wrap-20260524-openai-local-runtime-boundary.md` | `20260524-231443-codex-session-wrap-20260524-openai-local-runtime-boundary.md` |
 | `20260526-162109-pcr02-session-wrap-20260526-customer-ro-sd-upgrade.md` | `20260526-162109-pcr02-session-wrap-20260526-customer-ro-sd-upgrade.md` |
+| `20260602-132025-codex-adk-hardcut-session-wrap.md` | `20260602-132025-codex-adk-hardcut-session-wrap.md` |

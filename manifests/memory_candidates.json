@@ -22,6 +22,39 @@
       "secret_scan_required": true,
       "promotion_gate": "Keep as project knowledge unless the rule recurs across multiple repos.",
       "summary": "Automation candidates default to disabled or report-only and must not send, submit, publish, delete or commit without explicit approval."
+    },
+    {
+      "name": "adk-asset-apply-source-freshness-gate",
+      "enabled": false,
+      "status": "candidate",
+      "source": "docs/archive/memory-curation/20260602-132130-codex-adk-hardcut-memory-curation.md",
+      "proposed_action": "promote-to-agents",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after a second ADK asset update confirms stale codex source is a recurring failure mode.",
+      "summary": "Before applying ADK assets to ~/.codex, confirm /home/leiwenjun/codex has absorbed the target agent-dev-kit commit; if source is stale, sync source first, then run build, doctor, plan, dry-run, apply and check."
+    },
+    {
+      "name": "managed-source-live-drift-after-format-fix",
+      "enabled": false,
+      "status": "candidate",
+      "source": "docs/archive/memory-curation/20260602-132130-codex-adk-hardcut-memory-curation.md",
+      "proposed_action": "promote-to-agents",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only if managed source edits after live apply cause repeated drift during future asset deliveries.",
+      "summary": "After editing managed source files following a live apply, rerun plan, dry-run, live apply and drift checks; formatting-only source changes can still leave ~/.codex out of sync."
+    },
+    {
+      "name": "active-runtime-residual-scan-scope",
+      "enabled": false,
+      "status": "candidate",
+      "source": "docs/archive/memory-curation/20260602-132130-codex-adk-hardcut-memory-curation.md",
+      "proposed_action": "promote-to-archive",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Keep archive-only unless broad residual scans keep producing false positives in future hard-cut migrations.",
+      "summary": "For hard-cut migrations, base residual conclusions on active source/runtime paths and exclude session logs, history and cache, which can contain historical user text."
     }
   ]
 }
