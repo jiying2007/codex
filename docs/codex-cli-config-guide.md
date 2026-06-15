@@ -111,24 +111,31 @@ args = ["bash", "-lc"]
 
 ```toml
 [tui]
-notifications = false
+notifications = ["approval-requested", "agent-turn-complete"]
+notification_condition = "unfocused"
+notification_method = "auto"
 animations = false
 show_tooltips = false
+alternate_screen = "auto"
 status_line = [
-  "model-with-reasoning",
-  "current-dir",
   "git-branch",
   "context-remaining",
   "five-hour-limit",
   "weekly-limit",
   "fast-mode",
+  "model-with-reasoning",
 ]
-terminal_title = ["spinner", "project", "git-branch"]
+terminal_title = ["spinner", "project", "git-branch", "status"]
 ```
 
 策略：
 
 - 状态栏只使用 Codex 内置 item。
+- 只保留 `approval-requested` 和 `agent-turn-complete` 两类高价值通知，并限制在窗口未聚焦时触发。
+- `alternate_screen = "auto"` 保持官方默认意图：普通终端使用独立屏幕，在 Zellij 等环境中保留滚动历史。
+- 默认不显示 `current-dir`，避免深层工作目录挤占分支、上下文和限额信息；项目名与分支保留在 `terminal_title`。
+- `git-branch` 放在状态栏最前，模型与推理档位放在最后，减少长模型名遮挡工作区状态。
+- `terminal_title` 增加 `status`，让终端标签页能显示会话是否仍在运行。
 - 当前 Codex CLI 不等价支持 Claude `statusLine.command` 式外部脚本渲染；不要把外部命令写进 `status_line`。
 
 ### History

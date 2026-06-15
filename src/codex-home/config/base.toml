@@ -133,21 +133,24 @@ max_bytes = 52428800
 # TUI 状态栏
 # ========================
 
-# Codex CLI 内置状态栏片段。保持低噪音，优先显示排障和成本相关信息。
+# Codex CLI 内置状态栏片段。保持低噪音，优先显示分支、上下文和成本相关信息。
+# 不默认显示 current-dir，深层工作目录会挤占分支和限额信息；完整项目上下文保留在 terminal_title。
 [tui]
-notifications = false
+notifications = ["approval-requested", "agent-turn-complete"]
+notification_condition = "unfocused"
+notification_method = "auto"
 animations = false
 show_tooltips = false
+alternate_screen = "auto"
 status_line = [
-  "model-with-reasoning",
-  "current-dir",
   "git-branch",
   "context-remaining",
   "five-hour-limit",
   "weekly-limit",
   "fast-mode",
+  "model-with-reasoning",
 ]
-terminal_title = ["spinner", "project", "git-branch"]
+terminal_title = ["spinner", "project", "git-branch", "status"]
 
 
 # ========================
