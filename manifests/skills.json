@@ -784,8 +784,8 @@
       "name": "chronicle-workflow-miner",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.0.0",
+      "version": "1.1.0",
+      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.1.0",
       "target_rel": "skills/chronicle-workflow-miner",
       "profiles": [
         "team-collab"
@@ -800,8 +800,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.0.0",
-      "imported_at": "2026-05-20",
+      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.1.0",
+      "imported_at": "2026-06-15",
       "review_status": "accepted"
     },
     {
@@ -905,6 +905,31 @@
       "source_ref": "workspace",
       "source_path": "src/codex-home/vendor/skills/external-practice-absorption/0.1.0",
       "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-log-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/embedded-log-triage/0.1.0",
+      "target_rel": "skills/embedded-log-triage",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "logs",
+        "debug",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-log-triage/0.1.0",
+      "imported_at": "2026-06-15",
       "review_status": "accepted"
     },
     {
@@ -1021,6 +1046,31 @@
       "source_ref": "workspace",
       "source_path": "src/codex-home/vendor/skills/patent-disclosure-normalization/0.1.0",
       "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
+      "name": "protocol-implementation-audit",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/protocol-implementation-audit/0.1.0",
+      "target_rel": "skills/protocol-implementation-audit",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "protocol",
+        "audit",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/protocol-implementation-audit/0.1.0",
+      "imported_at": "2026-06-15",
       "review_status": "accepted"
     },
     {
@@ -1209,6 +1259,31 @@
         "superpowers",
         "fallback"
       ]
+    },
+    {
+      "name": "windows-gui-release-orchestration",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/windows-gui-release-orchestration/0.1.0",
+      "target_rel": "skills/windows-gui-release-orchestration",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "windows",
+        "gui",
+        "release",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/windows-gui-release-orchestration/0.1.0",
+      "imported_at": "2026-06-15",
+      "review_status": "accepted"
     },
     {
       "name": "worktree-closeout",

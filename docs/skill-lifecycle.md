@@ -195,9 +195,11 @@ Keep this evidence in a session summary or archive note, not in the loaded `SKIL
 Current Chronicle-derived local skill set:
 
 - `chronicle-workflow-miner`
-- `archive-governance`
-- `repo-drift-remediation`
-- `embedded-release-orchestration`
-- `embedded-diagnostic-harness`
+- `codex-usage-telemetry`
+- `embedded-log-triage`
+- `external-practice-absorption`
+- `patent-disclosure-normalization`
+- `protocol-implementation-audit`
+- `windows-gui-release-orchestration`
 
 Review them whenever similar user requests repeat, or when routing behavior becomes noisy.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Protocol Implementation Audit"
+  short_description: "Compare specs with firmware or app implementation for protocol mismatches"
+  default_prompt: "Use $protocol-implementation-audit to compare a protocol or interface document with implementation and runtime evidence."
+policy:
+  allow_implicit_invocation: true

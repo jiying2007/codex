@@ -207,10 +207,19 @@
         "strict env",
         "invoke_ret",
         "诊断 CLI",
-        "HIL 验证"
+        "HIL 验证",
+        "串口日志",
+        "启动日志",
+        "Serial log",
+        "dmesg",
+        "压测日志",
+        "协议文档对照",
+        "协议实现一致性"
       ],
       "skills": [
         "adk-embedded-diagnostic-harness",
+        "embedded-log-triage",
+        "protocol-implementation-audit",
         "adk-systematic-debugging",
         "adk-test-strategy"
       ],
@@ -240,10 +249,16 @@
         "SD 升级",
         "MCU 发布",
         "SOC 发布",
-        "量产发布"
+        "量产发布",
+        "Windows 发布",
+        "Windows 构建机",
+        "GUI 发布",
+        "installer",
+        "portable EXE"
       ],
       "skills": [
         "adk-embedded-release-orchestration",
+        "windows-gui-release-orchestration",
         "adk-release-versioning",
         "adk-test-strategy",
         "adk-verification-before-completion"
@@ -258,7 +273,7 @@
       "verification": [
         "rtk bash scripts/check.sh"
       ],
-      "description": "编排 SoC/MCU/OTA 构建、打包、验证、tag、NAS/产线发布和发布指南。"
+      "description": "编排 SoC/MCU/OTA 与本地工具 GUI 构建、打包、验证、tag、NAS/产线发布和发布指南。"
     },
     {
       "name": "external-research",

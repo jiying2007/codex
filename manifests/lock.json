@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 665,
+  "managed_count": 691,
   "items": [
     {
       "kind": "skill",
@@ -244,9 +244,9 @@
     {
       "kind": "skill",
       "name": "chronicle-workflow-miner",
-      "version": "1.0.0",
-      "source": "vendor/skills/chronicle-workflow-miner/1.0.0",
-      "sha256": "c16c8114b47c6faebedaaeabacb3fe62c1826f70314aee6a737bc9d05a9c1c84"
+      "version": "1.1.0",
+      "source": "vendor/skills/chronicle-workflow-miner/1.1.0",
+      "sha256": "50c68cb51b2724ab53138892985d21258bce29d3903ec6d347e256af87d0a0e9"
     },
     {
       "kind": "skill",
@@ -285,6 +285,13 @@
     },
     {
       "kind": "skill",
+      "name": "embedded-log-triage",
+      "version": "0.1.0",
+      "source": "vendor/skills/embedded-log-triage/0.1.0",
+      "sha256": "1a40a9354e3ee79f3326a3c9bcb87ce5ef26ca2ff296b24381d6f72c7d15ddd6"
+    },
+    {
+      "kind": "skill",
       "name": "mcp-builder",
       "version": "0.1.0",
       "source": "vendor/skills/mcp-builder/0.1.0",
@@ -303,6 +310,13 @@
       "version": "0.1.0",
       "source": "vendor/skills/patent-disclosure-normalization/0.1.0",
       "sha256": "7d83107c9fcb9ced80c2c8722f2b07b7ad02297e4922a6638d8044b32ae76d20"
+    },
+    {
+      "kind": "skill",
+      "name": "protocol-implementation-audit",
+      "version": "0.1.0",
+      "source": "vendor/skills/protocol-implementation-audit/0.1.0",
+      "sha256": "8aedff7d02ec3509261b17f238dee31b5ccd2e25a34a66f9cfa17e177bc34fd8"
     },
     {
       "kind": "skill",
@@ -331,6 +345,13 @@
       "version": "0.2.0",
       "source": "vendor/skills/skill-asset-manager/0.2.0",
       "sha256": "16794d0595a393eb1fbde926a0ef7bb497ae58f8811a76aff677ef4c4ed2cb3d"
+    },
+    {
+      "kind": "skill",
+      "name": "windows-gui-release-orchestration",
+      "version": "0.1.0",
+      "source": "vendor/skills/windows-gui-release-orchestration/0.1.0",
+      "sha256": "5be030b9e46cb0cdf85b0fcbd273c53a7af9f6e8af37019c12f3e1d83ea344e6"
     },
     {
       "kind": "skill",

@@ -9,6 +9,7 @@ adk-context-compress-handoff,1.0.0,active,agent-dev-kit
 adk-cross-team-handoff,1.0.0,active,agent-dev-kit
 adk-engineering-growth-review,1.0.0,active,agent-dev-kit
 adk-embedded-diagnostic-harness,1.0.0,active,agent-dev-kit
+embedded-log-triage,0.1.0,active,local
 adk-embedded-release-orchestration,1.0.0,active,agent-dev-kit
 adk-structured-requirements-questioning,1.0.0,active,agent-dev-kit
 adk-interface-contract-design,1.0.0,active,agent-dev-kit
@@ -33,14 +34,16 @@ adk-verification-before-completion,1.0.0,active,agent-dev-kit
 adk-worktree-governance,1.0.0,active,agent-dev-kit
 browser-reader,0.1.0,active,local
 caveman,1.0.0,active,vendor
-chronicle-workflow-miner,1.0.0,active,local
+chronicle-workflow-miner,1.1.0,active,local
 cli-creator,0.1.0,active,openai
 codex-parallel-collab,3.1.0,active,vendor
 commit-daily-summary,3.1.0,active,vendor
 mcp-builder,0.1.0,active,anthropics
 multi-search-engine,0.1.0,active,local
 project-daily-summary,3.1.0,active,vendor
+protocol-implementation-audit,0.1.0,active,local
 research-note-wrap,3.1.0,active,vendor
 session-wrap,3.1.0,active,vendor
 skill-asset-manager,0.2.0,active,local
+windows-gui-release-orchestration,0.1.0,active,local
 worktree-closeout,3.1.0,active,vendor
