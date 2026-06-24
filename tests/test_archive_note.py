@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import shutil
 import tempfile
@@ -19,6 +20,10 @@ class ArchiveNoteTest(unittest.TestCase):
     def test_archive_index_keeps_topic_title_across_item_titles(self) -> None:
         root = pathlib.Path(tempfile.mkdtemp(prefix="codex-archive-note-test-"))
         self.addCleanup(shutil.rmtree, root)
+        hub_root = root / "knowledge-hub"
+        old_hub = os.environ.get("KNOWLEDGE_HUB_HOME")
+        os.environ["KNOWLEDGE_HUB_HOME"] = hub_root.as_posix()
+        self.addCleanup(lambda: os.environ.pop("KNOWLEDGE_HUB_HOME", None) if old_hub is None else os.environ.__setitem__("KNOWLEDGE_HUB_HOME", old_hub))
         write_json(
             root / "manifests/policies.json",
             {"schema_version": 2, "protected_paths": [], "skip_source_paths": []},
@@ -33,7 +38,7 @@ class ArchiveNoteTest(unittest.TestCase):
         archive_note(root, first, topic_arg="session-wrap", title_arg="Project A Session")
         archive_note(root, second, topic_arg="session-wrap", title_arg="Project B Session")
 
-        index = root / "docs/archive/session-wrap/index.md"
+        index = hub_root / "domains/codex/archive/session-wrap/index.md"
         text = index.read_text()
         self.assertIn("# Session Wrap Archive", text)
         self.assertNotIn("# Project A Session", text)
@@ -45,6 +50,10 @@ class ArchiveNoteTest(unittest.TestCase):
     def test_archive_note_preflights_governance_before_writing(self) -> None:
         root = pathlib.Path(tempfile.mkdtemp(prefix="codex-archive-note-test-"))
         self.addCleanup(shutil.rmtree, root)
+        hub_root = root / "knowledge-hub"
+        old_hub = os.environ.get("KNOWLEDGE_HUB_HOME")
+        os.environ["KNOWLEDGE_HUB_HOME"] = hub_root.as_posix()
+        self.addCleanup(lambda: os.environ.pop("KNOWLEDGE_HUB_HOME", None) if old_hub is None else os.environ.__setitem__("KNOWLEDGE_HUB_HOME", old_hub))
         write_json(
             root / "manifests/policies.json",
             {"schema_version": 2, "protected_paths": [], "skip_source_paths": []},
@@ -56,7 +65,7 @@ class ArchiveNoteTest(unittest.TestCase):
         with self.assertRaises(ArchiveGovernanceError):
             archive_note(root, source, topic_arg="session-wrap", status_arg="open")
 
-        self.assertFalse((root / "docs/archive/session-wrap").exists())
+        self.assertFalse((hub_root / "domains/codex/archive/session-wrap").exists())
 
 
 if __name__ == "__main__":

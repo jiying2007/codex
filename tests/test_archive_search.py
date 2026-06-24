@@ -23,7 +23,11 @@ class ArchiveSearchTest(unittest.TestCase):
     def setUp(self) -> None:
         self.root = pathlib.Path(tempfile.mkdtemp(prefix="codex-archive-search-test-"))
         self.addCleanup(shutil.rmtree, self.root)
-        self.note = self.root / "docs/archive/session-wrap/20260519-120000-child-bringup.md"
+        self.hub_root = self.root / "knowledge-hub"
+        self.old_hub = os.environ.get("KNOWLEDGE_HUB_HOME")
+        os.environ["KNOWLEDGE_HUB_HOME"] = self.hub_root.as_posix()
+        self.addCleanup(lambda: os.environ.pop("KNOWLEDGE_HUB_HOME", None) if self.old_hub is None else os.environ.__setitem__("KNOWLEDGE_HUB_HOME", self.old_hub))
+        self.note = self.hub_root / "domains/codex/archive/session-wrap/20260519-120000-child-bringup.md"
         self.note.parent.mkdir(parents=True, exist_ok=True)
         self.note.write_text("# Child Bring-up\n\n构建恢复入口。\n", encoding="utf-8")
         self.meta_path = pathlib.Path(str(self.note) + ".meta.json")
