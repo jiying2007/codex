@@ -232,6 +232,52 @@
         "rtk codex --strict-config doctor --summary --ascii",
         "rtk bash scripts/final-ready.sh"
       ]
+    },
+    {
+      "name": "knowledge-hub-maintenance",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "knowledge-hub-governance",
+      "context_inputs": [
+        "knowledge source path or item id",
+        "target domain",
+        "intended action: capture, classify, migrate, promote or retire",
+        "review and validation requirements"
+      ],
+      "done_criteria": [
+        "item classification is explicit",
+        "registry impact is listed",
+        "no authority boundary is violated",
+        "checks are specified before any write",
+        "automation remains report-only unless a separate approved execution task allows writes"
+      ],
+      "review_artifacts": [
+        "classification table",
+        "migration map",
+        "promotion candidate report",
+        "knowledge-check result"
+      ],
+      "failure_modes": [
+        "project-specific content is promoted into team standards",
+        "personal note is included in a team active index",
+        "memory is used as the only source of truth",
+        "raw logs or secrets are copied into text knowledge"
+      ],
+      "trigger_examples": [
+        "检查 Knowledge Hub 并给出提升候选",
+        "把项目 docs 外置迁移到 Knowledge Hub 的计划落地",
+        "知识库自动化只读巡检"
+      ],
+      "negative_examples": [
+        "只修一个普通业务代码 bug",
+        "直接把候选写入 ~/.codex/memories"
+      ],
+      "verification": [
+        "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run",
+        "rtk bash scripts/final-ready.sh"
+      ]
     }
   ]
 }

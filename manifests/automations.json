@@ -225,6 +225,125 @@
         "command rule review",
         "hook readiness checklist"
       ]
+    },
+    {
+      "name": "knowledge-hub-health-report",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "scheduled",
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "knowledge-hub-governance",
+      "cadence": "weekly Monday 09:00 Asia/Hong_Kong",
+      "scope": {
+        "data_sources": [
+          "~/knowledge-hub/registry",
+          "~/knowledge-hub/domains",
+          "~/knowledge-hub/indexes",
+          "~/knowledge-hub/domains/codex",
+          "~/knowledge-hub/artifacts/manifests",
+          "~/.codex/memories"
+        ],
+        "write_boundary": "report only; do not modify, promote, delete, publish, commit or write memories"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop after one report or if registry cannot be parsed",
+      "triage_contract": {
+        "destination": "Knowledge Hub triage summary",
+        "allowed_outputs": [
+          "knowledge health summary",
+          "stale item list",
+          "broken link list",
+          "promotion candidate list"
+        ],
+        "forbidden_actions": [
+          "modify knowledge files",
+          "promote candidates",
+          "delete files",
+          "write memories",
+          "commit or push"
+        ]
+      },
+      "run_lifecycle": {
+        "first_run": "manual review of Knowledge Hub source scope and report-only boundary",
+        "steady_state": "run knowledge-check, summarize findings and stop without modifying knowledge sources",
+        "stale_after": "one week or when registry schema changes",
+        "retry_budget": 1,
+        "cleanup": [
+          "discard transient command logs after summary",
+          "keep only health summary and action queue"
+        ],
+        "retention": "retain report summary only when user asks to archive it"
+      },
+      "output_artifacts": [
+        "knowledge health summary",
+        "stale item list",
+        "broken link list",
+        "promotion candidate list"
+      ]
+    },
+    {
+      "name": "knowledge-hub-promotion-candidates",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "scheduled",
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "knowledge-hub-governance",
+      "cadence": "monthly first Monday 09:30 Asia/Hong_Kong after explicit authorization",
+      "scope": {
+        "data_sources": [
+          "~/knowledge-hub/registry/items.jsonl",
+          "~/knowledge-hub/domains/projects",
+          "~/knowledge-hub/domains/codex",
+          "~/knowledge-hub/domains/personal/inbox"
+        ],
+        "write_boundary": "report only; do not promote, move, delete or edit source material"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop after producing candidate report or if source registry is invalid",
+      "triage_contract": {
+        "destination": "Knowledge Hub promotion candidate report",
+        "allowed_outputs": [
+          "candidate list",
+          "source evidence links",
+          "rejection reasons"
+        ],
+        "forbidden_actions": [
+          "edit team standards",
+          "write AGENTS.md",
+          "write memories",
+          "apply promotion"
+        ]
+      },
+      "run_lifecycle": {
+        "first_run": "manual review of promotion criteria and rejection rules",
+        "steady_state": "produce candidate report only",
+        "stale_after": "one month or registry schema change",
+        "retry_budget": 1,
+        "cleanup": [
+          "do not keep raw private notes in report",
+          "only keep sanitized candidate summaries"
+        ],
+        "retention": "retain only reviewed candidate summaries"
+      },
+      "output_artifacts": [
+        "candidate list",
+        "source evidence links",
+        "rejection reasons"
+      ]
     }
   ]
 }

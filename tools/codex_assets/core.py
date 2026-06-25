@@ -26,6 +26,10 @@ def fail(message: str) -> None:
     raise CodexAssetError(message)
 
 
+def knowledge_hub_root() -> pathlib.Path:
+    return pathlib.Path(os.environ.get("KNOWLEDGE_HUB_HOME", "~/knowledge-hub")).expanduser().resolve()
+
+
 def read_json(path: pathlib.Path) -> dict[str, Any]:
     try:
         return json.loads(path.read_text())
@@ -149,10 +153,12 @@ def archive_note(
         fail(f"归档来源不存在: {source}")
     assert_safe_archive_source(source, repo)
     topic = slugify(topic_arg or source.stem or source.name)
-    archive_root = pathlib.Path(dest_arg).expanduser() if dest_arg else repo.root / "docs/archive" / topic
+    hub_root = knowledge_hub_root()
+    archive_root = pathlib.Path(dest_arg).expanduser() if dest_arg else hub_root / "domains/codex/archive" / topic
     archive_root = archive_root.resolve()
-    if repo.root not in [archive_root, *archive_root.parents]:
-        fail(f"归档目标必须位于仓库内: {archive_root}")
+    allowed_roots = [repo.root, hub_root]
+    if not any(allowed in [archive_root, *archive_root.parents] for allowed in allowed_roots):
+        fail(f"归档目标必须位于 Codex 仓或 Knowledge Hub 内: {archive_root}")
     if source.is_dir() and source.resolve() in [archive_root, *archive_root.parents]:
         fail(f"归档目标不能位于来源目录内部: {archive_root}")
     timestamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
@@ -237,7 +243,7 @@ def update_archive_index(archive_root: pathlib.Path, topic: str) -> None:
     content = [
         f"# {archive_topic_title(topic)}",
         "",
-        "本目录由 `rtk bash scripts/archive-note.sh` 维护，用于沉淀已脱敏、可追溯的长期知识材料。",
+        "本目录由 `rtk bash ~/codex/scripts/archive-note.sh` 维护，用于沉淀已脱敏、可追溯的长期知识材料；新增归档默认写入 Knowledge Hub。",
         "",
         f"- Topic: `{topic}`",
         "- Index title is topic-level and must not be replaced by a single archived item title.",

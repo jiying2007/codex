@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import re
 from datetime import datetime
@@ -96,10 +97,11 @@ def classify_crystallized(line: str) -> bool:
 
 
 def codex_agent_mem_sources(repo: pathlib.Path, memories: pathlib.Path) -> list[pathlib.Path]:
+    hub_root = pathlib.Path(os.environ.get("KNOWLEDGE_HUB_HOME", "~/knowledge-hub")).expanduser()
     roots = [
         pathlib.Path.home() / ".codex_agent_mem",
         memories / ".codex-agent-mem",
-        repo / "docs/archive/codex-agent-mem",
+        hub_root / "domains/codex/archive/codex-agent-mem",
     ]
     files: list[pathlib.Path] = []
     for root in roots:
@@ -125,7 +127,8 @@ def build_report(repo: pathlib.Path, memories: pathlib.Path, days: int) -> str:
     agents = [path for path in [repo / "AGENTS.md", repo / "src/codex-home/AGENTS.md"] if path.is_file()]
     memory_files = list_files(memories)
     codex_agent_mem_files = codex_agent_mem_sources(repo, memories)
-    archive_files = list_files(repo / "docs/archive")
+    hub_root = pathlib.Path(os.environ.get("KNOWLEDGE_HUB_HOME", "~/knowledge-hub")).expanduser()
+    archive_files = list_files(hub_root / "domains/codex/archive")
     decision_files = [
         path
         for path in list_files(repo / "docs")
@@ -243,7 +246,8 @@ def run(args: argparse.Namespace) -> int:
     repo = pathlib.Path(args.repo).expanduser().resolve()
     memories = pathlib.Path(args.memories).expanduser().resolve()
     report = build_report(repo, memories, args.days)
-    default_output = repo / "docs/archive/memory-curation" / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-memory-curation.md"
+    hub_root = pathlib.Path(os.environ.get("KNOWLEDGE_HUB_HOME", "~/knowledge-hub")).expanduser()
+    default_output = hub_root / "domains/codex/archive/memory-curation" / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-memory-curation.md"
     output = pathlib.Path(args.output).expanduser().resolve() if args.output else default_output
 
     if args.dry_run:

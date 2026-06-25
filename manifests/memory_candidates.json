@@ -55,6 +55,17 @@
       "secret_scan_required": true,
       "promotion_gate": "Keep archive-only unless broad residual scans keep producing false positives in future hard-cut migrations.",
       "summary": "For hard-cut migrations, base residual conclusions on active source/runtime paths and exclude session logs, history and cache, which can contain historical user text."
+    },
+    {
+      "name": "knowledge-hub-report-only-automation-default",
+      "enabled": false,
+      "status": "candidate",
+      "source": "manifests/automations.json",
+      "proposed_action": "promote-to-agents",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after at least two Knowledge Hub automation dry runs prove report-only boundaries prevent unwanted writes.",
+      "summary": "Knowledge Hub automations must default to disabled/report-only and cannot promote, delete, publish, commit or write memories without explicit approval."
     }
   ]
 }

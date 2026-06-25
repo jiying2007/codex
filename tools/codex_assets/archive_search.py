@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import re
 import sqlite3
@@ -77,10 +78,12 @@ def rel(path: pathlib.Path, root: pathlib.Path) -> str:
 
 
 def iter_sources(repo: pathlib.Path, extra: Sequence[str]) -> list[pathlib.Path]:
+    hub_root = pathlib.Path(os.environ.get("KNOWLEDGE_HUB_HOME", "~/knowledge-hub")).expanduser()
     roots: list[pathlib.Path] = [
         repo / "AGENTS.md",
         repo / "src/codex-home/AGENTS.md",
-        repo / "docs/archive",
+        hub_root / "domains/codex",
+        hub_root / "artifacts/manifests",
     ]
     roots.extend(pathlib.Path(item).expanduser() for item in extra)
     out: list[pathlib.Path] = []

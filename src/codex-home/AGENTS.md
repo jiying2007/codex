@@ -185,7 +185,7 @@ adk 是通用 Agent/Skill/Profile/Workflow 资产包，core 保持平台中立�
 ## 15. 文档与记忆
 
 - 文档只记录可复用信息：背景、约束、决策、验证结果、未决项。
-- 长期经验优先沉淀到项目级 `AGENTS.md` 或 `~/codex/docs/archive/`，避免把一次性过程噪音写入长期规则。
+- 长期经验优先沉淀到项目级 `AGENTS.md` 或 `~/knowledge-hub`，避免把一次性过程噪音写入长期规则；`~/codex/docs/archive/` 只作旧历史来源。
 - 记忆整理默认只生成审计报告或候选，不静默覆盖 memory。
 - 归档材料不得写入 `src/codex-home/`、`build/` 或 control 产物目录。
 - MCP server、connector、桌面 GUI 或登录态工作流必须先声明 transport、权限边界、凭证边界、工具清单、deny-path、日志脱敏和回退方式；未完成安全和供应链审查前不得启用外部写操作。
@@ -199,7 +199,7 @@ adk 是通用 Agent/Skill/Profile/Workflow 资产包，core 保持平台中立�
 - 推荐提供 `agents/openai.yaml`，至少包含 `display_name` 与 `short_description`。
 - 仅本地沉淀 / Chronicle 派生 skill 默认持续迭代；`adk-*`、Superpowers 和第三方导入 skill 通过上游版本更新后重新导入。
 - 本地派生 skill 使用 manifest `local` / `chronicle-derived` 标签和 `origin` / `lifecycle` 元数据识别，不为来源标记强制改名。
-- 本地派生 skill 的触发问题优先改 `description` / `manifests/workflows.json`，流程问题改 `SKILL.md`，长证据归档到 `docs/archive/`。
+- 本地派生 skill 的触发问题优先改 `description` / `manifests/workflows.json`，流程问题改 `SKILL.md`，长证据归档到 `~/knowledge-hub/domains/codex/archive/`。
 - 已提交并投入使用的本地派生 skill 迭代优先新增版本目录并更新 `manifests/skills.json`；本地草稿可在提交前直接修当前版本。
 - `src/codex-home/vendor/plugins/**/skills/` 属于上游插件内容，默认不改写。
 - 批量修改 skills 后运行 `rtk bash ~/codex/scripts/check-skills.sh`。

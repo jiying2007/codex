@@ -493,6 +493,44 @@
         "rtk bash scripts/check.sh"
       ],
       "description": "Superpowers 兼容 fallback，仅在用户显式点名、迁移回归对照或 ADK 不适用时启用。"
+    },
+    {
+      "name": "knowledge-hub-governance",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "triggers": [
+        "Knowledge Hub",
+        "knowledge-hub",
+        "知识库治理",
+        "知识库维护",
+        "知识库检查",
+        "知识提升候选",
+        "项目知识迁移",
+        "知识库自动化"
+      ],
+      "skills": [
+        "adk-archive-governance",
+        "adk-knowledge-archive",
+        "adk-memory-curator",
+        "external-practice-absorption",
+        "chronicle-workflow-miner"
+      ],
+      "agents": [
+        "local-integrator",
+        "local-context-curator"
+      ],
+      "commands": [
+        "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run",
+        "rtk bash ~/knowledge-hub/tools/knowledge-search.sh"
+      ],
+      "verification": [
+        "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run",
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk bash scripts/check.sh"
+      ],
+      "description": "Knowledge Hub 统一知识控制面治理：只读检查、候选分类、迁移规划、提升门禁和 Codex report-only 自动化接入。"
     }
   ]
 }

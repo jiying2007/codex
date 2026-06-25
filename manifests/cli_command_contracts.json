@@ -215,6 +215,79 @@
         "rtk codex mcp list",
         "rtk bash scripts/doctor.sh --scope governance"
       ]
+    },
+    {
+      "name": "slash-knowledge-status",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "/knowledge-status",
+      "purpose": "summarize Knowledge Hub registry, source and validation state without modifying files",
+      "input_contract": [
+        "status request",
+        "optional project or domain filter",
+        "known blockers"
+      ],
+      "allowed_actions": [
+        "run Knowledge Hub dry-run checks",
+        "search registered sources",
+        "summarize stale, broken or missing registry items"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "modify knowledge files",
+        "promote candidates",
+        "delete files",
+        "write memories"
+      ],
+      "output_contract": [
+        "knowledge health summary",
+        "source state",
+        "next local action"
+      ],
+      "review_required": true,
+      "verification": [
+        "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run",
+        "rtk bash scripts/final-ready.sh"
+      ]
+    },
+    {
+      "name": "slash-knowledge-promote",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "command": "/knowledge-promote",
+      "purpose": "create a reviewed dry-run plan for promoting a Knowledge Hub item across authority levels",
+      "input_contract": [
+        "item id",
+        "target domain",
+        "promotion reason",
+        "validation evidence"
+      ],
+      "allowed_actions": [
+        "run dry-run promotion planning",
+        "summarize required source evidence",
+        "list registry changes that would be required"
+      ],
+      "forbidden_actions": [
+        "bypass-verification",
+        "apply promotion without a separate explicit execution request",
+        "copy project-specific content into team standards",
+        "write AGENTS.md",
+        "write memories"
+      ],
+      "output_contract": [
+        "promotion plan",
+        "required review gates",
+        "blocked or missing evidence"
+      ],
+      "review_required": true,
+      "verification": [
+        "rtk bash ~/knowledge-hub/tools/knowledge-promote.sh --id <id> --target <domain> --dry-run",
+        "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run"
+      ]
     }
   ]
 }

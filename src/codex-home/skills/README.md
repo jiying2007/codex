@@ -30,7 +30,7 @@ rtk bash ~/codex/scripts/check.sh
 当用户要求“知识归档”“日报归档”“会话总结归档”“排障结论归档”时，路由到 `adk-knowledge-archive`，固定归档到：
 
 ```text
-~/codex/docs/archive/<topic>/
+~/knowledge-hub/domains/codex/archive/<topic>/
 ```
 
 不要把知识材料放进 `~/.codex`、`src/codex-home/` 或 `control/`。
@@ -43,7 +43,7 @@ rtk bash ~/codex/scripts/check.sh
 rtk bash ~/codex/scripts/curate-memory.sh
 ```
 
-报告固定进入 `~/codex/docs/archive/memory-curation/`；只有明确要求时才写入 `~/.codex/memories/.codex/curation-inbox/` 候选 memory。
+报告固定进入 `~/knowledge-hub/domains/codex/archive/memory-curation/`；只有明确要求时才写入 `~/.codex/memories/.codex/curation-inbox/` 候选 memory。
 
 记忆治理阶段：
 
