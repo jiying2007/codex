@@ -18,11 +18,11 @@ Read only the sources needed for the task, in this priority order:
 1. Recent Codex sessions and task summaries:
    - `~/.codex/history.jsonl`
    - `~/.codex/sessions/**`
-   - `~/codex/docs/archive/_registry/**`
+   - `~/knowledge-hub/domains/codex/archive/codex-archive-registry/**`
    - recent `session-wrap`, `project-daily-summary`, and `commit-daily-summary` archive notes.
 2. Codex memories and curated summaries:
    - `~/.codex/memories/**`
-   - `~/codex/docs/archive/memory-curation/**`
+   - `~/knowledge-hub/domains/codex/archive/codex-archive/memory-curation/**`
    - project-level `AGENTS.md`, `README.md`, and durable runbooks when referenced by memories.
 3. Chronicle, if exposed:
    - use Chronicle only for discovery outside Codex;

@@ -49,8 +49,8 @@ constraints:
 |---|---|
 | 读取 `$CODEX_HOME/history.jsonl` 或 `~/.codex/history.jsonl` | 允许，只读，可全量或按用户指定范围 |
 | 读取 `~/.codex/memories` | 允许，只读；输出必须区分既有记忆和新候选 |
-| 读取 `~/codex/docs/archive/`、`~/codex/reports/` | 允许，只读 |
-| 读取当前项目 `reports/`、`docs/archive/`、session wrap、research note | 允许，只读 |
+| 读取 Knowledge Hub 中的 Codex archive 归位目录、`~/codex/reports/` | 允许，只读 |
+| 读取当前项目 `reports/`、`~/knowledge-hub/domains/codex/archive/codex-archive/`、session wrap、research note | 允许，只读 |
 | 读取本地多个 repo 的 `git log`、commit summary、dirty 状态 | 允许，只读 |
 | 读取原始聊天、粘贴内容或历史片段 | 允许用于分析，但报告中必须摘要化和脱敏 |
 | 写本地报告或 archive note | 仅在用户要求产出文件时允许 |

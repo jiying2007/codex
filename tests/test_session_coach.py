@@ -26,14 +26,14 @@ class SessionCoachTest(unittest.TestCase):
             "?? scripts/session-coach.sh\n"
             "A  manifests/workflows.json\n"
             " M manifests/mcp_servers.json\n"
-            "?? docs/archive/memory-curation/note.md\n"
+            "?? knowledge-hub/domains/codex/archive/codex-archive/memory-curation/note.md\n"
         )
         groups = group_paths(changes)
         self.assertEqual(["manifests/workflows.json"], groups["staged"])
         self.assertIn("AGENTS.md", groups["agents"])
         self.assertIn("scripts/session-coach.sh", groups["scripts"])
         self.assertIn("manifests/mcp_servers.json", groups["mcp"])
-        self.assertIn("docs/archive/memory-curation/note.md", groups["archive"])
+        self.assertIn("knowledge-hub/domains/codex/archive/codex-archive/memory-curation/note.md", groups["archive"])
         self.assertIn("manifests/workflows.json", groups["delivery"])
 
     def test_detect_phase_prefers_apply_then_commit_then_asset(self) -> None:
@@ -123,10 +123,10 @@ class SessionCoachTest(unittest.TestCase):
     def test_archive_quality_flags_meta_and_secret(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            path = root / "docs/archive/topic/note.md"
+            path = root / "knowledge-hub/domains/codex/archive/codex-archive/topic/note.md"
             path.parent.mkdir(parents=True)
             path.write_text("api" + "_key = should-not-be-here\n")
-            groups = {"archive": ["docs/archive/topic/note.md"]}
+            groups = {"archive": ["knowledge-hub/domains/codex/archive/codex-archive/topic/note.md"]}
             config = {"defaults": {"archive_max_bytes": 1000}, "protected_archive_patterns": ["api_key"]}
             codes = {notice.code for notice in archive_quality_notices(root, groups, config)}
             self.assertIn("ARCHIVE_META_MISSING", codes)
@@ -135,9 +135,9 @@ class SessionCoachTest(unittest.TestCase):
     def test_password_pattern_requires_assignment_value(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            path = root / "docs/archive/topic/note.md"
+            path = root / "knowledge-hub/domains/codex/archive/codex-archive/topic/note.md"
             path.parent.mkdir(parents=True)
-            groups = {"archive": ["docs/archive/topic/note.md"]}
+            groups = {"archive": ["knowledge-hub/domains/codex/archive/codex-archive/topic/note.md"]}
             config = {
                 "defaults": {"archive_max_bytes": 1000},
                 "protected_archive_patterns": [r"(?i)\bpassword\b\s*[:=]\s*['\"]?[^\s'\"]{8,}"],

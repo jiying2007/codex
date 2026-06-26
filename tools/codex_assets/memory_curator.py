@@ -190,7 +190,7 @@ def build_report(repo: pathlib.Path, memories: pathlib.Path, days: int) -> str:
         "- `drop-or-review`：一次性过程噪音、过期 TODO、机器私有状态、需要人工判断的信息",
     ])
     lines += section("阶段模型", [
-        "- Phase 1 报告归档：默认阶段，只生成 `docs/archive/` 归档和本审计报告",
+        "- Phase 1 报告归档：默认阶段，只生成 `knowledge-hub/domains/codex/archive/codex-archive/` 归档和本审计报告",
         "- Phase 2 手动写入：人工确认后才写入 `~/.codex/memories` 或 codex-agent-mem note/snapshot",
         "- Phase 3 任务闭环：会话开始读取 context，会话结束执行 `knowledge-archive + memory-curator`",
     ])
@@ -202,7 +202,7 @@ def build_report(repo: pathlib.Path, memories: pathlib.Path, days: int) -> str:
         "- 是否有稳定 insight 应沉淀为 crystallized insight",
         "- 是否有未决 tension 需要在下次会话恢复时优先展开",
         "- 是否有短小结构化状态应手动写入 codex-agent-mem note/snapshot",
-        "- 是否有长材料应只保留在 `docs/archive/`",
+        "- 是否有长材料应只保留在 `knowledge-hub/domains/codex/archive/codex-archive/`",
         "- 不要自动双写到 `~/.codex/memories` 与 codex-agent-mem",
     ])
     return "\n".join(lines)
@@ -247,7 +247,7 @@ def run(args: argparse.Namespace) -> int:
     memories = pathlib.Path(args.memories).expanduser().resolve()
     report = build_report(repo, memories, args.days)
     hub_root = pathlib.Path(os.environ.get("KNOWLEDGE_HUB_HOME", "~/knowledge-hub")).expanduser()
-    default_output = hub_root / "domains/codex/archive/memory-curation" / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-memory-curation.md"
+    default_output = hub_root / "domains/codex/archive/codex-archive/memory-curation" / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-memory-curation.md"
     output = pathlib.Path(args.output).expanduser().resolve() if args.output else default_output
 
     if args.dry_run:

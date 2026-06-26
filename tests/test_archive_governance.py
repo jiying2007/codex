@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import shutil
 import tempfile
@@ -23,11 +24,15 @@ class ArchiveGovernanceTest(unittest.TestCase):
     def setUp(self) -> None:
         self.root = pathlib.Path(tempfile.mkdtemp(prefix="codex-archive-gov-test-"))
         self.addCleanup(shutil.rmtree, self.root)
+        self.hub_root = self.root / "knowledge-hub"
+        self.old_hub = os.environ.get("KNOWLEDGE_HUB_HOME")
+        os.environ["KNOWLEDGE_HUB_HOME"] = self.hub_root.as_posix()
+        self.addCleanup(lambda: os.environ.pop("KNOWLEDGE_HUB_HOME", None) if self.old_hub is None else os.environ.__setitem__("KNOWLEDGE_HUB_HOME", self.old_hub))
         self.parent_repo = self.root / "work/parent"
         self.child_repo = self.parent_repo / "child"
         self.parent_repo.mkdir(parents=True)
         self.child_repo.mkdir(parents=True)
-        reg = self.root / "docs/archive/_registry"
+        reg = self.hub_root / "domains/codex/archive/codex-archive-registry"
         write_json(
             reg / "projects.json",
             {
@@ -58,7 +63,7 @@ class ArchiveGovernanceTest(unittest.TestCase):
                     "project_id": "child",
                     "workstream_id": "bringup",
                     "status": "closed",
-                    "archive_path": "docs/archive/session-wrap/20260519-120000-child-bringup.md",
+                    "archive_path": "knowledge-hub/domains/codex/archive/codex-archive/session-wrap/20260519-120000-child-bringup.md",
                 }
             ],
         )
@@ -68,7 +73,7 @@ class ArchiveGovernanceTest(unittest.TestCase):
         source = self.child_repo / "notes/session.md"
         source.parent.mkdir(parents=True, exist_ok=True)
         source.write_text("# Child Bring-up\n\nVerified.\n", encoding="utf-8")
-        dest = self.root / "docs/archive/session-wrap/20260519-120000-child-bringup.md"
+        dest = self.hub_root / "domains/codex/archive/codex-archive/session-wrap/20260519-120000-child-bringup.md"
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, dest)
         meta_path = pathlib.Path(str(dest) + ".meta.json")
@@ -118,8 +123,8 @@ class ArchiveGovernanceTest(unittest.TestCase):
 
         errors, warnings = validate_archive(self.root)
 
-        self.assertEqual("docs/archive/session-wrap/20260519-120000-child-bringup.md", meta["destination"])
-        self.assertEqual("docs/archive/session-wrap/20260519-120000-child-bringup.md.meta.json", meta["metadata"])
+        self.assertEqual("knowledge-hub/domains/codex/archive/codex-archive/session-wrap/20260519-120000-child-bringup.md", meta["destination"])
+        self.assertEqual("knowledge-hub/domains/codex/archive/codex-archive/session-wrap/20260519-120000-child-bringup.md.meta.json", meta["metadata"])
         self.assertEqual([], errors)
         self.assertEqual([], warnings)
 
@@ -144,7 +149,7 @@ class ArchiveGovernanceTest(unittest.TestCase):
         source = self.child_repo / "notes/noisy.md"
         source.parent.mkdir(parents=True, exist_ok=True)
         source.write_text("# Noisy\n", encoding="utf-8")
-        dest = self.root / "docs/archive/session-wrap/nested/20260519-120000-2026-05-19-noisy.md"
+        dest = self.hub_root / "domains/codex/archive/codex-archive/session-wrap/nested/20260519-120000-2026-05-19-noisy.md"
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, dest)
         meta_path = pathlib.Path(str(dest) + ".meta.json")
@@ -171,7 +176,7 @@ class ArchiveGovernanceTest(unittest.TestCase):
         source = self.child_repo / "notes/date-only.md"
         source.parent.mkdir(parents=True, exist_ok=True)
         source.write_text("# Date Only\n", encoding="utf-8")
-        dest = self.root / "docs/archive/session-wrap/20260519-date-only.md"
+        dest = self.hub_root / "domains/codex/archive/codex-archive/session-wrap/20260519-date-only.md"
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, dest)
         meta_path = pathlib.Path(str(dest) + ".meta.json")

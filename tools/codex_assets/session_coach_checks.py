@@ -186,7 +186,7 @@ def archive_secret_notices(root: pathlib.Path, paths: list[pathlib.Path], patter
         "HIGH", "ARCHIVE_SECRET_PATTERN", "archive", 89,
         f"归档文件命中 {len(matches)} 个敏感信息模式。",
         "提交前人工确认是否为真实密钥；真实密钥必须删除并轮换。",
-        ["rtk rg -n '<pattern>' docs/archive"],
+        ["rtk rg -n '<pattern>' Knowledge Hub Codex archive"],
         stable_key="ARCHIVE_SECRET_PATTERN",
         examples=matches[:8],
     )]

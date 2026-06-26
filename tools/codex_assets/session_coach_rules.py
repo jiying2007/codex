@@ -197,7 +197,7 @@ def repo_notices(
     if groups["archive"]:
         notices.append(make_notice(
             "MEDIUM", "ARCHIVE_REVIEW", "archive", 44,
-            f"检测到 {len(groups['archive'])} 个 docs/archive 归档变更。",
+            f"检测到 {len(groups['archive'])} 个 Knowledge Hub Codex archive 归档变更。",
             "归档与交付代码分开提交；只把稳定、脱敏、可复用材料提升为 AGENTS、memory 或 skill。",
             stable_key="ARCHIVE_REVIEW",
             examples=groups["archive"][:8], count=len(groups["archive"]),

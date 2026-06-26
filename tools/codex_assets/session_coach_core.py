@@ -83,7 +83,7 @@ def group_paths(changes: list[GitChange]) -> dict[str, list[str]]:
             p for p in paths
             if starts(p, ("src/codex-home/", "README.md", "docs/session-continuity-coach.md", "docs/design.md"))
         ],
-        "archive": [p for p in paths if starts(p, ("docs/archive/",))],
+        "archive": [p for p in paths if starts(p, ("knowledge-hub/domains/codex/archive/codex-archive/",))],
     }
     groups["delivery"] = sorted(set().union(
         groups["agents"],

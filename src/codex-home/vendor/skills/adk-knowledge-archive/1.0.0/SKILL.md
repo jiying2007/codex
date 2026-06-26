@@ -7,7 +7,7 @@ triggers:
   - "知识归档"
   - "长期沉淀"
   - "保存到 archive"
-  - "保存到 docs/archive"
+  - "保存到 ~/knowledge-hub/domains/codex/archive/codex-archive"
   - "日报归档"
   - "会话总结归档"
   - "排障结论归档"

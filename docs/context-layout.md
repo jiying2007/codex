@@ -6,7 +6,7 @@
 
 | 层级 | 内容 | 默认去向 | 更新频率 |
 | --- | --- | --- | --- |
-| Stable context | 用户稳定偏好、仓库硬规则、架构决策、长期边界、已验证工作流 | `AGENTS.md`、`docs/archive/`、manifest | 低频，必须人工审查 |
+| Stable context | 用户稳定偏好、仓库硬规则、架构决策、长期边界、已验证工作流 | `AGENTS.md`、`~/knowledge-hub/domains/codex/archive/codex-archive/`、manifest | 低频，必须人工审查 |
 | Dynamic context | 当前目标、分支状态、dirty worktree、最近验证、未闭环 blocker、下一步命令 | `context-preflight`、session summary | 高频，随线程变化 |
 | Evidence context | 命令、退出码、报告路径、可复查产物、负结果 | final/commit evidence、archive note | 每次交付前更新 |
 | Excluded context | 密钥、session 原文、长日志、缓存、一次性网页 dump、未经审查 memory | 不沉淀 | 永不提升 |
@@ -23,7 +23,7 @@
 稳定上下文不能直接从一次会话自动写入 memory。推荐路径是：
 
 ```text
-conversation -> context-preflight -> docs/archive or manifest candidate -> review -> AGENTS / skill / memory
+conversation -> context-preflight -> ~/knowledge-hub/domains/codex/archive/codex-archive or manifest candidate -> review -> AGENTS / skill / memory
 ```
 
 ## Dynamic Context

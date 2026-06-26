@@ -68,7 +68,7 @@ Superpowers fallback 不应覆盖已有 adk 路由，除非满足第 2 节条件
 - 提交总结 / commit 日报：`commit-daily-summary`
 - 项目日报 / 按项目总结：`project-daily-summary`
 - 调研纪要 / 分析结论：`research-note-wrap`
-- 知识归档 / 长期沉淀 / 保存到 docs/archive：`adk-knowledge-archive`
+- 知识归档 / 长期沉淀 / 保存到 ~/knowledge-hub/domains/codex/archive/codex-archive：`adk-knowledge-archive`
 - memory / memories / 记忆整理：`adk-memory-curator`
 - 上下文压缩 / 会话接力 / resume prompt / 90 秒模板：`adk-context-compress-handoff`
 - 多源搜索 / 交叉验证 / 资料核验：`multi-search-engine`
@@ -185,7 +185,7 @@ adk 是通用 Agent/Skill/Profile/Workflow 资产包，core 保持平台中立�
 ## 15. 文档与记忆
 
 - 文档只记录可复用信息：背景、约束、决策、验证结果、未决项。
-- 长期经验优先沉淀到项目级 `AGENTS.md` 或 `~/knowledge-hub`，避免把一次性过程噪音写入长期规则；`~/codex/docs/archive/` 只作旧历史来源。
+- 长期经验优先沉淀到项目级 `AGENTS.md` 或 `~/knowledge-hub`，避免把一次性过程噪音写入长期规则；旧 Codex archive 历史来源只作 provenance，不作为新增入口。
 - 记忆整理默认只生成审计报告或候选，不静默覆盖 memory。
 - 归档材料不得写入 `src/codex-home/`、`build/` 或 control 产物目录。
 - MCP server、connector、桌面 GUI 或登录态工作流必须先声明 transport、权限边界、凭证边界、工具清单、deny-path、日志脱敏和回退方式；未完成安全和供应链审查前不得启用外部写操作。

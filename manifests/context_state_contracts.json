@@ -17,7 +17,7 @@
           ],
           "destinations": [
             "AGENTS.md",
-            "docs/archive",
+            "~/knowledge-hub/domains/codex/archive/codex-archive",
             "manifest"
           ],
           "promotion_gate": "reviewed, secret-scanned and covered by guidance_promotions"

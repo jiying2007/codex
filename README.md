@@ -138,7 +138,7 @@ rtk bash scripts/check.sh
 | `manifests/policies.json` | protected paths 与 apply 策略 |
 | `manifests/lock.json` | build 生成的 vendor 锁定摘要 |
 | `build/codex-home/` | `build.sh` 生成的可注入产物 |
-| `docs/archive/` | 旧归档区，只读历史来源；新增长期知识进入 `~/knowledge-hub` |
+| `~/knowledge-hub/domains/codex/archive/codex-archive/` | 旧归档区，只读历史来源；新增长期知识进入 `~/knowledge-hub` |
 | `inbox/skills/` | 未审核 skill 候选区，默认不纳入 git |
 | `tools/codex_assets/` | Python CLI 核心实现 |
 | `schemas/` | manifest schema 文档与校验依据 |
@@ -203,14 +203,14 @@ rtk bash scripts/check.sh
 
 ## 知识沉淀
 
-运行中产生的总结、调研、排障记录和外部资料，默认不进入 `src/codex-home/` 或本仓 `docs/archive/`，而是先脱敏、定题后归档到 `~/knowledge-hub/domains/codex/archive/<topic>/`：
+运行中产生的总结、调研、排障记录和外部资料，默认不进入 `src/codex-home/` 或本仓 `~/knowledge-hub/domains/codex/archive/codex-archive/`，而是先脱敏、定题后归档到 `~/knowledge-hub/domains/codex/archive/<topic>/`：
 
 ```bash
 rtk bash scripts/archive-note.sh /path/to/note.md --topic topic-name --title "Readable Title"
 rtk bash scripts/archive-note.sh /path/to/note-dir --topic topic-name --description "why this matters"
 ```
 
-归档默认复制来源，不删除原文件；使用 `--move` 才移动。脚本会拒绝归档 Codex 运行态、密钥、日志、session、cache、`auth.json` 和旧 v2 control 知识态目录。旧 `~/codex/docs/archive` 不再作为新增归档入口。
+归档默认复制来源，不删除原文件；使用 `--move` 才移动。脚本会拒绝归档 Codex 运行态、密钥、日志、session、cache、`auth.json` 和旧 v2 control 知识态目录。旧 Codex archive 历史来源不再作为新增归档入口。
 
 可直接检索长期沉淀与规则：
 

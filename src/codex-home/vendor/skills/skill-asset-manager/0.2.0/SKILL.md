@@ -81,7 +81,7 @@ rtk bash scripts/check-skills.sh
 - Routing misses for local skills should usually update `description` or `manifests/workflows.json`.
 - Chinese routing phrases should be precise object-action phrases; avoid broad standalone words and document cross-skill ambiguity in `docs/skill-lifecycle.md` or `AGENTS.md`.
 - Procedural misses for local skills should update `SKILL.md`; detailed references belong in `references/`.
-- Long evidence and usage history belong in `docs/archive/`, not in the loaded skill body.
+- Long evidence and usage history belong in `~/knowledge-hub/domains/codex/archive/codex-archive/`, not in the loaded skill body.
 - See `docs/skill-lifecycle.md` for the full lifecycle and acceptance criteria.
 
 ## Rules

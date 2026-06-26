@@ -34,7 +34,7 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 - `~/.codex` 运行态目录及其认证、session、日志、缓存、密钥和本机私有配置。
 - `build/`、`.cache/`、`scratch/`、`inbox/`、`.backups/` 等可重建或本机临时目录。
 - `/tmp/adk-codex-handoff`、`CODEX_HANDOFF.md`、`manifest-fragments/` 等导出包辅助文件。
-- apply plan 和运行日志，除非作为脱敏审计证据单独归档到 `docs/archive/`。
+- apply plan 和运行日志，除非作为脱敏审计证据单独归档到 `~/knowledge-hub/domains/codex/archive/codex-archive/`。
 
 处理 `agent-dev-kit` 应用时，先将 handoff 合并到 `manifests/` 与 `src/codex-home/vendor/`，再运行 `build -> doctor -> plan/dry-run -> apply -> drift/diff -> check`。验证通过后只提交上述声明式资产，不提交运行态或临时产物。
 
@@ -158,7 +158,7 @@ OpenAI Developers 内容只能通过可追溯路径提升为长期规则。默�
 - 本地 / Chronicle 派生 skill：`description` 负责触发，`SKILL.md` body 只保留执行必须知道的流程、边界和输出契约。
 - 本地 / Chronicle 派生 skill：manifest 必须可筛选，至少包含 `owner=local`、`source_repo=local/codex` 和 `tags=["local", ...]`；Chronicle 派生项额外包含 `chronicle-derived`。
 - Chronicle 派生 skill：`SKILL.md` frontmatter 和 README 使用 `origin: local-chronicle-derived` / `Lifecycle: iterative-local` 做人工识别。
-- 本地 / Chronicle 派生 skill：细节资料进入 `references/`，确定性重复操作进入 `scripts/`，长证据进入 `docs/archive/`。
+- 本地 / Chronicle 派生 skill：细节资料进入 `references/`，确定性重复操作进入 `scripts/`，长证据进入 `~/knowledge-hub/domains/codex/archive/codex-archive/`。
 - 本地 / Chronicle 派生 skill：已提交并投入使用后，优先通过新版本目录迭代，再更新 `manifests/skills.json`。
 - 外部导入 skill：优先更新上游源或导入新版本；不得把本地需求直接改进外部 skill 正文形成隐式 fork。
 - routing 问题优先改 `description` 或 `manifests/workflows.json`，不要把大量触发词堆进正文。
@@ -192,7 +192,7 @@ rtk bash scripts/promote-skill.sh /path/to/third-party-skill --version 1.0.0 --t
 
 ## 知识材料归档
 
-当会话总结、调研笔记、排障结论或外部材料值得长期复用时，先脱敏，再归档到 `docs/archive/`：
+当会话总结、调研笔记、排障结论或外部材料值得长期复用时，先脱敏，再归档到 `~/knowledge-hub/domains/codex/archive/codex-archive/`：
 
 ```bash
 rtk bash scripts/archive-note.sh /path/to/note.md --topic topic-name --dry-run
@@ -226,7 +226,7 @@ rtk bash scripts/curate-memory.sh
 报告位置：
 
 ```text
-docs/archive/memory-curation/<timestamp>-memory-curation.md
+~/knowledge-hub/domains/codex/archive/codex-archive/memory-curation/<timestamp>-memory-curation.md
 ```
 
 需要候选 memory 时显式开启：
@@ -242,7 +242,7 @@ rtk bash scripts/curate-memory.sh --write-memory-candidate
 ```text
 ~/.codex_agent_mem/
 ~/.codex/memories/.codex-agent-mem/
-docs/archive/codex-agent-mem/
+~/knowledge-hub/domains/codex/archive/codex-archive/codex-agent-mem/
 ```
 
 报告会将建议分为：
@@ -254,7 +254,7 @@ docs/archive/codex-agent-mem/
 
 记忆治理分三阶段：
 
-- Phase 1 报告归档：默认阶段，只生成 `docs/archive/` 归档和 memory-curator 审计报告，不写入任何长期 memory。
+- Phase 1 报告归档：默认阶段，只生成 `~/knowledge-hub/domains/codex/archive/codex-archive/` 归档和 memory-curator 审计报告，不写入任何长期 memory。
 - Phase 2 手动写入：先由 `memory-curator` 生成候选，再人工确认是否写入 `~/.codex/memories` 或 codex-agent-mem note/snapshot。
 - Phase 3 任务闭环：会话开始读取可用 context pack，会话结束执行 `knowledge-archive + memory-curator`，重要决策人工提升到 `AGENTS.md` 或 memory。
 
@@ -297,7 +297,7 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 
 默认搜索范围：
 
-- `docs/archive/`
+- `~/knowledge-hub/domains/codex/archive/codex-archive/`
 - `AGENTS.md`
 - `src/codex-home/AGENTS.md`
 

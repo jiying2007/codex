@@ -8,7 +8,7 @@
       "source_patterns": [
         "docs/codex-operating-model.md",
         "docs/context-layout.md",
-        "docs/archive/**"
+        "~/knowledge-hub/domains/codex/archive/codex-archive/**"
       ],
       "destination": "agents",
       "review_required": true,
@@ -29,7 +29,7 @@
       "enabled": true,
       "source_kind": "docs-archive",
       "source_patterns": [
-        "docs/archive/**",
+        "~/knowledge-hub/domains/codex/archive/codex-archive/**",
         "manifests/workflow_recipes.json"
       ],
       "destination": "skill",
@@ -51,8 +51,8 @@
       "enabled": true,
       "source_kind": "conversation",
       "source_patterns": [
-        "docs/archive/session-wrap/**",
-        "docs/archive/memory-curation/**"
+        "~/knowledge-hub/domains/codex/archive/codex-archive/session-wrap/**",
+        "~/knowledge-hub/domains/codex/archive/codex-archive/memory-curation/**"
       ],
       "destination": "memory",
       "review_required": true,

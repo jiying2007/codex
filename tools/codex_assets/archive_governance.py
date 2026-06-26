@@ -30,12 +30,16 @@ class ProjectMatch:
     project: dict[str, Any]
 
 
+def knowledge_hub_root() -> pathlib.Path:
+    return pathlib.Path(os.environ.get("KNOWLEDGE_HUB_HOME", "~/knowledge-hub")).expanduser().resolve()
+
+
 def archive_root(root: str | pathlib.Path) -> pathlib.Path:
-    return pathlib.Path(root).expanduser().resolve() / "docs/archive"
+    return knowledge_hub_root() / "domains/codex/archive/codex-archive"
 
 
 def registry_root(root: str | pathlib.Path) -> pathlib.Path:
-    return archive_root(root) / "_registry"
+    return knowledge_hub_root() / "domains/codex/archive/codex-archive-registry"
 
 
 def read_json(path: pathlib.Path, default: Any = None) -> Any:
@@ -334,7 +338,7 @@ def validate_archive(root: str | pathlib.Path) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     if not base.is_dir():
-        return ["docs/archive 不存在"], warnings
+        return ["Knowledge Hub Codex archive 不存在"], warnings
     reg = registry_root(repo_root)
     for name in ["projects.json", "workstreams.jsonl", "sessions.jsonl", "topics.json", "schema.md"]:
         if not (reg / name).is_file():

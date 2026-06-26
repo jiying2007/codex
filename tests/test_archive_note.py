@@ -38,7 +38,7 @@ class ArchiveNoteTest(unittest.TestCase):
         archive_note(root, first, topic_arg="session-wrap", title_arg="Project A Session")
         archive_note(root, second, topic_arg="session-wrap", title_arg="Project B Session")
 
-        index = hub_root / "domains/codex/archive/session-wrap/index.md"
+        index = hub_root / "domains/codex/archive/codex-archive/session-wrap/index.md"
         text = index.read_text()
         self.assertIn("# Session Wrap Archive", text)
         self.assertNotIn("# Project A Session", text)
@@ -65,7 +65,7 @@ class ArchiveNoteTest(unittest.TestCase):
         with self.assertRaises(ArchiveGovernanceError):
             archive_note(root, source, topic_arg="session-wrap", status_arg="open")
 
-        self.assertFalse((hub_root / "domains/codex/archive/session-wrap").exists())
+        self.assertFalse((hub_root / "domains/codex/archive/codex-archive/session-wrap").exists())
 
 
 if __name__ == "__main__":

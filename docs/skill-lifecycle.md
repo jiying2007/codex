@@ -61,7 +61,7 @@ Keep task-oriented names such as `archive-governance` and `embedded-diagnostic-h
 Use a skill in one of three ways:
 
 1. Natural trigger: describe the task normally. `AGENTS.md` and `manifests/workflows.json` route common phrases to the right skill.
-2. Explicit trigger: name the skill directly, for example `使用 archive-governance 检查 docs/archive`.
+2. Explicit trigger: name the skill directly, for example `使用 archive-governance 检查 ~/knowledge-hub/domains/codex/archive/codex-archive`.
 3. Supporting trigger: use a domain skill together with an existing gate, for example `embedded-release-orchestration` plus `adk-verification-before-completion`.
 
 Do not force every task through every related skill. Select the smallest set that covers the work:
@@ -106,7 +106,7 @@ Update an in-scope local skill when there is evidence of repeated friction:
 
 Do not update an external imported skill for local workflow friction. Either fix the upstream source and re-import, or create a local companion skill that composes with the external skill.
 
-Do not update a global local skill for one-off project state. Put one-off evidence into `docs/archive/` or project memory instead.
+Do not update a global local skill for one-off project state. Put one-off evidence into `~/knowledge-hub/domains/codex/archive/codex-archive/` or project memory instead.
 
 ## Versioning Policy
 
@@ -127,7 +127,7 @@ Keep only the active version enabled unless a migration test requires parallel v
 1. Mine evidence:
 
 ```bash
-rtk rg -n "<trigger or workflow>" ~/.codex/history.jsonl ~/.codex/memories ~/codex/docs/archive
+rtk rg -n "<trigger or workflow>" ~/.codex/history.jsonl ~/.codex/memories ~/knowledge-hub/domains/codex/archive
 ```
 
 2. Decide the ownership first:

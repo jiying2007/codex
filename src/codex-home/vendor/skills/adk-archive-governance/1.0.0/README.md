@@ -1,6 +1,6 @@
 # adk-archive-governance
 
-`docs/archive` 归档治理 skill，覆盖 meta、topic registry、文件名、hash、superseded、敏感材料和归档门禁修复。
+`~/knowledge-hub/domains/codex/archive/codex-archive` 归档治理 skill，覆盖 meta、topic registry、文件名、hash、superseded、敏感材料和归档门禁修复。
 
 ## Provenance
 - Owner: `agent-dev-kit`

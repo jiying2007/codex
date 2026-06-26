@@ -154,7 +154,7 @@ def archive_note(
     assert_safe_archive_source(source, repo)
     topic = slugify(topic_arg or source.stem or source.name)
     hub_root = knowledge_hub_root()
-    archive_root = pathlib.Path(dest_arg).expanduser() if dest_arg else hub_root / "domains/codex/archive" / topic
+    archive_root = pathlib.Path(dest_arg).expanduser() if dest_arg else hub_root / "domains/codex/archive/codex-archive" / topic
     archive_root = archive_root.resolve()
     allowed_roots = [repo.root, hub_root]
     if not any(allowed in [archive_root, *archive_root.parents] for allowed in allowed_roots):

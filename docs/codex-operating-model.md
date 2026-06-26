@@ -73,13 +73,13 @@
 | 代码变更 | diff、测试报告、review report | lint/test/build/smoke |
 | 高风险变更 | `ImplementationPlan`、`ReviewReport`、`TestReport` | artifact 字段完整且证据可复查 |
 
-临时预览和 scratch 产物不进入 `src/codex-home/`。长期可复用结论进入 `docs/archive/`，稳定规则才提升到 `AGENTS.md` 或 memory 候选。
+临时预览和 scratch 产物不进入 `src/codex-home/`。长期可复用结论进入 `~/knowledge-hub/domains/codex/archive/codex-archive/`，稳定规则才提升到 `AGENTS.md` 或 memory 候选。
 
 ## 记忆边界
 
 重要上下文不只留在聊天记录里，但也不能无审查地写入长期记忆。
 
-- 工作过程和结论：优先 `docs/archive/<topic>/`。
+- 工作过程和结论：优先 `~/knowledge-hub/domains/codex/archive/codex-archive/<topic>/`。
 - 可复用规则：人工审查后提升到项目 `AGENTS.md`。
 - 偏好、稳定事实、长期坑点：由 `memory-curator --dry-run` 生成候选，再人工确认。
 - 一次性日志、长 diff、构建输出：只保留摘要、命令和关键证据路径。
@@ -107,7 +107,7 @@ MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `c
 ## 子代理与记忆候选
 
 - 并行子代理默认遵循 `manifests/subagent_contracts.json`，必须声明读写范围、禁止路径、sandbox、输出契约和最终整合验证。
-- 长期记忆候选默认进入 `manifests/memory_candidates.json`，保持 `enabled=false`，经人工 review、secret scan 和 promotion gate 后再决定提升到 `AGENTS.md`、`docs/archive/` 或 memory。
+- 长期记忆候选默认进入 `manifests/memory_candidates.json`，保持 `enabled=false`，经人工 review、secret scan 和 promotion gate 后再决定提升到 `AGENTS.md`、`~/knowledge-hub/domains/codex/archive/codex-archive/` 或 memory。
 
 ## Eval、命令与提升路径
 

@@ -63,7 +63,7 @@
         "manifests/automations.json",
         "manifests/cli_command_contracts.json",
         "manifests/context_state_contracts.json",
-        "docs/archive"
+        "~/knowledge-hub/domains/codex/archive/codex-archive"
       ],
       "verification": [
         "rtk bash scripts/doctor.sh --scope governance",

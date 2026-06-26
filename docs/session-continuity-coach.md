@@ -85,7 +85,7 @@ P2 版本按以下顺序综合判断：
 - 准备 `commit` 时检查是否已有暂存文件。
 - 准备 `push` 时检查本地 ahead/behind、冲突状态和 dirty worktree。
 - 准备 `final` 时提示尚未收口的工作区变更，避免最终答复遗漏交付状态。
-- 改 `docs/archive/` 时检查 meta JSON、疑似敏感信息、超大归档和缺失 meta。
+- 改 `~/knowledge-hub/domains/codex/archive/codex-archive/` 时检查 meta JSON、疑似敏感信息、超大归档和缺失 meta。
 
 ## 配置项
 
@@ -115,7 +115,7 @@ P2 版本按以下顺序综合判断：
 - skill：同步 `src/codex-home/vendor/skills/`、`manifests/skills.json`、`check-skills.sh`。
 - workflow：同步 `manifests/workflows.json` 并运行 governance 检查。
 - script / tool：保持 `scripts/*.sh -> tools.codex_assets` 包入口规范，从非仓库 cwd 验证帮助或 dry-run。
-- docs：长期知识进 `docs/archive/`；交付规则进 `docs/` 正文；不要写入 `src/codex-home/`。
+- docs：长期知识进 `~/knowledge-hub/domains/codex/archive/codex-archive/`；交付规则进 `docs/` 正文；不要写入 `src/codex-home/`。
 
 ## 收口序列
 
