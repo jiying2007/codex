@@ -1,0 +1,6 @@
+interface:
+  display_name: "Embedded Core Dump Triage"
+  short_description: "Analyze embedded core dumps with BuildID, symbol, and GDB trust checks"
+  default_prompt: "Use $embedded-core-dump-triage as primary for core dumps, BuildID, symbols, and cross-GDB trust checks; switch to adk-systematic-debugging for repair after evidence is established."
+policy:
+  allow_implicit_invocation: true

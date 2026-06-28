@@ -1,0 +1,6 @@
+interface:
+  display_name: "Embedded App Doc Handoff"
+  short_description: "Prepare independent embedded app docs, local skills, and clean handoff submit ranges"
+  default_prompt: "Use $embedded-app-doc-handoff for app_ota/app_product_test style documentation handoff and submit-range cleanup; use adk commit/verification gates for commit or final evidence."
+policy:
+  allow_implicit_invocation: true

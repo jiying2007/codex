@@ -933,6 +933,110 @@
       "review_status": "accepted"
     },
     {
+      "name": "embedded-core-dump-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/embedded-core-dump-triage/0.1.0",
+      "target_rel": "skills/embedded-core-dump-triage",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "core-dump",
+        "gdb",
+        "debug",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-core-dump-triage/0.1.0",
+      "imported_at": "2026-06-28",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-app-doc-handoff",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/embedded-app-doc-handoff/0.1.0",
+      "target_rel": "skills/embedded-app-doc-handoff",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "docs",
+        "handoff",
+        "skills",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-app-doc-handoff/0.1.0",
+      "imported_at": "2026-06-28",
+      "review_status": "accepted"
+    },
+    {
+      "name": "mcu-firmware-release-closure",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/mcu-firmware-release-closure/0.1.0",
+      "target_rel": "skills/mcu-firmware-release-closure",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "mcu",
+        "release",
+        "nas",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/mcu-firmware-release-closure/0.1.0",
+      "imported_at": "2026-06-28",
+      "review_status": "accepted"
+    },
+    {
+      "name": "sigmastar-release-app-flow",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/sigmastar-release-app-flow/0.1.0",
+      "target_rel": "skills/sigmastar-release-app-flow",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "sigmastar",
+        "release",
+        "ota",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/sigmastar-release-app-flow/0.1.0",
+      "imported_at": "2026-06-28",
+      "review_status": "accepted"
+    },
+    {
       "name": "dispatching-parallel-agents",
       "enabled": true,
       "source_kind": "vendor",
@@ -1004,8 +1108,8 @@
       "name": "multi-search-engine",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/multi-search-engine/0.1.0",
+      "version": "0.1.1",
+      "vendor_rel": "vendor/skills/multi-search-engine/0.1.1",
       "target_rel": "skills/multi-search-engine",
       "profiles": [
         "team-collab"
@@ -1019,7 +1123,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/multi-search-engine/0.1.0",
+      "source_path": "src/codex-home/vendor/skills/multi-search-engine/0.1.1",
       "imported_at": "2026-05-10",
       "review_status": "accepted"
     },

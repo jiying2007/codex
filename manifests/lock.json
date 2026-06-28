@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 691,
+  "managed_count": 725,
   "items": [
     {
       "kind": "skill",
@@ -15,7 +15,7 @@
       "name": "adk-archive-governance",
       "version": "1.0.0",
       "source": "vendor/skills/adk-archive-governance/1.0.0",
-      "sha256": "f18e289d7845c6286b9444e46ac0ede681afddc12a034c0091f57f627e8861f5"
+      "sha256": "10635961f91369e7badf1619532dbe1ccbf5c45f89aec6a97361aaf777558a9c"
     },
     {
       "kind": "skill",
@@ -64,7 +64,7 @@
       "name": "adk-engineering-growth-review",
       "version": "1.0.0",
       "source": "vendor/skills/adk-engineering-growth-review/1.0.0",
-      "sha256": "f94ad1a7db88d29c442216a9e55c70d2c67a58870f8865dbfb22ffc8d542fb79"
+      "sha256": "76202456c0b0f530edcaf942c4f10e6773f6d702ebd5bdb11397b7fa2f0c4e11"
     },
     {
       "kind": "skill",
@@ -99,7 +99,7 @@
       "name": "adk-knowledge-archive",
       "version": "1.0.0",
       "source": "vendor/skills/adk-knowledge-archive/1.0.0",
-      "sha256": "5e4ababc8e9a8ad43cd1598d3a19b8a08d3e1d54fb2d69ba308c47785d88efb2"
+      "sha256": "72df3cfdaaa33070167f8f225ca322207df3a374005a8e2898c83a69e940fc2e"
     },
     {
       "kind": "skill",
@@ -246,7 +246,7 @@
       "name": "chronicle-workflow-miner",
       "version": "1.1.0",
       "source": "vendor/skills/chronicle-workflow-miner/1.1.0",
-      "sha256": "50c68cb51b2724ab53138892985d21258bce29d3903ec6d347e256af87d0a0e9"
+      "sha256": "e3999b9ee255ed9945c14e3735f81d3a1c94ad2e3c2f42340598cc9ff57cf432"
     },
     {
       "kind": "skill",
@@ -292,6 +292,34 @@
     },
     {
       "kind": "skill",
+      "name": "embedded-core-dump-triage",
+      "version": "0.1.0",
+      "source": "vendor/skills/embedded-core-dump-triage/0.1.0",
+      "sha256": "f7752f83410aaa5d3001d68462542204784f3159f8e6b9e5f448178ae3eaa30b"
+    },
+    {
+      "kind": "skill",
+      "name": "embedded-app-doc-handoff",
+      "version": "0.1.0",
+      "source": "vendor/skills/embedded-app-doc-handoff/0.1.0",
+      "sha256": "acdcd844097a38061d90ea9a9efaed18476de6538c937a181a24bcc75487f3f4"
+    },
+    {
+      "kind": "skill",
+      "name": "mcu-firmware-release-closure",
+      "version": "0.1.0",
+      "source": "vendor/skills/mcu-firmware-release-closure/0.1.0",
+      "sha256": "40b08199ffb846eb44480473b3adf5854b64b25eea512d9e88de230e7c466ee3"
+    },
+    {
+      "kind": "skill",
+      "name": "sigmastar-release-app-flow",
+      "version": "0.1.0",
+      "source": "vendor/skills/sigmastar-release-app-flow/0.1.0",
+      "sha256": "b97bc6616b03a5214ee0572bb1a7b876a85222748d3cf9cb4fc3acd7bccdd298"
+    },
+    {
+      "kind": "skill",
       "name": "mcp-builder",
       "version": "0.1.0",
       "source": "vendor/skills/mcp-builder/0.1.0",
@@ -300,9 +328,9 @@
     {
       "kind": "skill",
       "name": "multi-search-engine",
-      "version": "0.1.0",
-      "source": "vendor/skills/multi-search-engine/0.1.0",
-      "sha256": "94710e2cc9290a844f193eceaa63aca6ba5b50b7ee0bc1d32d04dc34044a68cc"
+      "version": "0.1.1",
+      "source": "vendor/skills/multi-search-engine/0.1.1",
+      "sha256": "22abe850593e023e3c84f849819c21153926996e42914381426746f5c4bae2f2"
     },
     {
       "kind": "skill",
@@ -344,7 +372,7 @@
       "name": "skill-asset-manager",
       "version": "0.2.0",
       "source": "vendor/skills/skill-asset-manager/0.2.0",
-      "sha256": "16794d0595a393eb1fbde926a0ef7bb497ae58f8811a76aff677ef4c4ed2cb3d"
+      "sha256": "9a89f543ec3370660c829132e370922176d500b07cb9a4f057bb89e9d69f0535"
     },
     {
       "kind": "skill",

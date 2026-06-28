@@ -186,6 +186,14 @@ adk 是通用 Agent/Skill/Profile/Workflow 资产包，core 保持平台中立�
 
 - 文档只记录可复用信息：背景、约束、决策、验证结果、未决项。
 - 长期经验优先沉淀到项目级 `AGENTS.md` 或 `~/knowledge-hub`，避免把一次性过程噪音写入长期规则；旧 Codex archive 历史来源只作 provenance，不作为新增入口。
+- 涉及项目事实、归档路径、历史决策、runbook、source 状态、发布验证、core/GDB/日志排障或长期结论时，先查询 Knowledge Hub，再使用 memory、raw session 或项目本地 README 作为辅助证据。
+- 推荐预检入口：
+
+```bash
+rtk bash ~/knowledge-hub/tools/knowledge-context.sh --cwd "$PWD" --query "<任务或问题>" --task-type <debug|archive|release|decision|runbook|source|validation|general> --json
+```
+
+- 对会产生长期结论的 debug、release、validation、decision 或 session 任务，完成或中断时应写 Hub candidate，或明确说明“本次无可归档结论”。
 - 记忆整理默认只生成审计报告或候选，不静默覆盖 memory。
 - 归档材料不得写入 `src/codex-home/`、`build/` 或 control 产物目录。
 - MCP server、connector、桌面 GUI 或登录态工作流必须先声明 transport、权限边界、凭证边界、工具清单、deny-path、日志脱敏和回退方式；未完成安全和供应链审查前不得启用外部写操作。
