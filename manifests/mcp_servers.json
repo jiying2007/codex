@@ -63,7 +63,7 @@
     },
     {
       "name": "openaiDeveloperDocs",
-      "enabled": true,
+      "enabled": false,
       "transport": "http",
       "profiles": [
         "team-collab"
