@@ -88,8 +88,8 @@ git bisect good <last_good_commit>
 rg -n "error|fatal|panic|timeout|reset" <log-or-src>
 journalctl --since "1 hour ago" --priority=err
 ss -tlnp | grep <port>
-openocd -f <interface.cfg> -f <target.cfg>
-arm-none-eabi-gdb <elf> -ex "target remote :3333"
+<debug-transport-readonly-cmd>
+<target-debugger> <elf-or-process> --readonly
 ```
 
 ## Evidence Template

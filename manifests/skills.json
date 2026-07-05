@@ -182,12 +182,12 @@
       "review_status": "accepted"
     },
     {
-      "name": "adk-engineering-growth-review",
+      "name": "adk-embedded-debug-transport",
       "enabled": true,
       "source_kind": "vendor",
       "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-engineering-growth-review/1.0.0",
-      "target_rel": "skills/adk-engineering-growth-review",
+      "vendor_rel": "vendor/skills/adk-embedded-debug-transport/1.0.0",
+      "target_rel": "skills/adk-embedded-debug-transport",
       "profiles": [
         "solo-dev",
         "team-collab"
@@ -195,15 +195,14 @@
       "tags": [
         "agent-dev-kit",
         "adk",
-        "growth",
-        "summary",
-        "p1"
+        "embedded",
+        "p0"
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
-      "source_path": "skills/adk-engineering-growth-review/SKILL.md",
-      "imported_at": "2026-05-31",
+      "source_path": "skills/adk-embedded-debug-transport/SKILL.md",
+      "imported_at": "2026-07-05",
       "review_status": "accepted"
     },
     {
@@ -256,25 +255,52 @@
       "review_status": "accepted"
     },
     {
-      "name": "adk-structured-requirements-questioning",
+      "name": "adk-embedded-remote-debug-log-triage",
       "enabled": true,
       "source_kind": "vendor",
       "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-structured-requirements-questioning/1.0.0",
-      "target_rel": "skills/adk-structured-requirements-questioning",
+      "vendor_rel": "vendor/skills/adk-embedded-remote-debug-log-triage/1.0.0",
+      "target_rel": "skills/adk-embedded-remote-debug-log-triage",
       "profiles": [
+        "solo-dev",
         "team-collab"
       ],
       "tags": [
         "agent-dev-kit",
         "adk",
+        "embedded",
         "p0"
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
-      "source_path": "skills/adk-structured-requirements-questioning/SKILL.md",
-      "imported_at": "2026-05-23",
+      "source_path": "skills/adk-embedded-remote-debug-log-triage/SKILL.md",
+      "imported_at": "2026-07-05",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-engineering-growth-review",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-engineering-growth-review/1.0.0",
+      "target_rel": "skills/adk-engineering-growth-review",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "growth",
+        "summary",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-engineering-growth-review/SKILL.md",
+      "imported_at": "2026-05-31",
       "review_status": "accepted"
     },
     {
@@ -325,6 +351,30 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-lightweight-planning",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-lightweight-planning/1.0.0",
+      "target_rel": "skills/adk-lightweight-planning",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "planning",
+        "p1"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-lightweight-planning/SKILL.md",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-memory-curator",
       "enabled": true,
       "source_kind": "vendor",
@@ -349,6 +399,30 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-offline-core-dump-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-offline-core-dump-triage/1.0.0",
+      "target_rel": "skills/adk-offline-core-dump-triage",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "embedded",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-offline-core-dump-triage/SKILL.md",
+      "imported_at": "2026-07-05",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-parallel-agent-governance",
       "enabled": true,
       "source_kind": "vendor",
@@ -368,30 +442,6 @@
       "source_ref": "2.9.0",
       "source_path": "skills/adk-parallel-agent-governance/SKILL.md",
       "imported_at": "2026-05-23",
-      "review_status": "accepted"
-    },
-    {
-      "name": "adk-lightweight-planning",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-lightweight-planning/1.0.0",
-      "target_rel": "skills/adk-lightweight-planning",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "agent-dev-kit",
-        "adk",
-        "planning",
-        "p1"
-      ],
-      "owner": "agent-dev-kit",
-      "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "2.9.0",
-      "source_path": "skills/adk-lightweight-planning/SKILL.md",
-      "imported_at": "2026-05-31",
       "review_status": "accepted"
     },
     {
@@ -569,6 +619,28 @@
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
       "source_path": "skills/adk-static-analysis-c-cpp/SKILL.md",
+      "imported_at": "2026-05-23",
+      "review_status": "accepted"
+    },
+    {
+      "name": "adk-structured-requirements-questioning",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-structured-requirements-questioning/1.0.0",
+      "target_rel": "skills/adk-structured-requirements-questioning",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "p0"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-structured-requirements-questioning/SKILL.md",
       "imported_at": "2026-05-23",
       "review_status": "accepted"
     },
@@ -805,31 +877,6 @@
       "review_status": "accepted"
     },
     {
-      "name": "codex-usage-telemetry",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/codex-usage-telemetry/0.1.0",
-      "target_rel": "skills/codex-usage-telemetry",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "local",
-        "codex",
-        "usage",
-        "telemetry",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/codex-usage-telemetry/0.1.0",
-      "imported_at": "2026-05-31",
-      "review_status": "accepted"
-    },
-    {
       "name": "cli-creator",
       "enabled": true,
       "source_kind": "vendor",
@@ -868,6 +915,31 @@
       ]
     },
     {
+      "name": "codex-usage-telemetry",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/codex-usage-telemetry/0.1.0",
+      "target_rel": "skills/codex-usage-telemetry",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "codex",
+        "usage",
+        "telemetry",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/codex-usage-telemetry/0.1.0",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
+    },
+    {
       "name": "commit-daily-summary",
       "enabled": true,
       "source_kind": "vendor",
@@ -883,37 +955,27 @@
       ]
     },
     {
-      "name": "external-practice-absorption",
+      "name": "dispatching-parallel-agents",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/external-practice-absorption/0.1.0",
-      "target_rel": "skills/external-practice-absorption",
+      "version": "1.1.9",
+      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
+      "target_rel": "skills/dispatching-parallel-agents",
       "profiles": [
-        "solo-dev",
-        "team-collab"
+        "superpowers-compat"
       ],
       "tags": [
-        "local",
-        "research",
-        "archive",
-        "workflow",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/external-practice-absorption/0.1.0",
-      "imported_at": "2026-05-31",
-      "review_status": "accepted"
+        "superpowers",
+        "fallback"
+      ]
     },
     {
-      "name": "embedded-log-triage",
+      "name": "embedded-app-doc-handoff",
       "enabled": true,
       "source_kind": "vendor",
       "version": "0.1.0",
-      "vendor_rel": "vendor/skills/embedded-log-triage/0.1.0",
-      "target_rel": "skills/embedded-log-triage",
+      "vendor_rel": "vendor/skills/embedded-app-doc-handoff/0.1.0",
+      "target_rel": "skills/embedded-app-doc-handoff",
       "profiles": [
         "solo-dev",
         "team-collab"
@@ -921,15 +983,16 @@
       "tags": [
         "local",
         "embedded",
-        "logs",
-        "debug",
+        "docs",
+        "handoff",
+        "skills",
         "chronicle-derived"
       ],
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-log-triage/0.1.0",
-      "imported_at": "2026-06-15",
+      "source_path": "src/codex-home/vendor/skills/embedded-app-doc-handoff/0.1.0",
+      "imported_at": "2026-06-28",
       "review_status": "accepted"
     },
     {
@@ -959,12 +1022,12 @@
       "review_status": "accepted"
     },
     {
-      "name": "embedded-app-doc-handoff",
+      "name": "embedded-log-triage",
       "enabled": true,
       "source_kind": "vendor",
       "version": "0.1.0",
-      "vendor_rel": "vendor/skills/embedded-app-doc-handoff/0.1.0",
-      "target_rel": "skills/embedded-app-doc-handoff",
+      "vendor_rel": "vendor/skills/embedded-log-triage/0.1.0",
+      "target_rel": "skills/embedded-log-triage",
       "profiles": [
         "solo-dev",
         "team-collab"
@@ -972,84 +1035,16 @@
       "tags": [
         "local",
         "embedded",
-        "docs",
-        "handoff",
-        "skills",
+        "logs",
+        "debug",
         "chronicle-derived"
       ],
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-app-doc-handoff/0.1.0",
-      "imported_at": "2026-06-28",
+      "source_path": "src/codex-home/vendor/skills/embedded-log-triage/0.1.0",
+      "imported_at": "2026-06-15",
       "review_status": "accepted"
-    },
-    {
-      "name": "mcu-firmware-release-closure",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/mcu-firmware-release-closure/0.1.0",
-      "target_rel": "skills/mcu-firmware-release-closure",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "local",
-        "embedded",
-        "mcu",
-        "release",
-        "nas",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/mcu-firmware-release-closure/0.1.0",
-      "imported_at": "2026-06-28",
-      "review_status": "accepted"
-    },
-    {
-      "name": "sigmastar-release-app-flow",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/sigmastar-release-app-flow/0.1.0",
-      "target_rel": "skills/sigmastar-release-app-flow",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "local",
-        "embedded",
-        "sigmastar",
-        "release",
-        "ota",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/sigmastar-release-app-flow/0.1.0",
-      "imported_at": "2026-06-28",
-      "review_status": "accepted"
-    },
-    {
-      "name": "dispatching-parallel-agents",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.1.9",
-      "vendor_rel": "vendor/plugins/superpowers/1.1.9/skills/dispatching-parallel-agents",
-      "target_rel": "skills/dispatching-parallel-agents",
-      "profiles": [
-        "superpowers-compat"
-      ],
-      "tags": [
-        "superpowers",
-        "fallback"
-      ]
     },
     {
       "name": "executing-plans",
@@ -1065,6 +1060,31 @@
         "superpowers",
         "fallback"
       ]
+    },
+    {
+      "name": "external-practice-absorption",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/external-practice-absorption/0.1.0",
+      "target_rel": "skills/external-practice-absorption",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "research",
+        "archive",
+        "workflow",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/external-practice-absorption/0.1.0",
+      "imported_at": "2026-05-31",
+      "review_status": "accepted"
     },
     {
       "name": "finishing-a-development-branch",
@@ -1102,6 +1122,32 @@
       "source_ref": "f458cee31a7577a47ba0c9a101976fa599385174",
       "source_path": "skills/mcp-builder",
       "imported_at": "2026-05-09",
+      "review_status": "accepted"
+    },
+    {
+      "name": "mcu-firmware-release-closure",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/mcu-firmware-release-closure/0.1.0",
+      "target_rel": "skills/mcu-firmware-release-closure",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "mcu",
+        "release",
+        "nas",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/mcu-firmware-release-closure/0.1.0",
+      "imported_at": "2026-06-28",
       "review_status": "accepted"
     },
     {
@@ -1153,6 +1199,21 @@
       "review_status": "accepted"
     },
     {
+      "name": "project-daily-summary",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "3.1.0",
+      "vendor_rel": "vendor/skills/project-daily-summary/3.1.0",
+      "target_rel": "skills/project-daily-summary",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "summary"
+      ]
+    },
+    {
       "name": "protocol-implementation-audit",
       "enabled": true,
       "source_kind": "vendor",
@@ -1176,21 +1237,6 @@
       "source_path": "src/codex-home/vendor/skills/protocol-implementation-audit/0.1.0",
       "imported_at": "2026-06-15",
       "review_status": "accepted"
-    },
-    {
-      "name": "project-daily-summary",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "3.1.0",
-      "vendor_rel": "vendor/skills/project-daily-summary/3.1.0",
-      "target_rel": "skills/project-daily-summary",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "summary"
-      ]
     },
     {
       "name": "receiving-code-review",
@@ -1251,6 +1297,32 @@
       "tags": [
         "summary"
       ]
+    },
+    {
+      "name": "sigmastar-release-app-flow",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/sigmastar-release-app-flow/0.1.0",
+      "target_rel": "skills/sigmastar-release-app-flow",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "sigmastar",
+        "release",
+        "ota",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/sigmastar-release-app-flow/0.1.0",
+      "imported_at": "2026-06-28",
+      "review_status": "accepted"
     },
     {
       "name": "skill-asset-manager",

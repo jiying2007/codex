@@ -2,7 +2,7 @@
 name: embedded-core-dump-triage
 description: Use when the user asks Codex to analyze embedded Linux core dumps, SIGSEGV crashes, BuildID or symbol matching, cross-GDB output, corrupted backtraces, shared-library offsets, or PCR02/SigmaStar `prog_pcr02` crash artifacts.
 version: 0.1.0
-last_updated: 2026-06-28
+last_updated: 2026-07-02
 origin: local-chronicle-derived
 lifecycle: iterative-local
 ---
@@ -39,6 +39,8 @@ Accept any combination of:
    - record when symbols are missing, old, or mismatched, and downgrade line-level claims accordingly.
 3. Check debugger trust:
    - verify the selected cross-GDB starts and can read the core;
+   - for PCR02/SigmaStar SSC305 glibc ARM Linux core dumps, prefer `/tools/toolchain/gcc-11.1.0-20210608-sigmastar-glibc-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gdb` before generic host GDBs or old `/opt` toolchains;
+   - reject or downgrade `/usr/bin/gdb`, `arm-none-eabi-gdb`, and stale `arm-linux-gnueabihf-gdb` builds when they cannot read ARM register notes, need missing runtime libraries, or show ABI/DWARF incompatibility;
    - treat startup dependency failures, unreadable register notes, and "core file may not match" warnings as blockers or confidence reducers.
 4. Build a crash chain:
    - extract signal, crashing thread/LWP, PC, LR/backtrace, mapped library, offset, and nearby function or source line when reliable;

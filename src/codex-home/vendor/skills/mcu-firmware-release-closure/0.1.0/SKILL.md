@@ -65,7 +65,7 @@ Return:
 ## Guardrails
 
 - Do not stop at local build when the user asked for "完整发布".
-- Do not call a dry-run or missing OpenOCD warning a hardware validation pass.
+- Do not call a dry-run or missing debug transport warning a hardware validation pass.
 - Do not mix unrelated debug cleanup into a release commit.
 - Do not change IAP layout or partition metadata unless that is the explicit task.
 - Do not force push, rewrite tags, or publish destructive artifacts without explicit approval.

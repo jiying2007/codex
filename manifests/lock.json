@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 725,
+  "managed_count": 749,
   "items": [
     {
       "kind": "skill",
@@ -61,10 +61,10 @@
     },
     {
       "kind": "skill",
-      "name": "adk-engineering-growth-review",
+      "name": "adk-embedded-debug-transport",
       "version": "1.0.0",
-      "source": "vendor/skills/adk-engineering-growth-review/1.0.0",
-      "sha256": "76202456c0b0f530edcaf942c4f10e6773f6d702ebd5bdb11397b7fa2f0c4e11"
+      "source": "vendor/skills/adk-embedded-debug-transport/1.0.0",
+      "sha256": "657343d70f6def57976037c83626054afcc8db740bf9dafeb14c48cd2f9260bd"
     },
     {
       "kind": "skill",
@@ -82,10 +82,17 @@
     },
     {
       "kind": "skill",
-      "name": "adk-structured-requirements-questioning",
+      "name": "adk-embedded-remote-debug-log-triage",
       "version": "1.0.0",
-      "source": "vendor/skills/adk-structured-requirements-questioning/1.0.0",
-      "sha256": "ebfd91f38e59e5ffdd4bcf6040b538e51028f945dc93e739c320e2240270b0ae"
+      "source": "vendor/skills/adk-embedded-remote-debug-log-triage/1.0.0",
+      "sha256": "05d4d62b6045d9f438bafc9e9c77715633950c764b0f1660f214fd7e806e306a"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-engineering-growth-review",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-engineering-growth-review/1.0.0",
+      "sha256": "76202456c0b0f530edcaf942c4f10e6773f6d702ebd5bdb11397b7fa2f0c4e11"
     },
     {
       "kind": "skill",
@@ -103,6 +110,13 @@
     },
     {
       "kind": "skill",
+      "name": "adk-lightweight-planning",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-lightweight-planning/1.0.0",
+      "sha256": "b9d92ade678ebc49c4ff7041c486f7544cef0f94e3f422f7a6b48600985475da"
+    },
+    {
+      "kind": "skill",
       "name": "adk-memory-curator",
       "version": "1.0.0",
       "source": "vendor/skills/adk-memory-curator/1.0.0",
@@ -110,17 +124,17 @@
     },
     {
       "kind": "skill",
+      "name": "adk-offline-core-dump-triage",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-offline-core-dump-triage/1.0.0",
+      "sha256": "4d8be984684266db0814651a4aade86a0378d23830253099bb5ec7bb67d95d06"
+    },
+    {
+      "kind": "skill",
       "name": "adk-parallel-agent-governance",
       "version": "1.0.0",
       "source": "vendor/skills/adk-parallel-agent-governance/1.0.0",
       "sha256": "d3788675a3819e20513f906b8e214795474efd0040500da9c4c197b87aa052ca"
-    },
-    {
-      "kind": "skill",
-      "name": "adk-lightweight-planning",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-lightweight-planning/1.0.0",
-      "sha256": "b9d92ade678ebc49c4ff7041c486f7544cef0f94e3f422f7a6b48600985475da"
     },
     {
       "kind": "skill",
@@ -180,10 +194,17 @@
     },
     {
       "kind": "skill",
+      "name": "adk-structured-requirements-questioning",
+      "version": "1.0.0",
+      "source": "vendor/skills/adk-structured-requirements-questioning/1.0.0",
+      "sha256": "ebfd91f38e59e5ffdd4bcf6040b538e51028f945dc93e739c320e2240270b0ae"
+    },
+    {
+      "kind": "skill",
       "name": "adk-systematic-debugging",
       "version": "1.1.0",
       "source": "vendor/skills/adk-systematic-debugging/1.1.0",
-      "sha256": "2c031683135b4ef7401f9ab269133f36edd894779cb42b663778d04f81cfc5e2"
+      "sha256": "c0acfb33bda439d5a246ebf7abd60c9aeb3ac6df8e8043372f88263e8e7f6c9d"
     },
     {
       "kind": "skill",
@@ -250,13 +271,6 @@
     },
     {
       "kind": "skill",
-      "name": "codex-usage-telemetry",
-      "version": "0.1.0",
-      "source": "vendor/skills/codex-usage-telemetry/0.1.0",
-      "sha256": "6998e2bf80269aac99f6b2cbc70121800450aa7d0b1d7c1a55ace8c4a99f2b60"
-    },
-    {
-      "kind": "skill",
       "name": "cli-creator",
       "version": "0.1.0",
       "source": "vendor/skills/cli-creator/0.1.0",
@@ -271,31 +285,17 @@
     },
     {
       "kind": "skill",
+      "name": "codex-usage-telemetry",
+      "version": "0.1.0",
+      "source": "vendor/skills/codex-usage-telemetry/0.1.0",
+      "sha256": "6998e2bf80269aac99f6b2cbc70121800450aa7d0b1d7c1a55ace8c4a99f2b60"
+    },
+    {
+      "kind": "skill",
       "name": "commit-daily-summary",
       "version": "3.1.0",
       "source": "vendor/skills/commit-daily-summary/3.1.0",
       "sha256": "2f9aa442d4959c44aba5787884712c6356e6a29c6397ed6c1c735f6ed26127c4"
-    },
-    {
-      "kind": "skill",
-      "name": "external-practice-absorption",
-      "version": "0.1.0",
-      "source": "vendor/skills/external-practice-absorption/0.1.0",
-      "sha256": "dbec8e3e6481a0196e283de8e7fb2e6a8ca5e933b9ea26e2bdbc7690a98ce55a"
-    },
-    {
-      "kind": "skill",
-      "name": "embedded-log-triage",
-      "version": "0.1.0",
-      "source": "vendor/skills/embedded-log-triage/0.1.0",
-      "sha256": "1a40a9354e3ee79f3326a3c9bcb87ce5ef26ca2ff296b24381d6f72c7d15ddd6"
-    },
-    {
-      "kind": "skill",
-      "name": "embedded-core-dump-triage",
-      "version": "0.1.0",
-      "source": "vendor/skills/embedded-core-dump-triage/0.1.0",
-      "sha256": "f7752f83410aaa5d3001d68462542204784f3159f8e6b9e5f448178ae3eaa30b"
     },
     {
       "kind": "skill",
@@ -306,17 +306,24 @@
     },
     {
       "kind": "skill",
-      "name": "mcu-firmware-release-closure",
+      "name": "embedded-core-dump-triage",
       "version": "0.1.0",
-      "source": "vendor/skills/mcu-firmware-release-closure/0.1.0",
-      "sha256": "40b08199ffb846eb44480473b3adf5854b64b25eea512d9e88de230e7c466ee3"
+      "source": "vendor/skills/embedded-core-dump-triage/0.1.0",
+      "sha256": "06ebdfd4983f277619be31bdeac729373651bbbc0b092fb6cb873a720f2b54b8"
     },
     {
       "kind": "skill",
-      "name": "sigmastar-release-app-flow",
+      "name": "embedded-log-triage",
       "version": "0.1.0",
-      "source": "vendor/skills/sigmastar-release-app-flow/0.1.0",
-      "sha256": "b97bc6616b03a5214ee0572bb1a7b876a85222748d3cf9cb4fc3acd7bccdd298"
+      "source": "vendor/skills/embedded-log-triage/0.1.0",
+      "sha256": "1a40a9354e3ee79f3326a3c9bcb87ce5ef26ca2ff296b24381d6f72c7d15ddd6"
+    },
+    {
+      "kind": "skill",
+      "name": "external-practice-absorption",
+      "version": "0.1.0",
+      "source": "vendor/skills/external-practice-absorption/0.1.0",
+      "sha256": "dbec8e3e6481a0196e283de8e7fb2e6a8ca5e933b9ea26e2bdbc7690a98ce55a"
     },
     {
       "kind": "skill",
@@ -324,6 +331,13 @@
       "version": "0.1.0",
       "source": "vendor/skills/mcp-builder/0.1.0",
       "sha256": "4254ed52302c8f9ee258f1af7f1770a7155faaa65d8e47007d9c997c39cbff8f"
+    },
+    {
+      "kind": "skill",
+      "name": "mcu-firmware-release-closure",
+      "version": "0.1.0",
+      "source": "vendor/skills/mcu-firmware-release-closure/0.1.0",
+      "sha256": "44ec641f852ede1a506620c30f6a951340f8aabe2ef9aa31cbd8dbf17944d0e4"
     },
     {
       "kind": "skill",
@@ -341,17 +355,17 @@
     },
     {
       "kind": "skill",
-      "name": "protocol-implementation-audit",
-      "version": "0.1.0",
-      "source": "vendor/skills/protocol-implementation-audit/0.1.0",
-      "sha256": "8aedff7d02ec3509261b17f238dee31b5ccd2e25a34a66f9cfa17e177bc34fd8"
-    },
-    {
-      "kind": "skill",
       "name": "project-daily-summary",
       "version": "3.1.0",
       "source": "vendor/skills/project-daily-summary/3.1.0",
       "sha256": "7fc33a359aca7c11d261afe5bf67265dc16997ff7ad55d70b04b70144f63135d"
+    },
+    {
+      "kind": "skill",
+      "name": "protocol-implementation-audit",
+      "version": "0.1.0",
+      "source": "vendor/skills/protocol-implementation-audit/0.1.0",
+      "sha256": "8aedff7d02ec3509261b17f238dee31b5ccd2e25a34a66f9cfa17e177bc34fd8"
     },
     {
       "kind": "skill",
@@ -366,6 +380,13 @@
       "version": "3.1.0",
       "source": "vendor/skills/session-wrap/3.1.0",
       "sha256": "0ea9dc069f125fbf3b12887d7a9cc5e5bc77bb4ac4c6c805e28a55c943f503a4"
+    },
+    {
+      "kind": "skill",
+      "name": "sigmastar-release-app-flow",
+      "version": "0.1.0",
+      "source": "vendor/skills/sigmastar-release-app-flow/0.1.0",
+      "sha256": "b97bc6616b03a5214ee0572bb1a7b876a85222748d3cf9cb4fc3acd7bccdd298"
     },
     {
       "kind": "skill",
