@@ -66,6 +66,94 @@
       "secret_scan_required": true,
       "promotion_gate": "Promote only after at least two Knowledge Hub automation dry runs prove report-only boundaries prevent unwanted writes.",
       "summary": "Knowledge Hub automations must default to disabled/report-only and cannot promote, delete, publish, commit or write memories without explicit approval."
+    },
+    {
+      "name": "codex-202607-usage-records-archive-route",
+      "enabled": false,
+      "status": "candidate",
+      "source": "knowledge-hub/domains/codex/archive/codex-archive/memory-curation/20260707-codex-usage-records-memory-curation.md",
+      "proposed_action": "promote-to-archive",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Confirm the archive route and secret scan before promoting; do not write raw sessions or credentials into ~/.codex/memories.",
+      "summary": "For 2026-07 Codex usage records, route reusable conclusions first to Knowledge Hub memory-curation or project archives, and keep direct memory writes disabled until manual review."
+    },
+    {
+      "name": "esp32-86-odm-project-risk-scope",
+      "enabled": false,
+      "status": "candidate",
+      "source": "knowledge-hub/domains/codex/archive/codex-archive/memory-curation/20260707-codex-usage-records-memory-curation.md",
+      "proposed_action": "promote-to-archive",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after a project decision or requirements note confirms VS/INNO responsibility boundaries and customer-facing risk assumptions.",
+      "summary": "Recall the 86-box ODM assessment around VS/INNO responsibility boundaries, ESP32-S3, offline wake, BLE Mesh, IR, NFC, OTA, and customer risk scope."
+    },
+    {
+      "name": "pcr02-sensor-stream-control-boundary",
+      "enabled": false,
+      "status": "candidate",
+      "source": "knowledge-hub/domains/codex/archive/codex-archive/memory-curation/20260707-codex-usage-records-memory-curation.md",
+      "proposed_action": "promote-to-archive",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after the PCR02 implementation or project documentation confirms the camera power and stream publish control split.",
+      "summary": "For PCR02 sensor stream work, treat camera power and stream publish as separate control surfaces; the sensor remains passive while upper-layer tasks own business policy."
+    },
+    {
+      "name": "pcr02-ai-detection-rgn-coordinate-triage",
+      "enabled": false,
+      "status": "candidate",
+      "source": "knowledge-hub/domains/codex/archive/codex-archive/memory-curation/20260707-codex-usage-records-memory-curation.md",
+      "proposed_action": "promote-to-archive",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after a PCR02 debug note or code fix verifies the coordinate and RGN rendering assumptions.",
+      "summary": "When PCR02 AI detection boxes render incorrectly, first check DetMessage/TOPIC_VISION_DETECT, the 640x384 coordinate basis, DS2 padding, HDI RGN canvas size, and timestamp/watermark rendering."
+    },
+    {
+      "name": "adk-openai-practice-execution-layer-gate",
+      "enabled": false,
+      "status": "candidate",
+      "source": "knowledge-hub/domains/codex/archive/codex-archive/memory-curation/20260707-codex-usage-records-memory-curation.md",
+      "proposed_action": "promote-to-agents",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after the corresponding ADK workflow, skill, agent, or check changes include replayable evidence, done-when criteria, negative-result capture, and source-to-live validation.",
+      "summary": "External OpenAI/Codex practice absorption should land in executable ADK workflow/skill/agent/check behavior, not only prose docs; preserve replayable evidence, done-when gates, negative results, source-to-live checks, and subagent noise budgets."
+    },
+    {
+      "name": "mcu-charge-thermal-log-field-triage",
+      "enabled": false,
+      "status": "candidate",
+      "source": "knowledge-hub/domains/codex/archive/codex-archive/memory-curation/20260707-codex-usage-records-memory-curation.md",
+      "proposed_action": "promote-to-archive",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after a second reproduction or project log confirms the field transitions and the thermal root-cause interpretation.",
+      "summary": "For MCU charging thermal triage, inspect CHG_SNAP, flag, pa7, pb10, temp_en, T, v, p, w, and c state transitions before drawing a final conclusion."
+    },
+    {
+      "name": "codex-official-docs-adoption-review-loop",
+      "enabled": false,
+      "status": "candidate",
+      "source": "knowledge-hub/domains/codex/archive/codex-archive/memory-curation/20260707-codex-usage-records-memory-curation.md",
+      "proposed_action": "promote-to-agents",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after official docs freshness gates, adoption matrix state, target evidence checks, and review queue behavior are all covered by manifest or script validation.",
+      "summary": "Official OpenAI/Codex source freshness should drive an adoption review loop: source expiration marks adoption needs-review, target evidence is checked, and unresolved items enter a review queue."
+    },
+    {
+      "name": "pcr02-ai-shm-audio-video-cutover-boundary",
+      "enabled": false,
+      "status": "candidate",
+      "source": "knowledge-hub/domains/codex/archive/codex-archive/memory-curation/20260707-codex-usage-records-memory-curation.md",
+      "proposed_action": "promote-to-archive",
+      "review_required": true,
+      "secret_scan_required": true,
+      "promotion_gate": "Promote only after a PCR02 code audit confirms modules/ai audio and video no longer retain direct VSAPIPLAYER-style playback paths outside the shared-memory boundary.",
+      "summary": "For PCR02 modules/ai shared-memory cutover, audit audio and video call paths for residual direct player/API usage, especially ai_audio_player and legacy VSAPIPLAYER-style implementations."
     }
   ]
 }
