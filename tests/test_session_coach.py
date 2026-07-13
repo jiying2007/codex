@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+import subprocess
 import tempfile
 import unittest
 
@@ -20,6 +21,24 @@ from tools.codex_assets.session_coach_evidence import record_evidence
 
 
 class SessionCoachTest(unittest.TestCase):
+    def test_shell_entry_anchors_module_resolution_to_repo_root(self) -> None:
+        repo_root = pathlib.Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as tmp:
+            collision = pathlib.Path(tmp) / "tools/codex_assets"
+            collision.mkdir(parents=True)
+            (collision.parent / "__init__.py").write_text("", encoding="utf-8")
+            (collision / "__init__.py").write_text("", encoding="utf-8")
+            completed = subprocess.run(
+                ["rtk", "bash", str(repo_root / "scripts/session-coach.sh"), "--help"],
+                cwd=tmp,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        self.assertIn("usage: codex-assets session-coach", completed.stdout)
+
     def test_parse_and_group_paths(self) -> None:
         changes = parse_porcelain(
             " M AGENTS.md\n"
