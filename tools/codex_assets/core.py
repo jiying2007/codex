@@ -446,7 +446,7 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
     policies = repo.policies
     source = pathlib.Path(source_arg).expanduser().resolve() if source_arg else repo.source
     build = pathlib.Path(build_arg).expanduser().resolve() if build_arg else repo.build
-    profile = profile_arg or assets.get("default_profile") or "team-collab"
+    profile = profile_arg or assets.get("default_profile") or "token-lean"
     profiles = {item["name"] for item in repo.manifest("profiles.json").get("profiles", [])}
     if profile not in profiles:
         fail(f"profile 未定义: {profile}")

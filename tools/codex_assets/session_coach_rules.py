@@ -86,7 +86,7 @@ def agent_notices(groups: dict[str, list[str]]) -> list[Notice]:
             "HIGH", "AGENTS_SYNC", "asset-update", 88,
             "只检测到一侧 AGENTS 变更，可能导致仓库规则与注入规则漂移。",
             "同步 `AGENTS.md` 与 `src/codex-home/AGENTS.md`，再 build/apply。",
-            ["rtk bash scripts/build.sh --profile team-collab", "rtk bash scripts/apply.sh --profile team-collab"],
+            ["rtk bash scripts/build.sh", "rtk bash scripts/apply.sh"],
             stable_key="AGENTS_SYNC",
             paths=groups["agents"],
         )]
@@ -95,7 +95,7 @@ def agent_notices(groups: dict[str, list[str]]) -> list[Notice]:
             "MEDIUM", "AGENTS_CHANGED", "asset-update", 66,
             "AGENTS 规则已变更，需要进入 Codex 资产闭环。",
             "运行 build/apply/check，确保常驻规则同步到 `~/.codex`。",
-            ["rtk bash scripts/build.sh --profile team-collab", "rtk bash scripts/check.sh"],
+            ["rtk bash scripts/build.sh", "rtk bash scripts/check.sh"],
             stable_key="AGENTS_CHANGED",
             paths=groups["agents"],
         )]
@@ -164,7 +164,7 @@ def delivery_notices(groups: dict[str, list[str]], phase: str) -> list[Notice]:
             "HIGH", "DELIVERY_LOOP", phase, 76,
             f"检测到 {len(groups['delivery'])} 个声明式交付文件变更。",
             "提交前完成 build -> doctor -> plan/dry-run -> apply -> diff/drift -> check。",
-            ["rtk bash scripts/build.sh --profile team-collab", "rtk bash scripts/check.sh"],
+            ["rtk bash scripts/build.sh", "rtk bash scripts/check.sh"],
             stable_key="DELIVERY_LOOP",
             count=len(groups["delivery"]), examples=groups["delivery"][:8],
         ))
@@ -228,7 +228,7 @@ def live_drift_notices(changed: int, stale: int, unmanaged: int) -> list[Notice]
         "HIGH", "LIVE_DRIFT", "apply", 86,
         f"运行态存在漂移：changed={changed} stale={stale} unmanaged={unmanaged}。",
         "先判断是本机私有改动还是源资产遗漏；需要收敛时重新 apply，旧版本残留应删除。",
-        ["rtk bash scripts/drift.sh --target ~/.codex", "rtk bash scripts/apply.sh --profile team-collab"],
+        ["rtk bash scripts/drift.sh --target ~/.codex", "rtk bash scripts/apply.sh"],
         stable_key="LIVE_DRIFT",
         changed=changed, stale=stale, unmanaged=unmanaged,
     )]
@@ -241,7 +241,7 @@ def build_live_notices(same: int, diff: int, missing: int) -> list[Notice]:
         "HIGH", "BUILD_LIVE_DIFF", "apply", 85,
         f"build 与 live 不一致：same={same} diff={diff} missing={missing}。",
         "重新 apply 后复查 diff/drift。",
-        ["rtk bash scripts/apply.sh --profile team-collab", "rtk bash scripts/diff.sh --target ~/.codex"],
+        ["rtk bash scripts/apply.sh", "rtk bash scripts/diff.sh --target ~/.codex"],
         stable_key="BUILD_LIVE_DIFF",
         same=same, diff=diff, missing=missing,
     )]

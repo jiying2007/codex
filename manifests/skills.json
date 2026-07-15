@@ -77,7 +77,8 @@
       "vendor_rel": "vendor/skills/adk-branch-closeout/1.0.0",
       "target_rel": "skills/adk-branch-closeout",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -99,7 +100,8 @@
       "vendor_rel": "vendor/skills/adk-code-review-loop/1.0.0",
       "target_rel": "skills/adk-code-review-loop",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -121,7 +123,8 @@
       "vendor_rel": "vendor/skills/adk-commit-pr-quality-gate/1.0.0",
       "target_rel": "skills/adk-commit-pr-quality-gate",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -144,7 +147,8 @@
       "target_rel": "skills/adk-context-compress-handoff",
       "profiles": [
         "solo-dev",
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -334,7 +338,8 @@
       "target_rel": "skills/adk-knowledge-archive",
       "profiles": [
         "solo-dev",
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -383,7 +388,8 @@
       "target_rel": "skills/adk-memory-curator",
       "profiles": [
         "solo-dev",
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -430,7 +436,8 @@
       "vendor_rel": "vendor/skills/adk-parallel-agent-governance/1.0.0",
       "target_rel": "skills/adk-parallel-agent-governance",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -452,7 +459,8 @@
       "vendor_rel": "vendor/skills/adk-planning-execution-loop/1.0.0",
       "target_rel": "skills/adk-planning-execution-loop",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -520,7 +528,8 @@
       "vendor_rel": "vendor/skills/adk-requirements-triage/1.1.0",
       "target_rel": "skills/adk-requirements-triage",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -542,7 +551,8 @@
       "vendor_rel": "vendor/skills/adk-runtime-router/1.0.0",
       "target_rel": "skills/adk-runtime-router",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -652,7 +662,8 @@
       "vendor_rel": "vendor/skills/adk-systematic-debugging/1.1.0",
       "target_rel": "skills/adk-systematic-debugging",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -674,7 +685,8 @@
       "vendor_rel": "vendor/skills/adk-task-breakdown/1.1.0",
       "target_rel": "skills/adk-task-breakdown",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -696,7 +708,8 @@
       "vendor_rel": "vendor/skills/adk-test-strategy/1.0.0",
       "target_rel": "skills/adk-test-strategy",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -718,7 +731,8 @@
       "vendor_rel": "vendor/skills/adk-token-context-governance/1.1.0",
       "target_rel": "skills/adk-token-context-governance",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -762,7 +776,8 @@
       "vendor_rel": "vendor/skills/adk-verification-before-completion/1.0.0",
       "target_rel": "skills/adk-verification-before-completion",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -784,7 +799,8 @@
       "vendor_rel": "vendor/skills/adk-worktree-governance/1.0.0",
       "target_rel": "skills/adk-worktree-governance",
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
         "agent-dev-kit",
@@ -846,11 +862,19 @@
       "profiles": [
         "minimal",
         "solo-dev",
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
+        "local",
         "compression"
-      ]
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/caveman/1.0.0",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "chronicle-workflow-miner",
@@ -908,11 +932,19 @@
       "target_rel": "skills/codex-parallel-collab",
       "profiles": [
         "solo-dev",
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
+        "local",
         "parallel"
-      ]
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/codex-parallel-collab/3.1.0",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "codex-usage-telemetry",
@@ -1292,11 +1324,19 @@
       "target_rel": "skills/session-wrap",
       "profiles": [
         "solo-dev",
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
+        "local",
         "summary"
-      ]
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/session-wrap/3.1.0",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "sigmastar-release-app-flow",
@@ -1470,11 +1510,19 @@
       "target_rel": "skills/worktree-closeout",
       "profiles": [
         "solo-dev",
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "tags": [
+        "local",
         "summary"
-      ]
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/worktree-closeout/3.1.0",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "writing-plans",

@@ -150,7 +150,7 @@ rtk rg -n "<trigger or workflow>" ~/.codex/history.jsonl ~/.codex/memories ~/kno
 
 ```bash
 rtk bash scripts/check-skills.sh
-rtk bash scripts/build.sh --profile team-collab
+rtk bash scripts/build.sh
 rtk bash scripts/doctor.sh --scope all
 rtk bash scripts/plan.sh --target ~/.codex --prune-stale --output build/apply-plan.json
 rtk bash scripts/apply.sh --plan build/apply-plan.json --dry-run

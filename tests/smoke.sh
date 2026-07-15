@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BASE_TARGET="${1:-/tmp/codex-assets-smoke-home}"
-PROFILES=(minimal solo-dev team-collab superpowers-compat)
+PROFILES=(minimal solo-dev token-lean team-collab superpowers-compat)
 
 rtk bash "$ROOT/scripts/doctor.sh" --scope repo
 
@@ -34,6 +34,11 @@ for profile in "${PROFILES[@]}"; do
     solo-dev|team-collab)
       test -L "$TARGET/skills/skill-asset-manager"
       ;;
+    token-lean)
+      test -L "$TARGET/skills/adk-runtime-router"
+      test ! -e "$TARGET/skills/skill-asset-manager"
+      test "$(find "$TARGET/skills" -mindepth 1 -maxdepth 1 -type l | wc -l)" -eq 20
+      ;;
     superpowers-compat)
       test -L "$TARGET/skills/writing-plans"
       test ! -e "$TARGET/skills/adk-requirements-triage"
@@ -41,7 +46,8 @@ for profile in "${PROFILES[@]}"; do
   esac
 done
 
-rtk bash "$ROOT/scripts/build.sh" --profile team-collab
+rtk bash "$ROOT/scripts/build.sh"
 test -f "$ROOT/manifests/lock.json"
+grep -q '^PROFILE=token-lean$' "$ROOT/build/codex-home/control/state/active-profile.env"
 
 echo "[DONE] smoke profiles=${PROFILES[*]} base=$BASE_TARGET"

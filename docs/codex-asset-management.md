@@ -3,12 +3,12 @@
 ## 日常维护
 
 1. 修改 `src/codex-home/` 中的人工资产，或修改 `manifests/*.json`。
-2. 运行 `rtk bash scripts/build.sh --profile team-collab`。
+2. 运行 `rtk bash scripts/build.sh`，使用默认 `token-lean` profile。
 3. 运行 `rtk bash scripts/doctor.sh --scope all`。
 4. 若修改了 workflow、project template 或 overlay，运行 `rtk bash scripts/doctor.sh --scope governance`。
 5. 运行 `rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json` 生成审计计划。
 6. 运行 `rtk bash scripts/apply.sh --dry-run --no-build` 预览。
-7. 确认后运行 `rtk bash scripts/apply.sh --profile team-collab`。
+7. 确认后运行 `rtk bash scripts/apply.sh`。
 8. 发布前运行 `rtk bash scripts/check.sh`。
 
 默认 apply 只自动覆盖“上次由本仓库注入且 live 端未被本机改过”的文件；像 `config.toml` 这类已发生本机漂移的文件会被保留，并继续由 `drift.sh` 报告。需要强制覆盖时显式加 `--overwrite`。
@@ -42,7 +42,7 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 
 本仓库把长期维护对象拆成六层：
 
-- `profiles`：运行能力边界，例如 `minimal`、`solo-dev`、`team-collab`。
+- `profiles`：运行能力边界；默认 `token-lean`，显式完整兼容为 `team-collab`。
 - `skills`：可复用操作能力，存放版本、来源、目标路径和启用 profile。
 - `agents`：可用子代理或本地 agent 配置，按 profile 激活。
 - `workflows`：把触发词、skill、agent、命令和验证命令串成可复用流程。
@@ -82,6 +82,18 @@ rtk bash scripts/governance-report.sh --json
 - project template 只能引用已登记 workflow，并明确默认 profile。
 - overlay 的 `allowed_live_drift_paths` 不能覆盖 protected path，例如认证、session、日志、缓存、密钥和系统 skill。
 - 团队共享或发布前优先使用 `team-shared` / `release-sanitized` 视角审查，个人本机状态只保留在 live 目录或 `personal-local` overlay。
+
+### 固定上下文预算与延迟 skill catalog
+
+`manifests/profiles.json:context_budget` 是固定上下文预算 SSOT。默认门禁限制根/source AGENTS 各不超过 10,000 bytes、`token-lean` 最多 20 个常驻 skill、catalog 摘要不超过 6,000 bytes；单次查询最多返回 20 项，默认 5 项，`--summary-json` 不超过 4,096 bytes。
+
+长尾 skill 不删除，实体仍由 `manifests/skills.json` 和 vendor 目录治理。运行时先查摘要：
+
+```bash
+rtk bash scripts/skill-search.sh --query "<任务>" --profile token-lean --limit 5 --summary-json
+```
+
+只有在 `why_selected` 足以区分相邻候选后才读取 `load_path`。默认排除 Superpowers；仅显式兼容时使用 `--include-fallback`。需要旧式完整 catalog 时可构建并 apply `team-collab`，但 catalog 只在新线程刷新。
 
 ## Codex 工作模型
 
@@ -366,7 +378,7 @@ rtk bash scripts/usage-tail.sh --interactive
 
 ## 多源搜索能力
 
-`multi-search-engine` 按 v2 skill 方式接入，只在 `team-collab` profile 激活。它用于需要外部证据的问题，例如当前信息、资料核验、标准/库/工具对比和多来源交叉验证。
+`multi-search-engine` 用于当前信息、资料核验、标准/库/工具对比和多来源交叉验证。它在默认 `token-lean` 下通过 `skill-search` 延迟发现，在 `team-collab` 下直接激活。
 
 约束：
 
@@ -377,7 +389,7 @@ rtk bash scripts/usage-tail.sh --interactive
 
 ## 浏览器读取能力
 
-`browser-reader` 与 `agent-browser` 用于普通 HTTP 抓取不可达、需要 JS 渲染或用户手动验证后的单页读取。默认只在 `team-collab` profile 激活。
+`browser-reader` 与 `agent-browser` 用于普通 HTTP 抓取不可达、需要 JS 渲染或用户手动验证后的单页读取。默认 `token-lean` 通过 `skill-search` 延迟发现，`team-collab` 直接激活。
 
 边界：
 
@@ -392,13 +404,13 @@ rtk bash scripts/usage-tail.sh --interactive
 默认注入不会覆盖已有普通文件：
 
 ```bash
-rtk bash scripts/apply.sh --profile team-collab
+rtk bash scripts/apply.sh
 ```
 
 需要覆盖时：
 
 ```bash
-rtk bash scripts/apply.sh --profile team-collab --overwrite
+rtk bash scripts/apply.sh --overwrite
 ```
 
 覆盖备份位于 `.backups/apply/<timestamp>/`。

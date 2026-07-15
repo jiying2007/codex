@@ -5,7 +5,8 @@
       "name": "adk-delivery-gate",
       "enabled": true,
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "triggers": [
         "优化 adk",
@@ -88,7 +89,8 @@
       "enabled": true,
       "profiles": [
         "solo-dev",
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "triggers": [
         "skill 同步",
@@ -118,18 +120,41 @@
         "自动化声明"
       ],
       "skills": [
-        "skill-asset-manager"
+        "skill-asset-manager",
+        "adk-skill-composition-governance"
       ],
       "agents": [
         "local-integrator"
       ],
       "commands": [
-        "rtk bash scripts/build.sh --profile team-collab",
+        "rtk bash scripts/build.sh",
         "rtk bash scripts/doctor.sh --scope all",
         "rtk bash scripts/apply.sh --dry-run --no-build"
       ],
       "verification": [
         "rtk bash scripts/check.sh"
+      ],
+      "routes": [
+        {
+          "name": "skill-asset-lifecycle",
+          "match_any": [
+            "skill 资产",
+            "技能资产",
+            "skill 版本",
+            "profile 调整",
+            "manifest skill"
+          ],
+          "exclude_any": [
+            "技能组合",
+            "触发冲突"
+          ],
+          "primary_skill": "skill-asset-manager",
+          "supporting_skills": [],
+          "fallback_skill": "adk-skill-composition-governance",
+          "mutually_exclusive_skills": [
+            "chronicle-workflow-miner"
+          ]
+        }
       ]
     },
     {
@@ -305,7 +330,8 @@
       "name": "implementation-quality",
       "enabled": true,
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "triggers": [
         "实现",
@@ -347,7 +373,8 @@
       "name": "parallel-collab",
       "enabled": true,
       "profiles": [
-        "team-collab"
+        "team-collab",
+        "token-lean"
       ],
       "triggers": [
         "并行施工",

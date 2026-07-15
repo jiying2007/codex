@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 
-rtk bash "$ROOT/scripts/build.sh" --profile team-collab
+rtk bash "$ROOT/scripts/build.sh"
 rtk bash "$ROOT/scripts/doctor.sh" --scope all
 rtk bash "$ROOT/scripts/doctor.sh" --scope governance
 rtk bash "$ROOT/scripts/check-mcp-deny-paths.sh"

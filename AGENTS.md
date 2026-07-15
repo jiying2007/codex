@@ -1,222 +1,104 @@
 # 全局 Agent 规则
 
-本文件约束本机 Codex 的默认工作方式。目标是低噪音、可验证、adk-first；Superpowers 仅作为显式兼容 fallback。
+本文件只保留 Codex 每轮必须立即遵守的路由与硬边界。详细操作模型、manifest 分工和 runbook 见 docs/codex-operating-model.md、docs/codex-asset-management.md 与 docs/context-layout.md。
 
-## 1. 优先级
+## 1. 优先级与默认模式
 
-1. 当前会话中用户的明确要求
-2. 当前仓库的 `AGENTS.md`、文档和约定
+1. 当前会话用户明确要求
+2. 当前仓库及更深层 AGENTS.md、README 和约定
 3. 本文件
-4. 已触发的 adk / skill / Superpowers 流程定义
+4. 已触发的 skill / workflow
 
-若规则冲突，遵循更高优先级；若安全、验证或权限边界不清楚，先收敛风险再执行。
+- 默认 adk-first；已有 adk-* 等价能力时优先使用。Superpowers 仅在用户点名、adk 无覆盖、迁移回归或平台缺能力时，用 superpowers-compat 显式启用。
+- 默认 profile 为 token-lean；保留 team-collab 作为完整 catalog 兼容 profile，不默认激活。
+- 能直接实现并定向验证的小任务，不升级重流程；中大型任务先明确目标、边界、风险和验证，长任务用 adk-planning-execution-loop。
+- 只读分析不进入实现流程；执行请求应持续到验收通过或出现真实阻塞。continue nonstop 不扩大权限边界。
 
-## 2. 默认工作模式
+## 2. 任务与 skill 路由
 
-- 默认使用 **adk-first** 工作流；已有 `adk-*` 等价能力时优先使用 adk。
-- Superpowers 只在以下情况使用：用户明确点名、adk 无等价能力、需要迁移期回归对照、或当前平台缺少 adk 所需能力；默认 profile 不激活 Superpowers，显式兼容使用 `superpowers-compat`。
-- 不默认启用 full Superpowers；小任务走轻量路径，中大型任务再升级流程。
-- 能直接完成并验证的，不升级为重流程；能用单一专项 skill 解决的，不扩展为多 skill 组合。
-- 只读分析任务可不进入实现流程，但结论必须清晰、可追溯。
-- 用户明确要求 `continue nonstop` 时，持续推进到验收达成或出现真实阻塞。
+- 需求收敛：adk-requirements-triage；拆解：adk-task-breakdown。
+- 根因未明、测试失败或异常行为：adk-systematic-debugging，先证据后修复。
+- 测试策略：adk-test-strategy；review：adk-code-review-loop；提交/PR：adk-commit-pr-quality-gate。
+- 完成前：adk-verification-before-completion；分支收尾：adk-branch-closeout。
+- 并行与 worktree：adk-parallel-agent-governance、adk-worktree-governance；仅明确多 Agent/CSV TODO 场景用 codex-parallel-collab。
+- 会话收尾优先 session-wrap；知识归档、memory、上下文接力分别路由到 adk-knowledge-archive、adk-memory-curator、adk-context-compress-handoff。
+- 单次已完成任务的复盘或 memory candidate 生成以 adk-after-action-review 为 primary；跨 memories/AGENTS/归档的整理、审计、提升以 adk-memory-curator 为 primary。
+- 嵌入式通用 core/log 取证优先 adk-offline-core-dump-triage 与 adk-embedded-remote-debug-log-triage；embedded-core-dump-triage 仅用于 PCR02/SigmaStar，embedded-log-triage 仅用于离线或粘贴日志文本。
 
-## 3. 任务分流
+每个场景只能有一个 primary skill；其他只能 supporting。常驻 catalog 未命中时先查受信 inventory：
 
-- 轻量任务：单文件或小范围修改、明确 bug 修复、配置 / 文案调整、小测试补充、局部文档修改。
-- 轻量任务默认直接实现并做定向验证；仅在关键不确定且无法从上下文或代码确认时提 1 个关键问题。
-- 中大型实现默认先明确目标、边界、风险、验证方式；长任务使用 `adk-planning-execution-loop` 分阶段推进。
-- Debug / 测试失败 / 异常行为优先使用 `adk-systematic-debugging`，先确认根因再修复。
-- Review / 提交 / PR 门禁优先使用 `adk-commit-pr-quality-gate`。
-- 完成前优先使用 `adk-verification-before-completion`。
+~~~bash
+rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --profile token-lean --limit 5 --summary-json
+~~~
 
-## 3.1 持久线程、强目标与产物
+根据 why_selected 排除相邻候选后，只读取选中项 load_path 的完整 SKILL.md；references、scripts、assets 继续按需读取。延迟加载不授予写入、网络、凭证或审批权限。只有显式兼容请求才加 --include-fallback。若必须切换 team-collab，apply 后从新线程生效，当前线程不假设 catalog 已刷新。
 
-- 一个线程默认服务一个长期职责；主题、目标或职责切换前优先 `context-preflight`，必要时收口后新开线程。
-- 强目标必须写清范围、非目标、成功标准、验证命令、可审查产物和阻塞条件；没有验证机制的目标只能作为探索任务。
-- 用户执行中补充指令时，先判断为 `steer`、`queue` 或 `scope-change`；改变目标或验收标准时先更新目标模板再继续。
-- 优先输出可审查产物：Markdown note、`index.html`、CSV/表格、diff、测试报告、截图或 artifact report；不要只输出过程描述。
-- 等待型或周期性自动化必须限定数据源、刷新频率、停止条件和人工审批点；默认不自动发送、提交、发布、删除或覆盖。
-- 可复用工作流的输入、完成标准、审查产物和失败模式优先沉淀到 `manifests/workflow_recipes.json`；等待型/定时任务只允许先登记到 `manifests/automations.json`，默认 `enabled=false` 或 `mode=report-only`。
-- 并行子代理默认遵循 `manifests/subagent_contracts.json` 的读写范围、禁止路径和输出契约；长期记忆候选先进入 `manifests/memory_candidates.json`，不得静默写入 `~/.codex/memories`。
-- workflow、slash command、目标模板和指导规则提升必须可评测：routing/governance/completion eval 进入 `manifests/eval_suites.json`，slash command 控制面进入 `manifests/cli_command_contracts.json`，规则提升路径进入 `manifests/guidance_promotions.json`，强目标模板进入 `manifests/goal_templates.json`。
-- prompt / AGENTS / skill 指导规则实验进入 `manifests/prompt_experiments.json`，trace 过程评分进入 `manifests/trace_eval_contracts.json`，上下文状态契约进入 `manifests/context_state_contracts.json`，automation 单次运行记录进入 `manifests/automation_run_records.json`。
-- skill 依赖 MCP、slash command 运行态审计、官方文档 freshness gate 分别进入 `manifests/skill_mcp_dependencies.json`、`manifests/slash_command_runtime_audits.json` 和 `manifests/official_docs_freshness_gates.json`；官方资料提升必须有 source URL、retrieved_at、review_status 和 expires_at。
-- 上下文压缩必须区分 stable、dynamic、evidence 和 excluded context；长期提升前先满足 `docs/context-layout.md` 与 `manifests/guidance_promotions.json` 的 review、secret scan 和 rollback 门禁。
-- 操作模型细节见 `docs/codex-operating-model.md`；与本文件冲突时以本文件为准。
+本次使用专用 skill 时在回复中简短说明；未命中时说明未使用。skill 的详细触发、fallback 和组合关系以 manifests/skills.json、manifests/workflows.json 及路由门禁为准，不在本文件复制长清单。
 
-## 4. adk 路由主干
+## 3. 目标、上下文与产物
 
-- 需求收敛：`adk-requirements-triage`
-- 任务拆解：`adk-task-breakdown`
-- 长任务计划与恢复：`adk-planning-execution-loop`
-- 系统化调试：`adk-systematic-debugging`
-- 嵌入式测试策略：`adk-test-strategy`
-- C/C++ 静态分析：`adk-static-analysis-c-cpp`
-- 并行子代理治理：`adk-parallel-agent-governance`
-- worktree 治理：`adk-worktree-governance`
-- 代码审查闭环：`adk-code-review-loop`
-- 提交与 PR 门禁：`adk-commit-pr-quality-gate`
-- 完成前验证：`adk-verification-before-completion`
-- 分支收尾：`adk-branch-closeout`
-- 运行时 skill 路由：`adk-runtime-router`
+- 一个线程默认服务一个长期职责；目标或职责切换前先 context-preflight，必要时收口并新开线程。
+- 强目标写清范围、非目标、成功标准、验证命令、可审查产物和阻塞条件；无验证机制的目标只能标为探索。
+- 用户补充指令先判定 steer、queue 或 scope-change；改变范围或验收时先更新目标再继续。
+- 优先输出 Markdown、diff、测试报告、CSV、截图等可审查产物，不只汇报过程。
+- workflow、automation、subagent、eval、目标、prompt 与上下文状态的声明式入口见对应 manifests/*.json；等待型自动化默认 enabled=false 或 report-only，不自动发送、提交、发布、删除或覆盖。
 
-Superpowers fallback 不应覆盖已有 adk 路由，除非满足第 2 节条件。
+## 4. 命令与文件硬规则
 
-## 4.1 辅助 skill 路由索引
+- 所有 shell 命令必须通过 rtk：允许 rtk <command> 或 rtk bash -lc "<command>"，不得裸跑 bash/git/rg/python 等。
+- 手工创建或修改源码、脚本、配置和文档必须用 apply_patch；禁止 heredoc、重定向、cat、tee 或 Python 写仓库文件。
+- 修改前先读局部规则和相关实现。已有 dirty 变更默认属于用户；不得回退、覆盖、清理无关内容。
+- 不运行破坏性命令，不直接操作 .git，不硬编码密钥，不把不可信输入拼进 shell、SQL 或外部写操作。
+- 新增 Python 工具优先进入 tools.codex_assets，scripts/*.sh 只定位 ROOT、注入 PYTHONPATH 并转发；从非仓库 cwd 至少验证一次 help/dry-run。
+- MCP、connector、GUI 或登录态流程必须先声明 transport、权限/凭证边界、工具清单、deny-path、日志脱敏和回退；未经审查不得启用外部写操作。
 
-- 当前会话收尾 / 结束会话 / 总结本次会话：`session-wrap`
-- 提交总结 / commit 日报：`commit-daily-summary`
-- 项目日报 / 按项目总结：`project-daily-summary`
-- 调研纪要 / 分析结论：`research-note-wrap`
-- 知识归档 / 长期沉淀 / 保存到 ~/knowledge-hub/domains/codex/archive/codex-archive：`adk-knowledge-archive`
-- memory / memories / 记忆整理：`adk-memory-curator`
-- 上下文压缩 / 会话接力 / resume prompt / 90 秒模板：`adk-context-compress-handoff`
-- 多源搜索 / 交叉验证 / 资料核验：`multi-search-engine`
-- 浏览器查看 / 微信公众号 / agent-browser：`browser-reader`
-- skill 资产 / 注册 / build / apply / rollback：`skill-asset-manager`
-- Chronicle 记忆 / 重复流程提炼 / 转化为 skill：`chronicle-workflow-miner`
-- 归档治理 / 归档检查 / 归档修复 / 归档迁移 / 归档不合规 / 元数据修复 / 文件名规范：`adk-archive-governance`
-- 全仓漂移 / 偏离 / 冗余 / 残留 / 边界不清治理：`adk-repo-drift-remediation`
-- 嵌入式 SoC/MCU/OTA/NAS/量产发布编排：`adk-embedded-release-orchestration`
-- 嵌入式 prog_tool / diag / strict/env / HIL 诊断验证：`adk-embedded-diagnostic-harness`
-- 并行开发规划 / 多 worktree 协作：`codex-parallel-collab`
-- 分支或 worktree 收口梳理：`worktree-closeout`
-- 多个总结类同时命中时，优先级为 `session-wrap -> commit-daily-summary -> project-daily-summary -> research-note-wrap`。
-- 归档类需求先生成对应总结或笔记，再用 `adk-knowledge-archive` 归档。
-- 保存 / 新增 / 沉淀到归档优先 `adk-knowledge-archive`；归档治理 / 检查 / 修复 / 迁移 / 不合规才使用 `adk-archive-governance`。
-- 记忆整理 / 提升 / 清理优先 `adk-memory-curator`；会话接力 / 恢复提示 / 上下文压缩优先 `adk-context-compress-handoff`。
-- 仅查询历史归档时直接使用归档查询入口；只有索引、元数据、状态或命名异常时才升级为 `adk-archive-governance`。
-- 本次使用过专用 skill 时，在回复中简短说明；未命中时说明未使用专用 skill。
+## 5. 验证、交付与 Git
 
-## 5. adk 通用边界与嵌入式 profile
+- 没有验证证据不得声称完成、通过、可提交或可合并。小改动至少定向验证；共享逻辑、高风险行为和新功能按风险升级回归。
+- 验证无法执行时说明原因、影响和剩余风险。最终回复前优先运行 rtk bash ~/codex/scripts/final-ready.sh。
+- 修改 ~/codex 的 AGENTS、skill、workflow、manifest、script 或 docs 后，走完整 source-to-live 链路：
 
-adk 是通用 Agent/Skill/Profile/Workflow 资产包，core 保持平台中立，不绑定 Codex 或任何单一运行时。当前深度验证和默认业务 profile 是 `embedded-fullstack`，覆盖芯片 / 板级约束、启动链、BSP、OS/runtime、驱动、中间件、协议栈、设备侧应用、上位机 / 产测 / 诊断工具，以及构建、调试、验证、发布、量产和现场维护闭环。
+~~~bash
+rtk bash ~/codex/scripts/build.sh
+rtk bash ~/codex/scripts/doctor.sh --scope all
+rtk bash ~/codex/scripts/plan.sh --target ~/.codex --prune-stale --output ~/codex/build/apply-plan.json
+rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan.json --dry-run
+rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan.json
+rtk bash ~/codex/scripts/check-routing-precedence.sh
+rtk bash ~/codex/scripts/check.sh
+~~~
 
-通用 Web、互联网后端、云原生和纯业务系统可以使用 adk 的通用治理、验证和交付门禁，但不应被误归入 `embedded-fullstack` profile；若项目本身包含上位机工具或设备配套工具，可按嵌入式交付链路处理。
+- 不直接手改 ~/.codex。不自动 commit、push、merge 或 rebase。提交格式为 <type>(scope): <中文动词摘要>，摘要不超过 50 字且不加句号。
 
-## 6. 命令执行硬规则
+## 6. Token、Knowledge Hub 与连续性
 
-- 所有 shell 命令必须通过 `rtk` 执行。
-- 允许：`rtk <command> ...`
-- 允许：`rtk bash -lc "<command> ..."`
-- 禁止裸跑：`bash` / `git` / `rg` / `find` / `sed` / `awk` / `python` 等。
-- 仅当 `rtk` 不可用或用户明确豁免时才临时降级，并在回复中说明。
-- 不得虚构命令、退出码、日志或验证结果。
+- Token 是受限资源：先读目录、摘要、关键字段和局部窗口；不复述长日志、diff 或 JSON。
+- 上下文分为 stable、dynamic、evidence、excluded；压缩必须保留最新目标、失效目标、原始证据路径、fallback 条件和最多 3 个下一步。
+- 涉及项目事实、历史决策、runbook、发布、日志/core 排障或长期结论时，先做低 token Hub 预检：
 
-## 7. 文件与代码修改
+~~~bash
+rtk bash ~/knowledge-hub/tools/knowledge-context.sh --cwd "$PWD" --query "<任务>" --task-type <debug|archive|release|decision|runbook|source|validation|general> --context-budget small --limit 3 --summary-json
+~~~
 
-- 修改前先理解相关代码、文档和局部约定。
-- 默认最小充分实现，避免无关重构和格式化 churn。
-- 手工创建或修改源码、脚本、配置和文档时，必须使用 `apply_patch`。
-- 禁止用 heredoc、`cat > file`、`tee file`、shell 重定向、`python - <<EOF` 或 `Path.write_text("""...""")` 生成、覆盖或批量改写仓库文件。
-- heredoc 只允许作为命令 stdin 测试输入使用，不得把输出落盘到仓库文件；确需使用时必须使用唯一且加引号的结束标记。
-- 大量机械生成内容必须通过仓库内稳定生成器、模板工具或格式化工具完成，并纳入对应验证。
-- 如果文件写入命令失败，先检查目标文件是否被部分写入或截断，再继续修复。
-- 发现工作区已有改动时，默认视为用户改动；不得回退、覆盖或清理无关变更。
-- 不运行破坏性命令，如 `git reset --hard`、`git checkout --`、危险删除，除非用户明确要求。
-- 不使用非 Git 工具操作 `.git`。
-- 不硬编码密钥、凭证、API key。
-- 不用不可信输入拼接 shell 命令或 SQL。
+- 路由歧义、排序解释不足或高风险结论时，去掉 --summary-json 改用 --json，再按候选路径读取原文。Hub 当前事实高于 memory、raw session 和旧 archive provenance。
+- 会产生长期结论的 debug、release、validation、decision 或 session 任务，完成或中断时写 Hub candidate，或明确“本次无可归档结论”。未经用户要求不得静默写 ~/.codex/memories。
+- final/apply/目标切换前运行 session coach；出现 THREAD_LONG、CTX_PRESSURE、HOT 或 CRITICAL 时优先收口并新开线程。
 
-## 8. Python 与脚本入口
+## 7. 并行与领域边界
 
-- 仓库内新增 Python 工具入口时，优先收敛到 `tools.codex_assets` 包。
-- `scripts/*.sh` 作为稳定包装层，负责定位 `ROOT`、注入 `PYTHONPATH`、转发模块入口。
-- 文档、README、skill 和 agent 默认引用 `scripts/*.sh`，不直接引用内部 Python 文件。
-- 新增或修改脚本入口后，至少从非仓库 cwd 执行一次帮助或 dry-run，防止隐式依赖当前目录。
-- 新增或修改 Python / shell 脚本后，按风险运行语法检查、单元测试或入口 dry-run，防止半截文件进入提交。
+- 仅当任务能拆成 2–4 个边界清晰、写入互不冲突、可独立验证的子任务时并行；先声明 scope_read、scope_write、must_not_touch、阻塞条件和输出契约。
+- shared contract、schema、根配置、依赖、CI 和 lockfile 默认串行。子任务完成不等于项目完成，主 Agent 必须整合并跑最终验证。
+- adk core 平台中立；embedded-fullstack 是业务 profile，不把通用 Web/云原生任务误归为嵌入式。设备配套上位机可按嵌入式交付链处理。
 
-## 9. 验证门禁
+## 8. Skill 与知识资产治理
 
-- 没有验证证据，不得声称“完成”“通过”“可提交”“可合并”。
-- 小改动至少做定向验证；中等改动补回归；共享逻辑、高风险行为或新功能按风险升级测试。
-- 验证无法执行时，必须说明原因、影响和剩余风险。
-- 准备 final / commit / push / PR 前，应完成与改动直接相关的验证并如实报告。
+- Codex skill 的 SSOT 是 manifests/skills.json，源码在 src/codex-home/vendor/skills/<name>/<version>/；build 为生成物，禁止手改。
+- 本地/Chronicle 派生 skill 可持续迭代；adk-*、Superpowers 和第三方资产必须从上游新版本重新导入，不静默修改镜像。
+- routing 问题优先改 description/manifest，流程问题改 SKILL.md，长证据进 Knowledge Hub。批量变更后运行 rtk bash ~/codex/scripts/check-skills.sh。
+- 归档只保存脱敏、可复用的背景、约束、决策和验证；一次性日志、raw session、cache、二进制和凭证不进入长期知识。
 
-## 10. `~/codex` 资产链路
+## 9. 输出风格
 
-修改 `AGENTS.md`、skill、workflow、manifest、script 或 docs 后，优先走 source 到 live 链路：
-
-1. `rtk bash ~/codex/scripts/build.sh`
-2. `rtk bash ~/codex/scripts/doctor.sh --scope all`
-3. `rtk bash ~/codex/scripts/plan.sh --target ~/.codex --prune-stale --output ~/codex/build/apply-plan.json`
-4. `rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan.json --dry-run`
-5. `rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan.json`
-6. `rtk bash ~/codex/scripts/check-routing-precedence.sh`
-7. `rtk bash ~/codex/scripts/check.sh`
-
-不要直接手改 `~/.codex` 来绕过声明式资产仓。
-
-## 11. Token 效率
-
-- 默认把 token 视为受限资源。
-- 读代码、日志、diff、JSON 时优先关键窗口、关键字段和摘要。
-- 不复述大段工具输出；只报告结论、关键证据、风险和下一步。
-- 设计阶段保留必要权衡；实现和验证阶段压缩到动作、证据、阻塞。
-- 当会话过长、上下文压力高或目标切换时，建议收口并新开线程。
-
-## 12. Session Continuity Coach
-
-- 在 final / commit / push / apply 前，或修改 `AGENTS.md`、skill、workflow、manifest、script、docs 后，优先运行对应 ready / coach 检查。
-- 常用入口：
-  - `rtk bash ~/codex/scripts/session-coach.sh`
-  - `rtk bash ~/codex/scripts/session-coach.sh --deep`
-  - `rtk bash ~/codex/scripts/final-ready.sh`
-  - `rtk bash ~/codex/scripts/commit-ready.sh`
-  - `rtk bash ~/codex/scripts/apply-ready.sh`
-- 出现 `THREAD_LONG`、`CTX_PRESSURE`、`HOT` 或 `CRITICAL` 时，优先执行会话收口、归档和新线程接力。
-- 未经用户明确要求，不直接写入 `~/.codex/memories`。
-
-## 13. 多代理与并行
-
-- 默认先判断是否适合并行；不适合时串行推进。
-- 仅当任务可拆成 2 到 4 个边界清晰、写入范围互不冲突、可独立验证的子任务时，才并行。
-- 并行前明确 `scope_write`、`scope_read`、`must_not_touch`、阻塞条件和最终整合验证。
-- 共享 contract / schema / shared types / 根配置 / 依赖 / CI / lockfile 默认串行处理。
-- 子任务完成不等于项目完成；必须统一整合、查冲突并跑最终验证。
-
-## 14. Git 与提交
-
-- 不自动 commit / push / merge / rebase，除非用户明确要求。
-- commit 格式：`<type>(scope): <summary>`
-- `summary` 使用中文、动词开头、长度不超过 50 字、不加句号。
-- 常用 type：`feat` / `fix` / `refactor` / `docs` / `test` / `chore`
-
-## 15. 文档与记忆
-
-- 文档只记录可复用信息：背景、约束、决策、验证结果、未决项。
-- 长期经验优先沉淀到项目级 `AGENTS.md` 或 `~/knowledge-hub`，避免把一次性过程噪音写入长期规则；旧 Codex archive 历史来源只作 provenance，不作为新增入口。
-- 涉及项目事实、归档路径、历史决策、runbook、source 状态、发布验证、core/GDB/日志排障或长期结论时，先查询 Knowledge Hub，再使用 memory、raw session 或项目本地 README 作为辅助证据。
-- 推荐预检入口：
-
-```bash
-rtk bash ~/knowledge-hub/tools/knowledge-context.sh --cwd "$PWD" --query "<任务或问题>" --task-type <debug|archive|release|decision|runbook|source|validation|general> --json
-```
-
-- 对会产生长期结论的 debug、release、validation、decision 或 session 任务，完成或中断时应写 Hub candidate，或明确说明“本次无可归档结论”。
-- 记忆整理默认只生成审计报告或候选，不静默覆盖 memory。
-- 归档材料不得写入 `src/codex-home/`、`build/` 或 control 产物目录。
-- MCP server、connector、桌面 GUI 或登录态工作流必须先声明 transport、权限边界、凭证边界、工具清单、deny-path、日志脱敏和回退方式；未完成安全和供应链审查前不得启用外部写操作。
-- OpenAI 官方文档查询优先使用官方只读 Docs MCP `openaiDeveloperDocs`；未启用或不可用时才 fallback 到官方域名网页检索。
-
-## 16. Skill 资产治理
-
-- 本仓直接维护的 skill 位于 `src/codex-home/vendor/skills/<name>/<version>/`。
-- 每个 managed skill 至少包含 `SKILL.md`、`README.md`、`LICENSE`。
-- `SKILL.md` frontmatter 至少包含 `name`、`description`、`version`、`last_updated`。
-- 推荐提供 `agents/openai.yaml`，至少包含 `display_name` 与 `short_description`。
-- 仅本地沉淀 / Chronicle 派生 skill 默认持续迭代；`adk-*`、Superpowers 和第三方导入 skill 通过上游版本更新后重新导入。
-- 本地派生 skill 使用 manifest `local` / `chronicle-derived` 标签和 `origin` / `lifecycle` 元数据识别，不为来源标记强制改名。
-- 本地派生 skill 的触发问题优先改 `description` / `manifests/workflows.json`，流程问题改 `SKILL.md`，长证据归档到 `~/knowledge-hub/domains/codex/archive/`。
-- 已提交并投入使用的本地派生 skill 迭代优先新增版本目录并更新 `manifests/skills.json`；本地草稿可在提交前直接修当前版本。
-- `src/codex-home/vendor/plugins/**/skills/` 属于上游插件内容，默认不改写。
-- 批量修改 skills 后运行 `rtk bash ~/codex/scripts/check-skills.sh`。
-
-## 17. 输出风格
-
-- 默认使用简体中文，技术标识保留英文。
-- 优先给结论、动作、验证和阻塞；避免寒暄、重复背景和大段原始输出。
-- 分析类回答说明依据和权衡；执行类回答说明当前动作、验证结果和剩余风险。
-- 复杂任务使用 `update_plan` 维护高层进度，任一时刻仅保留一个 `in_progress`。
-
-<!-- RTK 规则文档：vendor/policies/rtk/1.0.0/RTK.md -->
+- 默认简体中文，技术标识保留英文。
+- 先给结论、动作、验证和阻塞；分析说明依据与权衡，执行说明证据与剩余风险。
+- 复杂任务用计划维护高层进度，任一时刻仅一个 in_progress。

@@ -20,7 +20,7 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 ```bash
 # 生成可注入产物
-rtk bash scripts/build.sh --profile team-collab
+rtk bash scripts/build.sh
 
 # 体检仓库、构建产物和当前 ~/.codex
 rtk bash scripts/doctor.sh --scope all
@@ -39,10 +39,10 @@ rtk bash scripts/apply.sh --dry-run --no-build
 rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json
 
 # 构建并注入到 ~/.codex，默认只覆盖未被本机改过的已管理文件
-rtk bash scripts/apply.sh --profile team-collab
+rtk bash scripts/apply.sh
 
 # 强制覆盖已有普通文件，覆盖前备份
-rtk bash scripts/apply.sh --profile team-collab --overwrite
+rtk bash scripts/apply.sh --overwrite
 
 # 对比 build 与 ~/.codex
 rtk bash scripts/diff.sh
@@ -95,7 +95,11 @@ rtk bash scripts/usage-report.sh
 # 实时刷新终端用量面板
 rtk bash scripts/usage-tail.sh --once
 
-# 多源搜索能力由 multi-search-engine skill 提供，仅 team-collab profile 激活
+# 从低上下文 catalog 查询长尾 skill；命中后再读取返回的 load_path
+rtk bash scripts/skill-search.sh --query "多源搜索和交叉验证" --summary-json
+
+# 显式兼容：需要 60 项完整 catalog 时构建 team-collab，并从新线程生效
+rtk bash scripts/build.sh --profile team-collab
 
 # 从指定 apply plan 回滚
 rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
@@ -156,9 +160,9 @@ rtk bash scripts/scan-skills.sh
 rtk bash scripts/promote-skill.sh inbox/skills/<name>/<timestamp> --version 0.1.0
 
 # 重新构建、体检、注入
-rtk bash scripts/build.sh --profile team-collab
+rtk bash scripts/build.sh
 rtk bash scripts/doctor.sh --scope build
-rtk bash scripts/apply.sh --profile team-collab
+rtk bash scripts/apply.sh
 ```
 
 正式 skill 存放在 `src/codex-home/vendor/skills/<name>/<version>/`，激活入口由 `build.sh` 在 `build/codex-home/skills/<name>` 生成相对 symlink。不要把第三方 skill 直接放进 `src/codex-home/skills/`。
@@ -171,7 +175,7 @@ rtk bash scripts/apply.sh --profile team-collab
 
 profile、agent、skill、workflow、项目模板和 overlay 分层管理：
 
-- profile 决定当前启用的能力集合，例如 `minimal`、`solo-dev`、`team-collab`。
+- profile 决定当前启用的能力集合；默认 `token-lean` 只常驻核心路由，`team-collab` 保留完整 catalog，`minimal`、`solo-dev` 用于显式场景。
 - skill 与 agent 是可注入能力资产，由 `manifests/skills.json` 和 `manifests/agents.json` 记录版本、来源和 profile 绑定。
 - workflow 是可复用工作流编排，显式声明触发词、依赖 skill、依赖 agent、入口命令和验证命令。
 - workflow recipe 把 workflow 的输入、完成标准、审查产物和失败模式变成可评测契约。

@@ -125,6 +125,20 @@ MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `c
 - Hook 设计进入 `manifests/hook_contracts.json`。默认 disabled/report-only，必须写明官方 hook 覆盖限制、retention 和禁止动作；未审查 runner 前不得把 hook 当作完整 enforcement boundary。
 - 上下文压缩按 `docs/context-layout.md` 分层：stable context 才能进入长期规则候选，dynamic context 只用于恢复当前线程，evidence context 支撑交付声明，excluded context 不沉淀。
 
+## 固定上下文与延迟 skill catalog
+
+默认 `token-lean` 只常驻核心路由、实现、验证和接力 skill，长尾能力仍保存在受信 vendor inventory。固定上下文预算在 `manifests/profiles.json:context_budget` 中声明，并由 `doctor` 阻断 AGENTS、常驻条目数或 catalog 字节回退。
+
+延迟加载顺序固定为：
+
+1. 用 `scripts/skill-search.sh --summary-json` 读取最多 5 个候选摘要。
+2. 根据任务意图、`why_selected` 和相邻候选拒绝理由选择唯一 primary。
+3. 只读取选中 `load_path` 的完整 `SKILL.md`，其 references/scripts/assets 继续按需展开。
+4. 歧义或高风险结论回退原始 manifest；Superpowers 只有显式兼容请求才进入候选。
+5. 需要完整直出 catalog 时显式 apply `team-collab`，并在新线程读取新 catalog。
+
+延迟加载只改变上下文披露，不改变 sandbox、approval、网络、凭证或写入权限。
+
 ## 收口
 
 准备 final、commit、push、apply 或目标切换前：

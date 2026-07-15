@@ -5,6 +5,28 @@
   "required": ["schema_version", "profiles"],
   "properties": {
     "schema_version": {"type": "integer"},
-    "profiles": {"type": "array"}
+    "context_budget": {
+      "type": "object",
+      "properties": {
+        "agents_max_bytes": {"type": "integer", "minimum": 1},
+        "default_profile_max_active_skills": {"type": "integer", "minimum": 1},
+        "default_profile_max_catalog_bytes": {"type": "integer", "minimum": 1},
+        "skill_search_default_limit": {"type": "integer", "minimum": 1},
+        "skill_search_max_limit": {"type": "integer", "minimum": 1},
+        "skill_search_max_output_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "catalog_mode": {"enum": ["direct", "lazy", "compat"]}
+        }
+      }
+    }
   }
 }

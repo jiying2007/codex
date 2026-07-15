@@ -6,7 +6,7 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLAN="${1:-$ROOT/build/apply-plan.apply-ready.json}"
 FAIL_ON="${SESSION_COACH_FAIL_ON:-never}"
 
-rtk bash "$ROOT/scripts/build.sh" --profile team-collab
+rtk bash "$ROOT/scripts/build.sh"
 rtk bash "$ROOT/scripts/doctor.sh" --scope all
 rtk bash "$ROOT/scripts/plan.sh" --target "$HOME/.codex" --output "$PLAN"
 rtk bash "$ROOT/scripts/apply.sh" --dry-run --no-build --target "$HOME/.codex" --plan-out "$ROOT/build/apply-plan.apply-ready-dry-run.json"

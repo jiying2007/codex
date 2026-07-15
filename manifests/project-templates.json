@@ -6,7 +6,7 @@
       "path_patterns": [
         "*/codex"
       ],
-      "default_profile": "team-collab",
+      "default_profile": "token-lean",
       "workflows": [
         "asset-governance",
         "context-handoff",
@@ -25,7 +25,7 @@
         "*/sdk/*",
         "*/SourceCode/*"
       ],
-      "default_profile": "team-collab",
+      "default_profile": "token-lean",
       "workflows": [
         "implementation-quality",
         "parallel-collab",
@@ -45,7 +45,7 @@
         "*/web/*",
         "*/app/*"
       ],
-      "default_profile": "team-collab",
+      "default_profile": "token-lean",
       "workflows": [
         "implementation-quality",
         "external-research",

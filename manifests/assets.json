@@ -2,11 +2,10 @@
   "schema_version": 2,
   "source_root": "src/codex-home",
   "build_root": "build/codex-home",
-  "default_profile": "team-collab",
+  "default_profile": "token-lean",
   "copy_roots": [
     "AGENTS.md",
     "README.md",
-    "agents",
     "control/agents-local",
     "control/state",
     "mcp",

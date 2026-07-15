@@ -7,6 +7,7 @@ from typing import Any
 from .core import Repo, active, build_lock, matches_any, read_json
 from .governance import governance_errors
 from .session_coach_config import validate_config
+from .skill_catalog import validate_context_budgets
 
 
 REQUIRED = {
@@ -63,6 +64,8 @@ def validate_repo(root: str | pathlib.Path) -> list[str]:
             errors.append(f"copy_roots 不能包含 protected path: {root_name}")
         if source.is_dir() and not (source / root_name).exists():
             errors.append(f"copy_roots 指向不存在路径: {root_name}")
+
+    errors.extend(validate_context_budgets(repo))
 
     for collection_name, key in [("skills.json", "skills"), ("agents.json", "agents")]:
         seen: set[str] = set()

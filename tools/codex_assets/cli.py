@@ -29,6 +29,8 @@ from .archive_governance import ArchiveGovernanceError, run_check as run_archive
 from .governance import governance_errors, governance_report
 from .memory_curator import run as run_memory_curator
 from .session_coach import run as run_session_coach
+from .skill_catalog import render_human as render_skill_search_human
+from .skill_catalog import search_skills
 from .usage_dashboard import main as usage_dashboard_main
 from .validate import validate_repo
 
@@ -296,6 +298,37 @@ def cmd_promote_skill(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_skill_search(args: argparse.Namespace) -> int:
+    repo = Repo.from_path(args.root)
+    profiles_manifest = repo.manifest("profiles.json")
+    profile_names = {item.get("name") for item in profiles_manifest.get("profiles", [])}
+    profile = args.profile or repo.assets.get("default_profile", "")
+    if profile not in profile_names:
+        fail(f"profile 未定义: {profile}")
+    budget = profiles_manifest.get("context_budget", {})
+    default_limit = int(budget.get("skill_search_default_limit", 5) or 5)
+    max_limit = int(budget.get("skill_search_max_limit", 20) or 20)
+    output_budget = int(budget.get("skill_search_max_output_bytes", 4096) or 4096)
+    limit = args.limit if args.limit is not None else default_limit
+    if limit < 1 or limit > max_limit:
+        fail(f"limit 必须在 1..{max_limit} 之间")
+    payload = search_skills(
+        repo,
+        query=args.query,
+        profile=profile,
+        codex_home=args.codex_home,
+        limit=limit,
+        include_fallback=args.include_fallback,
+        active_only=args.active_only,
+        max_output_bytes=output_budget,
+    )
+    if args.summary_json:
+        print(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+    else:
+        print(render_skill_search_human(payload))
+    return 0
+
+
 def cmd_rollback(args: argparse.Namespace) -> int:
     summary = rollback_plan(args.plan, dry_run=args.dry_run, remove_copies=not args.keep_copies)
     print(f"[DONE] rollback summary={summary} dry_run={int(args.dry_run)}")
@@ -515,6 +548,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--replace", action="store_true")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_promote_skill)
+
+    p = sub.add_parser("skill-search", parents=[common])
+    p.add_argument("--query", required=True)
+    p.add_argument("--profile", default="")
+    p.add_argument("--codex-home", default="~/.codex")
+    p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--active-only", action="store_true")
+    p.add_argument("--include-fallback", action="store_true")
+    p.add_argument("--summary-json", action="store_true")
+    p.set_defaults(func=cmd_skill_search)
 
     p = sub.add_parser("rollback", parents=[common])
     p.add_argument("--plan", required=True)

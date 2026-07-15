@@ -12,14 +12,17 @@
 ## 常用命令
 
 ```bash
-# 构建指定 profile
-rtk bash ~/codex/scripts/build.sh --profile solo-dev
+# 构建默认 token-lean profile
+rtk bash ~/codex/scripts/build.sh
 
 # 预览应用计划
 rtk bash ~/codex/scripts/plan.sh --target ~/.codex
 
 # 应用到 ~/.codex
-rtk bash ~/codex/scripts/apply.sh --profile solo-dev
+rtk bash ~/codex/scripts/apply.sh
+
+# 查询未常驻的长尾 skill
+rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --summary-json
 
 # 完整检查
 rtk bash ~/codex/scripts/check.sh
@@ -70,7 +73,7 @@ rtk bash ~/codex/scripts/context-preflight.sh
 
 ## 多源搜索
 
-当用户要求“多源搜索”“交叉验证”“资料核验”时，路由到 `multi-search-engine`。该 skill 仅在 `team-collab` profile 激活，用于需要外部证据的问题；本地代码库问题仍优先读取仓库。
+当用户要求“多源搜索”“交叉验证”“资料核验”时，路由到 `multi-search-engine`。默认 `token-lean` 先用 `skill-search` 延迟发现，`team-collab` 直接激活；本地代码库问题仍优先读取仓库。
 
 ## 浏览器读取
 
