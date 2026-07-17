@@ -1477,6 +1477,29 @@
       ]
     },
     {
+      "name": "wechat-account-research",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/wechat-account-research/0.1.0",
+      "target_rel": "skills/wechat-account-research",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "research",
+        "wechat",
+        "archive"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/wechat-account-research/0.1.0",
+      "imported_at": "2026-07-16",
+      "review_status": "accepted"
+    },
+    {
       "name": "windows-gui-release-orchestration",
       "enabled": true,
       "source_kind": "vendor",

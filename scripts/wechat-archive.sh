@@ -6,4 +6,4 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$ROOT"
 exec env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" \
-  rtk python3 -m tools.codex_assets skill-search --root "$ROOT" "$@"
+  rtk python3 -m tools.codex_assets wechat-archive --root "$ROOT" "$@"

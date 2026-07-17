@@ -310,20 +310,72 @@
         "多源搜索",
         "交叉验证",
         "浏览器查看",
-        "微信公众号文章整理"
+        "微信公众号文章整理",
+        "微信公众号批量搜索",
+        "指定公众号近半年文章",
+        "搜狗微信归档",
+        "WeChat account research"
       ],
       "skills": [
         "multi-search-engine",
-        "browser-reader"
+        "browser-reader",
+        "wechat-account-research",
+        "adk-knowledge-archive",
+        "external-practice-absorption"
       ],
       "agents": [
         "agent-browser"
       ],
       "commands": [
-        "rtk bash scripts/archive-search.sh"
+        "rtk bash scripts/archive-search.sh",
+        "rtk bash scripts/wechat-archive.sh --help"
       ],
       "verification": [
-        "rtk bash scripts/check-skills.sh"
+        "rtk bash scripts/check-skills.sh",
+        "rtk python3 -m unittest tests.test_wechat_archive"
+      ],
+      "routes": [
+        {
+          "name": "wechat-account-batch-research",
+          "match_any": [
+            "微信公众号批量搜索",
+            "指定公众号近半年文章",
+            "搜狗微信归档",
+            "WeChat account research"
+          ],
+          "exclude_any": [
+            "单篇公众号文章",
+            "打开一个微信链接"
+          ],
+          "primary_skill": "wechat-account-research",
+          "supporting_skills": [
+            "adk-knowledge-archive",
+            "external-practice-absorption"
+          ],
+          "fallback_skill": "browser-reader",
+          "mutually_exclusive_skills": []
+        },
+        {
+          "name": "wechat-single-page-read",
+          "match_any": [
+            "单篇公众号文章",
+            "打开一个微信链接",
+            "微信公众号文章整理"
+          ],
+          "exclude_any": [
+            "批量搜索",
+            "近半年文章",
+            "搜狗微信归档"
+          ],
+          "primary_skill": "browser-reader",
+          "supporting_skills": [
+            "adk-knowledge-archive"
+          ],
+          "fallback_skill": "multi-search-engine",
+          "mutually_exclusive_skills": [
+            "wechat-account-research"
+          ]
+        }
       ]
     },
     {

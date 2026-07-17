@@ -33,6 +33,11 @@ from .skill_catalog import render_human as render_skill_search_human
 from .skill_catalog import search_skills
 from .usage_dashboard import main as usage_dashboard_main
 from .validate import validate_repo
+from .wechat_archive import (
+    WechatArchiveError,
+    configure_parser as configure_wechat_archive_parser,
+    run as run_wechat_archive,
+)
 
 
 def default_root() -> pathlib.Path:
@@ -405,6 +410,10 @@ def cmd_archive_search(args: argparse.Namespace) -> int:
     return run_archive_search(mapped)
 
 
+def cmd_wechat_archive(args: argparse.Namespace) -> int:
+    return run_wechat_archive(args)
+
+
 def cmd_session_coach(args: argparse.Namespace) -> int:
     return run_session_coach(args)
 
@@ -614,6 +623,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--until", default="")
     p.set_defaults(func=cmd_archive_search)
 
+    p = sub.add_parser("wechat-archive", parents=[common])
+    configure_wechat_archive_parser(p)
+    p.set_defaults(func=cmd_wechat_archive)
+
     p = sub.add_parser("curate-memory", parents=[common])
     p.add_argument("--memories", default="~/.codex/memories")
     p.add_argument("--output", default="")
@@ -681,6 +694,6 @@ def main() -> None:
     args = parser.parse_args()
     try:
         raise SystemExit(args.func(args))
-    except (CodexAssetError, ArchiveGovernanceError) as exc:
+    except (CodexAssetError, ArchiveGovernanceError, WechatArchiveError) as exc:
         print(f"[FATAL] {exc}", file=sys.stderr)
         raise SystemExit(2)

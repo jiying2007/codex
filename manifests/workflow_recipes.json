@@ -234,6 +234,61 @@
       ]
     },
     {
+      "name": "wechat-account-research-archive",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "external-research",
+      "context_inputs": [
+        "canonical WeChat account names and aliases",
+        "inclusive date window",
+        "topic matrix and query budget",
+        "stable seed URLs when supplied",
+        "optional read-only Hermes discovery index",
+        "metadata-only output directory"
+      ],
+      "done_criteria": [
+        "plan, evidence, catalog, coverage and run summary agree",
+        "only direct-read or separately reviewed official-mirror records enter the catalog",
+        "negative access, account and date states remain visible",
+        "article bodies, browser state and signed redirect URLs are not persisted",
+        "all generated catalog entries remain review-required",
+        "coverage limitations and search-index latency are disclosed"
+      ],
+      "review_artifacts": [
+        "plan.json",
+        "evidence.jsonl",
+        "catalog.jsonl",
+        "coverage.json",
+        "run-summary.json",
+        "README.md",
+        "wechat archive check output"
+      ],
+      "failure_modes": [
+        "a CAPTCHA or login gate is treated as a retry signal",
+        "proxy, identity, UA or cookie rotation is used to continue collection",
+        "search snippets or third-party mirrors are treated as account proof",
+        "article bodies or temporary signed URLs are written to the evidence pack",
+        "heuristic quality scores automatically promote or delete records",
+        "collection silently modifies Hermes data, ADK assets, memory or AGENTS"
+      ],
+      "trigger_examples": [
+        "全面收集腾讯技术工程近半年 Agent 和 MCP 相关文章",
+        "使用搜狗和 Hermes 索引批量归档两个微信公众号"
+      ],
+      "negative_examples": [
+        "打开这一个微信链接并总结",
+        "只根据本地 catalog 评估已归档文章",
+        "绕过公众号验证码继续抓取"
+      ],
+      "verification": [
+        "rtk python3 -m unittest tests.test_wechat_archive",
+        "rtk bash scripts/wechat-archive.sh check --plan-file <plan> --output-dir <output>",
+        "rtk bash scripts/doctor.sh --scope governance"
+      ]
+    },
+    {
       "name": "knowledge-hub-maintenance",
       "enabled": true,
       "profiles": [

@@ -91,6 +91,31 @@
       "promotion_gate": "delivery claims must be backed by final-ready plus check.sh evidence"
     },
     {
+      "name": "wechat-account-research-eval",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "kind": "governance",
+      "owner": "research-archive",
+      "cases_path": "tests/test_wechat_archive.py",
+      "success_metric": "bounded WeChat account research produces metadata-only evidence, preserves negative states, stops on access gates and rejects unbounded query plans",
+      "min_pass_rate": 1.0,
+      "negative_cases_required": true,
+      "commands": [
+        "rtk python3 -m unittest tests.test_wechat_archive",
+        "rtk bash scripts/wechat-archive.sh --help",
+        "rtk bash scripts/doctor.sh --scope governance"
+      ],
+      "artifacts": [
+        "bounded plan fixture",
+        "metadata-only evidence fixture",
+        "access-gate and unbounded-plan negative assertions",
+        "governance validation output"
+      ],
+      "promotion_gate": "the workflow cannot enter source-to-live when body persistence, signed URLs, proxy or identity rotation, automatic promotion, or access-gate retries are possible"
+    },
+    {
       "name": "local-runtime-boundary-eval",
       "enabled": true,
       "profiles": [
