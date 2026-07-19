@@ -1,2 +1,3 @@
-display_name: 'adk-interface-contract-design'
-short_description: '定义模块/API/消息接口契约'
+interface:
+  display_name: 'adk-interface-contract-design'
+  short_description: '定义模块/API/消息接口契约'

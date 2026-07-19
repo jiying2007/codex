@@ -1,2 +1,3 @@
-display_name: 'adk-requirements-triage'
-short_description: '将需求转为可实现、可验证的工程条目'
+interface:
+  display_name: 'adk-requirements-triage'
+  short_description: '将需求转为可实现、可验证的工程条目'

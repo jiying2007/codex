@@ -1,2 +1,3 @@
-display_name: 'adk-after-action-review'
-short_description: '任务复盘与经验记忆候选治理，提取 lessons、风险分级和写入路由'
+interface:
+  display_name: 'adk-after-action-review'
+  short_description: '任务复盘与经验记忆候选治理，提取 lessons、风险分级和写入路由'

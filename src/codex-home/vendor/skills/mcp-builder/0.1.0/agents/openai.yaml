@@ -1,2 +1,3 @@
-display_name: MCP Builder
-short_description: Build high-quality MCP servers and tool integrations.
+interface:
+  display_name: MCP Builder
+  short_description: Build high-quality MCP servers and tool integrations.

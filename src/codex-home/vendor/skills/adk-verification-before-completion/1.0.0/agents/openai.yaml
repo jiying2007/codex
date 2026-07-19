@@ -1,2 +1,3 @@
-display_name: 'adk-verification-before-completion'
-short_description: '完成前验证门禁，确保交付声明与证据一致'
+interface:
+  display_name: 'adk-verification-before-completion'
+  short_description: '完成前验证门禁，确保交付声明与证据一致'

@@ -1,2 +1,3 @@
-display_name: 'adk-commit-pr-quality-gate'
-short_description: '提交与 PR 质量门禁检查'
+interface:
+  display_name: 'adk-commit-pr-quality-gate'
+  short_description: '提交与 PR 质量门禁检查'

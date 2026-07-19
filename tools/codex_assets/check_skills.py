@@ -5,6 +5,8 @@ import pathlib
 import re
 import sys
 
+import yaml
+
 from .core import CodexAssetError, parse_frontmatter
 
 
@@ -14,10 +16,72 @@ MANIFEST = ROOT / "manifests/skills.json"
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+([+-][A-Za-z0-9.-]+)?$")
 DATE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 LINK = re.compile(r"(?:\]\(|`)((?:scripts|references|reference|examples)/[^)`#\s]+)")
+OPENAI_TOP_LEVEL_FIELDS = {"interface", "policy"}
+OPENAI_INTERFACE_REQUIRED_FIELDS = {"display_name", "short_description"}
+OPENAI_INTERFACE_OPTIONAL_FIELDS = {
+    "default_prompt",
+    "icon_small",
+    "icon_large",
+    "brand_color",
+}
+OPENAI_INTERFACE_FIELDS = OPENAI_INTERFACE_REQUIRED_FIELDS | OPENAI_INTERFACE_OPTIONAL_FIELDS
+OPENAI_POLICY_FIELDS = {"allow_implicit_invocation"}
 
 
 def frontmatter(path: pathlib.Path) -> dict[str, str]:
     return {str(key): str(value) for key, value in parse_frontmatter(path).items()}
+
+
+def validate_openai_metadata(path: pathlib.Path, errors: list[str]) -> None:
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, yaml.YAMLError) as exc:
+        errors.append(f"{path}: agents/openai.yaml 无法解析: {exc}")
+        return
+    if not isinstance(data, dict):
+        errors.append(f"{path}: agents/openai.yaml 顶层必须是对象")
+        return
+
+    legacy = sorted(set(data) & OPENAI_INTERFACE_FIELDS)
+    if legacy:
+        errors.append(f"{path}: legacy 顶层 interface 字段已退役: {', '.join(legacy)}")
+    unknown_top = sorted(set(data) - OPENAI_TOP_LEVEL_FIELDS - OPENAI_INTERFACE_FIELDS)
+    if unknown_top:
+        errors.append(f"{path}: agents/openai.yaml 未知顶层字段: {', '.join(unknown_top)}")
+
+    interface = data.get("interface")
+    if not isinstance(interface, dict):
+        errors.append(f"{path}: interface 必须是对象且不得省略")
+    else:
+        unknown_interface = sorted(set(interface) - OPENAI_INTERFACE_FIELDS)
+        if unknown_interface:
+            errors.append(f"{path}: interface 未知字段: {', '.join(unknown_interface)}")
+        for field in sorted(OPENAI_INTERFACE_REQUIRED_FIELDS):
+            value = interface.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{path}: interface.{field} 必须是非空字符串")
+        for field in sorted(OPENAI_INTERFACE_OPTIONAL_FIELDS & set(interface)):
+            value = interface[field]
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{path}: interface.{field} 必须是非空字符串")
+
+    if "policy" not in data:
+        return
+    policy = data["policy"]
+    if not isinstance(policy, dict):
+        errors.append(f"{path}: policy 必须是对象")
+        return
+    unknown_policy = sorted(set(policy) - OPENAI_POLICY_FIELDS)
+    if unknown_policy:
+        errors.append(f"{path}: policy 未知字段: {', '.join(unknown_policy)}")
+    if set(policy) != OPENAI_POLICY_FIELDS:
+        errors.append(f"{path}: policy 仅允许声明 allow_implicit_invocation")
+        return
+    if policy["allow_implicit_invocation"] is not False:
+        errors.append(
+            f"{path}: implicit invocation 必须省略 policy；"
+            "仅 explicit-only 可声明 allow_implicit_invocation: false"
+        )
 
 
 def main() -> int:
@@ -59,8 +123,11 @@ def main() -> int:
             warnings.append(f"{skill_dir}: 缺少 README.md")
         if not ((skill_dir / "LICENSE").is_file() or (skill_dir / "LICENSE.txt").is_file()):
             warnings.append(f"{skill_dir}: 缺少 LICENSE 或 LICENSE.txt")
-        if not (skill_dir / "agents/openai.yaml").is_file():
+        openai_metadata = skill_dir / "agents/openai.yaml"
+        if not openai_metadata.is_file():
             warnings.append(f"{skill_dir}: 缺少 agents/openai.yaml")
+        else:
+            validate_openai_metadata(openai_metadata, errors)
         if (skill_dir / ".git").exists():
             errors.append(f"{skill_dir}: 不应包含内嵌 .git")
 

@@ -1,2 +1,3 @@
-display_name: 'adk-offline-core-dump-triage'
-short_description: 'Embedded Linux offline core dump evidence, symbol matching, and GDB trust triage.'
+interface:
+  display_name: 'adk-offline-core-dump-triage'
+  short_description: 'Embedded Linux offline core dump evidence, symbol matching, and GDB trust triage.'

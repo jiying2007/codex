@@ -1,2 +1,3 @@
-display_name: 'adk-unit-test-embedded'
-short_description: '嵌入式单元测试策略与样例'
+interface:
+  display_name: 'adk-unit-test-embedded'
+  short_description: '嵌入式单元测试策略与样例'

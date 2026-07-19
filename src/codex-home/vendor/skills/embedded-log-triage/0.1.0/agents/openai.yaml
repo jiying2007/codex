@@ -2,5 +2,3 @@ interface:
   display_name: "Embedded Log Triage"
   short_description: "Analyze embedded logs into timelines, hypotheses, probes, and release risk"
   default_prompt: "Use $embedded-log-triage to analyze device logs, identify anomalies, and propose the next diagnostic probes."
-policy:
-  allow_implicit_invocation: true

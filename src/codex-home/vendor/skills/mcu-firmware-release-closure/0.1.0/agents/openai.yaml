@@ -2,5 +2,3 @@ interface:
   display_name: "MCU Firmware Release Closure"
   short_description: "Close local gd32l235/hc32f072 releases with NAS publish, tags, guards, and repo sync"
   default_prompt: "Use $mcu-firmware-release-closure only for /home/leiwenjun/work/mcu gd32l235/hc32f072 firmware-release-tools closure; use adk-embedded-release-orchestration for generic release planning."
-policy:
-  allow_implicit_invocation: true

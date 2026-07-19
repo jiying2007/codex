@@ -1,2 +1,3 @@
-display_name: 'adk-code-review-loop'
-short_description: '独立代码审查与反馈修复闭环，覆盖发现分级、真实性核验、修复验证和复审'
+interface:
+  display_name: 'adk-code-review-loop'
+  short_description: '独立代码审查与反馈修复闭环，覆盖发现分级、真实性核验、修复验证和复审'

@@ -1,2 +1,3 @@
-display_name: 'adk-worktree-governance'
-short_description: 'git worktree 隔离开发治理，规范创建准入、目录、基线验证、同步、清理和禁止操作'
+interface:
+  display_name: 'adk-worktree-governance'
+  short_description: 'git worktree 隔离开发治理，规范创建准入、目录、基线验证、同步、清理和禁止操作'

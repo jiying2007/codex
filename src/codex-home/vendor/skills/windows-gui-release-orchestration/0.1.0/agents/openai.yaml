@@ -2,5 +2,3 @@ interface:
   display_name: "Windows GUI Release Orchestration"
   short_description: "Build, validate, and troubleshoot Windows GUI tool release artifacts"
   default_prompt: "Use $windows-gui-release-orchestration to plan, validate, or troubleshoot Windows GUI release artifacts and build-machine runs."
-policy:
-  allow_implicit_invocation: true

@@ -2,5 +2,3 @@ interface:
   display_name: "Codex Usage Telemetry"
   short_description: "Report and maintain local Codex token usage views"
   default_prompt: "Use $codex-usage-telemetry to inspect local Codex token usage and report freshness."
-policy:
-  allow_implicit_invocation: true
