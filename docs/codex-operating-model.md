@@ -14,6 +14,8 @@
 | `research-archive` | 外部资料核验、调研结论、归档与记忆候选 | `multi-search-engine`、`browser-reader`、`archive-search` | `research-note-wrap -> knowledge-archive -> memory-curator --dry-run` |
 | `external-monitor` | 等待型任务、PR/文档/外部反馈跟踪 | 明确数据源、刷新频率和只读边界 | 输出 action queue，不自动提交或发送 |
 
+`scripts/check.sh` 默认是 apply 后的发布门禁，会严格核对 live doctor、build/live diff 与 managed-state drift。尚未获准写入 live 时，使用 `rtk bash scripts/check.sh --pre-apply`：它保留 source、build、governance、tests、smoke、plan 和 apply dry-run，只跳过必须等实际 apply 后才能成立的 live 一致性断言。`--pre-apply` 通过不等于 live 已发布或可替代默认门禁。
+
 线程角色不是权限提升。需要网络、登录态、桌面 GUI、Slack/Gmail 或第三方 API 时，必须按任务显式授权，并记录只读/写入边界。
 
 ## 强目标

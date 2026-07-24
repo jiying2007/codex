@@ -3,10 +3,62 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MODE="post-apply"
+TARGET="$HOME/.codex"
+
+usage() {
+  printf '%s\n' \
+    'Usage: scripts/check.sh [--pre-apply] [--target PATH]' \
+    '' \
+    'Run the complete Codex asset verification gate.' \
+    '' \
+    'Options:' \
+    '  --pre-apply   Verify source, build, governance, tests, smoke and apply dry-run' \
+    '                without asserting that the current live target already matches.' \
+    '  --target PATH Use PATH as the live/apply-plan target (default: ~/.codex).' \
+    '  -h, --help    Show this help and exit.' \
+    '' \
+    'The default post-apply mode remains fail-closed: it verifies live doctor,' \
+    'build/live diff and managed-state drift.'
+}
+
+while (($# > 0)); do
+  case "$1" in
+    --pre-apply)
+      MODE="pre-apply"
+      shift
+      ;;
+    --target)
+      if (($# < 2)); then
+        echo "[FATAL] --target 缺少路径参数" >&2
+        usage >&2
+        exit 2
+      fi
+      TARGET="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "[FATAL] 未知参数: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
 cd "$ROOT"
 
+echo "[INFO] check_mode=$MODE target=$TARGET"
 rtk bash "$ROOT/scripts/build.sh"
-rtk bash "$ROOT/scripts/doctor.sh" --scope all
+if [[ "$MODE" == "post-apply" ]]; then
+  rtk bash "$ROOT/scripts/doctor.sh" --scope all --target "$TARGET"
+else
+  rtk bash "$ROOT/scripts/doctor.sh" --scope repo
+  rtk bash "$ROOT/scripts/doctor.sh" --scope build
+fi
 rtk bash "$ROOT/scripts/doctor.sh" --scope governance
 rtk bash "$ROOT/scripts/check-mcp-deny-paths.sh"
 rtk bash "$ROOT/scripts/governance-report.sh" --json
@@ -18,11 +70,15 @@ if [[ "${REQUIRE_MODERN_BWRAP:-0}" == "1" ]]; then
 else
   rtk bash "$ROOT/scripts/check-bwrap-capability.sh" --json-out "$ROOT/build/bwrap-capability.json"
 fi
-rtk bash "$ROOT/scripts/plan.sh" --target "$HOME/.codex" --output "$ROOT/build/apply-plan.check.json"
-rtk bash "$ROOT/scripts/apply.sh" --dry-run --no-build --prune-stale --target "$HOME/.codex" --plan-out "$ROOT/build/apply-plan.check-dry-run.json"
+rtk bash "$ROOT/scripts/plan.sh" --target "$TARGET" --output "$ROOT/build/apply-plan.check.json"
+rtk bash "$ROOT/scripts/apply.sh" --dry-run --no-build --prune-stale --target "$TARGET" --plan-out "$ROOT/build/apply-plan.check-dry-run.json"
 rtk bash "$ROOT/tests/smoke.sh"
-rtk bash "$ROOT/scripts/diff.sh" --target "$HOME/.codex"
-rtk bash "$ROOT/scripts/drift.sh" --target "$HOME/.codex"
+if [[ "$MODE" == "post-apply" ]]; then
+  rtk bash "$ROOT/scripts/diff.sh" --target "$TARGET"
+  rtk bash "$ROOT/scripts/drift.sh" --target "$TARGET"
+else
+  echo "[INFO] live_consistency=skipped reason=pre-apply"
+fi
 
 if rtk rg -n "(sk-[A-Za-z0-9_-]{20,}|(api[_-]?key|token|password)\\s*[:=]\\s*['\\\"][A-Za-z0-9_./+=:-]{16,}['\\\"]|BEGIN (RSA|OPENSSH|EC|DSA|PRIVATE) KEY)" "$ROOT" --glob '!build/**' --glob '!.git/**'; then
   echo "[FATAL] 疑似敏感信息命中" >&2
