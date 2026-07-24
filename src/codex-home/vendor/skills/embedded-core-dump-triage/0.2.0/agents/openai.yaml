@@ -1,0 +1,4 @@
+interface:
+  display_name: "PCR02 SigmaStar Core Dump Triage"
+  short_description: "Specialize core analysis for PCR02/SigmaStar artifacts and toolchains"
+  default_prompt: "Use $embedded-core-dump-triage only for PCR02/SigmaStar/SSC305 or prog_pcr02 core artifacts; use $adk-offline-core-dump-triage for generic embedded Linux core analysis."

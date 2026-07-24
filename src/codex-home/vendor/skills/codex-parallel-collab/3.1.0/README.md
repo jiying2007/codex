@@ -11,21 +11,21 @@
 ## 快速开始
 
 ```bash
-echo '$codex-parallel-collab
+rtk echo '$codex-parallel-collab
 目标: 完成 API 与服务层改造
 范围: backend/api, backend/service
 验收: 列出验证命令并执行
 约束: 不改 CI 与依赖
 先输出 CSV TODO，再按依赖批次并行执行。' \
-| codex exec --skip-git-repo-check --sandbox workspace-write --full-auto -C /path/to/repo
+| rtk codex exec --skip-git-repo-check --sandbox workspace-write --full-auto -C /path/to/repo
 ```
 
 只做拆解（不改代码）：
 
 ```bash
-echo '$codex-parallel-collab
+rtk echo '$codex-parallel-collab
 仅输出 CSV TODO 与任务包，不做文件修改。' \
-| codex exec --skip-git-repo-check --sandbox read-only -C /path/to/repo
+| rtk codex exec --skip-git-repo-check --sandbox read-only -C /path/to/repo
 ```
 
 ## 产物

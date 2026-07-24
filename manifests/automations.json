@@ -344,6 +344,70 @@
         "source evidence links",
         "rejection reasons"
       ]
+    },
+    {
+      "name": "monthly-workflow-mining-report",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "scheduled",
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "chronicle-skillization",
+      "cadence": "monthly first Monday 10:00 Asia/Hong_Kong after explicit authorization",
+      "scope": {
+        "data_sources": [
+          "~/.codex/session_index.jsonl",
+          "~/.codex/history.jsonl",
+          "~/.codex/sessions recent task summaries and only necessary raw evidence",
+          "~/.codex/memories",
+          "~/knowledge-hub/domains/codex/archive/codex-archive-registry",
+          "~/knowledge-hub/domains/codex/archive recent summary notes",
+          "~/codex manifests and managed skill, agent, automation and workflow inventory",
+          "Chronicle discovery only when exposed; confirm important facts in original systems"
+        ],
+        "write_boundary": "report only; do not create or update skills, agents, automations, memories, archives or source files"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop after one rolling 30-day report or when a required source cannot be parsed safely",
+      "triage_contract": {
+        "destination": "workflow mining candidate report",
+        "allowed_outputs": [
+          "source and time-window summary",
+          "repeated workflow candidate table",
+          "existing asset coverage mapping",
+          "create, extend, skip and needs-more-evidence decisions"
+        ],
+        "forbidden_actions": [
+          "modify files",
+          "promote candidates",
+          "write memories or archives",
+          "enable or schedule automations",
+          "commit, push, publish or send"
+        ]
+      },
+      "run_lifecycle": {
+        "first_run": "manually review the rolling window, source scope, redaction boundary and existing-asset inventory",
+        "steady_state": "inspect the previous 30 days, produce a sanitized candidate-first report and stop",
+        "stale_after": "one month or when a history, memory, Chronicle or manifest schema changes",
+        "retry_budget": 1,
+        "cleanup": [
+          "discard raw session excerpts and attachment contents after aggregation",
+          "keep only sanitized evidence counts, source references and decisions"
+        ],
+        "retention": "retain only user-reviewed report summaries; never copy raw logs, sessions or private attachments"
+      },
+      "output_artifacts": [
+        "source and time-window summary",
+        "repeated workflow candidate table",
+        "existing asset coverage mapping",
+        "decision queue"
+      ]
     }
   ]
 }

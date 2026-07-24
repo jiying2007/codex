@@ -1,0 +1,4 @@
+interface:
+  display_name: "Embedded Audio Stream Triage"
+  short_description: "Trace audio ordering, buffering, volume, timing, and tails"
+  default_prompt: "Use $embedded-audio-stream-triage to diagnose an embedded audio stream from producer through playback and propose focused fixes."

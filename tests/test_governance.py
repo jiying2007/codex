@@ -155,6 +155,22 @@ def make_repo(test_case: unittest.TestCase) -> pathlib.Path:
     return root
 
 
+def add_valid_workflow_route(root: pathlib.Path) -> dict:
+    manifest = json.loads((root / "manifests/workflows.json").read_text())
+    route = {
+        "name": "session-closeout",
+        "match_any": ["总结本次会话"],
+        "exclude_any": ["整理长期记忆"],
+        "primary_skill": "session-wrap",
+        "supporting_skills": ["memory-curator"],
+        "fallback_skill": "",
+        "mutually_exclusive_skills": [],
+    }
+    manifest["workflows"][0]["routes"] = [route]
+    write_json(root / "manifests/workflows.json", manifest)
+    return manifest
+
+
 def write_optional_controls(root: pathlib.Path) -> None:
     write_json(
         root / "manifests/workflow_recipes.json",
@@ -711,6 +727,61 @@ class GovernanceValidationTest(unittest.TestCase):
         write_json(root / "manifests/workflows.json", manifest)
         errors = validate_repo(root)
         self.assertIn("workflows:context-handoff 引用未知 skill: missing-skill", errors)
+
+    def test_workflow_route_rejects_unknown_primary_skill(self) -> None:
+        root = make_repo(self)
+        manifest = add_valid_workflow_route(root)
+        manifest["workflows"][0]["routes"][0]["primary_skill"] = "missing-skill"
+        write_json(root / "manifests/workflows.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn(
+            "workflows:context-handoff route:session-closeout 引用未知 primary skill: missing-skill",
+            errors,
+        )
+
+    def test_workflow_route_rejects_primary_supporting_overlap(self) -> None:
+        root = make_repo(self)
+        manifest = add_valid_workflow_route(root)
+        manifest["workflows"][0]["routes"][0]["supporting_skills"].append("session-wrap")
+        write_json(root / "manifests/workflows.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn(
+            "workflows:context-handoff route:session-closeout primary_skill 不得同时是 supporting skill: session-wrap",
+            errors,
+        )
+
+    def test_workflow_route_rejects_duplicate_match_term(self) -> None:
+        root = make_repo(self)
+        manifest = add_valid_workflow_route(root)
+        manifest["workflows"][0]["routes"].append(
+            {
+                "name": "memory-closeout",
+                "match_any": ["总结本次会话"],
+                "exclude_any": [],
+                "primary_skill": "memory-curator",
+                "supporting_skills": [],
+                "fallback_skill": "session-wrap",
+                "mutually_exclusive_skills": [],
+            }
+        )
+        write_json(root / "manifests/workflows.json", manifest)
+
+        errors = validate_repo(root)
+        self.assertIn(
+            "workflows:context-handoff route 匹配词重复: 总结本次会话 (session-closeout 与 memory-closeout)",
+            errors,
+        )
+
+    def test_governance_report_exposes_workflow_route_roles(self) -> None:
+        root = make_repo(self)
+        add_valid_workflow_route(root)
+
+        report = governance_report(root)
+        route = report["workflow_links"]["context-handoff"]["routes"][0]
+        self.assertEqual("session-wrap", route["primary_skill"])
+        self.assertEqual(["memory-curator"], route["supporting_skills"])
 
     def test_project_template_rejects_unknown_workflow(self) -> None:
         root = make_repo(self)

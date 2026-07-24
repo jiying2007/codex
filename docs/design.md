@@ -144,7 +144,7 @@ rtk bash scripts/drift.sh
 rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
 ```
 
-默认恢复 overwrite 动作的备份，并移除该 plan 中新增的 copy 文件。不会触碰未出现在 plan 中的运行态文件。
+默认恢复 overwrite 和 delete 动作的备份，并移除该 plan 中新增的 copy 文件。不会触碰未出现在 plan 中的运行态文件。若 rollback 用于 profile 切换，还需重新 build 原 profile，避免 build 与 live 状态不一致。
 
 ## Skill 归档
 

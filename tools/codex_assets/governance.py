@@ -225,6 +225,97 @@ def validate_workflows(
         for agent in list_value(item, "agents"):
             if agent not in agent_names:
                 errors.append(f"workflows:{name} 引用未知 agent: {agent}")
+        validate_workflow_routes(item, skill_names, errors)
+
+
+def validate_workflow_routes(item: dict[str, Any], skill_names: set[str], errors: list[str]) -> None:
+    workflow_name = str(item.get("name", ""))
+    routes = item.get("routes", [])
+    if routes is None:
+        return
+    if not isinstance(routes, list):
+        errors.append(f"workflows:{workflow_name} routes 必须是 array")
+        return
+
+    workflow_skills = set(list_value(item, "skills"))
+    route_names: set[str] = set()
+    match_terms: dict[str, str] = {}
+    required_fields = [
+        "name",
+        "match_any",
+        "exclude_any",
+        "primary_skill",
+        "supporting_skills",
+        "fallback_skill",
+        "mutually_exclusive_skills",
+    ]
+
+    for route in routes:
+        if not isinstance(route, dict):
+            errors.append(f"workflows:{workflow_name} route 必须是 object")
+            continue
+        route_name = str(route.get("name", ""))
+        label = f"workflows:{workflow_name} route:{route_name or '<unnamed>'}"
+        for field in required_fields:
+            if field not in route:
+                errors.append(f"{label} 缺少字段 {field}")
+        if not route_name or not re_match_name(route_name):
+            errors.append(f"{label} name 非法")
+        elif route_name in route_names:
+            errors.append(f"workflows:{workflow_name} 重复 route name: {route_name}")
+        route_names.add(route_name)
+
+        match_any = list_value(route, "match_any")
+        exclude_any = list_value(route, "exclude_any")
+        if not match_any:
+            errors.append(f"{label} match_any 不能为空")
+        normalized_excludes = {term.strip().casefold() for term in exclude_any if term.strip()}
+        for term in match_any:
+            normalized = term.strip().casefold()
+            if not normalized:
+                errors.append(f"{label} match_any 包含空值")
+                continue
+            if normalized in normalized_excludes:
+                errors.append(f"{label} match_any 与 exclude_any 重叠: {term}")
+            previous = match_terms.get(normalized)
+            if previous and previous != route_name:
+                errors.append(
+                    f"workflows:{workflow_name} route 匹配词重复: {term} ({previous} 与 {route_name})"
+                )
+            match_terms[normalized] = route_name
+
+        primary = str(route.get("primary_skill", ""))
+        supporting = set(list_value(route, "supporting_skills"))
+        fallback = str(route.get("fallback_skill", ""))
+        mutually_exclusive = set(list_value(route, "mutually_exclusive_skills"))
+        if not primary:
+            errors.append(f"{label} primary_skill 不能为空")
+        elif primary not in skill_names:
+            errors.append(f"{label} 引用未知 primary skill: {primary}")
+        elif primary not in workflow_skills:
+            errors.append(f"{label} primary skill 未列入 workflow.skills: {primary}")
+
+        for role, values in [
+            ("supporting", supporting),
+            ("mutually_exclusive", mutually_exclusive),
+        ]:
+            for skill in values:
+                if skill not in skill_names:
+                    errors.append(f"{label} 引用未知 {role} skill: {skill}")
+                if role == "supporting" and skill not in workflow_skills:
+                    errors.append(f"{label} supporting skill 未列入 workflow.skills: {skill}")
+        if fallback:
+            if fallback not in skill_names:
+                errors.append(f"{label} 引用未知 fallback skill: {fallback}")
+            elif fallback not in workflow_skills:
+                errors.append(f"{label} fallback skill 未列入 workflow.skills: {fallback}")
+
+        if primary in supporting:
+            errors.append(f"{label} primary_skill 不得同时是 supporting skill: {primary}")
+        if primary in mutually_exclusive:
+            errors.append(f"{label} primary_skill 不得与自身互斥: {primary}")
+        if fallback and fallback == primary:
+            errors.append(f"{label} fallback_skill 不得等于 primary_skill: {primary}")
 
 
 def validate_project_templates(
@@ -1416,12 +1507,23 @@ def re_match_env_key(value: str) -> bool:
     return bool(re.match(r"^[A-Z_][A-Z0-9_]*$", value))
 
 
-def workflow_links(workflows: list[dict[str, Any]]) -> dict[str, dict[str, list[str]]]:
+def workflow_links(workflows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {
         item["name"]: {
             "profiles": list_value(item, "profiles"),
             "skills": list_value(item, "skills"),
             "agents": list_value(item, "agents"),
+            "routes": [
+                {
+                    "name": route.get("name", ""),
+                    "primary_skill": route.get("primary_skill", ""),
+                    "supporting_skills": list_value(route, "supporting_skills"),
+                    "fallback_skill": route.get("fallback_skill", ""),
+                    "mutually_exclusive_skills": list_value(route, "mutually_exclusive_skills"),
+                }
+                for route in item.get("routes", [])
+                if isinstance(route, dict)
+            ],
         }
         for item in workflows
         if item.get("name")

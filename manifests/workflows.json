@@ -37,6 +37,28 @@
       "verification": [
         "rtk bash scripts/check.sh"
       ],
+      "routes": [
+        {
+          "name": "after-action-memory-candidate",
+          "match_any": [
+            "任务复盘",
+            "复盘 lessons",
+            "复盘刚完成",
+            "完成后复盘",
+            "任务完成后生成 memory candidate"
+          ],
+          "exclude_any": [
+            "审计 memory candidates",
+            "整理长期记忆候选"
+          ],
+          "primary_skill": "adk-after-action-review",
+          "supporting_skills": [],
+          "fallback_skill": "",
+          "mutually_exclusive_skills": [
+            "adk-memory-curator"
+          ]
+        }
+      ],
       "description": "agent-dev-kit 到 ~/codex 的生产交付门禁",
       "source_repo": "llm_agent/agent-dev-kit",
       "source_ref": "2.9.0",
@@ -82,6 +104,28 @@
       ],
       "verification": [
         "rtk bash scripts/check-skills.sh"
+      ],
+      "routes": [
+        {
+          "name": "memory-corpus-curation",
+          "match_any": [
+            "记忆整理",
+            "审计 memory candidates",
+            "整理长期记忆候选"
+          ],
+          "exclude_any": [
+            "任务复盘",
+            "复盘 lessons"
+          ],
+          "primary_skill": "adk-memory-curator",
+          "supporting_skills": [
+            "adk-knowledge-archive"
+          ],
+          "fallback_skill": "session-wrap",
+          "mutually_exclusive_skills": [
+            "adk-after-action-review"
+          ]
+        }
       ]
     },
     {
@@ -238,18 +282,34 @@
         "Serial log",
         "dmesg",
         "压测日志",
+        "设备日志分析",
+        "现场日志排查",
+        "看门狗重启",
+        "流式音频断续",
+        "音频吞首字",
+        "音频丢尾音",
+        "老化状态恢复",
+        "产测阶段切换",
+        "标定重复触发",
         "协议文档对照",
         "协议实现一致性"
       ],
       "skills": [
         "adk-embedded-diagnostic-harness",
+        "adk-embedded-remote-debug-log-triage",
+        "adk-embedded-debug-transport",
+        "adk-offline-core-dump-triage",
         "embedded-log-triage",
+        "embedded-core-dump-triage",
+        "embedded-audio-stream-triage",
+        "embedded-production-test-lifecycle",
         "protocol-implementation-audit",
         "adk-systematic-debugging",
         "adk-test-strategy"
       ],
       "agents": [
         "driver-engineer",
+        "performance-reliability-engineer",
         "test-validation-engineer"
       ],
       "commands": [
@@ -258,7 +318,163 @@
       "verification": [
         "rtk bash scripts/check.sh"
       ],
-      "description": "治理嵌入式诊断 CLI、strict/env 套件、预期返回码和 HIL/SIL 证据。"
+      "routes": [
+        {
+          "name": "diagnostic-cli-harness",
+          "match_any": [
+            "prog_tool",
+            "strict suite",
+            "invoke_ret",
+            "诊断 CLI"
+          ],
+          "exclude_any": [
+            "粘贴串口日志",
+            "core dump"
+          ],
+          "primary_skill": "adk-embedded-diagnostic-harness",
+          "supporting_skills": [
+            "adk-test-strategy"
+          ],
+          "fallback_skill": "adk-systematic-debugging",
+          "mutually_exclusive_skills": [
+            "adk-embedded-remote-debug-log-triage",
+            "embedded-production-test-lifecycle"
+          ]
+        },
+        {
+          "name": "device-remote-log-triage",
+          "match_any": [
+            "远程日志",
+            "现场日志",
+            "ADB logcat",
+            "SSH 设备日志",
+            "GDB remote",
+            "设备端日志"
+          ],
+          "exclude_any": [
+            "仅分析日志文本",
+            "本地日志文件"
+          ],
+          "primary_skill": "adk-embedded-remote-debug-log-triage",
+          "supporting_skills": [
+            "adk-embedded-debug-transport",
+            "adk-offline-core-dump-triage"
+          ],
+          "fallback_skill": "adk-systematic-debugging",
+          "mutually_exclusive_skills": [
+            "embedded-log-triage"
+          ]
+        },
+        {
+          "name": "offline-pasted-log-triage",
+          "match_any": [
+            "粘贴串口日志",
+            "离线串口",
+            "粘贴的日志",
+            "离线日志包",
+            "仅分析日志文本",
+            "本地日志文件"
+          ],
+          "exclude_any": [
+            "SSH",
+            "ADB",
+            "GDB remote",
+            "现场设备"
+          ],
+          "primary_skill": "embedded-log-triage",
+          "supporting_skills": [],
+          "fallback_skill": "adk-embedded-remote-debug-log-triage",
+          "mutually_exclusive_skills": [
+            "adk-embedded-remote-debug-log-triage"
+          ]
+        },
+        {
+          "name": "generic-offline-core-dump",
+          "match_any": [
+            "离线 core dump",
+            "通用 core dump",
+            "BuildID 符号匹配"
+          ],
+          "exclude_any": [
+            "PCR02",
+            "SigmaStar",
+            "SSC305",
+            "prog_pcr02"
+          ],
+          "primary_skill": "adk-offline-core-dump-triage",
+          "supporting_skills": [],
+          "fallback_skill": "adk-systematic-debugging",
+          "mutually_exclusive_skills": [
+            "embedded-core-dump-triage"
+          ]
+        },
+        {
+          "name": "pcr02-sigmastar-core-dump",
+          "match_any": [
+            "PCR02 core",
+            "SigmaStar core",
+            "SSC305 core",
+            "prog_pcr02 core"
+          ],
+          "exclude_any": [],
+          "primary_skill": "embedded-core-dump-triage",
+          "supporting_skills": [
+            "adk-offline-core-dump-triage"
+          ],
+          "fallback_skill": "adk-offline-core-dump-triage",
+          "mutually_exclusive_skills": []
+        },
+        {
+          "name": "audio-stream-triage",
+          "match_any": [
+            "流式音频断续",
+            "音频吞首",
+            "音频丢尾",
+            "PCM underrun"
+          ],
+          "exclude_any": [],
+          "primary_skill": "embedded-audio-stream-triage",
+          "supporting_skills": [
+            "adk-embedded-remote-debug-log-triage"
+          ],
+          "fallback_skill": "adk-systematic-debugging",
+          "mutually_exclusive_skills": []
+        },
+        {
+          "name": "production-test-lifecycle",
+          "match_any": [
+            "老化状态恢复",
+            "产测阶段切换",
+            "标定重复触发",
+            "重启持久化"
+          ],
+          "exclude_any": [
+            "仅校验返回码"
+          ],
+          "primary_skill": "embedded-production-test-lifecycle",
+          "supporting_skills": [
+            "adk-embedded-diagnostic-harness",
+            "adk-test-strategy"
+          ],
+          "fallback_skill": "adk-systematic-debugging",
+          "mutually_exclusive_skills": []
+        },
+        {
+          "name": "protocol-implementation-audit",
+          "match_any": [
+            "协议字段对照",
+            "端序不一致",
+            "协议实现一致性",
+            "寄存器表对照"
+          ],
+          "exclude_any": [],
+          "primary_skill": "protocol-implementation-audit",
+          "supporting_skills": [],
+          "fallback_skill": "adk-systematic-debugging",
+          "mutually_exclusive_skills": []
+        }
+      ],
+      "description": "治理嵌入式诊断 CLI、设备日志、流式音频、产测生命周期、协议一致性和 HIL/SIL 证据。"
     },
     {
       "name": "embedded-release-operations",

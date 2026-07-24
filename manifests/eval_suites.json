@@ -10,7 +10,7 @@
       "kind": "routing",
       "owner": "asset-governance",
       "cases_path": "tests/fixtures/routing_eval/workflow_cases.json",
-      "success_metric": "all positive routing cases select the expected workflow recipe and negative examples do not route to self",
+      "success_metric": "all recipe cases select the expected workflow recipe, negative examples do not route to self, and all skill-route cases select exactly one primary skill",
       "min_pass_rate": 1.0,
       "negative_cases_required": true,
       "commands": [
@@ -18,9 +18,10 @@
       ],
       "artifacts": [
         "tests/fixtures/routing_eval/workflow_cases.json",
+        "tests/fixtures/routing_eval/skill_cases.json",
         "tests/test_agent_routing_eval.py"
       ],
-      "promotion_gate": "new workflow recipe triggers require positive and negative routing examples before promotion"
+      "promotion_gate": "new workflow recipes or skill-route matrices require positive, negative, primary, supporting, and fallback routing evidence before promotion"
     },
     {
       "name": "governance-contract-eval",

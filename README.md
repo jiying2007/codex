@@ -19,30 +19,30 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 ## 常用命令
 
 ```bash
-# 生成可注入产物
+# 生成默认 token-lean profile 的可注入产物
 rtk bash scripts/build.sh
 
-# 体检仓库、构建产物和当前 ~/.codex
-rtk bash scripts/doctor.sh --scope all
-
-# 只检查 workflow / project template / overlay 引用关系
+# 分别检查 source、build 和治理关系
+rtk bash scripts/doctor.sh --scope repo
+rtk bash scripts/doctor.sh --scope build
 rtk bash scripts/doctor.sh --scope governance
+
+# build 与 live 已使用同一 profile 时做完整体检
+rtk bash scripts/doctor.sh --scope all
 
 # 输出 profile、skill、agent、workflow、项目模板和 overlay 关系
 rtk bash scripts/governance-report.sh
 rtk bash scripts/governance-report.sh --json
 
-# 预览注入
-rtk bash scripts/apply.sh --dry-run --no-build
+# 生成机器可读 apply plan；清理上一个 profile 遗留的受管入口
+rtk bash scripts/plan.sh --target ~/.codex --prune-stale --output build/apply-plan.json
 
-# 生成机器可读 apply plan
-rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json
-
-# 构建并注入到 ~/.codex，默认只覆盖未被本机改过的已管理文件
-rtk bash scripts/apply.sh
+# 预览并应用同一份计划
+rtk bash scripts/apply.sh --plan build/apply-plan.json --dry-run
+rtk bash scripts/apply.sh --plan build/apply-plan.json
 
 # 强制覆盖已有普通文件，覆盖前备份
-rtk bash scripts/apply.sh --overwrite
+rtk bash scripts/apply.sh --prune-stale --overwrite
 
 # 对比 build 与 ~/.codex
 rtk bash scripts/diff.sh
@@ -98,11 +98,9 @@ rtk bash scripts/usage-tail.sh --once
 # 从低上下文 catalog 查询长尾 skill；命中后再读取返回的 load_path
 rtk bash scripts/skill-search.sh --query "多源搜索和交叉验证" --summary-json
 
-# 显式兼容：需要 60 项完整 catalog 时构建 team-collab，并从新线程生效
-rtk bash scripts/build.sh --profile team-collab
-
 # 从指定 apply plan 回滚
-rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
+rtk bash scripts/rollback.sh --plan build/apply-plan.json --dry-run
+rtk bash scripts/rollback.sh --plan build/apply-plan.json
 
 # 端到端 smoke
 rtk bash tests/smoke.sh
@@ -110,6 +108,121 @@ rtk bash tests/smoke.sh
 # 发布前统一检查
 rtk bash scripts/check.sh
 ```
+
+## Profile 选择与切换
+
+Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow 以及并行上限。它不删除 `src/codex-home/vendor/` 中的能力实体，也不触碰 `~/.codex/skills/.system`。当前默认 profile 是 `token-lean`，由 `manifests/assets.json:default_profile` 声明。
+
+### 五个 Profile 的区别
+
+下表是当前 manifest 的实际绑定数量；“Skill”和“Agent”只统计本仓受管资产，不包含 Codex 内置 `.system` Skill 和平台默认 Agent。
+
+| Profile | 常驻 Skill | Custom Agent | Workflow | 并行 / 深度 | Catalog | 适用场景 |
+|---|---:|---:|---:|---:|---|---|
+| `minimal` | 1 | 0 | 0 | 2 / 2 | eager | 极简运行和资产 smoke；当前只常驻 `caveman` |
+| `solo-dev` | 34 | 5 | 4 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
+| `token-lean` | 20 | 0 | 4 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
+| `team-collab` | 61 | 16 | 13 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
+| `superpowers-compat` | 13 | 0 | 1 | 4 / 3 | eager | 显式 Superpowers 兼容、迁移回归或 ADK 无等价能力时使用 |
+
+选择建议：
+
+- 日常编码、调试、审查：优先 `token-lean`。
+- 单人嵌入式专项、归档和工具开发：使用 `solo-dev`。
+- 多 Agent 或需要完整 catalog：使用 `team-collab`。
+- 极低上下文实验：使用 `minimal`。
+- 只有用户明确点名、做兼容回归或 ADK 不适用时才使用 `superpowers-compat`。
+
+Profile 中的 `enabled_mcp_groups` 是能力声明；当前 `github`、`openaiDeveloperDocs` 和 `figma` MCP 条目仍为 `enabled=false`，切换 profile 不会自动启用外部服务或凭证访问。
+
+### 查看当前 Profile
+
+```bash
+rtk bash scripts/doctor.sh --scope live
+```
+
+输出中的 `PROFILE=<name>` 来自 `~/.codex/control/state/active-profile.env`。当前线程已经注入的 catalog 不会热刷新；切换成功后需要新开 Codex 线程。
+
+### 一条命令快速切换
+
+下面以 `team-collab` 为例；把 profile 名替换为 `minimal`、`solo-dev`、`token-lean` 或 `superpowers-compat` 即可：
+
+```bash
+rtk bash scripts/apply.sh \
+  --profile team-collab \
+  --target ~/.codex \
+  --prune-stale \
+  --plan-out build/apply-plan.switch.json
+```
+
+这条命令会依次 build、生成计划并应用到 live，同时保存可审计的 apply plan。它适合已经理解变更范围、希望快速切换的场景。
+
+切换后验证：
+
+```bash
+rtk bash scripts/doctor.sh --scope all
+rtk bash scripts/diff.sh --target ~/.codex
+rtk bash scripts/drift.sh --target ~/.codex
+```
+
+### 先审计再切换
+
+生产性工作或从大 profile 切到小 profile 时，优先使用以下流程：
+
+```bash
+# 1. 只构建目标 profile，不修改 live
+rtk bash scripts/build.sh --profile team-collab
+
+# 2. 校验 source、目标 build 和治理引用
+rtk bash scripts/doctor.sh --scope repo
+rtk bash scripts/doctor.sh --scope build
+rtk bash scripts/doctor.sh --scope governance
+
+# 3. 生成包含 stale 清理动作的计划
+rtk bash scripts/plan.sh \
+  --target ~/.codex \
+  --prune-stale \
+  --output build/apply-plan.switch.json
+
+# 4. 预览并应用完全相同的计划
+rtk bash scripts/apply.sh --plan build/apply-plan.switch.json --dry-run
+rtk bash scripts/apply.sh --plan build/apply-plan.switch.json
+
+# 5. 验证 build、live 和 managed state 一致
+rtk bash scripts/doctor.sh --scope all
+rtk bash scripts/diff.sh --target ~/.codex
+rtk bash scripts/drift.sh --target ~/.codex
+```
+
+切换时必须理解以下边界：
+
+1. `build.sh --profile ...` 只更新 `build/codex-home`，不会切换 `~/.codex`。
+2. 从 `team-collab` 切到较小 profile 必须使用 `--prune-stale`，否则旧的受管 Skill/Agent 入口可能残留。
+3. 不要直接使用 `apply.sh --dry-run --profile ...` 预览新 profile；当前 dry-run 不会自动重建，必须先显式 build。
+4. 切换过程中 build 和 live 暂时不同，因此 apply 前的 `doctor.sh --scope all` 可能报告预期的 profile drift；此时分别检查 `repo`、`build` 和 `governance`，应用后再检查 `all`。
+5. `scripts/check.sh` 会重新构建并验证默认 `token-lean`。非默认 live profile 的切换验收使用上面的 `doctor`、`diff` 和 `drift`；发布默认配置时再运行完整 `check.sh`。
+6. `build.sh` 会更新 `manifests/lock.json`，临时切换也可能让 Git 工作区出现 lockfile 变更。
+
+### 回切与回滚
+
+最可靠的回切方式是重新 apply 原 profile，例如回到默认配置：
+
+```bash
+rtk bash scripts/apply.sh \
+  --profile token-lean \
+  --target ~/.codex \
+  --prune-stale \
+  --plan-out build/apply-plan.switch-back.json
+```
+
+如果一次 apply 中途失败，或需要撤销该计划记录的 copy、overwrite 和 delete 动作，可使用当次 plan：
+
+```bash
+rtk bash scripts/rollback.sh --plan build/apply-plan.switch.json --dry-run
+rtk bash scripts/rollback.sh --plan build/apply-plan.switch.json
+```
+
+rollback 恢复的是 live 文件；随后应重新 build 原 profile，并运行 `doctor --scope all`、`diff` 和 `drift`，确保 build 与 live 再次一致。
 
 ## 目录职责
 
@@ -162,7 +275,9 @@ rtk bash scripts/promote-skill.sh inbox/skills/<name>/<timestamp> --version 0.1.
 # 重新构建、体检、注入
 rtk bash scripts/build.sh
 rtk bash scripts/doctor.sh --scope build
-rtk bash scripts/apply.sh
+rtk bash scripts/plan.sh --target ~/.codex --prune-stale --output build/apply-plan.json
+rtk bash scripts/apply.sh --plan build/apply-plan.json --dry-run
+rtk bash scripts/apply.sh --plan build/apply-plan.json
 ```
 
 正式 skill 存放在 `src/codex-home/vendor/skills/<name>/<version>/`，激活入口由 `build.sh` 在 `build/codex-home/skills/<name>` 生成相对 symlink。不要把第三方 skill 直接放进 `src/codex-home/skills/`。

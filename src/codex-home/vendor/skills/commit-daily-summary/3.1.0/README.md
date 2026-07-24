@@ -19,7 +19,7 @@
 2. 采集 commit 证据：
 
 ```bash
-git -C <repo> log --since="YYYY-MM-DD 00:00" --until="YYYY-MM-DD 23:59:59" --pretty=format:"%h%x09%s"
+rtk git -C <repo> log --since="YYYY-MM-DD 00:00" --until="YYYY-MM-DD 23:59:59" --pretty=format:"%h%x09%s"
 ```
 
 3. 按主题聚合，不按 commit 逐条复述。

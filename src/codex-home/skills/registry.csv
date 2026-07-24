@@ -9,9 +9,11 @@ adk-context-compress-handoff,1.0.0,active,agent-dev-kit
 adk-cross-team-handoff,1.0.0,active,agent-dev-kit
 adk-engineering-growth-review,1.0.0,active,agent-dev-kit
 adk-embedded-diagnostic-harness,1.0.0,active,agent-dev-kit
-embedded-core-dump-triage,0.1.0,active,local
+embedded-audio-stream-triage,0.1.0,active,local
+embedded-core-dump-triage,0.2.0,active,local
 embedded-app-doc-handoff,0.1.0,active,local
-embedded-log-triage,0.1.0,active,local
+embedded-log-triage,0.2.0,active,local
+embedded-production-test-lifecycle,0.1.0,active,local
 adk-embedded-release-orchestration,1.0.0,active,agent-dev-kit
 adk-structured-requirements-questioning,1.0.0,active,agent-dev-kit
 adk-interface-contract-design,1.0.0,active,agent-dev-kit

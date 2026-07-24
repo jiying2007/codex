@@ -4,12 +4,13 @@
 
 1. 修改 `src/codex-home/` 中的人工资产，或修改 `manifests/*.json`。
 2. 运行 `rtk bash scripts/build.sh`，使用默认 `token-lean` profile。
-3. 运行 `rtk bash scripts/doctor.sh --scope all`。
+3. 运行 `rtk bash scripts/doctor.sh --scope repo` 和 `rtk bash scripts/doctor.sh --scope build`。
 4. 若修改了 workflow、project template 或 overlay，运行 `rtk bash scripts/doctor.sh --scope governance`。
-5. 运行 `rtk bash scripts/plan.sh --target ~/.codex --output build/apply-plan.json` 生成审计计划。
-6. 运行 `rtk bash scripts/apply.sh --dry-run --no-build` 预览。
-7. 确认后运行 `rtk bash scripts/apply.sh`。
-8. 发布前运行 `rtk bash scripts/check.sh`。
+5. 运行 `rtk bash scripts/plan.sh --target ~/.codex --prune-stale --output build/apply-plan.json` 生成审计计划。
+6. 运行 `rtk bash scripts/apply.sh --plan build/apply-plan.json --dry-run` 预览完全相同的计划。
+7. 确认后运行 `rtk bash scripts/apply.sh --plan build/apply-plan.json`。
+8. 运行 `doctor --scope all`、`diff.sh` 和 `drift.sh`，确认 build、live 与 managed state 一致。
+9. 发布默认配置前运行 `rtk bash scripts/check.sh`。
 
 默认 apply 只自动覆盖“上次由本仓库注入且 live 端未被本机改过”的文件；像 `config.toml` 这类已发生本机漂移的文件会被保留，并继续由 `drift.sh` 报告。需要强制覆盖时显式加 `--overwrite`。
 
@@ -94,6 +95,16 @@ rtk bash scripts/skill-search.sh --query "<任务>" --profile token-lean --limit
 ```
 
 只有在 `why_selected` 足以区分相邻候选后才读取 `load_path`。默认排除 Superpowers；仅显式兼容时使用 `--include-fallback`。需要旧式完整 catalog 时可构建并 apply `team-collab`，但 catalog 只在新线程刷新。
+
+### Profile 切换操作边界
+
+- `build.sh --profile <name>` 只更新 `build/codex-home`；只有 apply 才会修改 `~/.codex`。
+- 快速切换使用 `apply.sh --profile <name> --target ~/.codex --prune-stale`；建议同时用 `--plan-out` 保存审计和回滚依据。
+- 安全切换先显式 build，再用 `plan.sh --prune-stale` 生成计划，随后对同一 plan 执行 dry-run 和 apply。
+- `apply.sh --dry-run --profile <name>` 不会自动重建目标 profile，因此不能代替“先 build 再 dry-run”。
+- build 与 live 暂时使用不同 profile 时，apply 前的 `doctor --scope all` 会报告预期漂移；分别检查 `repo`、`build`、`governance`，apply 后再检查 `all`。
+- 当前 `scripts/check.sh` 总是重建默认 `token-lean`；非默认 live profile 使用 `doctor --scope all`、`diff.sh` 和 `drift.sh` 验收。
+- profile catalog 只在新线程刷新。完整对比、命令、回切和 rollback 流程见根 `README.md` 的“Profile 选择与切换”。
 
 ## Codex 工作模型
 
@@ -469,4 +480,4 @@ rtk bash scripts/rollback.sh --plan build/apply-plan.live.json --dry-run
 rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
 ```
 
-rollback 只处理 plan 中记录的 copy/overwrite 项：新增文件会移除，被覆盖文件会从备份恢复。
+rollback 处理 plan 中记录的 copy、overwrite 和 delete 项：新增文件会移除，被覆盖或删除的文件会从备份恢复。rollback 后应重新 build 原 profile，并执行 doctor、diff 和 drift，确保 build 与 live 再次一致。

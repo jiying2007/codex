@@ -52,7 +52,7 @@ Use direct git commands with explicit repository paths.
 Recommended command pattern:
 
 ```bash
-git -C <repo> log --since="YYYY-MM-DD 00:00" --until="YYYY-MM-DD 23:59:59" --pretty=format:"%h%x09%s"
+rtk git -C <repo> log --since="YYYY-MM-DD 00:00" --until="YYYY-MM-DD 23:59:59" --pretty=format:"%h%x09%s"
 ```
 
 If no commits are found, state that clearly.
@@ -134,4 +134,3 @@ Before responding, verify:
 - [ ] Related commits are grouped into workstreams
 - [ ] Chinese task lines are human-readable and action-oriented
 - [ ] Empty noise commits are not treated as major work items
-

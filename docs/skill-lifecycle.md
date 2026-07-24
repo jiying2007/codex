@@ -181,6 +181,31 @@ An external skill update is ready when:
 - local changes do not silently fork the upstream skill body;
 - build, doctor, apply dry-run, apply, and check pass.
 
+An imported candidate may remain under `src/codex-home/vendor/skills/` only when it is also registered in `manifests/skills.json` with `enabled=false`, an empty profile list, and `review_status=pending`. Candidates with unresolved command context, missing local wrappers, or unverified upstream scripts must not be activated.
+
+## Invocation Metadata Contract
+
+`agents/openai.yaml` uses the current nested metadata shape only:
+
+```yaml
+interface:
+  display_name: Example
+  short_description: Example skill
+```
+
+- Required `display_name`/`short_description` and optional `default_prompt`/`icon_small`/`icon_large`/`brand_color` belong under `interface`; legacy top-level interface fields are rejected.
+- Implicit invocation is the default and must omit `policy`. Redundant `allow_implicit_invocation: true` is rejected.
+- An explicit-only skill must declare `policy.allow_implicit_invocation: false`. No current managed skill is explicit-only without a reviewed routing decision.
+- The source checker fails closed on malformed or unknown metadata. There is no compatibility reader for the retired shape.
+- Repository-wide metadata normalization is a packaging compatibility migration; it must not alter an imported skill's `SKILL.md` body.
+
+## Command Compatibility
+
+- Local maintained skills must route executable shell examples through `rtk`.
+- A local skill's `scripts/...` references must resolve either from the Codex asset repository root or from the skill directory.
+- External mirrors are not silently patched to satisfy local command policy; fix them upstream and import a new version.
+- If an external skill references repository-specific commands such as `scripts/devkit.sh`, its activation review must identify the required execution repository and a verified fallback. Until then, keep it disabled or treat the command block as unavailable.
+
 ## Chronicle-Derived Skills
 
 Chronicle-derived skills must retain an evidence trail:
@@ -196,10 +221,16 @@ Current Chronicle-derived local skill set:
 
 - `chronicle-workflow-miner`
 - `codex-usage-telemetry`
+- `embedded-audio-stream-triage`
+- `embedded-app-doc-handoff`
+- `embedded-core-dump-triage`
 - `embedded-log-triage`
+- `embedded-production-test-lifecycle`
 - `external-practice-absorption`
+- `mcu-firmware-release-closure`
 - `patent-disclosure-normalization`
 - `protocol-implementation-audit`
+- `sigmastar-release-app-flow`
 - `windows-gui-release-orchestration`
 
 Review them whenever similar user requests repeat, or when routing behavior becomes noisy.

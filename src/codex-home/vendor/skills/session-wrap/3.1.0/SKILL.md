@@ -49,9 +49,9 @@ Collect the minimum evidence needed to summarize the session accurately.
 Recommended commands:
 
 ```bash
-git status --short
-git diff --stat
-git log --oneline -n 10
+rtk git status --short
+rtk git diff --stat
+rtk git log --oneline -n 10
 ```
 
 If the repository state is not available, say so explicitly and continue with the session evidence you do have.

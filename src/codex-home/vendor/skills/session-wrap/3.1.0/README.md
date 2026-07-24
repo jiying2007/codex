@@ -13,9 +13,9 @@
 2. 收集最小证据：
 
 ```bash
-git status --short
-git diff --stat
-git log --oneline --decorate -n 10
+rtk git status --short
+rtk git diff --stat
+rtk git log --oneline --decorate -n 10
 ```
 
 3. 按工作流输出：已完成 / 未完成 / 风险 / 下一步。

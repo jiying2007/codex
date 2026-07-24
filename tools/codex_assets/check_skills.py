@@ -16,6 +16,10 @@ MANIFEST = ROOT / "manifests/skills.json"
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+([+-][A-Za-z0-9.-]+)?$")
 DATE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 LINK = re.compile(r"(?:\]\(|`)((?:scripts|references|reference|examples)/[^)`#\s]+)")
+BARE_LOCAL_COMMAND = re.compile(
+    r"^\s*(?:\|\s*)?(?:bash|git|rg|find|sed|awk|python|python3|echo|codex)\s+"
+)
+SCRIPT_REF = re.compile(r"(?<![A-Za-z0-9_.-])((?:\./)?scripts/[A-Za-z0-9._/-]+\.(?:sh|py))")
 OPENAI_TOP_LEVEL_FIELDS = {"interface", "policy"}
 OPENAI_INTERFACE_REQUIRED_FIELDS = {"display_name", "short_description"}
 OPENAI_INTERFACE_OPTIONAL_FIELDS = {
@@ -139,6 +143,29 @@ def main() -> int:
         if re.search(r"~/.agents/skills|assets/codex|apply-to-codex|scan-codex-skills", text):
             errors.append(f"{skill_md}: 包含旧路径或旧入口")
 
+        manifest_item = manifest_items.get(name)
+        if manifest_item is None:
+            errors.append(f"{skill_md}: source skill 未登记到 manifests/skills.json")
+            continue
+        if "local" in manifest_item.get("tags", []):
+            for doc_path in (skill_md, skill_dir / "README.md"):
+                doc_text = doc_path.read_text(encoding="utf-8")
+                in_fence = False
+                for line_number, line in enumerate(doc_text.splitlines(), 1):
+                    if line.lstrip().startswith("```"):
+                        in_fence = not in_fence
+                        continue
+                    if in_fence and BARE_LOCAL_COMMAND.match(line):
+                        errors.append(
+                            f"{doc_path}:{line_number}: local skill 命令必须通过 rtk 执行"
+                        )
+                for match in SCRIPT_REF.finditer(doc_text):
+                    rel = match.group(1)
+                    if rel.startswith("./"):
+                        rel = rel[2:]
+                    if not (ROOT / rel).exists() and not (skill_dir / rel).exists():
+                        errors.append(f"{doc_path}: local skill 引用不可用脚本 {rel}")
+
     for name, item in manifest_items.items():
         vendor_rel = item.get("vendor_rel", "")
         if vendor_rel.startswith("vendor/skills/"):
@@ -159,7 +186,7 @@ def main() -> int:
         provenance = [item.get(field, "") for field in ["source_repo", "source_ref", "source_path", "imported_at"]]
         if any(provenance) and not all(provenance):
             errors.append(f"manifest:{name} 来源元数据不完整")
-        if item.get("source_repo") and item.get("review_status") != "accepted":
+        if item.get("enabled") and item.get("source_repo") and item.get("review_status") != "accepted":
             errors.append(f"manifest:{name} 第三方来源必须 review_status=accepted")
 
     for warning in warnings:

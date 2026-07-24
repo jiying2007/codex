@@ -1,0 +1,4 @@
+interface:
+  display_name: "Offline Embedded Log Triage"
+  short_description: "Analyze pasted or offline embedded logs without live-device access"
+  default_prompt: "Use $embedded-log-triage only for pasted or offline log text; route device-side or remote investigations to $adk-embedded-remote-debug-log-triage."

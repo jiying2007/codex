@@ -521,6 +521,28 @@
       "review_status": "accepted"
     },
     {
+      "name": "adk-repo-prompt-analysis",
+      "enabled": false,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-repo-prompt-analysis/1.0.0",
+      "target_rel": "skills/adk-repo-prompt-analysis",
+      "profiles": [],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "analysis",
+        "candidate",
+        "inactive"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-repo-prompt-analysis/SKILL.md",
+      "imported_at": "2026-06-02",
+      "review_status": "pending"
+    },
+    {
       "name": "adk-requirements-triage",
       "enabled": true,
       "source_kind": "vendor",
@@ -609,6 +631,28 @@
       "source_path": "optional-skills/adk-skill-composition-governance/SKILL.md",
       "imported_at": "2026-05-23",
       "review_status": "accepted"
+    },
+    {
+      "name": "adk-skill-deep-analysis",
+      "enabled": false,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/adk-skill-deep-analysis/1.0.0",
+      "target_rel": "skills/adk-skill-deep-analysis",
+      "profiles": [],
+      "tags": [
+        "agent-dev-kit",
+        "adk",
+        "analysis",
+        "candidate",
+        "inactive"
+      ],
+      "owner": "agent-dev-kit",
+      "source_repo": "llm_agent/agent-dev-kit",
+      "source_ref": "2.9.0",
+      "source_path": "skills/adk-skill-deep-analysis/SKILL.md",
+      "imported_at": "2026-06-02",
+      "review_status": "pending"
     },
     {
       "name": "adk-static-analysis-c-cpp",
@@ -827,7 +871,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/brainstorming/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "browser-reader",
@@ -983,8 +1033,15 @@
         "team-collab"
       ],
       "tags": [
+        "local",
         "summary"
-      ]
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/commit-daily-summary/3.1.0",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "dispatching-parallel-agents",
@@ -999,7 +1056,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/dispatching-parallel-agents/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "embedded-app-doc-handoff",
@@ -1028,11 +1091,37 @@
       "review_status": "accepted"
     },
     {
-      "name": "embedded-core-dump-triage",
+      "name": "embedded-audio-stream-triage",
       "enabled": true,
       "source_kind": "vendor",
       "version": "0.1.0",
-      "vendor_rel": "vendor/skills/embedded-core-dump-triage/0.1.0",
+      "vendor_rel": "vendor/skills/embedded-audio-stream-triage/0.1.0",
+      "target_rel": "skills/embedded-audio-stream-triage",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "audio",
+        "streaming",
+        "debug",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-audio-stream-triage/0.1.0",
+      "imported_at": "2026-07-14",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-core-dump-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.2.0",
+      "vendor_rel": "vendor/skills/embedded-core-dump-triage/0.2.0",
       "target_rel": "skills/embedded-core-dump-triage",
       "profiles": [
         "solo-dev",
@@ -1049,16 +1138,16 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-core-dump-triage/0.1.0",
-      "imported_at": "2026-06-28",
+      "source_path": "src/codex-home/vendor/skills/embedded-core-dump-triage/0.2.0",
+      "imported_at": "2026-07-15",
       "review_status": "accepted"
     },
     {
       "name": "embedded-log-triage",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/embedded-log-triage/0.1.0",
+      "version": "0.2.0",
+      "vendor_rel": "vendor/skills/embedded-log-triage/0.2.0",
       "target_rel": "skills/embedded-log-triage",
       "profiles": [
         "solo-dev",
@@ -1074,8 +1163,34 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-log-triage/0.1.0",
-      "imported_at": "2026-06-15",
+      "source_path": "src/codex-home/vendor/skills/embedded-log-triage/0.2.0",
+      "imported_at": "2026-07-15",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-production-test-lifecycle",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/embedded-production-test-lifecycle/0.1.0",
+      "target_rel": "skills/embedded-production-test-lifecycle",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "production-test",
+        "aging",
+        "calibration",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-production-test-lifecycle/0.1.0",
+      "imported_at": "2026-07-14",
       "review_status": "accepted"
     },
     {
@@ -1091,7 +1206,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/executing-plans/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "external-practice-absorption",
@@ -1131,7 +1252,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/finishing-a-development-branch/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "mcp-builder",
@@ -1242,8 +1369,15 @@
         "team-collab"
       ],
       "tags": [
+        "local",
         "summary"
-      ]
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/project-daily-summary/3.1.0",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "protocol-implementation-audit",
@@ -1283,7 +1417,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/receiving-code-review/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "requesting-code-review",
@@ -1298,7 +1438,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/requesting-code-review/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "research-note-wrap",
@@ -1312,8 +1458,15 @@
         "team-collab"
       ],
       "tags": [
+        "local",
         "summary"
-      ]
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/research-note-wrap/3.1.0",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "session-wrap",
@@ -1399,7 +1552,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/subagent-driven-development/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "systematic-debugging",
@@ -1414,7 +1573,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/systematic-debugging/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "test-driven-development",
@@ -1429,7 +1594,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/test-driven-development/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "using-git-worktrees",
@@ -1444,7 +1615,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/using-git-worktrees/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "using-superpowers",
@@ -1459,7 +1636,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/using-superpowers/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "verification-before-completion",
@@ -1474,7 +1657,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/verification-before-completion/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     },
     {
       "name": "wechat-account-research",
@@ -1560,7 +1749,13 @@
       "tags": [
         "superpowers",
         "fallback"
-      ]
+      ],
+      "owner": "jnMetaCode",
+      "source_repo": "jnMetaCode/superpowers-zh",
+      "source_ref": "1.1.9",
+      "source_path": "skills/writing-plans/SKILL.md",
+      "imported_at": "2026-05-09",
+      "review_status": "accepted"
     }
   ]
 }

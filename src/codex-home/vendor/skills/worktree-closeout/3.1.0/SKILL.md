@@ -60,7 +60,7 @@ If scope is `repo`, pass the absolute repo root with `--repo`.
 ### 3. Run the scanner
 
 ```bash
-python -X utf8 ./scripts/scan_closeout.py --date <YYYY-MM-DD> --scope <repo|all> [--repo <ABSOLUTE_REPO_PATH>]
+rtk python3 -X utf8 ./scripts/scan_closeout.py --date <YYYY-MM-DD> --scope <repo|all> [--repo <ABSOLUTE_REPO_PATH>]
 ```
 
 Notes:

@@ -112,7 +112,7 @@ For each session:
 
 1. Try:
    ```bash
-   git -C <cwd> rev-parse --show-toplevel
+   rtk git -C <cwd> rev-parse --show-toplevel
    ```
 2. If that fails, use `cwd` as the project key.
 
@@ -212,9 +212,9 @@ Target **1 to 5 workstreams per project**, not dozens of tiny entries.
 For each project, run:
 
 ```bash
-git -C <repo> log --since="YYYY-MM-DD 00:00" --until="YYYY-MM-DD 23:59" --pretty=format:"%h %s"
-git -C <repo> status --short
-git -C <repo> diff --stat
+rtk git -C <repo> log --since="YYYY-MM-DD 00:00" --until="YYYY-MM-DD 23:59" --pretty=format:"%h %s"
+rtk git -C <repo> status --short
+rtk git -C <repo> diff --stat
 ```
 
 Use this to produce:
@@ -329,6 +329,5 @@ If the user explicitly says not to save the report, skip file creation and retur
 - 总结今天所有 Codex 会话
 - 总结今天会话+提交+未提交改动
 - codex project daily summary
-
 
 

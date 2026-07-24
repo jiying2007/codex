@@ -11,14 +11,14 @@
   "profiles": [
     {
       "name": "minimal",
-      "description": "最小可用配置，适合日常单人开发",
+      "description": "极简运行配置，适合资产 smoke、基础操作和低上下文实验",
       "max_parallel_agents": 2,
       "max_depth": 2,
       "default_agent_type": "default",
       "enabled_mcp_groups": [
         "core"
       ],
-      "notes": "仅激活核心 skill 与本地 agents"
+      "notes": "极简 profile；当前仅激活 caveman，不注入受管 Custom Agent 或 Workflow"
     },
     {
       "name": "solo-dev",
@@ -30,7 +30,7 @@
         "core",
         "dev"
       ],
-      "notes": "激活 daily skill + caveman + reviewer"
+      "notes": "个人专项 Skill、5 个本地 Agent，以及归档、资产治理和会话接力 Workflow"
     },
     {
       "name": "team-collab",
@@ -67,7 +67,7 @@
         "core",
         "dev"
       ],
-      "notes": "不作为默认 profile；默认 team-collab 已切换为 adk-first"
+      "notes": "不作为默认 profile；仅激活 Superpowers 兼容 Skill，不与默认 token-lean 的 ADK 主干混用"
     }
   ]
 }

@@ -1,119 +1,119 @@
 {
   "schema_version": 2,
   "profile": "token-lean",
-  "managed_count": 681,
+  "managed_count": 712,
   "items": [
     {
       "kind": "skill",
       "name": "adk-branch-closeout",
       "version": "1.0.0",
       "source": "vendor/skills/adk-branch-closeout/1.0.0",
-      "sha256": "5e32da0ca8a60e94805e4f5f06ccd686e20e259c250f3acbb63210b541ad8a45"
+      "sha256": "4be97cfc08913c03447c288186f2af09549698caa4d4c4c437107bfc8ae0b6fc"
     },
     {
       "kind": "skill",
       "name": "adk-code-review-loop",
       "version": "1.0.0",
       "source": "vendor/skills/adk-code-review-loop/1.0.0",
-      "sha256": "3e456c89f57c416445c950fa1daea5329911825b969792091f0cfe5c428063db"
+      "sha256": "1691f3b2cdd235338c9756e96e75609009295770ad936f1d48ff54a4ba42192f"
     },
     {
       "kind": "skill",
       "name": "adk-commit-pr-quality-gate",
       "version": "1.0.0",
       "source": "vendor/skills/adk-commit-pr-quality-gate/1.0.0",
-      "sha256": "911facc70200df1e1a9dcbb11b04f044b819ea707c84dde38d28c5113309a720"
+      "sha256": "fd4538ef174477f0be2d431de44433ade667c697080794c1df10b689ef4a08cd"
     },
     {
       "kind": "skill",
       "name": "adk-context-compress-handoff",
       "version": "1.0.0",
       "source": "vendor/skills/adk-context-compress-handoff/1.0.0",
-      "sha256": "1ad9b4670be0813e9e7e7962d5b1fa215c3496a49afd485059a1ad0fbd041bd2"
+      "sha256": "85734a8ccfebedd84a49319a9c300dbf81b13be2d15df4ae000edacf5ff9a9a3"
     },
     {
       "kind": "skill",
       "name": "adk-knowledge-archive",
       "version": "1.0.0",
       "source": "vendor/skills/adk-knowledge-archive/1.0.0",
-      "sha256": "72df3cfdaaa33070167f8f225ca322207df3a374005a8e2898c83a69e940fc2e"
+      "sha256": "63713e07d2bf8b5e918d7026c333a3b4c44b27823ece1e533fe0bb90f03b3e9e"
     },
     {
       "kind": "skill",
       "name": "adk-memory-curator",
       "version": "1.0.0",
       "source": "vendor/skills/adk-memory-curator/1.0.0",
-      "sha256": "9310765dfc9aac6c353cd7ca443500dd98a3f42104c7eaa3736ba4e72ffb4e3d"
+      "sha256": "8a98720305cb59803eb70db1cd5f7ee6f286b37b2646321a7789499b6f9277be"
     },
     {
       "kind": "skill",
       "name": "adk-parallel-agent-governance",
       "version": "1.0.0",
       "source": "vendor/skills/adk-parallel-agent-governance/1.0.0",
-      "sha256": "d3788675a3819e20513f906b8e214795474efd0040500da9c4c197b87aa052ca"
+      "sha256": "1c06c3a05708ae3916f25b2e57766c9d5ac7f8264d7a520b341d5b097a9aeac0"
     },
     {
       "kind": "skill",
       "name": "adk-planning-execution-loop",
       "version": "1.0.0",
       "source": "vendor/skills/adk-planning-execution-loop/1.0.0",
-      "sha256": "b3b893dd0afbc094a27ae6c448ae578d41cf323f3066e104d2f54337f7e73178"
+      "sha256": "e5df6de7010840cc1efe12a98a484e1c1181046bb5d1beb6556ab8d84781bd74"
     },
     {
       "kind": "skill",
       "name": "adk-requirements-triage",
       "version": "1.1.0",
       "source": "vendor/skills/adk-requirements-triage/1.1.0",
-      "sha256": "47ae63c49a3709f780309f11e37af76ecba4d58eeba7aca77351d1ef54883189"
+      "sha256": "79820b67ca73c59d302e6aae89345b135a3d52f89666918bd4e046817a7141ba"
     },
     {
       "kind": "skill",
       "name": "adk-runtime-router",
       "version": "1.0.0",
       "source": "vendor/skills/adk-runtime-router/1.0.0",
-      "sha256": "71fbbfb17edc8362318068631264ba119f4b34dc21e5ba3495ed3b0d0608e87b"
+      "sha256": "e2d840aabcc7291cc37fce4ea35ec89c09c4fa5e0af4f273adaf3585223163f5"
     },
     {
       "kind": "skill",
       "name": "adk-systematic-debugging",
       "version": "1.1.0",
       "source": "vendor/skills/adk-systematic-debugging/1.1.0",
-      "sha256": "c0acfb33bda439d5a246ebf7abd60c9aeb3ac6df8e8043372f88263e8e7f6c9d"
+      "sha256": "7c9c3fc1a6e358c046a61e0cbdbedecdfbb24b3834d6df477cfe7ae73551932b"
     },
     {
       "kind": "skill",
       "name": "adk-task-breakdown",
       "version": "1.1.0",
       "source": "vendor/skills/adk-task-breakdown/1.1.0",
-      "sha256": "06afaa976556278f83c775f836f2a39e31d2378c9a3101b5f736dbd66fa82da2"
+      "sha256": "5ea131f25e618f3f67dde9acb027e645a84b7b64ac4fd13235a46ce20ffde6b7"
     },
     {
       "kind": "skill",
       "name": "adk-test-strategy",
       "version": "1.0.0",
       "source": "vendor/skills/adk-test-strategy/1.0.0",
-      "sha256": "2a634e83f807e35df6459a3339419887856b5c7297e80292eefebc5429ee8a6c"
+      "sha256": "7bd4e4563863cc750301dc4d4a64561b82f92508f2aad37e529c707b26f6b462"
     },
     {
       "kind": "skill",
       "name": "adk-token-context-governance",
       "version": "1.1.0",
       "source": "vendor/skills/adk-token-context-governance/1.1.0",
-      "sha256": "e112697b16667b74a8893d149d931b9325e6d1d5906b25b8ea0ed0e1f364f94f"
+      "sha256": "1fcd8d36fdfd44cb4328ef52591949a53a212a4e498a236b984557aa46735aa9"
     },
     {
       "kind": "skill",
       "name": "adk-verification-before-completion",
       "version": "1.0.0",
       "source": "vendor/skills/adk-verification-before-completion/1.0.0",
-      "sha256": "40ed541cfcecc3fa0d18ab2e8000693247417d001898e816c1a02a1dd5ce265e"
+      "sha256": "66b0875518ecebec8e8c1a605a11a7652800269595ccb1207beedefb7f19709f"
     },
     {
       "kind": "skill",
       "name": "adk-worktree-governance",
       "version": "1.0.0",
       "source": "vendor/skills/adk-worktree-governance/1.0.0",
-      "sha256": "dbf8f13d3d08c4579301df4e4b251845689440d650aeaf105dfd14f9e8d956f0"
+      "sha256": "47a773eda534c8bdd1b31f1596a0d31b1cef269419aa98c8fd089bb05ef83508"
     },
     {
       "kind": "skill",
@@ -127,21 +127,21 @@
       "name": "codex-parallel-collab",
       "version": "3.1.0",
       "source": "vendor/skills/codex-parallel-collab/3.1.0",
-      "sha256": "763748a1b7b95a6b333ad890008f07267890fdddfb6e4d1439689e54a465661c"
+      "sha256": "26139570a65c6517b0b267a5f56399f38be07e4568b9456b672e38e536e91b93"
     },
     {
       "kind": "skill",
       "name": "session-wrap",
       "version": "3.1.0",
       "source": "vendor/skills/session-wrap/3.1.0",
-      "sha256": "0ea9dc069f125fbf3b12887d7a9cc5e5bc77bb4ac4c6c805e28a55c943f503a4"
+      "sha256": "846a1178a0a2e1548807448c87a40e37bfa633b9ade25b09d39ca45223f0e448"
     },
     {
       "kind": "skill",
       "name": "worktree-closeout",
       "version": "3.1.0",
       "source": "vendor/skills/worktree-closeout/3.1.0",
-      "sha256": "a713e1ae744a2fa956c68924e26fa50568671dde2153d57a3b596aa0838bdbf1"
+      "sha256": "1cca5ffb5d31128f2af9be300a0b9e065c885a48440ed47bc3e9c470bbefdc5b"
     }
   ]
 }

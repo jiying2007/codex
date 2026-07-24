@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "name": "diagnostic-cli-primary",
+      "prompt": "检查 prog_tool strict suite 的 invoke_ret 返回码语义",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "diagnostic-cli-harness",
+      "expected_primary_skill": "adk-embedded-diagnostic-harness"
+    },
+    {
+      "name": "remote-device-log-primary",
+      "prompt": "通过 SSH 设备日志排查现场日志里的看门狗重启",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "device-remote-log-triage",
+      "expected_primary_skill": "adk-embedded-remote-debug-log-triage"
+    },
+    {
+      "name": "offline-pasted-log-primary",
+      "prompt": "仅分析日志文本：这是一段粘贴串口日志，不连接设备",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "offline-pasted-log-triage",
+      "expected_primary_skill": "embedded-log-triage"
+    },
+    {
+      "name": "offline-pasted-log-natural-language-primary",
+      "prompt": "分析我粘贴的一段离线串口启动日志",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "offline-pasted-log-triage",
+      "expected_primary_skill": "embedded-log-triage"
+    },
+    {
+      "name": "generic-core-primary",
+      "prompt": "分析通用 core dump 并检查 BuildID 符号匹配",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "generic-offline-core-dump",
+      "expected_primary_skill": "adk-offline-core-dump-triage"
+    },
+    {
+      "name": "pcr02-core-primary",
+      "prompt": "分析 PCR02 core 和 prog_pcr02 core 的 SigmaStar 工具链匹配",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "pcr02-sigmastar-core-dump",
+      "expected_primary_skill": "embedded-core-dump-triage"
+    },
+    {
+      "name": "audio-stream-primary",
+      "prompt": "排查流式音频断续和音频吞首问题",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "audio-stream-triage",
+      "expected_primary_skill": "embedded-audio-stream-triage"
+    },
+    {
+      "name": "production-lifecycle-primary",
+      "prompt": "修复老化状态恢复和产测阶段切换的重启持久化语义",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "production-test-lifecycle",
+      "expected_primary_skill": "embedded-production-test-lifecycle"
+    },
+    {
+      "name": "protocol-audit-primary",
+      "prompt": "对照协议字段，检查端序不一致和协议实现一致性",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "protocol-implementation-audit",
+      "expected_primary_skill": "protocol-implementation-audit"
+    },
+    {
+      "name": "after-action-memory-primary",
+      "prompt": "任务完成后生成 memory candidate，并做任务复盘",
+      "expected_workflow": "adk-delivery-gate",
+      "expected_route": "after-action-memory-candidate",
+      "expected_primary_skill": "adk-after-action-review"
+    },
+    {
+      "name": "after-action-memory-natural-language-primary",
+      "prompt": "复盘刚完成的任务并生成经验记忆候选",
+      "expected_workflow": "adk-delivery-gate",
+      "expected_route": "after-action-memory-candidate",
+      "expected_primary_skill": "adk-after-action-review"
+    },
+    {
+      "name": "memory-corpus-primary",
+      "prompt": "审计 memory candidates，整理长期记忆候选",
+      "expected_workflow": "archive-curation",
+      "expected_route": "memory-corpus-curation",
+      "expected_primary_skill": "adk-memory-curator"
+    }
+  ]
+}

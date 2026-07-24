@@ -16,10 +16,14 @@
 rtk bash ~/codex/scripts/build.sh
 
 # 预览应用计划
-rtk bash ~/codex/scripts/plan.sh --target ~/.codex
+rtk bash ~/codex/scripts/plan.sh \
+  --target ~/.codex \
+  --prune-stale \
+  --output ~/codex/build/apply-plan.json
 
-# 应用到 ~/.codex
-rtk bash ~/codex/scripts/apply.sh
+# 预览并应用同一份计划
+rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan.json --dry-run
+rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan.json
 
 # 查询未常驻的长尾 skill
 rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --summary-json
@@ -27,6 +31,28 @@ rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --summary-json
 # 完整检查
 rtk bash ~/codex/scripts/check.sh
 ```
+
+## Profile 切换
+
+默认 profile 是 `token-lean`。其他可选值为 `minimal`、`solo-dev`、`team-collab` 和 `superpowers-compat`。
+
+查看当前 live profile：
+
+```bash
+rtk bash ~/codex/scripts/doctor.sh --scope live
+```
+
+快速切换，以 `team-collab` 为例：
+
+```bash
+rtk bash ~/codex/scripts/apply.sh \
+  --profile team-collab \
+  --target ~/.codex \
+  --prune-stale \
+  --plan-out ~/codex/build/apply-plan.switch.json
+```
+
+`build.sh --profile ...` 只生成 build，不会修改 live。切换到较小 profile 时必须保留 `--prune-stale`；切换成功后新开 Codex 线程，才能刷新已注入的 Skill/Agent catalog。需要先审计 plan、dry-run 或回滚时，按 `~/codex/README.md` 的“Profile 选择与切换”流程执行。
 
 ## 知识沉淀
 
