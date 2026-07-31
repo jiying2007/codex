@@ -16,6 +16,48 @@
       "expected_primary_skill": "adk-embedded-remote-debug-log-triage"
     },
     {
+      "name": "remote-adb-unreachable-primary",
+      "prompt": "ADB连接设备ip失败，返回No route to host，先只读取证",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "device-remote-log-triage",
+      "expected_primary_skill": "adk-embedded-remote-debug-log-triage"
+    },
+    {
+      "name": "remote-device-recovered-primary",
+      "prompt": "设备恢复后先检查 boot_id、uptime 和当前二进制身份",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "device-remote-log-triage",
+      "expected_primary_skill": "adk-embedded-remote-debug-log-triage"
+    },
+    {
+      "name": "remote-hil-session-primary",
+      "prompt": "远程部署候选到目标板，执行 HIL 循环并在结束后恢复健康状态",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "device-remote-hil-session",
+      "expected_primary_skill": "adk-embedded-remote-debug-log-triage"
+    },
+    {
+      "name": "offline-pasted-adb-log-primary",
+      "prompt": "仅分析日志文本：这是粘贴的 ADB 日志，不连接设备",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "offline-pasted-log-triage",
+      "expected_primary_skill": "embedded-log-triage"
+    },
+    {
+      "name": "local-build-only-is-not-remote",
+      "prompt": "只构建本地二进制，不连接设备也不部署",
+      "expected_workflow": "",
+      "expected_route": "",
+      "expected_primary_skill": ""
+    },
+    {
+      "name": "adb-pcr02-core-keeps-specialist-primary",
+      "prompt": "通过 ADB 拉取 PCR02 core，并用 SigmaStar 工具链分析",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "pcr02-sigmastar-core-dump",
+      "expected_primary_skill": "embedded-core-dump-triage"
+    },
+    {
       "name": "offline-pasted-log-primary",
       "prompt": "仅分析日志文本：这是一段粘贴串口日志，不连接设备",
       "expected_workflow": "embedded-diagnostic-validation",

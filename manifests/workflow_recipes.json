@@ -289,6 +289,64 @@
       ]
     },
     {
+      "name": "embedded-remote-hil-session",
+      "enabled": true,
+      "profiles": [
+        "team-collab"
+      ],
+      "workflow": "embedded-diagnostic-validation",
+      "context_inputs": [
+        "user-authorized endpoint source without persistent field IP",
+        "device/board/firmware and expected application identity",
+        "read-only versus mutation authority",
+        "frozen candidate, staged and installed artifact identities",
+        "watchdog, auto-standby, supervisor and other state mutators",
+        "HIL stage, retry budget, timeout layers and stop conditions"
+      ],
+      "done_criteria": [
+        "host route, transport, shell and app/diag are independently classified with evidence",
+        "unreachable state opens a circuit breaker and prevents device writes or unbounded retries",
+        "candidate, staged and installed identities plus backup anchor are reviewable before mutation",
+        "HIL expands only from single smoke to short cycle, long stress and soak after each gate passes",
+        "final state restores the healthy normal profile, closes temporary diagnostics and records final identity",
+        "evidence bundle is sanitized, hashed and does not persist endpoint, credentials, raw logs, core or binaries"
+      ],
+      "review_artifacts": [
+        "read-only preflight manifest",
+        "artifact identity table",
+        "mutation authorization and rollback anchor",
+        "single/short/long/soak HIL matrix",
+        "latency and resource report",
+        "restore-health postcondition",
+        "SHA256 evidence index"
+      ],
+      "failure_modes": [
+        "ping failure short-circuits ADB probing",
+        "adb connect exit code is accepted despite failure text or non-device state",
+        "transport, shell and app/diag timeouts are collapsed into one health result",
+        "device loss triggers repeated deployment attempts or is attributed to the current patch without evidence",
+        "build success is treated as staged, installed, image or OTA identity",
+        "watchdog or standby competes with HIL and the result is reported as single-cause",
+        "long stress starts before short-cycle gate or final normal-state restoration is omitted"
+      ],
+      "trigger_examples": [
+        "设备恢复后先做 ADB 只读 preflight，再核对候选制品并执行 HIL 板测",
+        "ADB No route to host，熔断部署并转串口或电源恢复",
+        "远程部署候选到目标板，按 5 次、1000 次和 soak 分阶段复测"
+      ],
+      "negative_examples": [
+        "只分析粘贴的 ADB 日志文本，不连接设备",
+        "只构建本地二进制，不连接设备也不部署",
+        "分析 PCR02 core 和 SigmaStar 工具链匹配"
+      ],
+      "verification": [
+        "rtk python3 -m unittest tests.test_agent_routing_eval",
+        "rtk bash scripts/check-routing-precedence.sh",
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk bash scripts/final-ready.sh"
+      ]
+    },
+    {
       "name": "knowledge-hub-maintenance",
       "enabled": true,
       "profiles": [

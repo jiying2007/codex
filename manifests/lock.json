@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "token-lean",
-  "managed_count": 712,
+  "managed_count": 723,
   "items": [
     {
       "kind": "skill",
@@ -69,9 +69,9 @@
     {
       "kind": "skill",
       "name": "adk-runtime-router",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-runtime-router/1.0.0",
-      "sha256": "e2d840aabcc7291cc37fce4ea35ec89c09c4fa5e0af4f273adaf3585223163f5"
+      "version": "1.1.0",
+      "source": "vendor/skills/adk-runtime-router/1.1.0",
+      "sha256": "a74f1fbdea7017ceec10b2a568a130a33566738413d51521d95cd4031ef23acf"
     },
     {
       "kind": "skill",

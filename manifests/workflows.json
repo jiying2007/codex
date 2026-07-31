@@ -277,6 +277,18 @@
         "invoke_ret",
         "诊断 CLI",
         "HIL 验证",
+        "HIL 板测",
+        "HIL 循环",
+        "设备 IP",
+        "设备ip",
+        "adb connect",
+        "ADB连接",
+        "设备失联",
+        "No route to host",
+        "device offline",
+        "设备恢复",
+        "远程部署",
+        "板端复测",
         "串口日志",
         "启动日志",
         "Serial log",
@@ -298,6 +310,8 @@
         "adk-embedded-diagnostic-harness",
         "adk-embedded-remote-debug-log-triage",
         "adk-embedded-debug-transport",
+        "adk-artifact-gating",
+        "adk-embedded-release-orchestration",
         "adk-offline-core-dump-triage",
         "embedded-log-triage",
         "embedded-core-dump-triage",
@@ -305,9 +319,11 @@
         "embedded-production-test-lifecycle",
         "protocol-implementation-audit",
         "adk-systematic-debugging",
-        "adk-test-strategy"
+        "adk-test-strategy",
+        "adk-verification-before-completion"
       ],
       "agents": [
+        "build-release-engineer",
         "driver-engineer",
         "performance-reliability-engineer",
         "test-validation-engineer"
@@ -342,6 +358,41 @@
           ]
         },
         {
+          "name": "device-remote-hil-session",
+          "match_any": [
+            "远程部署",
+            "部署候选",
+            "板端复测",
+            "HIL 板测",
+            "HIL板测",
+            "HIL 循环",
+            "HIL循环",
+            "目标板复测",
+            "设备二进制身份",
+            "设备恢复后部署"
+          ],
+          "exclude_any": [
+            "仅分析日志文本",
+            "本地日志文件",
+            "不连接设备",
+            "只构建本地"
+          ],
+          "primary_skill": "adk-embedded-remote-debug-log-triage",
+          "supporting_skills": [
+            "adk-embedded-debug-transport",
+            "adk-artifact-gating",
+            "adk-embedded-release-orchestration",
+            "adk-embedded-diagnostic-harness",
+            "adk-test-strategy",
+            "adk-verification-before-completion"
+          ],
+          "fallback_skill": "adk-systematic-debugging",
+          "mutually_exclusive_skills": [
+            "embedded-log-triage",
+            "embedded-core-dump-triage"
+          ]
+        },
+        {
           "name": "device-remote-log-triage",
           "match_any": [
             "远程日志",
@@ -349,11 +400,30 @@
             "ADB logcat",
             "SSH 设备日志",
             "GDB remote",
-            "设备端日志"
+            "设备端日志",
+            "设备 IP",
+            "设备ip",
+            "adb connect",
+            "ADB连接",
+            "设备失联",
+            "No route to host",
+            "device offline",
+            "设备恢复"
           ],
           "exclude_any": [
             "仅分析日志文本",
-            "本地日志文件"
+            "本地日志文件",
+            "不连接设备",
+            "远程部署",
+            "部署候选",
+            "板端复测",
+            "HIL 板测",
+            "HIL板测",
+            "HIL 循环",
+            "HIL循环",
+            "目标板复测",
+            "设备二进制身份",
+            "设备恢复后部署"
           ],
           "primary_skill": "adk-embedded-remote-debug-log-triage",
           "supporting_skills": [
@@ -377,7 +447,6 @@
           ],
           "exclude_any": [
             "SSH",
-            "ADB",
             "GDB remote",
             "现场设备"
           ],

@@ -25,6 +25,11 @@
       "name": "local-runtime-boundary-governance-positive",
       "prompt": "按官方 permissions/rules/hooks 建本地 Codex 运行边界，不接外部集成",
       "expected_recipe": "local-runtime-boundary-governance"
+    },
+    {
+      "name": "embedded-remote-hil-session-positive",
+      "prompt": "设备恢复后先做 ADB 只读 preflight，再核对候选制品并执行 HIL 板测",
+      "expected_recipe": "embedded-remote-hil-session"
     }
   ]
 }

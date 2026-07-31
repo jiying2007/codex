@@ -48,25 +48,26 @@
       "review_status": "accepted"
     },
     {
-      "name": "adk-artifact-gated-lite",
+      "name": "adk-artifact-gating",
       "enabled": true,
       "source_kind": "vendor",
       "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-artifact-gated-lite/1.0.0",
-      "target_rel": "skills/adk-artifact-gated-lite",
+      "vendor_rel": "vendor/skills/adk-artifact-gating/1.0.0",
+      "target_rel": "skills/adk-artifact-gating",
       "profiles": [
+        "solo-dev",
         "team-collab"
       ],
       "tags": [
         "agent-dev-kit",
         "adk",
-        "p2"
+        "p0"
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "2.8.0",
-      "source_path": "optional-skills/adk-artifact-gated-lite/SKILL.md",
-      "imported_at": "2026-05-16",
+      "source_ref": "54a4d7f",
+      "source_path": "skills/adk-artifact-gating/SKILL.md",
+      "imported_at": "2026-07-31",
       "review_status": "accepted"
     },
     {
@@ -262,8 +263,8 @@
       "name": "adk-embedded-remote-debug-log-triage",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-embedded-remote-debug-log-triage/1.0.0",
+      "version": "1.1.0",
+      "vendor_rel": "vendor/skills/adk-embedded-remote-debug-log-triage/1.1.0",
       "target_rel": "skills/adk-embedded-remote-debug-log-triage",
       "profiles": [
         "solo-dev",
@@ -277,9 +278,9 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "2.9.0",
+      "source_ref": "54a4d7f+working-tree-20260726",
       "source_path": "skills/adk-embedded-remote-debug-log-triage/SKILL.md",
-      "imported_at": "2026-07-05",
+      "imported_at": "2026-07-26",
       "review_status": "accepted"
     },
     {
@@ -569,8 +570,8 @@
       "name": "adk-runtime-router",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-runtime-router/1.0.0",
+      "version": "1.1.0",
+      "vendor_rel": "vendor/skills/adk-runtime-router/1.1.0",
       "target_rel": "skills/adk-runtime-router",
       "profiles": [
         "team-collab",
@@ -583,9 +584,9 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "2.9.0",
+      "source_ref": "54a4d7f+working-tree-20260726",
       "source_path": "skills/adk-runtime-router/SKILL.md",
-      "imported_at": "2026-05-23",
+      "imported_at": "2026-07-26",
       "review_status": "accepted"
     },
     {

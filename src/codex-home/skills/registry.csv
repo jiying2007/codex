@@ -1,7 +1,7 @@
 name,version,status,owner
 adk-after-action-review,1.0.0,active,agent-dev-kit
 adk-archive-governance,1.0.0,active,agent-dev-kit
-adk-artifact-gated-lite,1.0.0,active,agent-dev-kit
+adk-artifact-gating,1.0.0,active,agent-dev-kit
 adk-branch-closeout,1.0.0,active,agent-dev-kit
 adk-code-review-loop,1.0.0,active,agent-dev-kit
 adk-commit-pr-quality-gate,1.0.0,active,agent-dev-kit
@@ -25,7 +25,7 @@ adk-planning-execution-loop,1.0.0,active,agent-dev-kit
 adk-release-versioning,1.1.0,active,agent-dev-kit
 adk-repo-drift-remediation,1.0.0,active,agent-dev-kit
 adk-requirements-triage,1.1.0,active,agent-dev-kit
-adk-runtime-router,1.0.0,active,agent-dev-kit
+adk-runtime-router,1.1.0,active,agent-dev-kit
 adk-security-supply-chain,1.0.0,active,agent-dev-kit
 adk-skill-composition-governance,1.0.0,active,agent-dev-kit
 adk-static-analysis-c-cpp,1.0.0,active,agent-dev-kit

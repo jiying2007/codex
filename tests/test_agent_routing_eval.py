@@ -82,12 +82,17 @@ class AgentRoutingEvalTest(unittest.TestCase):
 
         for case in cases:
             with self.subTest(case=case["name"]):
-                self.assertEqual(
-                    {
+                expected = (
+                    {}
+                    if not case["expected_workflow"]
+                    else {
                         "workflow": case["expected_workflow"],
                         "route": case["expected_route"],
                         "primary_skill": case["expected_primary_skill"],
-                    },
+                    }
+                )
+                self.assertEqual(
+                    expected,
                     select_skill_route(case["prompt"], workflows),
                 )
 

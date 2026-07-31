@@ -1,8 +1,8 @@
 ---
 name: adk-runtime-router
 description: adk-first 运行时技能路由入口，统一判定 primary/supporting/fallback 与跳过条件
-version: 1.0.0
-last_updated: 2026-05-18
+version: 1.1.0
+last_updated: 2026-07-07
 triggers:
   - "技能路由"
   - "选择技能"
@@ -24,6 +24,7 @@ constraints:
   - 已有 adk 等价能力时不得优先调用 Superpowers fallback
   - 任何 fallback 必须说明触发原因和退出条件
   - 不得用“任务很简单”作为跳过路由的理由
+  - 大型 skill/tool 目录必须先读 namespace summary，再按意图延迟加载完整正文或 schema
 ---
 
 # adk-runtime-router
@@ -55,14 +56,16 @@ constraints:
 
 ## Workflow
 1. **识别任务模式**：判定只读分析、实现、debug、review、release、并行/worktree、会话收口。
-2. **判定风险等级**：检查是否涉及 shared contract、schema、根配置、CI、依赖、运行态 `~/.codex` 或发布链路。
-3. **选择 primary skill**：每个任务只能有一个 primary skill；其他 skill 只能补充检查项。
-4. **声明 supporting skills**：列出辅助 skill 的用途，避免辅助 skill 抢占入口。
-5. **路由裁决分层**：将 recall、reasoning、ranking、feedback 分开；LLM 只产出候选理解，执行裁决必须来自确定性规则、结构化校验或 owner approval。
-6. **检查 fallback**：只有 adk 缺失等价能力、用户明确点名、迁移期对照验证或平台约束时才 fallback。
-7. **输出路由裁决**：写明 primary/supporting/fallback/skip reason/verification path。
-8. **进入执行 skill**：加载 primary skill，并按其 workflow 推进。
-9. **完成前复核**：若产生改动，最终必须经过 `adk-verification-before-completion`。
+2. **判定风险等级**：检查是否涉及 shared contract、schema、根配置、CI、依赖、运行态目录或发布链路。
+3. **执行 tool-search 渐进披露门禁**：按 `skill-catalog-lazy-loading-v1` 先比较 `namespace_summary`、`initial_surface`、trigger 和 boundary；只为命中候选加载 `deferred_surface`，并记录 `loaded_tools` / `schema_review` / 相邻 skill 拒绝理由。
+4. **选择 primary skill**：每个任务只能有一个 primary skill；其他 skill 只能补充检查项。
+5. **声明 supporting skills**：列出辅助 skill 的用途，避免辅助 skill 抢占入口。
+6. **路由裁决分层**：将 recall、reasoning、ranking、feedback 分开；LLM 只产出候选理解，执行裁决必须来自确定性规则、结构化校验或 owner approval。
+7. **检查 fallback**：只有 adk 缺失等价能力、用户明确点名、迁移期对照验证或平台约束时才 fallback。
+8. **输出路由裁决**：写明 primary/supporting/fallback/skip reason/verification path。
+9. **生成 Tool / Skill Evidence Plan**：中高风险任务记录 required/recommended skills、required artifacts、tool fallback、skipped skills、fallback evidence 和 evidence paths；工具不可用时必须记录降级原因，不能把 fallback 当成已验证成功。
+10. **进入执行 skill**：加载 primary skill，并按其 workflow 推进。
+11. **完成前复核**：若产生改动，最终必须经过 `adk-verification-before-completion`。
 
 ## Route Decision Template
 ```md
@@ -75,21 +78,34 @@ constraints:
   - reason:
   - exit_condition:
 - Skip Reasons:
+- Tool / Skill Evidence Plan:
+  - Tool Search Contract: skill-catalog-lazy-loading-v1 | not-applicable
+  - Namespace Summary:
+  - Deferred Surface:
+  - Loaded Tools:
+  - Schema Review:
+  - Required Skills:
+  - Recommended Skills:
+  - Required Artifacts:
+  - Skipped Skills:
+  - Tool Fallback:
+  - Fallback Evidence:
+  - Evidence Paths:
 - Verification Path:
 - Next Action:
 ```
 
 ## Commands
 ```bash
-# 自动匹配任务文本
-bash scripts/devkit.sh match --text "<用户请求>"
+# Codex runtime：从受信 inventory 选择 primary/supporting
+rtk bash ~/codex/scripts/skill-search.sh --query "<用户请求>" --profile token-lean --limit 5 --summary-json
 
-# 检查指定 skill 是否适合
-bash scripts/devkit.sh match --skill <skill-name> --text "<用户请求>"
+# Codex runtime：验证声明式 workflow/recipe 路由
+rtk bash -lc 'cd ~/codex && python3 -m unittest tests.test_agent_routing_eval'
 
-# 检查 profile 与 routing 是否一致
-bash scripts/check-profile-coherence.sh
-bash ../scripts/check-runtime-routing.sh ..
+# ADK 源仓维护：检查 profile 与 routing 是否一致
+rtk bash scripts/check-profile-coherence.sh
+rtk bash scripts/devkit.sh validate --strict
 ```
 
 ## Failure Handling
@@ -100,6 +116,8 @@ bash ../scripts/check-runtime-routing.sh ..
 
 ## Quality Gate
 - 输出必须包含 primary skill、supporting skills、fallback 与验证路径。
+- 中高风险任务必须包含 Tool / Skill Evidence Plan；若有 skipped skills 或工具降级，必须记录 skipped reason 与 fallback evidence。
+- 使用大型 skill/tool 目录时，必须先给出 namespace summary，再加载 deferred surface，并记录 loaded_tools 与 schema_review。
 - fallback 必须有明确原因，不能只写“更熟悉”或“更方便”。
 - 不得同时声明两个 primary skill。
 - 修改 skill、manifest、workflow 或 routing 后必须运行匹配测试与严格校验。
