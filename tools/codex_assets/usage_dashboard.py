@@ -95,8 +95,14 @@ def load_threads(state_db: Path, limit: int) -> list[ThreadRow]:
     ]
 
 
-def load_goals(state_db: Path) -> dict[str, GoalRow]:
+def load_goals(state_db: Path) -> tuple[dict[str, GoalRow], bool]:
     with connect_ro(state_db) as db:
+        table = db.execute(
+            "select 1 from sqlite_master where type = 'table' and name = ?",
+            ("thread_goals",),
+        ).fetchone()
+        if table is None:
+            return {}, False
         rows = db.execute(
             """
             select thread_id, status, token_budget, tokens_used, time_used_seconds
@@ -116,7 +122,7 @@ def load_goals(state_db: Path) -> dict[str, GoalRow]:
             tokens_used=int(row[3] or 0),
             time_used_seconds=int(row[4] or 0),
         )
-    return out
+    return out, True
 
 
 def latest_token_count(path: Path) -> dict[str, Any]:
@@ -349,18 +355,66 @@ def sort_threads(rows: list[dict[str, Any]], mode: str) -> list[dict[str, Any]]:
     return sorted(items, key=lambda row: row.get("updated_at_text", ""), reverse=True)
 
 
+def fixed_context_projection(codex_home: Path, cwd: Path | None) -> dict[str, Any]:
+    candidates: list[tuple[str, Path]] = [("global-instructions", codex_home / "AGENTS.md")]
+    if cwd is not None:
+        resolved = cwd.expanduser().resolve()
+        candidates.extend(("workspace-instructions", parent / "AGENTS.md") for parent in reversed((resolved, *resolved.parents)))
+    seen: set[Path] = set()
+    components: list[dict[str, Any]] = []
+    for kind, path in candidates:
+        resolved_path = path.resolve()
+        if resolved_path in seen or not resolved_path.is_file():
+            continue
+        seen.add(resolved_path)
+        byte_count = resolved_path.stat().st_size
+        components.append(
+            {
+                "kind": kind,
+                "path": str(resolved_path),
+                "bytes": byte_count,
+                "estimated_tokens": (byte_count + 3) // 4,
+            }
+        )
+    total_bytes = sum(int(item["bytes"]) for item in components)
+    return {
+        "schema_version": 1,
+        "projection": "fixed-context-cost-v1",
+        "status": "estimate",
+        "estimation_method": "utf8-bytes-ceil-div-4",
+        "components": components,
+        "total_bytes": total_bytes,
+        "estimated_tokens": (total_bytes + 3) // 4,
+        "excluded_variable_costs": [
+            "conversation-history",
+            "tool-results",
+            "knowledge-hub-payloads",
+            "loaded-skill-bodies",
+        ],
+    }
+
+
 def current_snapshot(state_db: Path, sessions_root: Path, limit: int, top_models: int, top_repos: int) -> dict[str, Any]:
     threads = load_threads(state_db, limit)
-    goals = load_goals(state_db)
+    goals, goals_available = load_goals(state_db)
     active = threads[0] if threads else None
     token = latest_token_count(Path(active.rollout_path)) if active and active.rollout_path else {}
     summary = summarize_sessions(session_delta_rows(sessions_root, state_db, 7))
     snapshot = {
         "state_db": str(state_db),
         "sessions_root": str(sessions_root),
+        "capabilities": {
+            "thread_goals": {
+                "available": goals_available,
+                "source": "state-db",
+            }
+        },
         "active_thread": active.__dict__ if active else None,
         "active_goal": goals.get(active.thread_id).__dict__ if active and active.thread_id in goals else None,
         "active_token_count": token,
+        "context_cost_projection": fixed_context_projection(
+            state_db.parent, Path(active.cwd) if active and active.cwd else None
+        ),
         "threads": [
             {
                 **row.__dict__,

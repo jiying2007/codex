@@ -78,8 +78,7 @@
       "vendor_rel": "vendor/skills/adk-branch-closeout/1.0.0",
       "target_rel": "skills/adk-branch-closeout",
       "profiles": [
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "agent-dev-kit",
@@ -124,8 +123,7 @@
       "vendor_rel": "vendor/skills/adk-commit-pr-quality-gate/1.0.0",
       "target_rel": "skills/adk-commit-pr-quality-gate",
       "profiles": [
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "agent-dev-kit",
@@ -389,8 +387,7 @@
       "target_rel": "skills/adk-memory-curator",
       "profiles": [
         "solo-dev",
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "agent-dev-kit",
@@ -437,8 +434,7 @@
       "vendor_rel": "vendor/skills/adk-parallel-agent-governance/1.0.0",
       "target_rel": "skills/adk-parallel-agent-governance",
       "profiles": [
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "agent-dev-kit",
@@ -753,8 +749,7 @@
       "vendor_rel": "vendor/skills/adk-test-strategy/1.0.0",
       "target_rel": "skills/adk-test-strategy",
       "profiles": [
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "agent-dev-kit",
@@ -844,8 +839,7 @@
       "vendor_rel": "vendor/skills/adk-worktree-governance/1.0.0",
       "target_rel": "skills/adk-worktree-governance",
       "profiles": [
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "agent-dev-kit",
@@ -913,8 +907,7 @@
       "profiles": [
         "minimal",
         "solo-dev",
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "local",
@@ -983,8 +976,7 @@
       "target_rel": "skills/codex-parallel-collab",
       "profiles": [
         "solo-dev",
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "local",
@@ -1723,8 +1715,7 @@
       "target_rel": "skills/worktree-closeout",
       "profiles": [
         "solo-dev",
-        "team-collab",
-        "token-lean"
+        "team-collab"
       ],
       "tags": [
         "local",

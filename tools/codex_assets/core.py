@@ -50,6 +50,54 @@ def sha256(path: pathlib.Path) -> str:
     return h.hexdigest()
 
 
+def tree_fingerprint(root: pathlib.Path) -> str:
+    """Return a stable digest for files and symlinks below root."""
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() and not path.is_symlink():
+            continue
+        rel = path.relative_to(root).as_posix()
+        digest.update(rel.encode())
+        digest.update(b"\0")
+        if path.is_symlink():
+            digest.update(b"symlink\0")
+            digest.update(os.readlink(path).encode())
+        else:
+            digest.update(b"file\0")
+            digest.update(sha256(path).encode())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def source_fingerprint(repo: "Repo", source: pathlib.Path | None = None) -> str:
+    """Hash conservative build inputs so reused builds fail closed when source changes."""
+    digest = hashlib.sha256()
+    roots = [
+        (source or repo.source, "source"),
+        (repo.manifests_dir, "manifests"),
+        (repo.root / "tools/codex_assets", "tools/codex_assets"),
+    ]
+    for root, label in roots:
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*")):
+            if not path.is_file() and not path.is_symlink():
+                continue
+            if path == repo.manifests_dir / "lock.json" or "__pycache__" in path.parts:
+                continue
+            rel = f"{label}/{path.relative_to(root).as_posix()}"
+            digest.update(rel.encode())
+            digest.update(b"\0")
+            if path.is_symlink():
+                digest.update(b"symlink\0")
+                digest.update(os.readlink(path).encode())
+            else:
+                digest.update(b"file\0")
+                digest.update(sha256(path).encode())
+            digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def normalize_path(path: str | pathlib.Path) -> str:
     return pathlib.Path(path).as_posix()
 
@@ -500,6 +548,7 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         "schema_version": 2,
         "profile": profile,
         "source": str(source),
+        "source_fingerprint": source_fingerprint(repo, source),
         "managed": managed,
     })
     if build.exists() or build.is_symlink():
@@ -530,6 +579,9 @@ def plan_apply(
     backup_path = pathlib.Path(backup_root).expanduser()
     if not build_path.is_dir():
         fail(f"构建目录不存在: {build_path}")
+    state_path = build_path / "control/state/managed-files.json"
+    if not state_path.is_file():
+        fail(f"构建目录缺少 managed-files.json: {build_path}")
     protected = repo.policies.get("protected_paths", [])
     always_generated = {"skills/registry.csv", "control/state/active-profile.env", "control/state/managed-files.json"}
     previous_managed = managed_items(target_path)
@@ -597,15 +649,165 @@ def plan_apply(
             })
             summary["delete"] += 1
 
+    content_changes = summary["copy"] + summary["overwrite"] + summary["delete"]
+    target_preconditions = target_precondition_rows(target_path, actions)
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "build": build_path.as_posix(),
         "target": target_path.as_posix(),
         "overwrite": overwrite,
+        "build_receipt": {
+            "tree_sha256": tree_fingerprint(build_path),
+            "managed_state_sha256": sha256(state_path),
+        },
+        "target_receipt": {
+            "precondition_paths_sha256": target_precondition_fingerprint(target_preconditions),
+            "precondition_paths": len(target_preconditions),
+            "mutation_paths": content_changes,
+            "keep_paths": [
+                row for row in target_preconditions if row.get("action") == "keep"
+            ],
+        },
+        "content_changes": content_changes,
+        "content_noop": content_changes == 0,
         "summary": summary,
         "actions": actions,
     }
+
+
+def path_identity(path: pathlib.Path) -> str:
+    if not path.exists() and not path.is_symlink():
+        return "absent"
+    if path.is_symlink():
+        return f"symlink:{os.readlink(path)}"
+    if path.is_file():
+        return f"file:{sha256(path)}"
+    if path.is_dir():
+        return f"dir:{tree_fingerprint(path)}"
+    return "special"
+
+
+def target_precondition_rows(
+    target: pathlib.Path, actions: list[dict[str, Any]]
+) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for action in actions:
+        action_name = str(action.get("action", ""))
+        if action_name not in {"copy", "overwrite", "delete", "keep"}:
+            continue
+        rel = str(action.get("path", ""))
+        rows.append(
+            {
+                "action": action_name,
+                "path": rel,
+                "identity": path_identity(target / rel),
+            }
+        )
+    return rows
+
+
+def target_precondition_fingerprint(rows: list[dict[str, str]]) -> str:
+    digest = hashlib.sha256()
+    for row in rows:
+        digest.update(row["action"].encode())
+        digest.update(b"\0")
+        digest.update(row["path"].encode())
+        digest.update(b"\0")
+        digest.update(row["identity"].encode())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def target_matches_plan_output(plan: dict[str, Any]) -> bool:
+    build = pathlib.Path(plan["build"])
+    target = pathlib.Path(plan["target"]).expanduser()
+    mutations = [
+        action
+        for action in plan.get("actions", [])
+        if action.get("action") in {"copy", "overwrite", "delete"}
+    ]
+    if not mutations:
+        return True
+    for action in mutations:
+        rel = str(action["path"])
+        dest = target / rel
+        if action["action"] == "delete":
+            if dest.exists() or dest.is_symlink():
+                return False
+            continue
+        src = build / rel
+        if path_identity(src) != path_identity(dest):
+            return False
+    return True
+
+
+def target_keeps_match_receipt(plan: dict[str, Any]) -> bool:
+    target = pathlib.Path(plan["target"]).expanduser()
+    receipt = plan.get("target_receipt") or {}
+    keep_rows = receipt.get("keep_paths")
+    if not isinstance(keep_rows, list):
+        return False
+    expected = {
+        (str(row.get("path", "")), str(row.get("identity", "")))
+        for row in keep_rows
+        if isinstance(row, dict)
+    }
+    actual = {
+        (str(action.get("path", "")), path_identity(target / str(action.get("path", ""))))
+        for action in plan.get("actions", [])
+        if action.get("action") == "keep"
+    }
+    return actual == expected
+
+
+def target_directories_ready(plan: dict[str, Any]) -> bool:
+    target = pathlib.Path(plan["target"]).expanduser()
+    return all(
+        (target / str(action.get("path", ""))).is_dir()
+        for action in plan.get("actions", [])
+        if action.get("action") == "mkdir"
+    )
+
+
+def validate_apply_plan(
+    plan: dict[str, Any], expected_target: str | pathlib.Path | None = None
+) -> str:
+    if plan.get("schema_version") != 3:
+        fail("apply plan schema_version 非 3，请重新生成 plan")
+    build = pathlib.Path(str(plan.get("build", ""))).expanduser().resolve()
+    if not build.is_dir():
+        fail(f"apply plan 构建目录不存在: {build}")
+    receipt = plan.get("build_receipt")
+    if not isinstance(receipt, dict):
+        fail("apply plan 缺少 build_receipt，请重新生成 plan")
+    state_path = build / "control/state/managed-files.json"
+    if not state_path.is_file():
+        fail(f"apply plan 构建状态不存在: {state_path}")
+    if receipt.get("managed_state_sha256") != sha256(state_path):
+        fail("apply plan 已失效: managed state 已变化")
+    if receipt.get("tree_sha256") != tree_fingerprint(build):
+        fail("apply plan 已失效: build tree 已变化")
+    if expected_target is not None:
+        planned = pathlib.Path(str(plan.get("target", ""))).expanduser().resolve()
+        expected = pathlib.Path(expected_target).expanduser().resolve()
+        if planned != expected:
+            fail(f"apply plan target 不匹配: plan={planned} expected={expected}")
+    target = pathlib.Path(str(plan.get("target", ""))).expanduser()
+    target_receipt = plan.get("target_receipt")
+    if not isinstance(target_receipt, dict):
+        fail("apply plan 缺少 target_receipt，请重新生成 plan")
+    if not isinstance(target_receipt.get("keep_paths"), list):
+        fail("apply plan target_receipt 缺少 keep_paths，请重新生成 plan")
+    if plan.get("content_noop") and target_directories_ready(plan) and target_keeps_match_receipt(plan):
+        return "already-applied"
+    current_rows = target_precondition_rows(target, plan.get("actions", []))
+    current = target_precondition_fingerprint(current_rows)
+    if current == target_receipt.get("precondition_paths_sha256"):
+        return "ready"
+    if target_matches_plan_output(plan) and target_keeps_match_receipt(plan):
+        return "already-applied"
+    fail("apply plan 已失效: target precondition paths 已变化")
 
 
 def managed_items(target: pathlib.Path) -> dict[str, dict[str, Any]]:
@@ -658,7 +860,10 @@ def copy_one(src: pathlib.Path, dest: pathlib.Path, dry_run: bool) -> None:
         shutil.copy2(src, dest)
 
 
-def apply_plan(plan: dict[str, Any], dry_run: bool) -> None:
+def apply_plan(plan: dict[str, Any], dry_run: bool) -> str:
+    plan_state = validate_apply_plan(plan)
+    if plan_state == "already-applied":
+        return "already-applied"
     build = pathlib.Path(plan["build"])
     target = pathlib.Path(plan["target"]).expanduser()
     if not dry_run:
@@ -678,6 +883,7 @@ def apply_plan(plan: dict[str, Any], dry_run: bool) -> None:
                 backup_existing(dest, pathlib.Path(action["backup"]), dry_run)
                 if not dry_run:
                     remove_path(dest)
+    return "applied"
 
 
 def remove_path(path: pathlib.Path) -> None:

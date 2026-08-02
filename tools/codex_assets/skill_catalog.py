@@ -8,10 +8,35 @@ from typing import Any
 from .core import Repo, active, parse_frontmatter
 
 
-DEFAULT_LIMIT = 5
+DEFAULT_LIMIT = 3
 MAX_LIMIT = 20
-DEFAULT_OUTPUT_BUDGET = 4096
+DEFAULT_OUTPUT_BUDGET = 2048
+MIN_MATCH_SCORE = 42
 FALLBACK_TAGS = {"superpowers"}
+EMBEDDED_QUERY_MARKERS = {
+    "adb",
+    "amp",
+    "bootloader",
+    "bsp",
+    "core dump",
+    "dma",
+    "dmesg",
+    "firmware",
+    "kernel",
+    "mcu",
+    "pcr02",
+    "rtos",
+    "sigmastar",
+    "soc",
+    "串口",
+    "固件",
+    "嵌入式",
+    "板级",
+    "烧录",
+    "芯片",
+    "设备",
+    "驱动",
+}
 ROUTE_ROLE_SCORES = {
     "primary": 320,
     "supporting": 32,
@@ -101,6 +126,22 @@ def _is_fallback(item: dict[str, Any]) -> bool:
     return bool(set(item.get("tags", [])) & FALLBACK_TAGS) or item.get("profiles", []) == ["superpowers-compat"]
 
 
+def _embedded_only(item: dict[str, Any], description: str) -> bool:
+    name = str(item.get("name", "")).casefold()
+    tags = {str(tag).casefold() for tag in item.get("tags", [])}
+    folded_description = description.casefold()
+    return (
+        "embedded" in tags
+        or "embedded" in name
+        or "嵌入式" in folded_description
+    )
+
+
+def _query_has_embedded_context(query: str) -> bool:
+    folded = query.casefold()
+    return any(marker in folded for marker in EMBEDDED_QUERY_MARKERS)
+
+
 def _load_path(repo: Repo, codex_home: pathlib.Path, item: dict[str, Any]) -> pathlib.Path:
     live = codex_home / item["vendor_rel"] / "SKILL.md"
     return live if live.is_file() else repo.source / item["vendor_rel"] / "SKILL.md"
@@ -156,6 +197,25 @@ def _route_hints(repo: Repo, query: str) -> dict[str, dict[str, Any]]:
     return hints
 
 
+def _token_lean_activation_modes(repo: Repo) -> dict[str, str]:
+    priority = {"lazy": 1, "fallback": 2, "resident": 3}
+    modes: dict[str, str] = {}
+    manifest_path = repo.manifests_dir / "workflows.json"
+    if not manifest_path.is_file():
+        return modes
+    workflows = json.loads(manifest_path.read_text(encoding="utf-8")).get("workflows", [])
+    for workflow in workflows:
+        activation = workflow.get("token_lean_activation")
+        if not isinstance(activation, dict):
+            continue
+        for mode in ("resident", "lazy", "fallback"):
+            for skill in _list(activation.get(mode, [])):
+                previous = modes.get(skill, "")
+                if priority[mode] > priority.get(previous, 0):
+                    modes[skill] = mode
+    return modes
+
+
 def catalog_metrics(repo: Repo, profile: str, display_root: str = "~/.codex") -> dict[str, int | str]:
     count = 0
     catalog_bytes = 0
@@ -192,6 +252,7 @@ def search_skills(
     candidates: list[dict[str, Any]] = []
     fallback_excluded = 0
     route_hints = _route_hints(repo, query)
+    activation_modes = _token_lean_activation_modes(repo) if profile == "token-lean" else {}
     for item in repo.manifest("skills.json").get("skills", []):
         if not item.get("enabled", True) or item.get("review_status") in {"pending", "rejected"}:
             continue
@@ -203,6 +264,8 @@ def search_skills(
         meta = parse_frontmatter(skill_path)
         description = _text(meta.get("description", ""))
         triggers = _list(meta.get("triggers", []))
+        if _embedded_only(item, description) and not _query_has_embedded_context(query):
+            continue
         fields = {
             "name": item["name"].casefold(),
             "tags": _text(item.get("tags", [])).casefold(),
@@ -219,6 +282,8 @@ def search_skills(
                 key=lambda term: (-len(term), term),
             )[:6]
         if score <= 0:
+            continue
+        if not route_hint and score < MIN_MATCH_SCORE:
             continue
         if not route_hint:
             raw_ascii_terms = re.findall(r"[a-z0-9][a-z0-9_.+-]*", query.casefold())
@@ -238,6 +303,9 @@ def search_skills(
                 "name": item["name"],
                 "score": score,
                 "activation": "active" if is_active else "deferred",
+                "activation_mode": activation_modes.get(
+                    item["name"], "resident" if is_active else "deferred"
+                ),
                 "description": _compact(description),
                 "triggers": [_compact(trigger, 72) for trigger in triggers[:2]],
                 "load_path": str(_load_path(repo, home, item)),
@@ -262,7 +330,7 @@ def search_skills(
         "schema_version": 1,
         "projection": "skill-catalog-summary-v1",
         "status": "pass" if selected else "zero-hit",
-        "query": query,
+        "query": _compact(query, 160),
         "profile": profile,
         "total_matches": total_matches,
         "returned": len(selected),
@@ -273,7 +341,13 @@ def search_skills(
             "deferred_surface": "full SKILL.md, references, scripts, assets",
             "permission_boundary": "deferred loading does not grant write, network, credential, or approval authority",
             "fallback_condition": "routing ambiguity, high-risk conclusion, or explicit Superpowers compatibility request",
+            "no_skill_allowed": True,
         },
+        "no_skill_reason": (
+            ""
+            if selected
+            else "no high-confidence match; direct execution is allowed for micro tasks"
+        ),
         "output_truncated": total_matches > len(selected),
     }
     compact_payload(payload, max_output_bytes)
@@ -295,6 +369,14 @@ def compact_payload(payload: dict[str, Any], max_output_bytes: int) -> None:
     if size() > max_output_bytes and payload["candidates"]:
         payload["candidates"][0].pop("triggers", None)
         payload["candidates"][0]["why_selected"].pop("terms", None)
+    if size() > max_output_bytes:
+        payload["context_contract"] = {
+            "no_skill_allowed": True,
+            "fallback_condition": "ambiguity or high risk requires targeted raw evidence",
+        }
+    if size() > max_output_bytes and payload["candidates"]:
+        payload["candidates"][0].pop("description", None)
+        payload["candidates"][0].pop("profiles", None)
     payload["returned"] = len(payload["candidates"])
 
 

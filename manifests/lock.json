@@ -1,28 +1,14 @@
 {
   "schema_version": 2,
   "profile": "token-lean",
-  "managed_count": 723,
+  "managed_count": 714,
   "items": [
-    {
-      "kind": "skill",
-      "name": "adk-branch-closeout",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-branch-closeout/1.0.0",
-      "sha256": "4be97cfc08913c03447c288186f2af09549698caa4d4c4c437107bfc8ae0b6fc"
-    },
     {
       "kind": "skill",
       "name": "adk-code-review-loop",
       "version": "1.0.0",
       "source": "vendor/skills/adk-code-review-loop/1.0.0",
       "sha256": "1691f3b2cdd235338c9756e96e75609009295770ad936f1d48ff54a4ba42192f"
-    },
-    {
-      "kind": "skill",
-      "name": "adk-commit-pr-quality-gate",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-commit-pr-quality-gate/1.0.0",
-      "sha256": "fd4538ef174477f0be2d431de44433ade667c697080794c1df10b689ef4a08cd"
     },
     {
       "kind": "skill",
@@ -37,20 +23,6 @@
       "version": "1.0.0",
       "source": "vendor/skills/adk-knowledge-archive/1.0.0",
       "sha256": "63713e07d2bf8b5e918d7026c333a3b4c44b27823ece1e533fe0bb90f03b3e9e"
-    },
-    {
-      "kind": "skill",
-      "name": "adk-memory-curator",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-memory-curator/1.0.0",
-      "sha256": "8a98720305cb59803eb70db1cd5f7ee6f286b37b2646321a7789499b6f9277be"
-    },
-    {
-      "kind": "skill",
-      "name": "adk-parallel-agent-governance",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-parallel-agent-governance/1.0.0",
-      "sha256": "1c06c3a05708ae3916f25b2e57766c9d5ac7f8264d7a520b341d5b097a9aeac0"
     },
     {
       "kind": "skill",
@@ -89,13 +61,6 @@
     },
     {
       "kind": "skill",
-      "name": "adk-test-strategy",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-test-strategy/1.0.0",
-      "sha256": "7bd4e4563863cc750301dc4d4a64561b82f92508f2aad37e529c707b26f6b462"
-    },
-    {
-      "kind": "skill",
       "name": "adk-token-context-governance",
       "version": "1.1.0",
       "source": "vendor/skills/adk-token-context-governance/1.1.0",
@@ -110,38 +75,10 @@
     },
     {
       "kind": "skill",
-      "name": "adk-worktree-governance",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-worktree-governance/1.0.0",
-      "sha256": "47a773eda534c8bdd1b31f1596a0d31b1cef269419aa98c8fd089bb05ef83508"
-    },
-    {
-      "kind": "skill",
-      "name": "caveman",
-      "version": "1.0.0",
-      "source": "vendor/skills/caveman/1.0.0",
-      "sha256": "88c7191e559dbe2749dfbe0b35627d2a5f359974cc38572b33789d54fba0b23d"
-    },
-    {
-      "kind": "skill",
-      "name": "codex-parallel-collab",
-      "version": "3.1.0",
-      "source": "vendor/skills/codex-parallel-collab/3.1.0",
-      "sha256": "26139570a65c6517b0b267a5f56399f38be07e4568b9456b672e38e536e91b93"
-    },
-    {
-      "kind": "skill",
       "name": "session-wrap",
       "version": "3.1.0",
       "source": "vendor/skills/session-wrap/3.1.0",
       "sha256": "846a1178a0a2e1548807448c87a40e37bfa633b9ade25b09d39ca45223f0e448"
-    },
-    {
-      "kind": "skill",
-      "name": "worktree-closeout",
-      "version": "3.1.0",
-      "source": "vendor/skills/worktree-closeout/3.1.0",
-      "sha256": "1cca5ffb5d31128f2af9be300a0b9e065c885a48440ed47bc3e9c470bbefdc5b"
     }
   ]
 }

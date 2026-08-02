@@ -121,7 +121,7 @@ Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow
 |---|---:|---:|---:|---:|---|---|
 | `minimal` | 1 | 0 | 0 | 2 / 2 | eager | 极简运行和资产 smoke；当前只常驻 `caveman` |
 | `solo-dev` | 35 | 5 | 4 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
-| `token-lean` | 20 | 0 | 4 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
+| `token-lean` | 11 | 0 | 4 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
 | `team-collab` | 61 | 16 | 13 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
 | `superpowers-compat` | 13 | 0 | 1 | 4 / 3 | eager | 显式 Superpowers 兼容、迁移回归或 ADK 无等价能力时使用 |
 
@@ -200,7 +200,7 @@ rtk bash scripts/drift.sh --target ~/.codex
 2. 从 `team-collab` 切到较小 profile 必须使用 `--prune-stale`，否则旧的受管 Skill/Agent 入口可能残留。
 3. 不要直接使用 `apply.sh --dry-run --profile ...` 预览新 profile；当前 dry-run 不会自动重建，必须先显式 build。
 4. 切换过程中 build 和 live 暂时不同，因此 apply 前的 `doctor.sh --scope all` 可能报告预期的 profile drift；此时分别检查 `repo`、`build` 和 `governance`，应用后再检查 `all`。
-5. `scripts/check.sh` 会重新构建并验证默认 `token-lean`。非默认 live profile 的切换验收使用上面的 `doctor`、`diff` 和 `drift`；发布默认配置时再运行完整 `check.sh`。
+5. `scripts/check.sh` 默认重建 `token-lean`；同轮已有 build/plan 时可用 `--no-build --plan <path>`，source fingerprint、build receipt 或 target 不一致会失败。非默认 live profile 使用上面的 `doctor`、`diff` 和 `drift` 验收。
 6. `build.sh` 会更新 `manifests/lock.json`，临时切换也可能让 Git 工作区出现 lockfile 变更。
 
 ### 回切与回滚

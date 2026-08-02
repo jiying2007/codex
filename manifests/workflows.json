@@ -25,6 +25,22 @@
         "adk-token-context-governance",
         "adk-commit-pr-quality-gate"
       ],
+      "token_lean_activation": {
+        "resident": [
+          "adk-runtime-router",
+          "adk-requirements-triage",
+          "adk-task-breakdown",
+          "adk-code-review-loop",
+          "adk-verification-before-completion",
+          "adk-token-context-governance"
+        ],
+        "lazy": [
+          "adk-test-strategy",
+          "adk-after-action-review",
+          "adk-commit-pr-quality-gate"
+        ],
+        "fallback": []
+      },
       "agents": [
         "requirements-analyst",
         "architecture-planner",
@@ -167,6 +183,15 @@
         "skill-asset-manager",
         "adk-skill-composition-governance"
       ],
+      "token_lean_activation": {
+        "resident": [],
+        "lazy": [
+          "skill-asset-manager"
+        ],
+        "fallback": [
+          "adk-skill-composition-governance"
+        ]
+      },
       "agents": [
         "local-integrator"
       ],
@@ -689,6 +714,24 @@
         "adk-planning-execution-loop",
         "adk-runtime-router"
       ],
+      "token_lean_activation": {
+        "resident": [
+          "adk-requirements-triage",
+          "adk-task-breakdown",
+          "adk-systematic-debugging",
+          "adk-code-review-loop",
+          "adk-verification-before-completion",
+          "adk-planning-execution-loop",
+          "adk-runtime-router"
+        ],
+        "lazy": [
+          "adk-test-strategy",
+          "adk-unit-test-embedded",
+          "adk-static-analysis-c-cpp",
+          "adk-commit-pr-quality-gate"
+        ],
+        "fallback": []
+      },
       "agents": [
         "requirements-analyst",
         "architecture-planner",
@@ -726,6 +769,17 @@
         "adk-branch-closeout",
         "worktree-closeout"
       ],
+      "token_lean_activation": {
+        "resident": [],
+        "lazy": [
+          "codex-parallel-collab",
+          "adk-parallel-agent-governance",
+          "adk-worktree-governance",
+          "adk-branch-closeout",
+          "worktree-closeout"
+        ],
+        "fallback": []
+      },
       "agents": [
         "local-architect",
         "local-implementer",

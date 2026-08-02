@@ -5,7 +5,7 @@ import re
 from urllib.parse import urlparse
 from typing import Any
 
-from .core import Repo, matches_any
+from .core import Repo, active, matches_any
 
 
 def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
@@ -97,7 +97,8 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
 def governance_errors(repo: Repo) -> list[str]:
     errors: list[str] = []
     profile_names = names(repo.manifest("profiles.json"), "profiles")
-    skill_names = names(repo.manifest("skills.json"), "skills")
+    skills = repo.manifest("skills.json").get("skills", [])
+    skill_names = {str(item.get("name", "")) for item in skills if item.get("name")}
     agent_names = names(repo.manifest("agents.json"), "agents")
     workflows = repo.manifest("workflows.json").get("workflows", [])
     templates = repo.manifest("project-templates.json").get("project_templates", [])
@@ -148,7 +149,7 @@ def governance_errors(repo: Repo) -> list[str]:
     item_names("permission_profiles", permission_profiles, errors)
     item_names("exec_rules", exec_rules, errors)
     item_names("hook_contracts", hook_contracts, errors)
-    validate_workflows(workflows, profile_names, skill_names, agent_names, errors)
+    validate_workflows(workflows, profile_names, skills, skill_names, agent_names, errors)
     validate_project_templates(templates, profile_names, workflow_names, errors)
     validate_overlays(overlays, repo.policies.get("protected_paths", []), errors)
     validate_mcp_servers(mcp_servers, profile_names, errors)
@@ -207,6 +208,7 @@ def item_names(label: str, items: list[dict[str, Any]], errors: list[str]) -> se
 def validate_workflows(
     workflows: list[dict[str, Any]],
     profile_names: set[str],
+    skills: list[dict[str, Any]],
     skill_names: set[str],
     agent_names: set[str],
     errors: list[str],
@@ -225,7 +227,49 @@ def validate_workflows(
         for agent in list_value(item, "agents"):
             if agent not in agent_names:
                 errors.append(f"workflows:{name} 引用未知 agent: {agent}")
+        validate_token_lean_activation(item, skills, errors)
         validate_workflow_routes(item, skill_names, errors)
+
+
+def validate_token_lean_activation(
+    item: dict[str, Any], skills: list[dict[str, Any]], errors: list[str]
+) -> None:
+    if "token-lean" not in list_value(item, "profiles"):
+        return
+    name = str(item.get("name", ""))
+    label = f"workflows:{name} token_lean_activation"
+    activation = item.get("token_lean_activation")
+    if not isinstance(activation, dict):
+        errors.append(f"{label} 必须是 object")
+        return
+    categories: dict[str, set[str]] = {}
+    for field in ("resident", "lazy", "fallback"):
+        if field not in activation:
+            errors.append(f"{label} 缺少字段 {field}")
+        values = list_value(activation, field)
+        if len(values) != len(set(values)):
+            errors.append(f"{label}.{field} 包含重复 skill")
+        categories[field] = set(values)
+    for left, right in (("resident", "lazy"), ("resident", "fallback"), ("lazy", "fallback")):
+        overlap = categories[left] & categories[right]
+        if overlap:
+            errors.append(f"{label} {left}/{right} 重叠: {', '.join(sorted(overlap))}")
+    workflow_skills = set(list_value(item, "skills"))
+    classified = set().union(*categories.values())
+    if classified != workflow_skills:
+        missing = sorted(workflow_skills - classified)
+        extra = sorted(classified - workflow_skills)
+        errors.append(f"{label} 未完整覆盖 workflow.skills: missing={missing} extra={extra}")
+    active_names = {
+        str(skill.get("name", ""))
+        for skill in skills
+        if str(skill.get("name", "")) in workflow_skills and active(skill, "token-lean")
+    }
+    if categories["resident"] != active_names:
+        errors.append(
+            f"{label}.resident 与 token-lean 实际激活不一致: "
+            f"expected={sorted(active_names)} actual={sorted(categories['resident'])}"
+        )
 
 
 def validate_workflow_routes(item: dict[str, Any], skill_names: set[str], errors: list[str]) -> None:
@@ -1512,6 +1556,7 @@ def workflow_links(workflows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
         item["name"]: {
             "profiles": list_value(item, "profiles"),
             "skills": list_value(item, "skills"),
+            "token_lean_activation": item.get("token_lean_activation", {}),
             "agents": list_value(item, "agents"),
             "routes": [
                 {

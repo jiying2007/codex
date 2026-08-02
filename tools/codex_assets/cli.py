@@ -22,6 +22,8 @@ from .core import (
     read_json,
     rollback_plan,
     split_list,
+    source_fingerprint,
+    validate_apply_plan,
     write_json,
 )
 from .archive_search import run as run_archive_search
@@ -67,24 +69,35 @@ def cmd_apply(args: argparse.Namespace) -> int:
     repo = Repo.from_path(args.root)
     if args.plan:
         plan = read_json(pathlib.Path(args.plan).expanduser())
+        plan_state = validate_apply_plan(plan, args.target or None)
         target = pathlib.Path(plan["target"]).expanduser()
     else:
         build = pathlib.Path(args.build).expanduser().resolve() if args.build else repo.build
         if args.run_build and not args.dry_run:
             build = build_repo(repo.root, args.profile or "", "", str(build))
-        target = pathlib.Path(args.target).expanduser()
+        target = pathlib.Path(args.target or "~/.codex").expanduser()
         backup_root = pathlib.Path(args.backup_root).expanduser() if args.backup_root else repo.root / ".backups/apply" / datetime.now().strftime("%Y%m%d-%H%M%S")
         plan = plan_apply(repo.root, build, target, backup_root, args.overwrite, args.prune_stale)
+        plan_state = "ready"
     if args.plan_out:
         write_json(pathlib.Path(args.plan_out).expanduser(), plan)
     if args.dry_run:
-        for action in plan["actions"]:
-            if action["action"] in {"copy", "overwrite", "delete", "skip"}:
-                print(f"[DRY ] {action['action']} {action['path']}")
-        print(f"[DONE] apply target={target} summary={plan['summary']} dry_run=1")
+        if plan_state == "ready" and not plan.get("content_noop"):
+            for action in plan["actions"]:
+                if action["action"] in {"copy", "overwrite", "delete", "skip"}:
+                    print(f"[DRY ] {action['action']} {action['path']}")
+        effective_changes = 0 if plan_state == "already-applied" else plan.get("content_changes", 0)
+        print(
+            f"[DONE] apply target={target} summary={plan['summary']} "
+            f"effective_content_changes={effective_changes} plan_state={plan_state} dry_run=1"
+        )
         return 0
-    apply_plan(plan, dry_run=False)
-    print(f"[DONE] apply target={target} summary={plan['summary']} dry_run=0")
+    result = apply_plan(plan, dry_run=False)
+    effective_changes = 0 if result == "already-applied" else plan.get("content_changes", 0)
+    print(
+        f"[DONE] apply target={target} summary={plan['summary']} "
+        f"effective_content_changes={effective_changes} plan_state={result} dry_run=0"
+    )
     return 0
 
 
@@ -141,6 +154,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             errors.append("build 缺少 managed-files.json")
         else:
             state = read_json(build / "control/state/managed-files.json")
+            source = pathlib.Path(state.get("source") or repo.source).expanduser().resolve()
+            expected_fingerprint = source_fingerprint(repo, source)
+            actual_fingerprint = state.get("source_fingerprint", "")
+            if not actual_fingerprint:
+                errors.append("build 缺少 source_fingerprint，请重新 build")
+            elif actual_fingerprint != expected_fingerprint:
+                errors.append("build 已过期: source_fingerprint 与当前源码不一致")
             profile = state.get("profile", repo.assets.get("default_profile", ""))
             active_sources = {item["vendor_rel"] for item in repo.manifest("skills.json").get("skills", []) if active(item, profile)}
             for skill_md in sorted((build / "vendor/plugins").glob("*/*/skills/*/SKILL.md")):
@@ -188,6 +208,32 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 def cmd_governance_report(args: argparse.Namespace) -> int:
     report = governance_report(args.root)
+    if args.summary_json:
+        collections = [
+            "profiles",
+            "skills",
+            "agents",
+            "mcp_servers",
+            "workflow_recipes",
+            "automations",
+            "workflows",
+            "project_templates",
+            "overlays",
+        ]
+        summary = {
+            "schema_version": 1,
+            "projection": "governance-summary-v1",
+            "status": "pass",
+            "default_profile": report["default_profile"],
+            "counts": {name: len(report.get(name, [])) for name in collections},
+            "link_counts": {
+                name: len(value)
+                for name, value in report.items()
+                if name.endswith("_links") and isinstance(value, dict)
+            },
+        }
+        print(json.dumps(summary, ensure_ascii=False, separators=(",", ":")))
+        return 0
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
@@ -504,7 +550,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("apply", parents=[common])
     p.add_argument("--build", default="")
-    p.add_argument("--target", default="~/.codex")
+    p.add_argument("--target", default="")
     p.add_argument("--profile", default="")
     p.add_argument("--plan", default="")
     p.add_argument("--no-build", dest="run_build", action="store_false", default=True)
@@ -533,7 +579,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_doctor)
 
     p = sub.add_parser("governance-report", parents=[common])
-    p.add_argument("--json", action="store_true")
+    output = p.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true")
+    output.add_argument("--summary-json", action="store_true")
     p.set_defaults(func=cmd_governance_report)
 
     p = sub.add_parser("scan-skills", parents=[common])

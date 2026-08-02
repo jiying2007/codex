@@ -5,16 +5,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 MODE="post-apply"
 TARGET="$HOME/.codex"
+RUN_BUILD=1
+PLAN=""
 
 usage() {
   printf '%s\n' \
-    'Usage: scripts/check.sh [--pre-apply] [--target PATH]' \
+    'Usage: scripts/check.sh [--pre-apply] [--no-build] [--plan PATH] [--target PATH]' \
     '' \
     'Run the complete Codex asset verification gate.' \
     '' \
     'Options:' \
     '  --pre-apply   Verify source, build, governance, tests, smoke and apply dry-run' \
     '                without asserting that the current live target already matches.' \
+    '  --no-build    Reuse build only when doctor proves its source fingerprint current.' \
+    '  --plan PATH   Reuse this plan; its build receipt and target are verified.' \
     '  --target PATH Use PATH as the live/apply-plan target (default: ~/.codex).' \
     '  -h, --help    Show this help and exit.' \
     '' \
@@ -37,6 +41,19 @@ while (($# > 0)); do
       TARGET="$2"
       shift 2
       ;;
+    --no-build)
+      RUN_BUILD=0
+      shift
+      ;;
+    --plan)
+      if (($# < 2)); then
+        echo "[FATAL] --plan 缺少路径参数" >&2
+        usage >&2
+        exit 2
+      fi
+      PLAN="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -51,8 +68,12 @@ done
 
 cd "$ROOT"
 
-echo "[INFO] check_mode=$MODE target=$TARGET"
-rtk bash "$ROOT/scripts/build.sh"
+echo "[INFO] check_mode=$MODE target=$TARGET run_build=$RUN_BUILD plan=${PLAN:-generated}"
+if [[ "$RUN_BUILD" == "1" ]]; then
+  rtk bash "$ROOT/scripts/build.sh"
+else
+  echo "[INFO] build=reused validation=doctor-source-fingerprint"
+fi
 if [[ "$MODE" == "post-apply" ]]; then
   rtk bash "$ROOT/scripts/doctor.sh" --scope all --target "$TARGET"
 else
@@ -61,7 +82,7 @@ else
 fi
 rtk bash "$ROOT/scripts/doctor.sh" --scope governance
 rtk bash "$ROOT/scripts/check-mcp-deny-paths.sh"
-rtk bash "$ROOT/scripts/governance-report.sh" --json
+rtk bash "$ROOT/scripts/governance-report.sh" --summary-json
 env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" rtk python3 -m unittest discover -s "$ROOT/tests" -p 'test_*.py'
 rtk bash "$ROOT/scripts/check-routing-precedence.sh"
 rtk bash "$ROOT/scripts/check-skills.sh"
@@ -70,8 +91,13 @@ if [[ "${REQUIRE_MODERN_BWRAP:-0}" == "1" ]]; then
 else
   rtk bash "$ROOT/scripts/check-bwrap-capability.sh" --json-out "$ROOT/build/bwrap-capability.json"
 fi
-rtk bash "$ROOT/scripts/plan.sh" --target "$TARGET" --output "$ROOT/build/apply-plan.check.json"
-rtk bash "$ROOT/scripts/apply.sh" --dry-run --no-build --prune-stale --target "$TARGET" --plan-out "$ROOT/build/apply-plan.check-dry-run.json"
+if [[ -z "$PLAN" ]]; then
+  PLAN="$ROOT/build/apply-plan.check.json"
+  rtk bash "$ROOT/scripts/plan.sh" --target "$TARGET" --prune-stale --output "$PLAN"
+else
+  echo "[INFO] plan=reused validation=build-receipt+target"
+fi
+rtk bash "$ROOT/scripts/apply.sh" --plan "$PLAN" --target "$TARGET" --dry-run --plan-out "$ROOT/build/apply-plan.check-dry-run.json"
 rtk bash "$ROOT/tests/smoke.sh"
 if [[ "$MODE" == "post-apply" ]]; then
   rtk bash "$ROOT/scripts/diff.sh" --target "$TARGET"

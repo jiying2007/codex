@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
   "context_budget": {
-    "agents_max_bytes": 10000,
-    "default_profile_max_active_skills": 20,
-    "default_profile_max_catalog_bytes": 6000,
-    "skill_search_default_limit": 5,
+    "agents_max_bytes": 4500,
+    "default_profile_max_active_skills": 12,
+    "default_profile_max_catalog_bytes": 4000,
+    "skill_search_default_limit": 3,
     "skill_search_max_limit": 20,
-    "skill_search_max_output_bytes": 4096
+    "skill_search_max_output_bytes": 2048
   },
   "profiles": [
     {
@@ -55,7 +55,7 @@
       "enabled_mcp_groups": [
         "core"
       ],
-      "notes": "默认 profile；最多暴露 20 个 skill，完整兼容集合保留在 team-collab"
+      "notes": "默认 profile；最多暴露 12 个通用 skill，协作、Git 收尾、资产治理和嵌入式能力按需延迟加载"
     },
     {
       "name": "superpowers-compat",

@@ -74,6 +74,7 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 rtk bash scripts/doctor.sh --scope governance
 rtk bash scripts/governance-report.sh
 rtk bash scripts/governance-report.sh --json
+rtk bash scripts/governance-report.sh --summary-json
 ```
 
 维护原则：
@@ -86,12 +87,12 @@ rtk bash scripts/governance-report.sh --json
 
 ### 固定上下文预算与延迟 skill catalog
 
-`manifests/profiles.json:context_budget` 是固定上下文预算 SSOT。默认门禁限制根/source AGENTS 各不超过 10,000 bytes、`token-lean` 最多 20 个常驻 skill、catalog 摘要不超过 6,000 bytes；单次查询最多返回 20 项，默认 5 项，`--summary-json` 不超过 4,096 bytes。
+`manifests/profiles.json:context_budget` 是固定上下文预算 SSOT。根/source AGENTS 各不超过 4,500 bytes，`token-lean` 最多 12 个常驻 skill、catalog 不超过 4,000 bytes；查询最多 20 项、默认 3 项，`--summary-json` 不超过 2,048 bytes。
 
 长尾 skill 不删除，实体仍由 `manifests/skills.json` 和 vendor 目录治理。运行时先查摘要：
 
 ```bash
-rtk bash scripts/skill-search.sh --query "<任务>" --profile token-lean --limit 5 --summary-json
+rtk bash scripts/skill-search.sh --query "<任务>" --profile token-lean --limit 3 --summary-json
 ```
 
 只有在 `why_selected` 足以区分相邻候选后才读取 `load_path`。默认排除 Superpowers；仅显式兼容时使用 `--include-fallback`。需要旧式完整 catalog 时可构建并 apply `team-collab`，但 catalog 只在新线程刷新。
@@ -103,7 +104,7 @@ rtk bash scripts/skill-search.sh --query "<任务>" --profile token-lean --limit
 - 安全切换先显式 build，再用 `plan.sh --prune-stale` 生成计划，随后对同一 plan 执行 dry-run 和 apply。
 - `apply.sh --dry-run --profile <name>` 不会自动重建目标 profile，因此不能代替“先 build 再 dry-run”。
 - build 与 live 暂时使用不同 profile 时，apply 前的 `doctor --scope all` 会报告预期漂移；分别检查 `repo`、`build`、`governance`，apply 后再检查 `all`。
-- 当前 `scripts/check.sh` 总是重建默认 `token-lean`；非默认 live profile 使用 `doctor --scope all`、`diff.sh` 和 `drift.sh` 验收。
+- `scripts/check.sh` 默认重建 `token-lean`。同轮已有 build/plan 时使用 `--no-build --plan <path>`；doctor 校验 source fingerprint，apply 校验 build receipt 与 target，失败时必须重建/重规划。
 - profile catalog 只在新线程刷新。完整对比、命令、回切和 rollback 流程见根 `README.md` 的“Profile 选择与切换”。
 
 ## Codex 工作模型

@@ -37,7 +37,7 @@ for profile in "${PROFILES[@]}"; do
     token-lean)
       test -L "$TARGET/skills/adk-runtime-router"
       test ! -e "$TARGET/skills/skill-asset-manager"
-      test "$(find "$TARGET/skills" -mindepth 1 -maxdepth 1 -type l | wc -l)" -eq 20
+      test "$(find "$TARGET/skills" -mindepth 1 -maxdepth 1 -type l | wc -l)" -eq 11
       ;;
     superpowers-compat)
       test -L "$TARGET/skills/writing-plans"
