@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Activity Summary"
+  short_description: "汇总指定周期与仓库的 Git 活动"
+  default_prompt: "Use $git-activity-summary to summarize bounded Git history without inferring ownership or completion."

@@ -1,6 +1,6 @@
 ---
 name: worktree-closeout
-description: "Use only for read-only branch/worktree closeout triage across sessions or repos: date/scope scan, status classification, merge/prune order, and handoff prompts. Prefer session-wrap for one current session, project-daily-summary for daily project reports, and commit-daily-summary for commit-only summaries."
+description: "Use only for read-only branch/worktree closeout triage across sessions or repos: date/scope scan, status classification, merge/prune order, and handoff prompts. Prefer session-wrap for one current session, activity-report for period reports, and git-activity-summary for Git-only summaries."
 version: 3.1.0
 last_updated: 2026-04-27
 ---
@@ -23,18 +23,18 @@ This skill does **not** auto-merge, auto-delete, auto-push, or auto-prune. It as
 ## When Not to Use
 
 - **Single current session wrap-up:** use `session-wrap`
-- **Same-day project report:** use `project-daily-summary`
+- **Personal/project/portfolio period report:** use `activity-report`
 - **Single branch is already chosen for final handling:** use `finishing-a-development-branch`
 - **Dangerous branch actions:** do not use this skill as permission to merge, delete, prune, or push automatically
 - **Skill asset import or governance:** use `skill-asset-manager`
 
-`project-daily-summary` may optionally call this skill when the user wants a **same-day all-repo summary with a closeout appendix**.
+`activity-report` may optionally call this skill when the user wants a **bounded all-repo closeout appendix**.
 
 ## Routing Boundary
 
 Use this skill only when the user asks about **branches, worktrees, closeout, prune, merge order, or parallel closeout**.
 
-Do not use it for generic "日报" or "总结今天"; those should route to `project-daily-summary` or `commit-daily-summary` depending on evidence source.
+Do not use it for generic "日报" or "总结今天"; those should route to `activity-report` or `git-activity-summary` depending on evidence source.
 
 ## Required Flow
 
@@ -191,11 +191,11 @@ Do not hide uncertainty. If the artifact and current chat context disagree, call
 - `session-wrap` closes **one current session**
 - `worktree-closeout` scans **across sessions/worktrees for a chosen date**
 
-### `project-daily-summary`
+### `activity-report`
 
-- `project-daily-summary` is still the primary same-day, by-project summary skill
+- `activity-report` is the primary personal/project/portfolio period report skill
 - Use `worktree-closeout` only when the user also needs a date-based branch/worktree closeout appendix
-- For “当天所有 repo closeout appendix” scenarios, `project-daily-summary` may choose to call this skill
+- For bounded repository closeout appendix scenarios, `activity-report` may choose to call this skill
 
 ### `finishing-a-development-branch`
 

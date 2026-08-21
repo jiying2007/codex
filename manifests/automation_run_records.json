@@ -53,7 +53,7 @@
       "trigger": "external-systemd-user-timer-after-explicit-user-authorization",
       "status": "record-template",
       "triage": {
-        "summary": "record period, source coverage, privacy flags, output hashes and warnings",
+        "summary": "record v2 period, explicit subject, source coverage, privacy flags, output hashes and warnings",
         "priority": "review",
         "allowed_outputs": ["bounded receipt", "local report paths"],
         "forbidden_actions": ["send", "commit", "delete", "publish", "write memory"]
@@ -64,7 +64,7 @@
       },
       "retention": {"policy": "local-tmp-until-explicit-cleanup", "expires_after": "none-automatic"},
       "human_review": {"required": true, "status": "pending-first-run-review", "reviewer": "human"},
-      "artifacts": ["daily Markdown report", "daily JSON fact package", "SHA256 receipt"]
+      "artifacts": ["daily Markdown report", "daily activity facts v2 package", "SHA256 receipt"]
     },
     {
       "name": "weekly-activity-report-record-template",
@@ -75,7 +75,7 @@
       "trigger": "external-systemd-user-timer-after-explicit-user-authorization",
       "status": "record-template",
       "triage": {
-        "summary": "record Monday-to-Friday period, source coverage, privacy flags, output hashes and warnings",
+        "summary": "record Monday-to-Friday v2 period, explicit subject, source coverage, privacy flags, output hashes and warnings",
         "priority": "review",
         "allowed_outputs": ["bounded receipt", "local report paths"],
         "forbidden_actions": ["send", "commit", "delete", "publish", "write memory"]
@@ -86,7 +86,7 @@
       },
       "retention": {"policy": "local-tmp-until-explicit-cleanup", "expires_after": "none-automatic"},
       "human_review": {"required": true, "status": "pending-first-run-review", "reviewer": "human"},
-      "artifacts": ["weekly Markdown report", "weekly JSON fact package", "SHA256 receipt"]
+      "artifacts": ["weekly Markdown report", "weekly activity facts v2 package", "SHA256 receipt"]
     }
   ]
 }

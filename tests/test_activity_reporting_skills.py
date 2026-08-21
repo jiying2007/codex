@@ -16,10 +16,9 @@ class ActivityReportingSkillTest(unittest.TestCase):
     def test_active_versions_and_workflow_are_registered(self) -> None:
         skills = {row["name"]: row for row in read_json("manifests/skills.json")["skills"]}
         expected = {
-            "project-activity-report": "1.0.0",
-            "project-daily-summary": "3.2.0",
-            "commit-daily-summary": "3.2.0",
-            "session-wrap": "3.2.0",
+            "activity-report": "1.0.0",
+            "git-activity-summary": "1.0.0",
+            "session-wrap": "4.0.0",
             "chronicle-workflow-miner": "1.2.0",
         }
         for name, version in expected.items():
@@ -29,35 +28,36 @@ class ActivityReportingSkillTest(unittest.TestCase):
 
         workflows = {row["name"]: row for row in read_json("manifests/workflows.json")["workflows"]}
         workflow = workflows["activity-reporting"]
-        self.assertEqual("project-activity-report", workflow["routes"][0]["primary_skill"])
+        self.assertEqual("activity-report", workflow["routes"][0]["primary_skill"])
         self.assertIn("token-lean", workflow["profiles"])
+        self.assertTrue(all(not route.get("fallback_skill") for route in workflow["routes"]))
 
     def test_reporting_skill_is_facts_first_and_privacy_bounded(self) -> None:
         skill = (
             ROOT
-            / "src/codex-home/vendor/skills/project-activity-report/1.0.0/SKILL.md"
+            / "src/codex-home/vendor/skills/activity-report/1.0.0/SKILL.md"
         ).read_text(encoding="utf-8")
         contract = (
             ROOT
-            / "src/codex-home/vendor/skills/project-activity-report/1.0.0/references/facts-contract.md"
+            / "src/codex-home/vendor/skills/activity-report/1.0.0/references/facts-contract.md"
         ).read_text(encoding="utf-8")
-        self.assertIn("activity facts JSON", skill)
+        self.assertIn("activity-facts-v2", skill)
         self.assertIn("Do not read raw sessions", skill)
-        self.assertIn("Never infer completion from commit count", skill)
-        self.assertIn('"raw_content_stored": false', contract)
-        self.assertIn("`session_receipts[]`", contract)
-        self.assertIn(".tmp/session-receipts/YYYY-MM-DD/<receipt-id>.json", contract)
-        self.assertIn("Stop and report `needs-fix`", contract)
+        self.assertIn("do not prove completion or personal ownership", skill)
+        self.assertIn("work-activity-item", contract)
+        self.assertIn("identity inference", contract)
+        self.assertIn("needs-fix", contract)
 
     def test_session_receipt_is_bounded_and_chronicle_uses_it_first(self) -> None:
         session_wrap = (
-            ROOT / "src/codex-home/vendor/skills/session-wrap/3.2.0/SKILL.md"
+            ROOT / "src/codex-home/vendor/skills/session-wrap/4.0.0/SKILL.md"
         ).read_text(encoding="utf-8")
         miner = (
             ROOT / "src/codex-home/vendor/skills/chronicle-workflow-miner/1.2.0/SKILL.md"
         ).read_text(encoding="utf-8")
-        self.assertIn('"kind": "codex-session-receipt"', session_wrap)
-        self.assertIn('"completion_status": "complete|partial|blocked"', session_wrap)
+        self.assertIn('"kind": "activity-session-receipt"', session_wrap)
+        self.assertIn('"kind": "work-activity-item"', session_wrap)
+        self.assertIn('"verification": "verified|reported|missing"', session_wrap)
         self.assertIn("Governed daily/weekly activity facts", miner)
         self.assertIn("Raw Codex history/session transcripts only as an explicit", miner)
         self.assertIn("three sessions across at least two projects", miner)

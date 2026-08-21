@@ -403,26 +403,33 @@
       "workflow": "activity-reporting",
       "context_inputs": [
         "daily, weekly or custom inclusive period",
-        "Knowledge Hub activity facts JSON or permission to generate it report-only",
-        "optional structured session receipts",
-        "requested detail level and project scope"
+        "explicit personal, project or portfolio scope, or configured default_scope",
+        "Knowledge Hub activity facts v2 or permission to generate it report-only",
+        "explicit subject_id for personal scope and optional project_id",
+        "requested brief, normal or full detail"
       ],
       "done_criteria": [
         "period and timezone are explicit",
+        "facts and work items use schema v2 only",
+        "bare report prompts use configured default_scope or return needs-input",
         "source coverage and privacy flags are checked before rendering",
-        "completed, progressing and pending work remain evidence-distinct",
+        "work status and verification status remain distinct",
         "projects are grouped into bounded workstreams rather than chronological sessions",
+        "personal ownership is never inferred from Git, paths, memory or conversation context",
         "raw sessions, logs, credentials and unrestricted local paths are not persisted",
         "report generation does not write memory, promote facts, commit, publish or send"
       ],
       "review_artifacts": [
         "hash-bound activity facts JSON",
-        "Chinese project activity report",
+        "Chinese personal, project or portfolio activity report",
         "source coverage and privacy summary",
         "warnings and next actions"
       ],
       "failure_modes": [
         "a commit, dirty worktree, plan or memory cue is presented as completed work",
+        "a Git author, path, memory cue or chat identity is used as personal ownership",
+        "an old facts, work-item or receipt schema is read or converted",
+        "missing scope or subject silently falls back to another report view",
         "raw session text or authentication state is copied into the report",
         "weekly period silently uses UTC or an incorrect week boundary",
         "a lower-authority memory cue overrides Hub current facts",
@@ -430,13 +437,15 @@
       ],
       "trigger_examples": [
         "结合 Knowledge Hub 和 Codex 记录生成本周周报",
+        "生成我的个人日报",
         "给我所有项目的日报，按项目和工作流归并",
         "用自动报告 facts JSON 生成一份管理层周报"
       ],
       "negative_examples": [
         "只总结当前会话并生成 session receipt",
         "只汇总当前仓库今天的 Git 提交",
-        "直接读取并复制 raw Codex session"
+        "直接读取并复制 raw Codex session",
+        "从 Git author 猜测个人周报归属"
       ],
       "verification": [
         "rtk python3 -m unittest tests.test_agent_routing_eval",

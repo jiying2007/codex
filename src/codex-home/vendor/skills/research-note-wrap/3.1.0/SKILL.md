@@ -1,6 +1,6 @@
 ---
 name: research-note-wrap
-description: Use only when the user wants research, architecture, diagnosis, or analysis conclusions turned into a readable Markdown/Obsidian note. Prefer session-wrap for current-session engineering closeout, project-daily-summary for daily project reports, commit-daily-summary for commit-only reports, and worktree-closeout for branch/worktree closeout.
+description: Use only when the user wants research, architecture, diagnosis, or analysis conclusions turned into a readable Markdown/Obsidian note. Prefer session-wrap for current-session engineering closeout, activity-report for daily/weekly activity reports, git-activity-summary for Git-only reports, and worktree-closeout for branch/worktree closeout.
 version: 3.1.0
 last_updated: 2026-04-27
 ---
@@ -32,8 +32,8 @@ Use this skill only when the requested artifact is an **analysis note** or **res
 Prefer another skill when:
 
 - Current session closeout: use `session-wrap`.
-- Same-day project work report: use `project-daily-summary`.
-- Commit-only daily report: use `commit-daily-summary`.
+- Daily or weekly work report: use `activity-report`.
+- Git-only period report: use `git-activity-summary`.
 - Branch/worktree triage: use `worktree-closeout`.
 - Skill asset governance: use `skill-asset-manager`.
 

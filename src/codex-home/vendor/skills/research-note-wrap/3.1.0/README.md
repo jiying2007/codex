@@ -10,8 +10,8 @@
 ## 不适用
 
 - 当前会话收尾：`session-wrap`
-- 纯提交日报：`commit-daily-summary`
-- 同日项目汇总：`project-daily-summary`
+- Git-only 周期总结：`git-activity-summary`
+- 个人、项目或跨项目活动报告：`activity-report`
 
 ## 结构模板
 

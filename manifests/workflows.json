@@ -298,17 +298,21 @@
         "token-lean"
       ],
       "triggers": [
+        "日报",
+        "周报",
         "项目日报",
         "项目周报",
+        "个人日报",
+        "个人周报",
+        "本周事项",
         "本周工作总结",
         "跨项目工作汇总",
         "提交总结",
         "当前会话总结"
       ],
       "skills": [
-        "project-activity-report",
-        "project-daily-summary",
-        "commit-daily-summary",
+        "activity-report",
+        "git-activity-summary",
         "session-wrap"
       ],
       "token_lean_activation": {
@@ -316,9 +320,8 @@
           "session-wrap"
         ],
         "lazy": [
-          "project-activity-report",
-          "project-daily-summary",
-          "commit-daily-summary"
+          "activity-report",
+          "git-activity-summary"
         ],
         "fallback": []
       },
@@ -326,22 +329,29 @@
         "local-context-curator"
       ],
       "commands": [
-        "rtk bash ~/knowledge-hub/tools/knowledge-metrics.sh --activity-report daily --summary-json",
-        "rtk bash ~/knowledge-hub/tools/knowledge-metrics.sh --activity-report weekly --summary-json"
+        "rtk bash ~/knowledge-hub/tools/knowledge-activity.sh report --period daily --scope personal --summary-json",
+        "rtk bash ~/knowledge-hub/tools/knowledge-activity.sh report --period weekly --scope personal --summary-json"
       ],
       "verification": [
         "rtk python3 -m unittest tests.test_agent_routing_eval",
         "rtk bash scripts/check-skills.sh",
         "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run"
       ],
-      "description": "使用治理事实包、结构化 session receipt、登记 Git 与脱敏 memory cue 生成证据化日报、周报或自定义周期报告。",
+      "description": "使用 activity facts v2 生成个人、项目或跨项目的证据化日报、周报；缺少范围或个人主体时 fail closed。",
       "routes": [
         {
-          "name": "governed-project-period-report",
+          "name": "activity-period-report",
           "match_any": [
+            "日报",
+            "周报",
+            "我的日报",
+            "我的周报",
             "项目日报",
             "项目周报",
+            "个人日报",
+            "个人周报",
             "本周周报",
+            "本周事项",
             "本周工作总结",
             "跨项目工作汇总",
             "全项目总结",
@@ -354,11 +364,11 @@
             "当前会话",
             "本次会话"
           ],
-          "primary_skill": "project-activity-report",
+          "primary_skill": "activity-report",
           "supporting_skills": [],
-          "fallback_skill": "project-daily-summary",
+          "fallback_skill": "",
           "mutually_exclusive_skills": [
-            "commit-daily-summary",
+            "git-activity-summary",
             "session-wrap"
           ]
         },
@@ -375,10 +385,11 @@
             "所有记录",
             "当前会话"
           ],
-          "primary_skill": "commit-daily-summary",
+          "primary_skill": "git-activity-summary",
           "supporting_skills": [],
-          "fallback_skill": "project-activity-report",
+          "fallback_skill": "",
           "mutually_exclusive_skills": [
+            "activity-report",
             "session-wrap"
           ]
         },
@@ -397,9 +408,10 @@
           ],
           "primary_skill": "session-wrap",
           "supporting_skills": [],
-          "fallback_skill": "project-activity-report",
+          "fallback_skill": "",
           "mutually_exclusive_skills": [
-            "commit-daily-summary"
+            "activity-report",
+            "git-activity-summary"
           ]
         }
       ]

@@ -31,9 +31,9 @@ skills:
   - name: codex-parallel-collab
     version: 3.1.0
     vendor_path: vendor/skills/codex-parallel-collab/3.1.0
-  - name: commit-daily-summary
-    version: 3.1.0
-    vendor_path: vendor/skills/commit-daily-summary/3.1.0
+  - name: git-activity-summary
+    version: 1.0.0
+    vendor_path: vendor/skills/git-activity-summary/1.0.0
   - name: create-plan
     version: 0.1.0
     source: ComposioHQ/awesome-codex-skills
@@ -49,15 +49,15 @@ skills:
     source: anthropics/skills
     source_ref: f458cee31a7577a47ba0c9a101976fa599385174
     vendor_path: vendor/skills/mcp-builder/0.1.0
-  - name: project-daily-summary
-    version: 3.1.0
-    vendor_path: vendor/skills/project-daily-summary/3.1.0
+  - name: activity-report
+    version: 1.0.0
+    vendor_path: vendor/skills/activity-report/1.0.0
   - name: research-note-wrap
     version: 3.1.0
     vendor_path: vendor/skills/research-note-wrap/3.1.0
   - name: session-wrap
-    version: 3.1.0
-    vendor_path: vendor/skills/session-wrap/3.1.0
+    version: 4.0.0
+    vendor_path: vendor/skills/session-wrap/4.0.0
   - name: skill-asset-manager
     version: 0.2.0
     vendor_path: vendor/skills/skill-asset-manager/0.2.0

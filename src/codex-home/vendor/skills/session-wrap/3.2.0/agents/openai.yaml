@@ -1,4 +1,0 @@
-interface:
-  display_name: "session-wrap"
-  short_description: "收尾当前会话并可输出供日报周报消费的结构化证据回执"
-  default_prompt: "Use $session-wrap to close the current session with evidence-backed outcomes and a bounded machine-readable receipt."

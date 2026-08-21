@@ -1,0 +1,4 @@
+interface:
+  display_name: "Activity Report"
+  short_description: "生成证据化个人、项目或跨项目日报周报"
+  default_prompt: "Use $activity-report to generate an evidence-bounded daily, weekly, or custom activity report from Knowledge Hub facts v2."

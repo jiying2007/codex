@@ -22,8 +22,8 @@ Use this skill only for **skill asset lifecycle management**.
 Prefer another skill when:
 
 - Current session closeout: use `session-wrap`.
-- Same-day project report: use `project-daily-summary`.
-- Commit-only daily report: use `commit-daily-summary`.
+- Personal/project/portfolio period report: use `activity-report`.
+- Git-only period report: use `git-activity-summary`.
 - Research/analysis note: use `research-note-wrap`.
 - Branch/worktree closeout: use `worktree-closeout`.
 

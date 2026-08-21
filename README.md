@@ -120,9 +120,9 @@ Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow
 | Profile | 常驻 Skill | Custom Agent | Workflow | 并行 / 深度 | Catalog | 适用场景 |
 |---|---:|---:|---:|---:|---|---|
 | `minimal` | 1 | 0 | 0 | 2 / 2 | eager | 极简运行和资产 smoke；当前只常驻 `caveman` |
-| `solo-dev` | 36 | 5 | 5 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
+| `solo-dev` | 35 | 5 | 5 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
 | `token-lean` | 11 | 0 | 5 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
-| `team-collab` | 69 | 16 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
+| `team-collab` | 68 | 16 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
 | `superpowers-compat` | 13 | 0 | 1 | 4 / 3 | eager | 显式 Superpowers 兼容、迁移回归或 ADK 无等价能力时使用 |
 
 选择建议：

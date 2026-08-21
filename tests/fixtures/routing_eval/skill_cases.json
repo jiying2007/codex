@@ -131,22 +131,36 @@
       "name": "governed-weekly-report-primary",
       "prompt": "结合所有记录生成项目周报",
       "expected_workflow": "activity-reporting",
-      "expected_route": "governed-project-period-report",
-      "expected_primary_skill": "project-activity-report"
+      "expected_route": "activity-period-report",
+      "expected_primary_skill": "activity-report"
     },
     {
       "name": "governed-daily-report-primary",
       "prompt": "给我所有项目的项目日报",
       "expected_workflow": "activity-reporting",
-      "expected_route": "governed-project-period-report",
-      "expected_primary_skill": "project-activity-report"
+      "expected_route": "activity-period-report",
+      "expected_primary_skill": "activity-report"
+    },
+    {
+      "name": "governed-personal-weekly-report-primary",
+      "prompt": "根据个人事项生成我的个人周报",
+      "expected_workflow": "activity-reporting",
+      "expected_route": "activity-period-report",
+      "expected_primary_skill": "activity-report"
+    },
+    {
+      "name": "bare-weekly-report-uses-activity-scope-resolution",
+      "prompt": "给我本周周报",
+      "expected_workflow": "activity-reporting",
+      "expected_route": "activity-period-report",
+      "expected_primary_skill": "activity-report"
     },
     {
       "name": "commit-period-summary-primary",
       "prompt": "只做 Git 周期总结，不读取其他记录",
       "expected_workflow": "activity-reporting",
       "expected_route": "commit-period-summary",
-      "expected_primary_skill": "commit-daily-summary"
+      "expected_primary_skill": "git-activity-summary"
     },
     {
       "name": "current-session-receipt-primary",
