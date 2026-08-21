@@ -30,7 +30,7 @@ adk-parallel-agent-governance,1.4.0,active,agent-dev-kit
 adk-lightweight-planning,1.0.0,active,agent-dev-kit
 adk-planning-execution-loop,1.0.0,active,agent-dev-kit
 adk-release-versioning,1.1.0,active,agent-dev-kit
-adk-repo-drift-remediation,1.1.0,active,agent-dev-kit
+adk-repo-drift-remediation,1.1.1,active,agent-dev-kit
 adk-requirements-triage,1.3.0,active,agent-dev-kit
 adk-runtime-router,1.1.0,active,agent-dev-kit
 adk-security-supply-chain,1.0.0,active,agent-dev-kit

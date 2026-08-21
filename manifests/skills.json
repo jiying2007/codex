@@ -651,8 +651,8 @@
       "name": "adk-repo-drift-remediation",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.1.0",
-      "vendor_rel": "vendor/skills/adk-repo-drift-remediation/1.1.0",
+      "version": "1.1.1",
+      "vendor_rel": "vendor/skills/adk-repo-drift-remediation/1.1.1",
       "target_rel": "skills/adk-repo-drift-remediation",
       "profiles": [
         "solo-dev",
@@ -666,7 +666,7 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "083dc95",
+      "source_ref": "302378e",
       "source_path": "skills/adk-repo-drift-remediation/SKILL.md",
       "imported_at": "2026-08-21",
       "review_status": "accepted"

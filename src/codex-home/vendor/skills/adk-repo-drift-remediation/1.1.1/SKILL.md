@@ -1,7 +1,7 @@
 ---
 name: adk-repo-drift-remediation
 description: 仓库漂移治理，面向全仓偏离、冗余、残留、边界不清、文档代码不一致和提交前质量收口
-version: 1.1.0
+version: 1.1.1
 last_updated: 2026-07-07
 triggers:
   - "仓库漂移"
