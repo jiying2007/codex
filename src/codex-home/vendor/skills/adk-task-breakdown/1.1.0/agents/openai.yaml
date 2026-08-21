@@ -1,3 +1,0 @@
-interface:
-  display_name: 'adk-task-breakdown'
-  short_description: '将需求拆解为可并行执行的任务包'

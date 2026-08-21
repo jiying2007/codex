@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "profile": "token-lean",
-  "managed_count": 726,
+  "managed_count": 713,
   "items": [
     {
       "kind": "skill",
       "name": "adk-code-review-loop",
-      "version": "1.4.0",
-      "source": "vendor/skills/adk-code-review-loop/1.4.0",
-      "sha256": "da031c21b58e64f7e567a6b11f532ffbeac06aab3daec82dba02ba212111c69e"
+      "version": "1.4.1",
+      "source": "vendor/skills/adk-code-review-loop/1.4.1",
+      "sha256": "fbbe0b066494911a32215bea51d96fcaee0cd64f1fe141197800396c71034541"
     },
     {
       "kind": "skill",
@@ -34,9 +34,9 @@
     {
       "kind": "skill",
       "name": "adk-requirements-triage",
-      "version": "1.1.0",
-      "source": "vendor/skills/adk-requirements-triage/1.1.0",
-      "sha256": "79820b67ca73c59d302e6aae89345b135a3d52f89666918bd4e046817a7141ba"
+      "version": "1.3.0",
+      "source": "vendor/skills/adk-requirements-triage/1.3.0",
+      "sha256": "c8fd90fd5340a24d831a61948c24a9256ceb92c5a48a32ba1027f4913a294c49"
     },
     {
       "kind": "skill",
@@ -55,23 +55,23 @@
     {
       "kind": "skill",
       "name": "adk-task-breakdown",
-      "version": "1.1.0",
-      "source": "vendor/skills/adk-task-breakdown/1.1.0",
-      "sha256": "5ea131f25e618f3f67dde9acb027e645a84b7b64ac4fd13235a46ce20ffde6b7"
+      "version": "1.4.0",
+      "source": "vendor/skills/adk-task-breakdown/1.4.0",
+      "sha256": "49043e549b551b15abefbbf8f1d76cbd8b2f665c4cc02c3631a66c0040dd7cf3"
     },
     {
       "kind": "skill",
       "name": "adk-token-context-governance",
-      "version": "1.1.0",
-      "source": "vendor/skills/adk-token-context-governance/1.1.0",
-      "sha256": "1fcd8d36fdfd44cb4328ef52591949a53a212a4e498a236b984557aa46735aa9"
+      "version": "1.2.0",
+      "source": "vendor/skills/adk-token-context-governance/1.2.0",
+      "sha256": "74db4cc8523f243b3989ac3ab67463ccf96899ecb28b7dfa442c4a1177ca0736"
     },
     {
       "kind": "skill",
       "name": "adk-verification-before-completion",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-verification-before-completion/1.0.0",
-      "sha256": "66b0875518ecebec8e8c1a605a11a7652800269595ccb1207beedefb7f19709f"
+      "version": "1.4.0",
+      "source": "vendor/skills/adk-verification-before-completion/1.4.0",
+      "sha256": "18cea8e4f85fe23e9be622a0dfd3ecea800ad1f38dfc38563d0aeb258028cb25"
     },
     {
       "kind": "skill",
