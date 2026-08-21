@@ -408,6 +408,95 @@
         "existing asset coverage mapping",
         "decision queue"
       ]
+    },
+    {
+      "name": "local-daily-activity-report",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "scheduled",
+      "profiles": ["team-collab"],
+      "workflow": "knowledge-hub-governance",
+      "cadence": "daily 20:30 Asia/Hong_Kong; external systemd user timer explicitly authorized 2026-08-02",
+      "scope": {
+        "data_sources": [
+          "~/knowledge-hub registry and local workspace maps",
+          "registered local Git repositories",
+          "~/codex Git history and governed manifests",
+          "~/knowledge-hub/domains/codex/archive",
+          "~/.codex/memories sanitized summaries only"
+        ],
+        "write_boundary": "write only hash-bound JSON and Markdown under ~/knowledge-hub/.tmp/reports/daily; do not modify knowledge, source, Codex runtime or memory"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop after one report, on source parse failure, or after two consecutive runs without a valid receipt",
+      "triage_contract": {
+        "destination": "~/knowledge-hub/.tmp/reports/daily",
+        "allowed_outputs": ["sanitized Markdown report", "hash-bound JSON fact package", "bounded run receipt"],
+        "forbidden_actions": [
+          "read raw sessions, logs, cache, auth or raw_memories.md",
+          "write memories or knowledge sources",
+          "commit, push, publish or send",
+          "promote active facts or close owner gates"
+        ]
+      },
+      "run_lifecycle": {
+        "first_run": "manually inspect source coverage, privacy flags, report hashes and systemd unit status",
+        "steady_state": "generate one deterministic daily report at 20:30 Asia/Hong_Kong and stop",
+        "stale_after": "two calendar days without a successful receipt",
+        "retry_budget": 1,
+        "cleanup": ["discard transient command output", "do not automatically delete previous local reports"],
+        "retention": "retain local .tmp reports until explicit manual cleanup; never archive automatically"
+      },
+      "output_artifacts": ["daily Markdown report", "daily JSON fact package", "SHA256 receipt"]
+    },
+    {
+      "name": "local-weekly-activity-report",
+      "enabled": false,
+      "mode": "report-only",
+      "type": "scheduled",
+      "profiles": ["team-collab"],
+      "workflow": "knowledge-hub-governance",
+      "cadence": "weekly Friday 20:45 Asia/Hong_Kong; external systemd user timer explicitly authorized 2026-08-02",
+      "scope": {
+        "data_sources": [
+          "daily report governed sources",
+          "Monday-to-Friday Knowledge Hub registry activity",
+          "Monday-to-Friday registered local Git history",
+          "Codex archive provenance and sanitized memory cues"
+        ],
+        "write_boundary": "write only hash-bound JSON and Markdown under ~/knowledge-hub/.tmp/reports/weekly; do not modify knowledge, source, Codex runtime or memory"
+      },
+      "sandbox": "read-only",
+      "approval_policy": "manual",
+      "worktree_policy": "read-current-only",
+      "first_run_review": true,
+      "risk_class": "read-only",
+      "requires_worktree_for_write": false,
+      "stop_condition": "stop after one Friday report, on source parse failure, or after two consecutive runs without a valid receipt",
+      "triage_contract": {
+        "destination": "~/knowledge-hub/.tmp/reports/weekly",
+        "allowed_outputs": ["sanitized Markdown report", "hash-bound JSON fact package", "bounded run receipt"],
+        "forbidden_actions": [
+          "read raw sessions, logs, cache, auth or raw_memories.md",
+          "write memories or knowledge sources",
+          "commit, push, publish or send",
+          "promote active facts or close owner gates"
+        ]
+      },
+      "run_lifecycle": {
+        "first_run": "manually inspect the Friday period, source coverage, privacy flags, report hashes and systemd unit status",
+        "steady_state": "generate one Monday-to-Friday report at Friday 20:45 Asia/Hong_Kong and stop",
+        "stale_after": "eight calendar days without a successful receipt",
+        "retry_budget": 1,
+        "cleanup": ["discard transient command output", "do not automatically delete previous local reports"],
+        "retention": "retain local .tmp reports until explicit manual cleanup; never archive automatically"
+      },
+      "output_artifacts": ["weekly Markdown report", "weekly JSON fact package", "SHA256 receipt"]
     }
   ]
 }

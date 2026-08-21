@@ -1,4 +1,0 @@
-interface:
-  display_name: "Chronicle Workflow Miner"
-  short_description: "Find repeated work patterns and convert only high-confidence gaps into reusable assets"
-  default_prompt: "Use $chronicle-workflow-miner to inspect local history, memories, archives, and existing assets, then propose or create reusable workflow assets."

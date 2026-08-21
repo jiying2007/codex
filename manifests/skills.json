@@ -924,8 +924,8 @@
       "name": "chronicle-workflow-miner",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.1.0",
-      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.1.0",
+      "version": "1.2.0",
+      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.2.0",
       "target_rel": "skills/chronicle-workflow-miner",
       "profiles": [
         "team-collab"
@@ -940,7 +940,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.1.0",
+      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.2.0",
       "imported_at": "2026-06-15",
       "review_status": "accepted"
     },
@@ -1018,8 +1018,8 @@
       "name": "commit-daily-summary",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "3.1.0",
-      "vendor_rel": "vendor/skills/commit-daily-summary/3.1.0",
+      "version": "3.2.0",
+      "vendor_rel": "vendor/skills/commit-daily-summary/3.2.0",
       "target_rel": "skills/commit-daily-summary",
       "profiles": [
         "solo-dev",
@@ -1032,7 +1032,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/commit-daily-summary/3.1.0",
+      "source_path": "src/codex-home/vendor/skills/commit-daily-summary/3.2.0",
       "imported_at": "2026-05-09",
       "review_status": "accepted"
     },
@@ -1351,11 +1351,35 @@
       "review_status": "accepted"
     },
     {
+      "name": "project-activity-report",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/project-activity-report/1.0.0",
+      "target_rel": "skills/project-activity-report",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "summary",
+        "reporting",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/project-activity-report/1.0.0",
+      "imported_at": "2026-08-02",
+      "review_status": "accepted"
+    },
+    {
       "name": "project-daily-summary",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "3.1.0",
-      "vendor_rel": "vendor/skills/project-daily-summary/3.1.0",
+      "version": "3.2.0",
+      "vendor_rel": "vendor/skills/project-daily-summary/3.2.0",
       "target_rel": "skills/project-daily-summary",
       "profiles": [
         "solo-dev",
@@ -1368,7 +1392,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/project-daily-summary/3.1.0",
+      "source_path": "src/codex-home/vendor/skills/project-daily-summary/3.2.0",
       "imported_at": "2026-05-09",
       "review_status": "accepted"
     },
@@ -1465,8 +1489,8 @@
       "name": "session-wrap",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "3.1.0",
-      "vendor_rel": "vendor/skills/session-wrap/3.1.0",
+      "version": "3.2.0",
+      "vendor_rel": "vendor/skills/session-wrap/3.2.0",
       "target_rel": "skills/session-wrap",
       "profiles": [
         "solo-dev",
@@ -1480,7 +1504,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/session-wrap/3.1.0",
+      "source_path": "src/codex-home/vendor/skills/session-wrap/3.2.0",
       "imported_at": "2026-05-09",
       "review_status": "accepted"
     },

@@ -1,0 +1,4 @@
+interface:
+  display_name: "project-daily-summary"
+  short_description: "基于治理事实包按项目生成脱敏、证据化的当日工作总结"
+  default_prompt: "Use $project-daily-summary to generate a same-day project report from the governed activity facts package and structured session receipts."

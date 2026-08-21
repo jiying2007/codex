@@ -391,6 +391,59 @@
         "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run",
         "rtk bash scripts/final-ready.sh"
       ]
+    },
+    {
+      "name": "governed-activity-reporting",
+      "enabled": true,
+      "profiles": [
+        "solo-dev",
+        "team-collab",
+        "token-lean"
+      ],
+      "workflow": "activity-reporting",
+      "context_inputs": [
+        "daily, weekly or custom inclusive period",
+        "Knowledge Hub activity facts JSON or permission to generate it report-only",
+        "optional structured session receipts",
+        "requested detail level and project scope"
+      ],
+      "done_criteria": [
+        "period and timezone are explicit",
+        "source coverage and privacy flags are checked before rendering",
+        "completed, progressing and pending work remain evidence-distinct",
+        "projects are grouped into bounded workstreams rather than chronological sessions",
+        "raw sessions, logs, credentials and unrestricted local paths are not persisted",
+        "report generation does not write memory, promote facts, commit, publish or send"
+      ],
+      "review_artifacts": [
+        "hash-bound activity facts JSON",
+        "Chinese project activity report",
+        "source coverage and privacy summary",
+        "warnings and next actions"
+      ],
+      "failure_modes": [
+        "a commit, dirty worktree, plan or memory cue is presented as completed work",
+        "raw session text or authentication state is copied into the report",
+        "weekly period silently uses UTC or an incorrect week boundary",
+        "a lower-authority memory cue overrides Hub current facts",
+        "missing repositories or receipts are hidden instead of reported as coverage gaps"
+      ],
+      "trigger_examples": [
+        "结合 Knowledge Hub 和 Codex 记录生成本周周报",
+        "给我所有项目的日报，按项目和工作流归并",
+        "用自动报告 facts JSON 生成一份管理层周报"
+      ],
+      "negative_examples": [
+        "只总结当前会话并生成 session receipt",
+        "只汇总当前仓库今天的 Git 提交",
+        "直接读取并复制 raw Codex session"
+      ],
+      "verification": [
+        "rtk python3 -m unittest tests.test_agent_routing_eval",
+        "rtk bash scripts/check-skills.sh",
+        "rtk bash scripts/doctor.sh --scope governance",
+        "rtk bash scripts/final-ready.sh"
+      ]
     }
   ]
 }

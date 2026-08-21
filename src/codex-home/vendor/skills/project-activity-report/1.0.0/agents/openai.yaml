@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Activity Report"
+  short_description: "基于治理事实包生成跨项目日报、周报与自定义周期活动报告"
+  default_prompt: "Use $project-activity-report to generate a privacy-bounded project activity report from a governed facts package."

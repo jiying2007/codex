@@ -290,6 +290,121 @@
       ]
     },
     {
+      "name": "activity-reporting",
+      "enabled": true,
+      "profiles": [
+        "solo-dev",
+        "team-collab",
+        "token-lean"
+      ],
+      "triggers": [
+        "项目日报",
+        "项目周报",
+        "本周工作总结",
+        "跨项目工作汇总",
+        "提交总结",
+        "当前会话总结"
+      ],
+      "skills": [
+        "project-activity-report",
+        "project-daily-summary",
+        "commit-daily-summary",
+        "session-wrap"
+      ],
+      "token_lean_activation": {
+        "resident": [
+          "session-wrap"
+        ],
+        "lazy": [
+          "project-activity-report",
+          "project-daily-summary",
+          "commit-daily-summary"
+        ],
+        "fallback": []
+      },
+      "agents": [
+        "local-context-curator"
+      ],
+      "commands": [
+        "rtk bash ~/knowledge-hub/tools/knowledge-metrics.sh --activity-report daily --summary-json",
+        "rtk bash ~/knowledge-hub/tools/knowledge-metrics.sh --activity-report weekly --summary-json"
+      ],
+      "verification": [
+        "rtk python3 -m unittest tests.test_agent_routing_eval",
+        "rtk bash scripts/check-skills.sh",
+        "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run"
+      ],
+      "description": "使用治理事实包、结构化 session receipt、登记 Git 与脱敏 memory cue 生成证据化日报、周报或自定义周期报告。",
+      "routes": [
+        {
+          "name": "governed-project-period-report",
+          "match_any": [
+            "项目日报",
+            "项目周报",
+            "本周周报",
+            "本周工作总结",
+            "跨项目工作汇总",
+            "全项目总结",
+            "日报、周报",
+            "日报和周报"
+          ],
+          "exclude_any": [
+            "仅提交",
+            "commit-only",
+            "当前会话",
+            "本次会话"
+          ],
+          "primary_skill": "project-activity-report",
+          "supporting_skills": [],
+          "fallback_skill": "project-daily-summary",
+          "mutually_exclusive_skills": [
+            "commit-daily-summary",
+            "session-wrap"
+          ]
+        },
+        {
+          "name": "commit-period-summary",
+          "match_any": [
+            "提交总结",
+            "commit 日报",
+            "Git 周期总结",
+            "commit-only"
+          ],
+          "exclude_any": [
+            "Knowledge Hub",
+            "所有记录",
+            "当前会话"
+          ],
+          "primary_skill": "commit-daily-summary",
+          "supporting_skills": [],
+          "fallback_skill": "project-activity-report",
+          "mutually_exclusive_skills": [
+            "session-wrap"
+          ]
+        },
+        {
+          "name": "current-session-receipt",
+          "match_any": [
+            "当前会话总结",
+            "本次会话总结",
+            "会话收尾 receipt",
+            "session receipt"
+          ],
+          "exclude_any": [
+            "今天所有会话",
+            "跨项目",
+            "周报"
+          ],
+          "primary_skill": "session-wrap",
+          "supporting_skills": [],
+          "fallback_skill": "project-activity-report",
+          "mutually_exclusive_skills": [
+            "commit-daily-summary"
+          ]
+        }
+      ]
+    },
+    {
       "name": "embedded-diagnostic-validation",
       "enabled": true,
       "profiles": [

@@ -1,6 +1,6 @@
 # project-daily-summary
 
-按“项目 -> 工作流”汇总同日 Codex 工作，整合会话证据、提交与未提交改动。
+按“项目 -> 工作流”汇总同日 Codex 工作，默认消费治理事实包和结构化 session receipt。
 
 ## 适用场景
 
@@ -10,9 +10,9 @@
 
 ## 数据来源优先级
 
-1. `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`
-2. `~/.codex/history.jsonl`
-3. `git log` / `git status --short` / `git diff --stat`
+1. Knowledge Hub activity facts JSON
+2. 结构化 `session-wrap` receipt
+3. 已登记 Git 证据与脱敏 memory cue
 
 ## 标准流程
 
@@ -29,5 +29,5 @@
 
 ## 限制
 
-- 会话证据缺失时必须标注不确定性
+- facts/receipt 缺失时必须标注覆盖缺口
 - 不把推测写成事实

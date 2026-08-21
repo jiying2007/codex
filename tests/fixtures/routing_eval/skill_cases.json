@@ -126,6 +126,34 @@
       "expected_workflow": "archive-curation",
       "expected_route": "memory-corpus-curation",
       "expected_primary_skill": "adk-memory-curator"
+    },
+    {
+      "name": "governed-weekly-report-primary",
+      "prompt": "结合所有记录生成项目周报",
+      "expected_workflow": "activity-reporting",
+      "expected_route": "governed-project-period-report",
+      "expected_primary_skill": "project-activity-report"
+    },
+    {
+      "name": "governed-daily-report-primary",
+      "prompt": "给我所有项目的项目日报",
+      "expected_workflow": "activity-reporting",
+      "expected_route": "governed-project-period-report",
+      "expected_primary_skill": "project-activity-report"
+    },
+    {
+      "name": "commit-period-summary-primary",
+      "prompt": "只做 Git 周期总结，不读取其他记录",
+      "expected_workflow": "activity-reporting",
+      "expected_route": "commit-period-summary",
+      "expected_primary_skill": "commit-daily-summary"
+    },
+    {
+      "name": "current-session-receipt-primary",
+      "prompt": "当前会话总结并生成 session receipt",
+      "expected_workflow": "activity-reporting",
+      "expected_route": "current-session-receipt",
+      "expected_primary_skill": "session-wrap"
     }
   ]
 }

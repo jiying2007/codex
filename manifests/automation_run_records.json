@@ -43,6 +43,50 @@
         "automation triage summary",
         "sanitized run note"
       ]
+    },
+    {
+      "name": "daily-activity-report-record-template",
+      "enabled": false,
+      "automation": "local-daily-activity-report",
+      "run_id": "template",
+      "run_at": "daily-20:30-asia-hong-kong",
+      "trigger": "external-systemd-user-timer-after-explicit-user-authorization",
+      "status": "record-template",
+      "triage": {
+        "summary": "record period, source coverage, privacy flags, output hashes and warnings",
+        "priority": "review",
+        "allowed_outputs": ["bounded receipt", "local report paths"],
+        "forbidden_actions": ["send", "commit", "delete", "publish", "write memory"]
+      },
+      "cleanup": {
+        "performed": false,
+        "actions": ["discard transient command output", "keep hash-bound local report artifacts"]
+      },
+      "retention": {"policy": "local-tmp-until-explicit-cleanup", "expires_after": "none-automatic"},
+      "human_review": {"required": true, "status": "pending-first-run-review", "reviewer": "human"},
+      "artifacts": ["daily Markdown report", "daily JSON fact package", "SHA256 receipt"]
+    },
+    {
+      "name": "weekly-activity-report-record-template",
+      "enabled": false,
+      "automation": "local-weekly-activity-report",
+      "run_id": "template",
+      "run_at": "friday-20:45-asia-hong-kong",
+      "trigger": "external-systemd-user-timer-after-explicit-user-authorization",
+      "status": "record-template",
+      "triage": {
+        "summary": "record Monday-to-Friday period, source coverage, privacy flags, output hashes and warnings",
+        "priority": "review",
+        "allowed_outputs": ["bounded receipt", "local report paths"],
+        "forbidden_actions": ["send", "commit", "delete", "publish", "write memory"]
+      },
+      "cleanup": {
+        "performed": false,
+        "actions": ["discard transient command output", "keep hash-bound local report artifacts"]
+      },
+      "retention": {"policy": "local-tmp-until-explicit-cleanup", "expires_after": "none-automatic"},
+      "human_review": {"required": true, "status": "pending-first-run-review", "reviewer": "human"},
+      "artifacts": ["weekly Markdown report", "weekly JSON fact package", "SHA256 receipt"]
     }
   ]
 }

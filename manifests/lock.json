@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "profile": "token-lean",
-  "managed_count": 714,
+  "managed_count": 726,
   "items": [
     {
       "kind": "skill",
       "name": "adk-code-review-loop",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-code-review-loop/1.0.0",
-      "sha256": "1691f3b2cdd235338c9756e96e75609009295770ad936f1d48ff54a4ba42192f"
+      "version": "1.4.0",
+      "source": "vendor/skills/adk-code-review-loop/1.4.0",
+      "sha256": "da031c21b58e64f7e567a6b11f532ffbeac06aab3daec82dba02ba212111c69e"
     },
     {
       "kind": "skill",
@@ -76,9 +76,9 @@
     {
       "kind": "skill",
       "name": "session-wrap",
-      "version": "3.1.0",
-      "source": "vendor/skills/session-wrap/3.1.0",
-      "sha256": "846a1178a0a2e1548807448c87a40e37bfa633b9ade25b09d39ca45223f0e448"
+      "version": "3.2.0",
+      "source": "vendor/skills/session-wrap/3.2.0",
+      "sha256": "7a4fb923fd2c828ab9b73a2e024b8c2e65b9c1efd63cb320ca29a8bd9a99f4ff"
     }
   ]
 }

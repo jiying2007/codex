@@ -30,6 +30,11 @@
       "name": "embedded-remote-hil-session-positive",
       "prompt": "设备恢复后先做 ADB 只读 preflight，再核对候选制品并执行 HIL 板测",
       "expected_recipe": "embedded-remote-hil-session"
+    },
+    {
+      "name": "governed-activity-reporting-positive",
+      "prompt": "结合 Knowledge Hub 和 Codex 记录生成本周周报",
+      "expected_recipe": "governed-activity-reporting"
     }
   ]
 }

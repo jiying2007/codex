@@ -1,4 +1,0 @@
-interface:
-  display_name: "session-wrap"
-  short_description: "收尾当前会话，输出完成项、风险、验证与下一步"
-  default_prompt: "Use $session-wrap to summarize the current coding session with completed work, decisions, validation status, risks, and concrete next actions."

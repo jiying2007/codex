@@ -1,0 +1,4 @@
+interface:
+  display_name: "commit-daily-summary"
+  short_description: "将单日或指定周期的多仓库 Git 提交归并为中文工作流摘要"
+  default_prompt: "Use $commit-daily-summary to summarize commits from an explicit date range and repository set into grouped Chinese workstreams."
