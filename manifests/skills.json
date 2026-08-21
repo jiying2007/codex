@@ -96,8 +96,8 @@
       "name": "adk-code-review-loop",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-code-review-loop/1.0.0",
+      "version": "1.4.0",
+      "vendor_rel": "vendor/skills/adk-code-review-loop/1.4.0",
       "target_rel": "skills/adk-code-review-loop",
       "profiles": [
         "team-collab",
@@ -110,9 +110,9 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "2.9.0",
+      "source_ref": "7cf8cac",
       "source_path": "skills/adk-code-review-loop/SKILL.md",
-      "imported_at": "2026-05-23",
+      "imported_at": "2026-08-21",
       "review_status": "accepted"
     },
     {

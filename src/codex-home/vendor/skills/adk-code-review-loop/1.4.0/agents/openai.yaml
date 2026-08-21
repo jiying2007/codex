@@ -1,0 +1,3 @@
+interface:
+  display_name: 'adk-code-review-loop'
+  short_description: '绑定审查快照，分离语义审查、事实核验与机械门禁'

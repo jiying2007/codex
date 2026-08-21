@@ -3,7 +3,7 @@ adk-after-action-review,1.0.0,active,agent-dev-kit
 adk-archive-governance,1.0.0,active,agent-dev-kit
 adk-artifact-gating,1.0.0,active,agent-dev-kit
 adk-branch-closeout,1.0.0,active,agent-dev-kit
-adk-code-review-loop,1.0.0,active,agent-dev-kit
+adk-code-review-loop,1.4.0,active,agent-dev-kit
 adk-commit-pr-quality-gate,1.0.0,active,agent-dev-kit
 adk-context-compress-handoff,1.0.0,active,agent-dev-kit
 adk-cross-team-handoff,1.0.0,active,agent-dev-kit
