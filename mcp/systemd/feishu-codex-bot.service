@@ -1,0 +1,18 @@
+[Unit]
+Description=Feishu Codex AI Assistant
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/leiwenjun/codex
+Environment=PATH=/home/leiwenjun/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/leiwenjun/codex/scripts/feishu-codex-bot.sh start
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

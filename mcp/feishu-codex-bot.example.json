@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "default_repo": "llm_apps",
+  "allowed_open_ids": [
+    "ou_replace_with_owner_open_id"
+  ],
+  "repositories": {
+    "codex": {
+      "path": "/absolute/path/to/codex",
+      "allowed_modes": [
+        "explain",
+        "review"
+      ],
+      "allowed_open_ids": []
+    },
+    "llm_apps": {
+      "path": "/absolute/path/to/llm_apps",
+      "allowed_modes": [
+        "explain",
+        "review",
+        "edit"
+      ],
+      "allowed_open_ids": [],
+      "edit_strategy": "in_place",
+      "commit_enabled": false,
+      "artifact_upload": {
+        "enabled": true,
+        "allowed_roots": [
+          "android-prototype/dist/android"
+        ],
+        "allowed_extensions": [
+          ".apk"
+        ],
+        "max_bytes": 31457280
+      },
+      "verification_commands": [
+        [
+          "git",
+          "diff",
+          "--check"
+        ]
+      ]
+    }
+  },
+  "deny_push_hooks_path": "/absolute/path/to/codex/mcp/git-hooks",
+  "isolation_bin": "/usr/local/bin/bwrap",
+  "deny_read_paths": [
+    "/absolute/path/to/codex/mcp/secrets"
+  ],
+  "isolation_write_paths": [
+    "/home/user/.codex"
+  ],
+  "worker_count": 2,
+  "queue_size": 20,
+  "rate_limit_count": 5,
+  "rate_limit_window_sec": 60,
+  "codex_timeout_sec": 900,
+  "max_prompt_chars": 12000,
+  "reply_chunk_chars": 3500,
+  "state_db": "/absolute/path/to/mcp/secrets/feishu-codex-state.sqlite3",
+  "lock_file": "/absolute/path/to/mcp/secrets/feishu-codex-bot.lock"
+}

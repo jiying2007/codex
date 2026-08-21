@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "ERROR: Feishu Codex policy forbids git push." >&2
+exit 1

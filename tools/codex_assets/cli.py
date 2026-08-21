@@ -40,6 +40,11 @@ from .wechat_archive import (
     configure_parser as configure_wechat_archive_parser,
     run as run_wechat_archive,
 )
+from .feishu_codex_bot import (
+    FeishuCodexError,
+    configure_parser as configure_feishu_codex_parser,
+    run as run_feishu_codex_bot,
+)
 
 
 def default_root() -> pathlib.Path:
@@ -460,6 +465,10 @@ def cmd_wechat_archive(args: argparse.Namespace) -> int:
     return run_wechat_archive(args)
 
 
+def cmd_feishu_codex_bot(args: argparse.Namespace) -> int:
+    return run_feishu_codex_bot(args)
+
+
 def cmd_session_coach(args: argparse.Namespace) -> int:
     return run_session_coach(args)
 
@@ -675,6 +684,10 @@ def build_parser() -> argparse.ArgumentParser:
     configure_wechat_archive_parser(p)
     p.set_defaults(func=cmd_wechat_archive)
 
+    p = sub.add_parser("feishu-codex-bot", parents=[common])
+    configure_feishu_codex_parser(p)
+    p.set_defaults(func=cmd_feishu_codex_bot)
+
     p = sub.add_parser("curate-memory", parents=[common])
     p.add_argument("--memories", default="~/.codex/memories")
     p.add_argument("--output", default="")
@@ -742,6 +755,6 @@ def main() -> None:
     args = parser.parse_args()
     try:
         raise SystemExit(args.func(args))
-    except (CodexAssetError, ArchiveGovernanceError, WechatArchiveError) as exc:
+    except (CodexAssetError, ArchiveGovernanceError, WechatArchiveError, FeishuCodexError) as exc:
         print(f"[FATAL] {exc}", file=sys.stderr)
         raise SystemExit(2)
