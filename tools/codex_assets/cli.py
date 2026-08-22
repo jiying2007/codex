@@ -34,6 +34,8 @@ from .session_coach import run as run_session_coach
 from .skill_catalog import render_human as render_skill_search_human
 from .skill_catalog import search_skills
 from .usage_dashboard import main as usage_dashboard_main
+from .workflow_mining_report import configure_parser as configure_workflow_mining_report_parser
+from .workflow_mining_report import run as run_workflow_mining_report
 from .validate import validate_repo
 from .wechat_archive import (
     WechatArchiveError,
@@ -624,6 +626,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--include-fallback", action="store_true")
     p.add_argument("--summary-json", action="store_true")
     p.set_defaults(func=cmd_skill_search)
+
+    p = sub.add_parser("workflow-mining-report", parents=[common])
+    configure_workflow_mining_report_parser(p)
+    p.set_defaults(func=run_workflow_mining_report)
 
     p = sub.add_parser("rollback", parents=[common])
     p.add_argument("--plan", required=True)

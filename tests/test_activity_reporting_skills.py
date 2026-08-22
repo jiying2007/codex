@@ -19,7 +19,7 @@ class ActivityReportingSkillTest(unittest.TestCase):
             "activity-report": "1.0.0",
             "git-activity-summary": "1.0.0",
             "session-wrap": "4.0.0",
-            "chronicle-workflow-miner": "1.2.0",
+            "chronicle-workflow-miner": "1.3.0",
         }
         for name, version in expected.items():
             with self.subTest(skill=name):
@@ -53,7 +53,7 @@ class ActivityReportingSkillTest(unittest.TestCase):
             ROOT / "src/codex-home/vendor/skills/session-wrap/4.0.0/SKILL.md"
         ).read_text(encoding="utf-8")
         miner = (
-            ROOT / "src/codex-home/vendor/skills/chronicle-workflow-miner/1.2.0/SKILL.md"
+            ROOT / "src/codex-home/vendor/skills/chronicle-workflow-miner/1.3.0/SKILL.md"
         ).read_text(encoding="utf-8")
         self.assertIn('"kind": "activity-session-receipt"', session_wrap)
         self.assertIn('"kind": "work-activity-item"', session_wrap)

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Embedded Runtime Performance"
+  short_description: "Triages embedded CPU, latency, and blocked-thread issues"
+  default_prompt: "Use $embedded-runtime-performance-triage to investigate embedded runtime CPU, latency, or blocking."

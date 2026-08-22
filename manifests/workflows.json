@@ -441,7 +441,7 @@
         "设备恢复",
         "远程部署",
         "板端复测",
-        "串口日志",
+    "串口日志",
         "启动日志",
         "Serial log",
         "dmesg",
@@ -454,7 +454,22 @@
         "音频丢尾音",
         "老化状态恢复",
         "产测阶段切换",
-        "标定重复触发",
+    "标定重复触发",
+    "休眠后自动唤醒",
+    "无法进入深度休眠",
+    "wakeup source",
+    "shutdown 后未休眠",
+    "prog_pcr02 高负载",
+    "线程 CPU 高",
+    "耗时尖峰",
+    "回调阻塞",
+    "帧率失败",
+    "音频流丢帧",
+    "音量重置",
+    "音频帧回收失败",
+    "厂测异常",
+    "健康位图",
+    "PCBA 标定",
         "协议文档对照",
         "协议实现一致性"
       ],
@@ -468,7 +483,9 @@
         "embedded-log-triage",
         "embedded-core-dump-triage",
         "embedded-audio-stream-triage",
-        "embedded-production-test-lifecycle",
+    "embedded-production-test-lifecycle",
+    "embedded-low-power-wakeup-triage",
+    "embedded-runtime-performance-triage",
         "protocol-implementation-audit",
         "adk-systematic-debugging",
         "adk-test-strategy",
@@ -486,7 +503,61 @@
       "verification": [
         "rtk bash scripts/check.sh"
       ],
-      "routes": [
+    "routes": [
+      {
+        "name": "low-power-wakeup-triage",
+        "match_any": [
+          "休眠后自动唤醒",
+          "无法进入深度休眠",
+          "wakeup source",
+          "sleeping=0",
+          "RTC 唤醒变冷启动",
+          "shutdown 后未休眠",
+          "TCPKA 唤醒",
+          "WiFi IRQ 唤醒"
+        ],
+        "exclude_any": [
+          "仅分析日志文本",
+          "本地日志文件",
+          "不连接设备"
+        ],
+        "primary_skill": "embedded-low-power-wakeup-triage",
+        "supporting_skills": [
+          "adk-embedded-remote-debug-log-triage",
+          "adk-test-strategy"
+        ],
+        "fallback_skill": "adk-systematic-debugging",
+        "mutually_exclusive_skills": [
+          "embedded-log-triage"
+        ]
+      },
+      {
+        "name": "runtime-performance-triage",
+        "match_any": [
+          "prog_pcr02 高负载",
+          "线程 CPU 高",
+          "耗时尖峰",
+          "回调阻塞",
+          "帧率失败",
+          "高上下文切换",
+          "队列积压",
+          "进程高占用"
+        ],
+        "exclude_any": [
+          "流式音频断续",
+          "音频吞首",
+          "音频丢尾",
+          "PCM underrun"
+        ],
+        "primary_skill": "embedded-runtime-performance-triage",
+        "supporting_skills": [
+          "adk-embedded-remote-debug-log-triage"
+        ],
+        "fallback_skill": "adk-systematic-debugging",
+        "mutually_exclusive_skills": [
+          "embedded-audio-stream-triage"
+        ]
+      },
         {
           "name": "diagnostic-cli-harness",
           "match_any": [
@@ -587,15 +658,18 @@
             "embedded-log-triage"
           ]
         },
-        {
-          "name": "offline-pasted-log-triage",
+      {
+        "name": "offline-pasted-log-triage",
           "match_any": [
             "粘贴串口日志",
             "离线串口",
             "粘贴的日志",
-            "离线日志包",
-            "仅分析日志文本",
-            "本地日志文件"
+          "离线日志包",
+          "仅分析日志文本",
+          "本地日志文件",
+          "离线启动日志",
+          "粘贴 ADB 日志",
+          "看门狗重启日志"
           ],
           "exclude_any": [
             "SSH",
@@ -629,13 +703,17 @@
             "embedded-core-dump-triage"
           ]
         },
-        {
-          "name": "pcr02-sigmastar-core-dump",
+      {
+        "name": "pcr02-sigmastar-core-dump",
           "match_any": [
-            "PCR02 core",
-            "SigmaStar core",
-            "SSC305 core",
-            "prog_pcr02 core"
+          "PCR02 core",
+          "SigmaStar core",
+          "SSC305 core",
+          "prog_pcr02 core",
+          "core-prog_pcr02",
+          "prog_pcr02 崩溃",
+          "APP 崩溃",
+          "core-ai-voice"
           ],
           "exclude_any": [],
           "primary_skill": "embedded-core-dump-triage",
@@ -645,13 +723,18 @@
           "fallback_skill": "adk-offline-core-dump-triage",
           "mutually_exclusive_skills": []
         },
-        {
-          "name": "audio-stream-triage",
+      {
+        "name": "audio-stream-triage",
           "match_any": [
-            "流式音频断续",
-            "音频吞首",
-            "音频丢尾",
-            "PCM underrun"
+          "流式音频断续",
+          "音频吞首",
+          "音频丢尾",
+          "PCM underrun",
+          "音频流丢帧",
+          "音量重置",
+          "音频帧回收失败",
+          "播放器解析失败",
+          "Agora 音频异常"
           ],
           "exclude_any": [],
           "primary_skill": "embedded-audio-stream-triage",
@@ -661,13 +744,18 @@
           "fallback_skill": "adk-systematic-debugging",
           "mutually_exclusive_skills": []
         },
-        {
-          "name": "production-test-lifecycle",
+      {
+        "name": "production-test-lifecycle",
           "match_any": [
-            "老化状态恢复",
-            "产测阶段切换",
-            "标定重复触发",
-            "重启持久化"
+          "老化状态恢复",
+          "产测阶段切换",
+          "标定重复触发",
+          "重启持久化",
+          "厂测异常",
+          "老化 TOF",
+          "健康位图",
+          "电机校准 false",
+          "PCBA 标定"
           ],
           "exclude_any": [
             "仅校验返回码"

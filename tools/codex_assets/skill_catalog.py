@@ -264,7 +264,11 @@ def search_skills(
         meta = parse_frontmatter(skill_path)
         description = _text(meta.get("description", ""))
         triggers = _list(meta.get("triggers", []))
-        if _embedded_only(item, description) and not _query_has_embedded_context(query):
+        if (
+            _embedded_only(item, description)
+            and not _query_has_embedded_context(query)
+            and item["name"] not in route_hints
+        ):
             continue
         fields = {
             "name": item["name"].casefold(),

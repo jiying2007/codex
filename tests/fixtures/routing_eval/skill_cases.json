@@ -72,6 +72,13 @@
       "expected_primary_skill": "embedded-log-triage"
     },
     {
+      "name": "offline-pasted-adb-log-short-primary",
+      "prompt": "只读分析粘贴 ADB 日志里的看门狗重启，不连接设备",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "offline-pasted-log-triage",
+      "expected_primary_skill": "embedded-log-triage"
+    },
+    {
       "name": "generic-core-primary",
       "prompt": "分析通用 core dump 并检查 BuildID 符号匹配",
       "expected_workflow": "embedded-diagnostic-validation",
@@ -86,8 +93,22 @@
       "expected_primary_skill": "embedded-core-dump-triage"
     },
     {
+      "name": "pcr02-core-filename-primary",
+      "prompt": "分析 core-prog_pcr02-123，测试反馈出现一次 APP 崩溃",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "pcr02-sigmastar-core-dump",
+      "expected_primary_skill": "embedded-core-dump-triage"
+    },
+    {
       "name": "audio-stream-primary",
       "prompt": "排查流式音频断续和音频吞首问题",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "audio-stream-triage",
+      "expected_primary_skill": "embedded-audio-stream-triage"
+    },
+    {
+      "name": "audio-frame-drop-and-volume-primary",
+      "prompt": "排查音频流丢帧、音量重置和音频帧回收失败",
       "expected_workflow": "embedded-diagnostic-validation",
       "expected_route": "audio-stream-triage",
       "expected_primary_skill": "embedded-audio-stream-triage"
@@ -98,6 +119,27 @@
       "expected_workflow": "embedded-diagnostic-validation",
       "expected_route": "production-test-lifecycle",
       "expected_primary_skill": "embedded-production-test-lifecycle"
+    },
+    {
+      "name": "production-calibration-natural-language-primary",
+      "prompt": "排查厂测异常：老化 TOF 健康位图和 PCBA 标定状态不一致",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "production-test-lifecycle",
+      "expected_primary_skill": "embedded-production-test-lifecycle"
+    },
+    {
+      "name": "low-power-wakeup-natural-language-primary",
+      "prompt": "设备休眠后自动唤醒，shutdown 后没有进入深度休眠，帮我查 wakeup source",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "low-power-wakeup-triage",
+      "expected_primary_skill": "embedded-low-power-wakeup-triage"
+    },
+    {
+      "name": "runtime-performance-natural-language-primary",
+      "prompt": "排查 prog_pcr02 高负载、线程 CPU 高和回调阻塞导致的耗时尖峰",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "runtime-performance-triage",
+      "expected_primary_skill": "embedded-runtime-performance-triage"
     },
     {
       "name": "protocol-audit-primary",

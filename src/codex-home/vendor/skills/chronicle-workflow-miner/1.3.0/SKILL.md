@@ -1,8 +1,8 @@
 ---
 name: chronicle-workflow-miner
 description: Inspect governed activity reports, structured Codex session receipts, curated memories, archive records, and only when necessary bounded raw history to find repeated workflows and decide whether to extend a Skill, Automation, routing rule, archive note, or skip. Use for 回顾工作记录, Chronicle 记忆, 找重复流程, 工作流沉淀, skill 优化, or automation candidates.
-version: 1.2.0
-last_updated: 2026-08-02
+version: 1.3.0
+last_updated: 2026-08-22
 origin: local-chronicle-derived
 lifecycle: iterative-local
 ---
@@ -46,6 +46,16 @@ Prefer improving an existing route or local skill before adding scripts, report-
 4. Decide `extend-existing`, `create`, `automation-candidate`, `archive-only`, `needs-more-evidence`, or `skip` before editing.
 5. Keep `SKILL.md` concise; put mechanics in scripts, detailed contracts in references, and evidence in a session report or Hub archive.
 6. Register and validate approved assets through manifests and the Codex source-to-live chain.
+
+## Deterministic First Pass
+
+Use the local report before reading raw history when a bounded date window is available:
+
+```bash
+rtk bash scripts/workflow-mining-report.sh --from YYYY-MM-DD --to YYYY-MM-DD --json
+```
+
+Treat its title clusters as discovery evidence only: verify project spread, current coverage, and privacy boundary before creating or extending an asset. The report must not print raw prompts or session bodies.
 
 ## Output
 

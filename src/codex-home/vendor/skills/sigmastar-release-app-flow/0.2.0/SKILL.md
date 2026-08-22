@@ -1,8 +1,8 @@
 ---
 name: sigmastar-release-app-flow
-description: Use for PCR02/SigmaStar build-flow diagnosis around `build.sh`, compile/app/image/OTA ordering, customer partition layout, UBIFS/SquashFS, toolchain PATH, `SStarOtaLayout.txt`, and lightweight app-build dependencies. Use `adk-embedded-release-orchestration` as primary for generic release orchestration.
-version: 0.1.0
-last_updated: 2026-06-28
+description: Use for PCR02/SigmaStar build-flow or release-evidence diagnosis around `build.sh`, compile/app/image/OTA ordering, NAS package audit, dirty-source candidate artifacts, customer partition layout, UBIFS/SquashFS, toolchain PATH, `SStarOtaLayout.txt`, rollback evidence, and lightweight app-build dependencies. Use `adk-embedded-release-orchestration` as primary for generic release orchestration.
+version: 0.2.0
+last_updated: 2026-08-22
 origin: local-chronicle-derived
 lifecycle: iterative-local
 ---
@@ -46,7 +46,11 @@ Accept any combination of:
 5. Reason about build order:
    - if app is rebuilt after image/OTA generation, state that the new app is not inside existing image/OTA artifacts;
    - regenerate artifacts when the requested output must include new app or filesystem content.
-6. Validate with artifacts and boot evidence:
+6. Trace evidence layers:
+   - keep `source -> build -> package -> published -> installed -> device/rollback` separate;
+   - a dirty-source build can identify a candidate package by hash but cannot prove a clean source commit;
+   - manifest/checksum evidence proves package integrity, not installation, boot, business smoke, or rollback.
+7. Validate with artifacts and boot evidence:
    - check layout, version files, release manifest, and boot log mount path;
    - state residual risk when no target upgrade or boot evidence exists.
 
@@ -59,6 +63,7 @@ Return:
 - patch or command plan by layer;
 - validation commands and results;
 - whether generated image/OTA includes the latest app;
+- evidence-layer table and any dirty-source binding;
 - remaining target-side evidence gaps.
 
 ## Guardrails

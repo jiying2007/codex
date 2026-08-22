@@ -1,10 +1,17 @@
 ---
 name: embedded-audio-stream-triage
-description: "Use when the user asks Codex to diagnose embedded audio playback or transport problems such as PCM/encoded stream discontinuity, startup delay, volume resets, clipping, underrun/overrun, dropped first words or tails, sequence gaps, reordering, echo, or unsynchronized start/data/end paths across shared memory, pub-sub, callbacks, queues, and hardware output."
-version: 0.1.0
-last_updated: 2026-07-14
+description: "Use when the user asks Codex to diagnose embedded audio playback or transport problems such as PCM/encoded stream discontinuity, audio-frame drop or reclaim failure, startup delay, volume reset, clipping, underrun/overrun, queue STARVE/congestion, parser EOF, dropped first words or tails, sequence gaps, reordering, echo, or unsynchronized start/data/end paths across shared memory, pub-sub, callbacks, queues, and hardware output."
+version: 0.2.0
+last_updated: 2026-08-22
 origin: local-chronicle-derived
 lifecycle: iterative-local
+triggers:
+  - "音频流丢帧"
+  - "音量重置"
+  - "音频帧回收失败"
+  - "播放器解析失败"
+  - "音频丢尾音"
+  - "Agora 音频异常"
 ---
 
 # Embedded Audio Stream Triage

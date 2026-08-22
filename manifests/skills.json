@@ -2,6 +2,30 @@
   "schema_version": 2,
   "skills": [
     {
+      "name": "activity-report",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/activity-report/1.0.0",
+      "target_rel": "skills/activity-report",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "summary",
+        "reporting",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/activity-report/1.0.0",
+      "imported_at": "2026-08-21",
+      "review_status": "accepted"
+    },
+    {
       "name": "adk-adr-writer",
       "enabled": true,
       "source_kind": "vendor",
@@ -1078,10 +1102,11 @@
       "name": "chronicle-workflow-miner",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.2.0",
-      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.2.0",
+      "version": "1.3.0",
+      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.3.0",
       "target_rel": "skills/chronicle-workflow-miner",
       "profiles": [
+        "solo-dev",
         "team-collab"
       ],
       "tags": [
@@ -1094,8 +1119,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.2.0",
-      "imported_at": "2026-06-15",
+      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.3.0",
+      "imported_at": "2026-08-22",
       "review_status": "accepted"
     },
     {
@@ -1169,31 +1194,6 @@
       "review_status": "accepted"
     },
     {
-      "name": "git-activity-summary",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/git-activity-summary/1.0.0",
-      "target_rel": "skills/git-activity-summary",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "local",
-        "summary",
-        "git",
-        "reporting",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/git-activity-summary/1.0.0",
-      "imported_at": "2026-08-21",
-      "review_status": "accepted"
-    },
-    {
       "name": "dispatching-parallel-agents",
       "enabled": true,
       "source_kind": "vendor",
@@ -1244,8 +1244,8 @@
       "name": "embedded-audio-stream-triage",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/embedded-audio-stream-triage/0.1.0",
+      "version": "0.2.0",
+      "vendor_rel": "vendor/skills/embedded-audio-stream-triage/0.2.0",
       "target_rel": "skills/embedded-audio-stream-triage",
       "profiles": [
         "solo-dev",
@@ -1262,16 +1262,16 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-audio-stream-triage/0.1.0",
-      "imported_at": "2026-07-14",
+      "source_path": "src/codex-home/vendor/skills/embedded-audio-stream-triage/0.2.0",
+      "imported_at": "2026-08-22",
       "review_status": "accepted"
     },
     {
       "name": "embedded-core-dump-triage",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.2.0",
-      "vendor_rel": "vendor/skills/embedded-core-dump-triage/0.2.0",
+      "version": "0.3.0",
+      "vendor_rel": "vendor/skills/embedded-core-dump-triage/0.3.0",
       "target_rel": "skills/embedded-core-dump-triage",
       "profiles": [
         "solo-dev",
@@ -1288,16 +1288,16 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-core-dump-triage/0.2.0",
-      "imported_at": "2026-07-15",
+      "source_path": "src/codex-home/vendor/skills/embedded-core-dump-triage/0.3.0",
+      "imported_at": "2026-08-22",
       "review_status": "accepted"
     },
     {
       "name": "embedded-log-triage",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.2.0",
-      "vendor_rel": "vendor/skills/embedded-log-triage/0.2.0",
+      "version": "0.3.0",
+      "vendor_rel": "vendor/skills/embedded-log-triage/0.3.0",
       "target_rel": "skills/embedded-log-triage",
       "profiles": [
         "solo-dev",
@@ -1313,16 +1313,42 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-log-triage/0.2.0",
-      "imported_at": "2026-07-15",
+      "source_path": "src/codex-home/vendor/skills/embedded-log-triage/0.3.0",
+      "imported_at": "2026-08-22",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-low-power-wakeup-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/embedded-low-power-wakeup-triage/0.1.0",
+      "target_rel": "skills/embedded-low-power-wakeup-triage",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "low-power",
+        "wakeup",
+        "debug",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-low-power-wakeup-triage/0.1.0",
+      "imported_at": "2026-08-22",
       "review_status": "accepted"
     },
     {
       "name": "embedded-production-test-lifecycle",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/embedded-production-test-lifecycle/0.1.0",
+      "version": "0.2.0",
+      "vendor_rel": "vendor/skills/embedded-production-test-lifecycle/0.2.0",
       "target_rel": "skills/embedded-production-test-lifecycle",
       "profiles": [
         "solo-dev",
@@ -1339,8 +1365,34 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-production-test-lifecycle/0.1.0",
-      "imported_at": "2026-07-14",
+      "source_path": "src/codex-home/vendor/skills/embedded-production-test-lifecycle/0.2.0",
+      "imported_at": "2026-08-22",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-runtime-performance-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/embedded-runtime-performance-triage/0.1.0",
+      "target_rel": "skills/embedded-runtime-performance-triage",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "performance",
+        "latency",
+        "debug",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-runtime-performance-triage/0.1.0",
+      "imported_at": "2026-08-22",
       "review_status": "accepted"
     },
     {
@@ -1408,6 +1460,31 @@
       "source_ref": "1.1.9",
       "source_path": "skills/finishing-a-development-branch/SKILL.md",
       "imported_at": "2026-05-09",
+      "review_status": "accepted"
+    },
+    {
+      "name": "git-activity-summary",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "1.0.0",
+      "vendor_rel": "vendor/skills/git-activity-summary/1.0.0",
+      "target_rel": "skills/git-activity-summary",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "summary",
+        "git",
+        "reporting",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/git-activity-summary/1.0.0",
+      "imported_at": "2026-08-21",
       "review_status": "accepted"
     },
     {
@@ -1505,30 +1582,6 @@
       "source_ref": "workspace",
       "source_path": "src/codex-home/vendor/skills/patent-disclosure-normalization/0.1.0",
       "imported_at": "2026-05-31",
-      "review_status": "accepted"
-    },
-    {
-      "name": "activity-report",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/activity-report/1.0.0",
-      "target_rel": "skills/activity-report",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "local",
-        "summary",
-        "reporting",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/activity-report/1.0.0",
-      "imported_at": "2026-08-21",
       "review_status": "accepted"
     },
     {
@@ -1647,8 +1700,8 @@
       "name": "sigmastar-release-app-flow",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/sigmastar-release-app-flow/0.1.0",
+      "version": "0.2.0",
+      "vendor_rel": "vendor/skills/sigmastar-release-app-flow/0.2.0",
       "target_rel": "skills/sigmastar-release-app-flow",
       "profiles": [
         "solo-dev",
@@ -1665,8 +1718,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/sigmastar-release-app-flow/0.1.0",
-      "imported_at": "2026-06-28",
+      "source_path": "src/codex-home/vendor/skills/sigmastar-release-app-flow/0.2.0",
+      "imported_at": "2026-08-22",
       "review_status": "accepted"
     },
     {

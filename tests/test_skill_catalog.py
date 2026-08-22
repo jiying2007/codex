@@ -89,6 +89,15 @@ class SkillCatalogTest(unittest.TestCase):
                 "tags": ["adk", "embedded", "logs"],
             },
             {
+                "name": "embedded-audio-stream-triage",
+                "enabled": True,
+                "version": "0.2.0",
+                "vendor_rel": "vendor/skills/embedded-audio-stream-triage/0.2.0",
+                "target_rel": "skills/embedded-audio-stream-triage",
+                "profiles": ["team-collab"],
+                "tags": ["local", "embedded", "audio"],
+            },
+            {
                 "name": "writing-plans",
                 "enabled": True,
                 "version": "1.0.0",
@@ -134,6 +143,15 @@ class SkillCatalogTest(unittest.TestCase):
                                 "fallback_skill": "adk-embedded-remote-debug-log-triage",
                                 "mutually_exclusive_skills": [],
                             },
+                            {
+                                "name": "audio-stream-triage",
+                                "match_any": ["音频流丢帧", "音量重置"],
+                                "exclude_any": [],
+                                "primary_skill": "embedded-audio-stream-triage",
+                                "supporting_skills": [],
+                                "fallback_skill": "",
+                                "mutually_exclusive_skills": [],
+                            },
                         ],
                     },
                     {
@@ -176,6 +194,12 @@ class SkillCatalogTest(unittest.TestCase):
             "adk-embedded-remote-debug-log-triage",
             "设备端远程日志、SSH、ADB 与现场日志取证",
             ["远程日志", "现场日志"],
+        )
+        write_skill(
+            source / "vendor/skills/embedded-audio-stream-triage/0.2.0/SKILL.md",
+            "embedded-audio-stream-triage",
+            "嵌入式音频流丢帧、音量重置和队列诊断",
+            ["音频流丢帧", "音量重置"],
         )
         write_skill(
             source / "vendor/plugins/superpowers/1.0.0/skills/writing-plans/SKILL.md",
@@ -243,6 +267,13 @@ class SkillCatalogTest(unittest.TestCase):
         candidate = payload["candidates"][0]
         self.assertEqual("embedded-log-triage", candidate["name"])
         self.assertEqual("offline-pasted-log-triage", candidate["route"]["name"])
+
+    def test_workflow_primary_bypasses_embedded_context_marker_gate(self) -> None:
+        repo = self.make_repo()
+        payload = search_skills(repo, "排查音频流丢帧和音量重置", "token-lean")
+        candidate = payload["candidates"][0]
+        self.assertEqual("embedded-audio-stream-triage", candidate["name"])
+        self.assertEqual("primary", candidate["route"]["role"])
 
     def test_catalog_and_summary_obey_budgets(self) -> None:
         repo = self.make_repo(long_description=True)

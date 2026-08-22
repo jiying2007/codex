@@ -1,8 +1,8 @@
 ---
 name: embedded-core-dump-triage
-description: "Use only for PCR02/SigmaStar/SSC305 embedded Linux core-dump analysis that depends on local prog_pcr02 artifacts, the SigmaStar glibc ARM toolchain, or project-specific release/rootfs evidence. Use adk-offline-core-dump-triage as primary for generic embedded Linux core, BuildID, symbol, or GDB analysis."
-version: 0.2.0
-last_updated: 2026-07-15
+description: "Use only for PCR02/SigmaStar/SSC305 embedded Linux crash or core-dump analysis that depends on core-prog_pcr02 artifacts, prog_pcr02 crash evidence, the SigmaStar glibc ARM toolchain, or project-specific release/rootfs evidence. Use adk-offline-core-dump-triage as primary for generic embedded Linux core, BuildID, symbol, or GDB analysis."
+version: 0.3.0
+last_updated: 2026-08-22
 origin: local-chronicle-derived
 lifecycle: iterative-local
 triggers:
@@ -10,6 +10,10 @@ triggers:
   - "SigmaStar core"
   - "SSC305 core"
   - "prog_pcr02 core"
+  - "core-prog_pcr02"
+  - "prog_pcr02 崩溃"
+  - "APP 崩溃"
+  - "core-ai-voice"
 non_triggers:
   - "未指定 PCR02、SigmaStar、SSC305 或 prog_pcr02 的通用 core dump"
   - "只有普通日志而没有 core artifact"
@@ -39,6 +43,7 @@ Accept any combination of:
 ## Workflow
 
 1. Preserve the project evidence boundary: core, executable, symbols, rootfs/libs, source checkout, release version, log window, and requested GDB path.
+   - If only a crash log exists, stop at a crash-evidence inventory and request the core or matching artifact; do not manufacture an offline-core conclusion.
 2. Apply the generic artifact gate from `adk-offline-core-dump-triage`: BuildID/version match, symbol match, debugger startup, register-note readability, and shared-library availability.
 3. Apply the PCR02 toolchain specialization:
    - for SSC305 glibc ARM Linux artifacts, prefer `/tools/toolchain/gcc-11.1.0-20210608-sigmastar-glibc-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gdb` when available or explicitly required;

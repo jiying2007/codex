@@ -1,0 +1,4 @@
+interface:
+  display_name: "Embedded Low-Power Triage"
+  short_description: "Diagnose embedded suspend, wakeup, and reboot paths"
+  default_prompt: "Use $embedded-low-power-wakeup-triage to diagnose an embedded suspend or unexpected wakeup issue."

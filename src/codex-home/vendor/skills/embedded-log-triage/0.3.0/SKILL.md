@@ -1,8 +1,8 @@
 ---
 name: embedded-log-triage
-description: "Use only for lightweight read-only analysis of pasted embedded logs or offline log files when there is no live device access, remote debug channel, core dump, diagnostic-harness question, protocol audit, audio-stream problem, or production-test lifecycle issue. Use adk-embedded-remote-debug-log-triage for device-side, field, SSH, ADB, serial-session, GDB-remote, or multi-artifact investigations."
-version: 0.2.0
-last_updated: 2026-07-15
+description: "Use only for lightweight read-only analysis of pasted embedded logs or bounded offline log files: serial/boot/kernel/app/watchdog/OTA logs, pasted ADB output, offline startup logs, or a known-good comparison. Do not use when device access, a core artifact, low-power wakeup analysis, diagnostic CLI semantics, audio stream behavior, or production-test lifecycle state is required."
+version: 0.3.0
+last_updated: 2026-08-22
 origin: local-chronicle-derived
 lifecycle: iterative-local
 triggers:
@@ -10,10 +10,15 @@ triggers:
   - "离线日志包"
   - "仅分析日志文本"
   - "本地日志文件"
+  - "离线启动日志"
+  - "粘贴 ADB 日志"
+  - "看门狗重启日志"
+  - "解析设备日志"
 non_triggers:
   - "远程设备调试、SSH、ADB、实时串口会话或 GDB remote"
   - "core dump、BuildID、符号或 backtrace 分析"
   - "diag/prog_tool 返回码、音频流、产测生命周期或协议实现审计"
+  - "休眠失败、自动唤醒、wakeup source 或冷启动/STR 判别"
 ---
 
 # Embedded Log Triage
