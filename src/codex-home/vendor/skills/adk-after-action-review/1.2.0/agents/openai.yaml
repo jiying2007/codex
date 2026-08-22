@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK After Action Review"
+  short_description: "任务复盘与经验记忆候选治理，提取 lessons、风险分级和写入路由"
+  default_prompt: "Use $adk-after-action-review for its documented workflow."

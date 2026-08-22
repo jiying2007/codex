@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Requirements Triage"
+  short_description: "将需求转为可实现、可验证的工程条目"
+  default_prompt: "Use $adk-requirements-triage for its documented workflow."

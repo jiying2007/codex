@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Driver Implementation"
+  short_description: "嵌入式驱动实现、联调验证与风险收口"
+  default_prompt: "Use $adk-driver-implementation for its documented workflow."

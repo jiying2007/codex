@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Parallel Agent Governance"
+  short_description: "并行子代理治理，定义任务分片、scope_write、冲突矩阵、等待和整合验证"
+  default_prompt: "Use $adk-parallel-agent-governance for its documented workflow."

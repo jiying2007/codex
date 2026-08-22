@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Adr Writer"
+  short_description: "产出 Architecture Decision Record 并固化技术决策"
+  default_prompt: "Use $adk-adr-writer for its documented workflow."

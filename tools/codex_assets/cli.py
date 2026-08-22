@@ -36,6 +36,8 @@ from .skill_catalog import search_skills
 from .usage_dashboard import main as usage_dashboard_main
 from .workflow_mining_report import configure_parser as configure_workflow_mining_report_parser
 from .workflow_mining_report import run as run_workflow_mining_report
+from .vendor_skill_metadata import configure_parser as configure_vendor_skill_metadata_parser
+from .vendor_skill_metadata import run as run_vendor_skill_metadata
 from .validate import validate_repo
 from .wechat_archive import (
     WechatArchiveError,
@@ -630,6 +632,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("workflow-mining-report", parents=[common])
     configure_workflow_mining_report_parser(p)
     p.set_defaults(func=run_workflow_mining_report)
+
+    p = sub.add_parser("vendor-skill-metadata", parents=[common])
+    configure_vendor_skill_metadata_parser(p)
+    p.set_defaults(func=lambda args: run_vendor_skill_metadata(args.root, dry_run=args.dry_run))
 
     p = sub.add_parser("rollback", parents=[common])
     p.add_argument("--plan", required=True)

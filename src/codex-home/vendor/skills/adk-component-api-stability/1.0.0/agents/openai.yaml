@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Component Api Stability"
+  short_description: "组件 API 稳定性治理"
+  default_prompt: "Use $adk-component-api-stability for its documented workflow."

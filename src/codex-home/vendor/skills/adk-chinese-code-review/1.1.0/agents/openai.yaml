@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Chinese Code Review"
+  short_description: "中文代码审查规范——适配国内团队沟通风格"
+  default_prompt: "Use $adk-chinese-code-review for its documented workflow."

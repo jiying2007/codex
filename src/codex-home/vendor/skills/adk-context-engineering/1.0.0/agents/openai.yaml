@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Context Engineering"
+  short_description: "上下文工程——优化 Agent 上下文设置"
+  default_prompt: "Use $adk-context-engineering for its documented workflow."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Driver Bringup Checklist"
+  short_description: "驱动 bring-up 标准检查清单"
+  default_prompt: "Use $adk-driver-bringup-checklist for its documented workflow."

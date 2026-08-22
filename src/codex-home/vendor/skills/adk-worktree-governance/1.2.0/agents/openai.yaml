@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Worktree Governance"
+  short_description: "git worktree 隔离开发治理，规范创建准入、目录、基线验证、同步、清理和禁止操作"
+  default_prompt: "Use $adk-worktree-governance for its documented workflow."

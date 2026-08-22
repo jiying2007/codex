@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Commit Pr Quality Gate"
+  short_description: "提交与 PR 质量门禁检查"
+  default_prompt: "Use $adk-commit-pr-quality-gate for its documented workflow."

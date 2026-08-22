@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Task Breakdown"
+  short_description: "将需求拆解为可并行执行的任务包"
+  default_prompt: "Use $adk-task-breakdown for its documented workflow."

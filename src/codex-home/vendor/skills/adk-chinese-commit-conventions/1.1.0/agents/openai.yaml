@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Chinese Commit Conventions"
+  short_description: "中文 Git 提交规范——适配国内开发团队"
+  default_prompt: "Use $adk-chinese-commit-conventions for its documented workflow."
