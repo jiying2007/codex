@@ -13,13 +13,13 @@ developer_instructions = "请使用中文回答,务必使用清晰详细准确�
 # ========================
 # 模型配置
 # ========================
-model = "gpt-5.5"  # 默认前沿模型（适合复杂代码与资产管理任务）
+model = "gpt-5.6-terra"  # 默认快速模型（适合日常编码与资产管理任务）
 
 # 推理强度（核心成本控制参数）
 # low    = 最省钱（推荐日常）
 # medium = 平衡
 # high   = 深度分析
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 
 # 推理摘要和输出冗余控制
 model_reasoning_summary = "concise"

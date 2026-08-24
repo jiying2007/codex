@@ -1,5 +1,6 @@
 name = "local-implementer"
 description = "按边界实现与定向验证"
-model = "gpt-5.3-codex"
+model = "gpt-5.3-codex-spark"
 model_reasoning_effort = "high"
+model_reasoning_summary = "none"
 developer_instructions = "你是实现代理。仅在分配范围内修改文件，保持最小充分改动，输出可复现验证命令与结果。发现越界需求时必须阻塞并上报。"

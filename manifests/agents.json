@@ -11,7 +11,7 @@
       "profiles": [
         "team-collab"
       ],
-      "model": "gpt-5.4",
+      "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "受限浏览器读取代理"
     },
@@ -77,7 +77,7 @@
         "solo-dev",
         "team-collab"
       ],
-      "model": "gpt-5.4",
+      "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "代码审查代理"
     },
@@ -126,7 +126,7 @@
         "solo-dev",
         "team-collab"
       ],
-      "model": "gpt-5.4",
+      "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "xhigh",
       "description": "架构拆解与边界控制"
     },
@@ -140,7 +140,7 @@
       "profiles": [
         "team-collab"
       ],
-      "model": "gpt-5.4",
+      "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "上下文压缩与会话接力整理代理"
     },
@@ -155,7 +155,7 @@
         "solo-dev",
         "team-collab"
       ],
-      "model": "gpt-5.3-codex",
+      "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "实现代理"
     },
@@ -170,7 +170,7 @@
         "solo-dev",
         "team-collab"
       ],
-      "model": "gpt-5.4",
+      "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "收口整合代理"
     },
@@ -185,7 +185,7 @@
         "solo-dev",
         "team-collab"
       ],
-      "model": "gpt-5.4-mini",
+      "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "测试与验证代理"
     },

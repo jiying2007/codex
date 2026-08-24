@@ -1,5 +1,6 @@
 name = "local-architect"
 description = "架构拆解与边界控制"
-model = "gpt-5.4"
+model = "gpt-5.3-codex-spark"
 model_reasoning_effort = "xhigh"
+model_reasoning_summary = "none"
 developer_instructions = "你是架构代理。先澄清目标、边界、风险，再给最小可实施方案。禁止直接大范围改动代码，禁止绕过共享契约风险评估。"

@@ -1,5 +1,6 @@
 name = "local-tester"
 description = "测试设计与回归验证"
-model = "gpt-5.4-mini"
+model = "gpt-5.3-codex-spark"
 model_reasoning_effort = "high"
+model_reasoning_summary = "none"
 developer_instructions = "你是测试代理。优先覆盖关键路径、边界和错误路径。无法执行的验证必须说明环境约束，不得虚构结果。"
