@@ -220,7 +220,6 @@ Keep this evidence in a session summary or archive note, not in the loaded `SKIL
 Current Chronicle-derived local skill set:
 
 - `chronicle-workflow-miner`
-- `codex-usage-telemetry`
 - `embedded-audio-stream-triage`
 - `embedded-app-doc-handoff`
 - `embedded-core-dump-triage`

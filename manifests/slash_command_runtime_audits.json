@@ -2,46 +2,6 @@
   "schema_version": 1,
   "slash_command_runtime_audits": [
     {
-      "name": "slash-compact-runtime-audit",
-      "enabled": true,
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "command_contract": "slash-compact-context-handoff",
-      "command": "/compact",
-      "risk_class": "context-control",
-      "audit_events": [
-        "command invoked",
-        "context layers identified",
-        "excluded context checked",
-        "handoff artifact produced"
-      ],
-      "runtime_controls": [
-        "do not write long-term memory without review",
-        "separate stable and dynamic context",
-        "record blockers instead of dropping them"
-      ],
-      "required_evidence": [
-        "context-preflight artifact",
-        "stable/dynamic/evidence/excluded section check"
-      ],
-      "forbidden_actions": [
-        "bypass-verification",
-        "discard-blockers",
-        "silent-memory-write"
-      ],
-      "retention": "sanitized audit summary only",
-      "review_required": true,
-      "verification": [
-        "rtk bash scripts/context-preflight.sh /tmp/context-preflight-check.md"
-      ],
-      "artifacts": [
-        "context preflight markdown",
-        "runtime audit summary"
-      ]
-    },
-    {
       "name": "slash-mcp-runtime-audit",
       "enabled": true,
       "profiles": [
@@ -81,47 +41,6 @@
       "artifacts": [
         "MCP audit summary",
         "governance report"
-      ]
-    },
-    {
-      "name": "slash-status-runtime-audit",
-      "enabled": true,
-      "profiles": [
-        "team-collab"
-      ],
-      "command_contract": "slash-status-local-audit",
-      "command": "/status",
-      "risk_class": "review-control",
-      "audit_events": [
-        "command invoked",
-        "worktree status inspected",
-        "drift state inspected",
-        "verification state summarized"
-      ],
-      "runtime_controls": [
-        "status command is read-only",
-        "do not apply live changes",
-        "report dirty worktree without reverting it"
-      ],
-      "required_evidence": [
-        "git status summary",
-        "drift summary",
-        "final-ready summary when delivery is requested"
-      ],
-      "forbidden_actions": [
-        "bypass-verification",
-        "modify-files",
-        "apply-live-changes"
-      ],
-      "retention": "sanitized status summary only",
-      "review_required": true,
-      "verification": [
-        "rtk git status --short",
-        "rtk bash scripts/drift.sh"
-      ],
-      "artifacts": [
-        "status summary",
-        "drift summary"
       ]
     }
   ]

@@ -74,26 +74,15 @@ rtk bash scripts/archive-search.sh "context-preflight"
 # 上下文压缩前 90 秒 preflight（会话接力模板）
 rtk bash scripts/context-preflight.sh
 
-# 查看会话连续性下一步提醒
-rtk bash scripts/session-coach.sh
-rtk bash scripts/session-coach.sh --deep
-rtk bash scripts/session-coach.sh --deep --top 5
-rtk bash scripts/session-coach.sh --event final --deep
-rtk bash scripts/session-coach.sh --event commit --deep --fail-on high
-rtk bash scripts/session-coach.sh --reset-state
-rtk bash scripts/session-coach.sh --ack ARCHIVE_REVIEW
+# 查看统一任务、Token、上下文和决策快照
+rtk bash scripts/runtime-control.sh snapshot
 
-# final / commit / apply 前门禁 wrapper
-rtk bash scripts/final-ready.sh
-rtk bash scripts/commit-ready.sh
-rtk bash scripts/apply-ready.sh
-SESSION_COACH_FAIL_ON=high rtk bash scripts/commit-ready.sh
+# 实时观察同一状态与决策
+rtk bash scripts/runtime-control.sh watch
 
-# 查看当前线程和近 7 天用量
-rtk bash scripts/usage-report.sh
-
-# 实时刷新终端用量面板
-rtk bash scripts/usage-tail.sh --once
+# apply / final 等阶段统一门禁
+rtk bash scripts/runtime-control.sh gate --event apply
+rtk bash scripts/runtime-control.sh gate --event final
 
 # 从低上下文 catalog 查询长尾 skill；命中后再读取返回的 load_path
 rtk bash scripts/skill-search.sh --query "多源搜索和交叉验证" --summary-json
@@ -120,9 +109,9 @@ Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow
 | Profile | 常驻 Skill | Custom Agent | Workflow | 并行 / 深度 | Catalog | 适用场景 |
 |---|---:|---:|---:|---:|---|---|
 | `minimal` | 1 | 0 | 0 | 2 / 2 | eager | 极简运行和资产 smoke；当前只常驻 `caveman` |
-| `solo-dev` | 38 | 5 | 5 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
+| `solo-dev` | 37 | 5 | 5 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
 | `token-lean` | 11 | 0 | 5 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
-| `team-collab` | 70 | 16 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
+| `team-collab` | 69 | 16 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
 | `superpowers-compat` | 13 | 0 | 1 | 4 / 3 | eager | 显式 Superpowers 兼容、迁移回归或 ADK 无等价能力时使用 |
 
 选择建议：
@@ -242,7 +231,7 @@ rollback 恢复的是 live 文件；随后应重新 build 原 profile，并运�
 | `manifests/eval_suites.json` | routing、governance、completion 等 eval 契约和 promotion gate |
 | `manifests/cli_command_contracts.json` | slash command 的输入、允许动作、禁止动作、输出和验证契约 |
 | `manifests/guidance_promotions.json` | 从会话、归档、manifest 或官方资料提升到 AGENTS/skill/archive/memory 的门禁 |
-| `manifests/goal_templates.json` | weak、strong、continuous 目标模板及验证/产物契约 |
+| `manifests/runtime_control.json` | Runtime Control Engine 制品绑定、事件源、Journal、策略、门禁与保留契约 |
 | `manifests/prompt_experiments.json` | AGENTS、skill 和 prompt 指导规则实验、grader、人工评审和回退契约 |
 | `manifests/trace_eval_contracts.json` | 过程轨迹评分契约，约束必要事件、禁止事件、rubric 和最低分 |
 | `manifests/context_state_contracts.json` | stable/dynamic/evidence/excluded context 的可验证状态契约 |
@@ -344,54 +333,28 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 - `archive-search` 默认在 `.cache/archive-search.sqlite` 维护轻量索引。
 - 支持 `--topic`、`--tag`、`--type`、`--since`、`--until`、`--rebuild-index` 做 metadata 过滤与索引控制。
 
-## 用量观察
+## Runtime Control
 
-第一版不依赖 `status`，直接读取本机运行数据：
+任务、Token、上下文、进度、心跳、重试、checkpoint、证据和阶段门禁使用同一套控制面：
 
-- `~/.codex/sessions/**/*.jsonl` 中的 `token_count`
-- `~/.codex/state_5.sqlite` 中的 `threads` / `thread_goals`
-
-```bash
-rtk bash scripts/usage-report.sh
-rtk bash scripts/usage-report.sh --json
-rtk bash scripts/usage-tail.sh
-rtk bash scripts/usage-tail.sh --once
-rtk bash scripts/usage-tail.sh --interactive
-rtk bash scripts/usage-tail.sh --view threads
-rtk bash scripts/usage-tail.sh --view trends
-```
-
-默认会提示两类风险：
-
-- 长线程风险：当前线程累计 token 过高
-- 高增速风险：最近一段时间 token 增长过快
-
-显示优化：
-
-- 终端面板中的 token 数值统一按 `M` 显示
-- 额外展示 `Cache Hit`、`Last In Ctx`、`Think Ratio`、`Live Rate`
-- 额外展示 `Top Models`、`Top Repos`、`Recent 30m`
-- 额外展示 `5m / 15m / 30m` 三档速率
-- 默认 `summary` 视图压成单屏；可切换 `threads` / `trends`
-- 默认 `summary` 视图会给出 `Status`（`CRITICAL/HOT/WATCH/STABLE`）以及最优先的 `Alerts/Next Action`
-- 默认 `summary` 视图会给出 `Likely Cause`，用启发式方式说明当前最可能的高消耗来源
-- 默认 `summary` 视图会给出 `Trim Mode`，直接提示当前应采用的缩范围读取范式
-- `--interactive` 会启动轻交互 TUI，支持 `1/2/3/a/r/p/+/-/j/k/h/q`
-- `threads` 视图支持 `s` 切换排序：`updated -> tokens -> model -> repo`
-- `--interactive` 需要真实 TTY，不能在管道或非终端环境下运行
-
-可配阈值：
+- 唯一 Engine：锁定在 `vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl` 的 `agent_dev_kit.runtime_control`。
+- 唯一运行清单：`manifests/runtime_control.json`；wheel 版本或 SHA-256 不匹配时 fail closed。
+- 唯一 Journal：`~/.codex/runtime-control/<thread-hash>.jsonl`；不保存 prompt、消息正文、目标原文和真实 cwd。
+- 唯一入口：`scripts/runtime-control.sh`；Codex adapter 只采集 `state_5.sqlite` 与 rollout token snapshot，所有归约和决策均由 Engine 完成。
 
 ```bash
-rtk bash scripts/usage-tail.sh --warn-thread-tokens 30000000
-rtk bash scripts/usage-tail.sh --top-models 3 --top-repos 3
-rtk bash scripts/usage-tail.sh --interactive
-rtk bash scripts/usage-tail.sh --view summary
-rtk bash scripts/usage-tail.sh --view threads
-rtk bash scripts/usage-tail.sh --view threads --thread-sort tokens
-rtk bash scripts/usage-tail.sh --view trends
-rtk bash scripts/usage-tail.sh --view auto
+rtk bash scripts/runtime-control.sh snapshot
+rtk bash scripts/runtime-control.sh watch
+rtk bash scripts/runtime-control.sh goal start --goal-id <id> --token-budget <n> --time-budget-seconds <n> --success-criterion <id> --required-evidence <id> --open-items <n>
+rtk bash scripts/runtime-control.sh progress --revision <n>
+rtk bash scripts/runtime-control.sh goal update --open-items <n> [--token-budget <n>] [--time-budget-seconds <n>]
+rtk bash scripts/runtime-control.sh heartbeat
+rtk bash scripts/runtime-control.sh checkpoint --revision <n> --evidence-id <id>
+rtk bash scripts/runtime-control.sh gate --event apply
+rtk bash scripts/runtime-control.sh gate --event final
 ```
+
+同一决策只会建议 `continue`、`checkpoint`、`compact`、`replan`、`stop` 或 `pass`。活动任务在 apply 所需制品证据齐全且运行状态健康时可以通过 apply 门禁；final、commit 和 release 必须在任务完成且 checkpoint、必需证据和制品全部有效后通过。
 
 ## 回答压缩与输出裁剪边界
 
@@ -400,13 +363,13 @@ rtk bash scripts/usage-tail.sh --view auto
 - `implementation` / `debugging` 默认低噪音，优先讲动作、证据、验证、阻塞。
 - `verification` / `wrap-up` / `archive` 默认最严格压缩，只保留结论、结果、风险和后续动作。
 - 输出裁剪也分阶段：设计阶段保留必要证据，实现与验证阶段默认先给摘要、关键字段和关键窗口。
-- `usage-tail` 在高风险状态下会给出 `Trim Mode`，常见动作包括：
+- Runtime Control 建议 `compact` 时，常见裁剪动作包括：
   - 只保留定向 `rg`
   - 只读局部 `sed -n`
   - 日志仅看短窗口 `tail`
   - 大 diff 先看 `--stat`
   - 大 JSON 只筛关键字段
-- `Likely Cause` 是启发式归因，不是精确审计；它用于提示最可能的高消耗模式，例如长线程滚上下文、大读入负载、扩范围扫描、重复背景重喂。
+- Runtime Control 的建议来自版本化策略与确定性状态，不另建启发式旁路；需要改变阈值时只修改唯一 manifest 并重新验证制品绑定。
 
 ## 设计约束
 

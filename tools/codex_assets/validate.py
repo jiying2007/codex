@@ -6,7 +6,6 @@ from typing import Any
 
 from .core import Repo, active, build_lock, matches_any, read_json
 from .governance import governance_errors
-from .session_coach_config import validate_config
 from .skill_catalog import validate_context_budgets
 
 
@@ -19,7 +18,7 @@ REQUIRED = {
     "workflows.json": ["schema_version", "workflows"],
     "project-templates.json": ["schema_version", "project_templates"],
     "overlays.json": ["schema_version", "overlays"],
-    "session_coach.json": ["schema_version", "defaults", "events"],
+    "runtime_control.json": ["schema_version", "engine", "sources", "policy"],
 }
 
 
@@ -35,12 +34,6 @@ def validate_repo(root: str | pathlib.Path) -> list[str]:
         for field in fields:
             if field not in data:
                 errors.append(f"{name} 缺少字段: {field}")
-
-    if errors:
-        return errors
-    session_coach = read_json(repo.manifests_dir / "session_coach.json")
-    for error in validate_config(session_coach):
-        errors.append(f"session_coach.json {error}")
 
     if errors:
         return errors

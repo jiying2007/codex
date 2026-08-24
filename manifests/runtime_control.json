@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "engine": {
+    "package": "agent-dev-kit",
+    "version": "4.0.0",
+    "wheel": "vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl",
+    "sha256": "dd64702c2a405c34b08e5e07c4f5c09a04566ba72e6096bf6a0a8bb36b5a79a6"
+  },
+  "sources": {
+    "state_db": "~/.codex/state_5.sqlite",
+    "sessions_root": "~/.codex/sessions",
+    "journal_dir": "~/.codex/runtime-control"
+  },
+  "policy": {
+    "schema_version": "runtime_control.policy/v1",
+    "token": {
+      "checkpoint_ratio": 0.7,
+      "compact_ratio": 0.9,
+      "stop_ratio": 1.0
+    },
+    "context": {
+      "compact_ratio": 0.5
+    },
+    "progress": {
+      "staleness_seconds": 900,
+      "retry_limit": 2,
+      "no_progress_limit": 3
+    },
+    "gate_policy": {
+      "steady": [],
+      "final": ["repo", "build"],
+      "commit": ["repo", "build", "review"],
+      "apply": ["repo", "build", "plan", "dry-run"],
+      "release": ["repo", "build", "live", "review"]
+    },
+    "retention": {
+      "journal_days": 14,
+      "raw_content_stored": false
+    }
+  }
+}

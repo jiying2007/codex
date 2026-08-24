@@ -168,7 +168,7 @@
         "eval_suites",
         "cli_command_contracts",
         "guidance_promotions",
-        "goal_templates",
+        "runtime_control",
         "prompt_experiments",
         "trace_eval_contracts",
         "context_state_contracts",
@@ -1044,50 +1044,42 @@
       "description": "处理全仓目标漂移、冗余、残留、边界不清和提交前治理检查。"
     },
     {
-      "name": "session-continuity-coach",
+      "name": "runtime-control",
       "enabled": true,
       "profiles": [
         "solo-dev",
         "team-collab"
       ],
       "triggers": [
-        "下一步提醒",
-        "上下文提醒",
-        "省 token",
-        "会话收口",
-        "新开会话",
-        "AGENT/SKILL/DOC/SCRIPT 更新",
-        "常驻线程",
-        "目标切换",
-        "等待型自动化",
-        "操作模型"
+        "Runtime Control",
+        "Goal 控制",
+        "Token 监控",
+        "长任务心跳",
+        "checkpoint",
+        "完成门禁",
+        "final gate",
+        "apply gate"
       ],
       "skills": [
-        "adk-context-compress-handoff",
-        "session-wrap",
-        "adk-knowledge-archive",
-        "adk-memory-curator",
-        "skill-asset-manager"
+        "adk-planning-execution-loop",
+        "adk-token-context-governance",
+        "adk-verification-before-completion"
       ],
       "agents": [
-        "local-context-curator"
+        "local-integrator"
       ],
       "commands": [
-        "rtk bash scripts/session-coach.sh",
-        "rtk bash scripts/usage-report.sh --json",
-        "rtk bash scripts/context-preflight.sh",
-        "rtk bash scripts/final-ready.sh",
-        "rtk bash scripts/commit-ready.sh",
-        "rtk bash scripts/apply-ready.sh"
+        "rtk bash scripts/runtime-control.sh snapshot",
+        "rtk bash scripts/runtime-control.sh watch",
+        "rtk bash scripts/runtime-control.sh gate --event final",
+        "rtk bash scripts/runtime-control.sh gate --event apply"
       ],
       "verification": [
-        "rtk bash scripts/session-coach.sh --event final --deep",
-        "rtk bash scripts/session-coach.sh --event commit --deep",
-        "rtk bash scripts/session-coach.sh --event commit --deep --fail-on high",
-        "rtk bash scripts/session-coach.sh --event apply --deep",
-        "rtk bash scripts/check.sh"
+        "rtk bash scripts/runtime-control.sh --help",
+        "rtk bash scripts/runtime-control.sh snapshot",
+        "rtk python3 -m unittest tests.test_runtime_control"
       ],
-      "description": "会话间主动提醒上下文压缩、归档、记忆整理、资产同步、ready 证据和省 token 动作"
+      "description": "唯一 Goal、Token、progress、checkpoint、evidence 与 delivery gate 控制面"
     },
     {
       "name": "superpowers-compat-fallback",

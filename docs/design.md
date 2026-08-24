@@ -56,7 +56,7 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 `manifests/guidance_promotions.json` 定义指导规则提升路径。任何从会话、归档、manifest、测试或官方资料提升到 `AGENTS.md`、skill、archive 或 memory 的内容，都必须有来源、review、secret scan、最小证据、验证和回退方式。
 
-`manifests/goal_templates.json` 定义 weak、strong、continuous 目标模板。强目标必须包含范围、成功标准、验证命令和可审查产物；continuous 目标必须额外明确数据源、刷新边界和停止条件。
+`manifests/runtime_control.json` 定义唯一 Engine 制品、事件源、Journal、策略、门禁与保留契约。任务状态只由版本化事件归约得到，阶段门禁只消费同一决策，不维护第二套目标或完成状态。
 
 `manifests/prompt_experiments.json` 定义 prompt、AGENTS 或 skill 指导规则实验。实验必须声明目标路径、假设、至少两个 variant、eval suite、样例、grader、人工评审、成功指标、产物和回退方式。
 

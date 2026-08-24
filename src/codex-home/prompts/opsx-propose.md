@@ -41,7 +41,7 @@ When ready to implement, run /opsx:apply
    - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
    - `artifacts`: list of all artifacts with their status and dependencies
 
-4. **Create artifacts in sequence until apply-ready**
+4. **Create artifacts in sequence until the apply gate prerequisites are ready**
 
    Use the **TodoWrite tool** to track progress through the artifacts.
 

@@ -38,8 +38,8 @@
 ### 模型与输出
 
 ```toml
-model = "gpt-5.5"
-model_reasoning_effort = "high"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 model_reasoning_summary = "concise"
 model_verbosity = "medium"
 hide_agent_reasoning = true
@@ -47,7 +47,7 @@ hide_agent_reasoning = true
 
 策略：
 
-- 默认使用 `high`，需要更深推理时用 `codex --profile max`。
+- 默认使用 `medium`，需要更深推理时用 `codex --profile max`。
 - `model_reasoning_summary = "concise"` 和 `hide_agent_reasoning = true` 用于减少 TUI 噪音。
 - `model_verbosity` 按 profile 调整：日常 `medium`，省 token profile 使用 `low`。
 
@@ -220,8 +220,8 @@ rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan-overwrite.json
 发布或 final 前补：
 
 ```bash
-rtk bash ~/codex/scripts/apply-ready.sh
-rtk bash ~/codex/scripts/final-ready.sh
+rtk bash ~/codex/scripts/runtime-control.sh gate --event apply
+rtk bash ~/codex/scripts/runtime-control.sh gate --event final
 ```
 
 ## 升级 Codex CLI 后的核验

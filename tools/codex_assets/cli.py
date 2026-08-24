@@ -30,10 +30,10 @@ from .archive_search import run as run_archive_search
 from .archive_governance import ArchiveGovernanceError, run_check as run_archive_check
 from .governance import governance_errors, governance_report
 from .memory_curator import run as run_memory_curator
-from .session_coach import run as run_session_coach
+from .runtime_control import configure_parser as configure_runtime_control_parser
+from .runtime_control import run as run_runtime_control
 from .skill_catalog import render_human as render_skill_search_human
 from .skill_catalog import search_skills
-from .usage_dashboard import main as usage_dashboard_main
 from .workflow_mining_report import configure_parser as configure_workflow_mining_report_parser
 from .workflow_mining_report import run as run_workflow_mining_report
 from .vendor_skill_metadata import configure_parser as configure_vendor_skill_metadata_parser
@@ -473,70 +473,8 @@ def cmd_feishu_codex_bot(args: argparse.Namespace) -> int:
     return run_feishu_codex_bot(args)
 
 
-def cmd_session_coach(args: argparse.Namespace) -> int:
-    return run_session_coach(args)
-
-
-def cmd_usage_report(args: argparse.Namespace) -> int:
-    argv = [
-        "report",
-        "--codex-home",
-        args.codex_home,
-        "--view",
-        args.view,
-        "--state-db",
-        args.state_db,
-        "--sessions-root",
-        args.sessions_root,
-        "--limit",
-        str(args.limit),
-        "--top-models",
-        str(args.top_models),
-        "--top-repos",
-        str(args.top_repos),
-        "--thread-sort",
-        args.thread_sort,
-        "--warn-thread-tokens",
-        str(args.warn_thread_tokens),
-    ]
-    if args.json:
-        argv.append("--json")
-    return usage_dashboard_main(argv)
-
-
-def cmd_usage_tail(args: argparse.Namespace) -> int:
-    argv = [
-        "tail",
-        "--codex-home",
-        args.codex_home,
-        "--view",
-        args.view,
-        "--state-db",
-        args.state_db,
-        "--sessions-root",
-        args.sessions_root,
-        "--limit",
-        str(args.limit),
-        "--top-models",
-        str(args.top_models),
-        "--top-repos",
-        str(args.top_repos),
-        "--thread-sort",
-        args.thread_sort,
-        "--warn-thread-tokens",
-        str(args.warn_thread_tokens),
-        "--interval",
-        str(args.interval),
-        "--iterations",
-        str(args.iterations),
-    ]
-    if args.json:
-        argv.append("--json")
-    if args.interactive:
-        argv.append("--interactive")
-    if args.once:
-        argv.append("--once")
-    return usage_dashboard_main(argv)
+def cmd_runtime_control(args: argparse.Namespace) -> int:
+    return run_runtime_control(args)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -708,57 +646,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--write-memory-candidate", action="store_true")
     p.set_defaults(func=cmd_curate_memory)
 
-    p = sub.add_parser("session-coach", parents=[common])
-    p.add_argument("--codex-home", default="~/.codex")
-    p.add_argument("--target", default="~/.codex")
-    p.add_argument("--deep", action="store_true")
-    p.add_argument("--json", action="store_true")
-    p.add_argument("--warn-thread-tokens", type=int, default=None)
-    p.add_argument("--top", type=int, default=None)
-    p.add_argument("--all", action="store_true")
-    p.add_argument("--event", default="", choices=["", "final", "commit", "push", "apply", "resume", "target-switch", "memory-curation"])
-    p.add_argument("--fail-on", default="never", choices=["never", "critical", "high", "medium", "info"])
-    p.add_argument("--config", default="")
-    p.add_argument("--state-file", default="")
-    p.add_argument("--reset-state", action="store_true")
-    p.add_argument("--no-cooldown", action="store_true")
-    p.add_argument("--ack", default="")
-    p.add_argument("--clear-acks", action="store_true")
-    p.add_argument("--evidence-file", default="")
-    p.add_argument("--record-evidence", default="")
-    p.add_argument("--evidence-status", default="pass", choices=["pass", "fail"])
-    p.add_argument("--evidence-summary", default="")
-    p.set_defaults(func=cmd_session_coach)
-
-    p = sub.add_parser("usage-report", parents=[common])
-    p.add_argument("--codex-home", default="~/.codex")
-    p.add_argument("--view", default="summary", choices=["summary", "threads", "trends"])
-    p.add_argument("--state-db", default="")
-    p.add_argument("--sessions-root", default="")
-    p.add_argument("--limit", type=int, default=8)
-    p.add_argument("--top-models", type=int, default=5)
-    p.add_argument("--top-repos", type=int, default=5)
-    p.add_argument("--thread-sort", default="updated", choices=["updated", "tokens", "model", "repo"])
-    p.add_argument("--json", action="store_true")
-    p.add_argument("--warn-thread-tokens", type=int, default=50_000_000)
-    p.set_defaults(func=cmd_usage_report)
-
-    p = sub.add_parser("usage-tail", parents=[common])
-    p.add_argument("--codex-home", default="~/.codex")
-    p.add_argument("--view", default="summary", choices=["summary", "threads", "trends", "auto"])
-    p.add_argument("--interactive", action="store_true")
-    p.add_argument("--state-db", default="")
-    p.add_argument("--sessions-root", default="")
-    p.add_argument("--limit", type=int, default=8)
-    p.add_argument("--top-models", type=int, default=5)
-    p.add_argument("--top-repos", type=int, default=5)
-    p.add_argument("--thread-sort", default="updated", choices=["updated", "tokens", "model", "repo"])
-    p.add_argument("--json", action="store_true")
-    p.add_argument("--warn-thread-tokens", type=int, default=50_000_000)
-    p.add_argument("--interval", type=float, default=3.0)
-    p.add_argument("--iterations", type=int, default=0)
-    p.add_argument("--once", action="store_true")
-    p.set_defaults(func=cmd_usage_tail)
+    p = sub.add_parser("runtime-control", parents=[common])
+    configure_runtime_control_parser(p)
+    p.set_defaults(func=cmd_runtime_control)
     return parser
 
 

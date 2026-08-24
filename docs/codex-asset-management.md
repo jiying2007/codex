@@ -54,7 +54,7 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 - `eval_suites`：登记 routing、governance、completion 和 prompt eval 的 cases、通过率、负例和 promotion gate。
 - `cli_command_contracts`：登记 slash command 控制面的输入、允许动作、禁止动作、输出和验证契约。
 - `guidance_promotions`：登记从会话、归档、manifest、测试或官方资料提升到长期规则、skill、archive 或 memory 的审查路径。
-- `goal_templates`：登记 weak、strong、continuous 目标模板和验证/产物契约。
+- `runtime_control`：唯一登记 Runtime Control Engine 制品、事件源、Journal、策略、门禁和保留契约。
 - `prompt_experiments`：登记 AGENTS、skill 和 prompt 指导规则实验、样例、grader、人工评审和回退。
 - `trace_eval_contracts`：登记过程轨迹评分契约、必要事件、禁止事件、rubric 和最低分。
 - `context_state_contracts`：登记 stable、dynamic、evidence 和 excluded context 的状态契约。
@@ -121,7 +121,7 @@ rtk bash scripts/skill-search.sh --query "<任务>" --profile token-lean --limit
 - 并行子代理的边界进入 `manifests/subagent_contracts.json`；长期记忆候选进入 `manifests/memory_candidates.json`，不得绕过审查直接写 memory。
 - MCP server 先进入 `manifests/mcp_servers.json`，再由 build 渲染到 `config.toml`；启用前必须有 transport、权限边界、凭证边界、工具清单、可执行 deny-path、日志脱敏、smoke 和回滚方式。
 - `manifests/mcp_servers.json` 只存声明和空 env key，不存真实 token；`tools.codex_assets` 会在 build 时把匹配 profile 的条目渲染到 `config.toml`。
-- eval、slash command、guidance promotion、goal template、prompt experiment、trace eval、context state contract、automation run record、skill MCP dependency、slash runtime audit、official docs freshness gate、permission profile、exec rule 和 hook contract 也属于治理输入。新增或修改后必须运行 `doctor --scope governance`、相关单元测试和 `check.sh`。
+- eval、slash command、guidance promotion、runtime control、prompt experiment、trace eval、context state contract、automation run record、skill MCP dependency、slash runtime audit、official docs freshness gate、permission profile、exec rule 和 hook contract 也属于治理输入。新增或修改后必须运行 `doctor --scope governance`、相关单元测试和 `check.sh`。
 - 上下文压缩遵循 `docs/context-layout.md`，把 stable、dynamic、evidence 和 excluded context 分开，避免把短期工作区状态提升为长期规则。
 
 ## OpenAI 官方开发者资料吸收路径
@@ -133,7 +133,7 @@ OpenAI Developers 内容只能通过可追溯路径提升为长期规则。默�
 1. 在 `manifests/official_docs_freshness_gates.json` 登记 source URL、`retrieved_at`、`expires_at`、review 状态、stale action 和 rollback。
 2. 选择最小持久层：workflow 行为进 `workflow_recipes`，routing/completion/prompt 质量进 `eval_suites`，过程要求进 `trace_eval_contracts`，提示词或策略实验进 `prompt_experiments`，子代理边界进 `subagent_contracts`。
 3. 只有当 manifest 契约无法表达稳定规则时，才提升到 `AGENTS.md`；提升前必须有 before/after 样例、负例、验证命令和回退方式。
-4. 执行 `build -> doctor -> plan -> dry-run -> final-ready`，需要同步运行目录时再执行 apply。
+4. 执行 `build -> doctor -> plan -> dry-run -> runtime-control gate --event apply`，需要同步运行目录时再执行 apply；完成后执行 `runtime-control gate --event final`。
 
 当前官方资料基线覆盖 Docs MCP、AGENTS 分层、Codex skills 渐进披露、Codex workflows、subagents、agent evals、trace grading、prompting、prompt optimizer、model optimization、permissions、rules、hooks、automations、app commands、governance/observability、structured outputs、function calling、tools 和 conversation state。该基线在 `official_docs_freshness_gates` 中有过期时间；过期后必须重新检索，不能沿用旧结论。
 
@@ -334,42 +334,40 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 - `--until`
 - `--rebuild-index`
 
-## Codex 用量观察
+## Runtime Control
 
-第一版直接读取本机一手数据，不依赖 `status` 的刷新策略：
+任务、Token、上下文、进度、心跳、重试、checkpoint、证据和完成门禁统一由一套 Runtime Control 管理：
 
-- 实时层：`~/.codex/sessions/**/*.jsonl` 中的 `token_count`
-- 状态层：`~/.codex/state_5.sqlite` 中的 `threads` / `thread_goals`
+- ADK wheel 中的 `agent_dev_kit.runtime_control` 是唯一状态归约和决策 Engine。
+- `tools.codex_assets.runtime_control` 只负责读取 `~/.codex/state_5.sqlite`、session rollout 与 Runtime Control Journal，并调用 Engine；不得复制阈值或决策逻辑。
+- `~/.codex/runtime-control/<thread-hash>.jsonl` 是唯一任务控制 Journal；只保存结构化事件，不保存 prompt、消息正文、目标原文或真实工作目录。
+- `manifests/runtime_control.json` 是唯一运行策略和制品绑定，wheel 版本与 SHA-256 不匹配时 fail closed。
+- `scripts/runtime-control.sh` 是唯一用户入口；旧任务监控、用量面板和完成门禁入口不保留。
 
 常用入口：
 
 ```bash
-rtk bash scripts/usage-report.sh
-rtk bash scripts/usage-report.sh --json
-rtk bash scripts/usage-tail.sh
-rtk bash scripts/usage-tail.sh --once
-rtk bash scripts/usage-tail.sh --interactive
+rtk bash scripts/runtime-control.sh snapshot
+rtk bash scripts/runtime-control.sh watch
+rtk bash scripts/runtime-control.sh goal start --goal-id <id> --token-budget <n> --time-budget-seconds <n> --success-criterion <id> --required-evidence <id> --open-items <n>
+rtk bash scripts/runtime-control.sh progress --revision <n>
+rtk bash scripts/runtime-control.sh goal update --open-items <n> [--token-budget <n>] [--time-budget-seconds <n>]
+rtk bash scripts/runtime-control.sh checkpoint --revision <n>
+rtk bash scripts/runtime-control.sh gate --event apply
+rtk bash scripts/runtime-control.sh gate --event final
 ```
 
-说明：
-
-- `usage-report` 输出当前活跃线程、top threads、今日累计和近 7 天累计。
-- `usage-tail` 默认每 3 秒刷新一次终端面板。
-- `usage-tail` 会提示两类风险：长线程累计过高、最近 token 增速过快。
-- `usage-tail --interactive` 启动轻交互 TUI，支持 `1/2/3/a/r/p/+/-/j/k/h/q`。
-- `usage-tail` 在 `summary` 视图额外给出 `Likely Cause`，用启发式方式提示当前最可能的高消耗来源。
-- `usage-tail` 在 `summary` 视图额外给出 `Trim Mode`，将高风险状态直接映射为缩范围读取建议。
-- 第一版不写入长期时序文件；如需沉淀，可后续增加 `docs/metrics/codex-usage.jsonl`。
+`snapshot` 和 `watch` 输出同一 `runtime_control.decision/v1`，`goal status` 输出 `runtime_control.state/v1`。建议动作只有 `continue`、`checkpoint`、`compact`、`replan`、`stop`、`pass`；门禁只消费同一决策，不另建完成判定。
 
 ## Codex 省 Token 操作规范
 
 - 一个主题尽量一个线程；主题切换、目标变化或验收点完成后，优先收口再新开线程。
-- 长线程达到高风险区后，优先执行 `context-preflight -> session-wrap -> archive-note -> memory-curator --dry-run`，不要继续无边界滚大上下文。
+- Runtime Control 建议 `checkpoint`、`compact`、`replan` 或 `stop` 时，先执行对应动作并记录事件，不要绕过决策继续滚大上下文。
 - 先定位再读取：优先 `rg` 缩小范围，再读命中文件片段，不直接全仓扫描。
 - 控制工具输出：大日志、大 JSON、大 diff 默认先裁剪，只看关键窗口或关键字段。
 - 非必要不并行：高耦合问题、单点 bug、核心文件集中修改时，优先单线程处理。
 - 提问和任务定义尽量收敛：明确模块、文件、目标和验收标准，减少来回改口造成的重复消耗。
-- 先用 `rtk bash scripts/usage-report.sh` 或 `rtk bash scripts/usage-tail.sh --once` 观察当前消耗，再决定是否需要压缩上下文或切线程。
+- 先用 `rtk bash scripts/runtime-control.sh snapshot` 或 `watch` 观察任务、Token 和上下文状态，再按同一决策决定 checkpoint、压缩、重规划或停止。
 
 ### 分阶段回答压缩与输出裁剪
 
@@ -379,7 +377,7 @@ rtk bash scripts/usage-tail.sh --interactive
 - `verification` / `wrap-up` / `archive` 阶段默认最严格压缩，只保留结论、验证结果、风险和后续动作。
 - 默认压缩对象：过渡语、寒暄、重复解释、大段工具输出复述、已确认事实的重复说明。
 - 默认保留对象：方案对比、设计边界、关键权衡、风险分析、计划依赖、验收标准。
-- 当 `usage-tail` 状态进入 `HOT` / `CRITICAL` 时，即使还在设计阶段，也只允许“受控展开”：讲清关键取舍，不做无边界铺陈。
+- 当 Runtime Control 建议 `compact`、`replan` 或 `stop` 时，即使还在设计阶段，也只允许“受控展开”：讲清关键取舍，不做无边界铺陈，并及时记录 checkpoint。
 - 输出裁剪也按阶段处理：探索/设计阶段可保留支撑结论的必要证据；实现和验证阶段默认先给摘要、关键窗口、关键字段，需要时再展开全文。
 - 推荐读取范式：
   - 定位优先：`rg`

@@ -76,20 +76,20 @@
         "team-collab"
       ],
       "kind": "completion",
-      "owner": "session-continuity-coach",
-      "cases_path": "scripts/final-ready.sh",
-      "success_metric": "final-ready and check.sh complete with explicit evidence before final, commit, push or apply",
+      "owner": "runtime-control",
+      "cases_path": "scripts/runtime-control.sh",
+      "success_metric": "runtime-control final gate and check.sh complete with explicit evidence",
       "min_pass_rate": 1.0,
       "negative_cases_required": true,
       "commands": [
-        "rtk bash scripts/final-ready.sh",
+        "rtk bash scripts/runtime-control.sh gate --event final",
         "rtk bash scripts/check.sh"
       ],
       "artifacts": [
-        ".cache/session-coach-evidence.json",
+        "runtime_control.decision/v1",
         "check command output summary"
       ],
-      "promotion_gate": "delivery claims must be backed by final-ready plus check.sh evidence"
+      "promotion_gate": "delivery claims must be backed by runtime-control final gate plus check.sh evidence"
     },
     {
       "name": "wechat-account-research-eval",

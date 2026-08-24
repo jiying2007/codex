@@ -119,12 +119,12 @@
         "https://developers.openai.com/codex/hooks"
       ],
       "verification": [
-        "rtk bash scripts/final-ready.sh"
+        "rtk bash scripts/runtime-control.sh gate --event final"
       ],
-      "rollback": "keep hook disabled and use final-ready evidence checks",
+      "rollback": "keep hook disabled and use runtime-control final decision checks",
       "artifacts": [
         "evidence index",
-        "final-ready summary"
+        "runtime-control final decision"
       ]
     },
     {

@@ -1169,31 +1169,6 @@
       "review_status": "accepted"
     },
     {
-      "name": "codex-usage-telemetry",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/codex-usage-telemetry/0.1.0",
-      "target_rel": "skills/codex-usage-telemetry",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "local",
-        "codex",
-        "usage",
-        "telemetry",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/codex-usage-telemetry/0.1.0",
-      "imported_at": "2026-05-31",
-      "review_status": "accepted"
-    },
-    {
       "name": "dispatching-parallel-agents",
       "enabled": true,
       "source_kind": "vendor",

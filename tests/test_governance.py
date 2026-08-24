@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import pathlib
 import shutil
 import tempfile
@@ -144,12 +145,32 @@ def make_repo(test_case: unittest.TestCase) -> pathlib.Path:
             ],
         },
     )
+    wheel = root / "vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl"
+    wheel.parent.mkdir(parents=True, exist_ok=True)
+    wheel.write_bytes(b"fixture-wheel")
     write_json(
-        root / "manifests/session_coach.json",
+        root / "manifests/runtime_control.json",
         {
             "schema_version": 1,
-            "defaults": {"top": 3},
-            "events": {},
+            "engine": {
+                "package": "agent-dev-kit",
+                "version": "4.0.0",
+                "wheel": "vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl",
+                "sha256": hashlib.sha256(b"fixture-wheel").hexdigest(),
+            },
+            "sources": {
+                "state_db": "~/.codex/state_5.sqlite",
+                "sessions_root": "~/.codex/sessions",
+                "journal_dir": "~/.codex/runtime-control",
+            },
+            "policy": {
+                "schema_version": "runtime_control.policy/v1",
+                "token": {"checkpoint_ratio": 0.7, "compact_ratio": 0.9, "stop_ratio": 1.0},
+                "context": {"compact_ratio": 0.5},
+                "progress": {"staleness_seconds": 900, "retry_limit": 2, "no_progress_limit": 3},
+                "gate_policy": {"steady": [], "final": ["repo", "build"], "commit": ["repo", "build", "review"], "apply": ["repo", "build", "plan", "dry-run"], "release": ["repo", "build", "live", "review"]},
+                "retention": {"journal_days": 14, "raw_content_stored": False},
+            },
         },
     )
     return root
@@ -346,17 +367,17 @@ def write_p3_p4_controls(root: pathlib.Path) -> None:
             "schema_version": 1,
             "cli_command_contracts": [
                 {
-                    "name": "goal-command",
+                    "name": "review-command",
                     "enabled": True,
                     "profiles": ["team-collab"],
-                    "command": "/goal",
-                    "purpose": "strong goal",
-                    "input_contract": ["goal"],
-                    "allowed_actions": ["plan"],
+                    "command": "/review",
+                    "purpose": "quality review",
+                    "input_contract": ["diff"],
+                    "allowed_actions": ["review"],
                     "forbidden_actions": ["bypass-verification"],
                     "output_contract": ["evidence"],
                     "review_required": True,
-                    "verification": ["rtk bash scripts/final-ready.sh"],
+                    "verification": ["rtk bash scripts/runtime-control.sh gate --event final"],
                 }
             ],
         },
@@ -377,32 +398,6 @@ def write_p3_p4_controls(root: pathlib.Path) -> None:
                     "min_evidence": ["source", "verification"],
                     "verification": ["rtk bash scripts/check.sh"],
                     "rollback": "remove promoted rule",
-                }
-            ],
-        },
-    )
-    write_json(
-        root / "manifests/goal_templates.json",
-        {
-            "schema_version": 1,
-            "goal_templates": [
-                {
-                    "name": "handoff-strong-goal",
-                    "enabled": True,
-                    "profiles": ["team-collab"],
-                    "workflow": "context-handoff",
-                    "goal_strength": "strong",
-                    "required_fields": [
-                        "goal",
-                        "scope",
-                        "success_criteria",
-                        "verification_commands",
-                        "review_artifacts",
-                    ],
-                    "verification_contract": ["rtk bash scripts/context-preflight.sh"],
-                    "artifact_contract": ["preflight note"],
-                    "stop_conditions": ["pass", "blocked"],
-                    "negative_examples": ["no verification"],
                 }
             ],
         },
@@ -455,8 +450,8 @@ def write_p5_controls(root: pathlib.Path) -> None:
                     "min_score": 0.9,
                     "required_events": ["status checked", "tests run"],
                     "forbidden_events": ["completion without verification"],
-                    "commands": ["rtk bash scripts/final-ready.sh"],
-                    "artifacts": ["final-ready summary"],
+                    "commands": ["rtk bash scripts/runtime-control.sh gate --event final"],
+                    "artifacts": ["runtime-control final decision"],
                     "promotion_gate": "trace evidence reviewed",
                 }
             ],
@@ -583,19 +578,19 @@ def write_p6_controls(root: pathlib.Path) -> None:
             "schema_version": 1,
             "slash_command_runtime_audits": [
                 {
-                    "name": "compact-runtime-audit",
+                    "name": "review-runtime-audit",
                     "enabled": True,
                     "profiles": ["team-collab"],
-                    "command_contract": "goal-command",
-                    "command": "/goal",
-                    "risk_class": "goal-control",
+                    "command_contract": "review-command",
+                    "command": "/review",
+                    "risk_class": "review-control",
                     "audit_events": ["command invoked", "verification checked"],
                     "runtime_controls": ["keep scope explicit"],
-                    "required_evidence": ["goal summary"],
+                    "required_evidence": ["review summary"],
                     "forbidden_actions": ["bypass-verification", "silent-memory-write"],
                     "retention": "audit summary only",
                     "review_required": True,
-                    "verification": ["rtk bash scripts/final-ready.sh"],
+                    "verification": ["rtk bash scripts/runtime-control.sh gate --event final"],
                     "artifacts": ["audit summary"],
                 }
             ],
@@ -930,13 +925,12 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertEqual([], validate_repo(root))
         report = governance_report(root)
         self.assertEqual(["routing-eval"], report["eval_suites"])
-        self.assertEqual(["goal-command"], report["cli_command_contracts"])
+        self.assertEqual(["review-command"], report["cli_command_contracts"])
         self.assertEqual(["docs-to-agents"], report["guidance_promotions"])
-        self.assertEqual(["handoff-strong-goal"], report["goal_templates"])
+        self.assertEqual("4.0.0", report["runtime_control"]["engine_version"])
         self.assertEqual("routing", report["eval_suite_links"]["routing-eval"]["kind"])
-        self.assertEqual("/goal", report["cli_command_contract_links"]["goal-command"]["command"])
+        self.assertEqual("/review", report["cli_command_contract_links"]["review-command"]["command"])
         self.assertEqual("agents", report["guidance_promotion_links"]["docs-to-agents"]["destination"])
-        self.assertEqual("context-handoff", report["goal_template_links"]["handoff-strong-goal"]["workflow"])
 
     def test_eval_suite_rejects_missing_cases_path(self) -> None:
         root = make_repo(self)
@@ -953,13 +947,13 @@ class GovernanceValidationTest(unittest.TestCase):
         write_p3_p4_controls(root)
         manifest = json.loads((root / "manifests/cli_command_contracts.json").read_text())
         contract = manifest["cli_command_contracts"][0]
-        contract["command"] = "goal"
+        contract["command"] = "review"
         contract["forbidden_actions"] = ["skip-review"]
         write_json(root / "manifests/cli_command_contracts.json", manifest)
 
         errors = validate_repo(root)
-        self.assertIn("cli_command_contracts:goal-command command 必须以 / 开头", errors)
-        self.assertIn("cli_command_contracts:goal-command forbidden_actions 必须包含 bypass-verification", errors)
+        self.assertIn("cli_command_contracts:review-command command 必须以 / 开头", errors)
+        self.assertIn("cli_command_contracts:review-command forbidden_actions 必须包含 bypass-verification", errors)
 
     def test_guidance_promotion_requires_review_and_secret_scan(self) -> None:
         root = make_repo(self)
@@ -974,18 +968,14 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertIn("guidance_promotions:docs-to-agents review_required 必须为 true", errors)
         self.assertIn("guidance_promotions:docs-to-agents secret_scan_required 必须为 true", errors)
 
-    def test_goal_template_requires_core_goal_fields(self) -> None:
+    def test_runtime_control_requires_valid_wheel_hash(self) -> None:
         root = make_repo(self)
-        write_p3_p4_controls(root)
-        manifest = json.loads((root / "manifests/goal_templates.json").read_text())
-        manifest["goal_templates"][0]["required_fields"] = ["goal"]
-        write_json(root / "manifests/goal_templates.json", manifest)
+        manifest = json.loads((root / "manifests/runtime_control.json").read_text())
+        manifest["engine"]["sha256"] = "0" * 64
+        write_json(root / "manifests/runtime_control.json", manifest)
 
         errors = validate_repo(root)
-        self.assertIn(
-            "goal_templates:handoff-strong-goal required_fields 缺少: review_artifacts, scope, success_criteria, verification_commands",
-            errors,
-        )
+        self.assertIn("runtime_control.json wheel SHA-256 不匹配", errors)
 
     def test_automation_requires_run_lifecycle(self) -> None:
         root = make_repo(self)
@@ -1091,15 +1081,15 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertEqual([], validate_repo(root))
         report = governance_report(root)
         self.assertEqual(["docs-skill-dependency"], report["skill_mcp_dependencies"])
-        self.assertEqual(["compact-runtime-audit"], report["slash_command_runtime_audits"])
+        self.assertEqual(["review-runtime-audit"], report["slash_command_runtime_audits"])
         self.assertEqual(["openai-docs-freshness"], report["official_docs_freshness_gates"])
         self.assertEqual(
             "session-wrap",
             report["skill_mcp_dependency_links"]["docs-skill-dependency"]["skill"],
         )
         self.assertEqual(
-            "/goal",
-            report["slash_command_runtime_audit_links"]["compact-runtime-audit"]["command"],
+            "/review",
+            report["slash_command_runtime_audit_links"]["review-runtime-audit"]["command"],
         )
         self.assertEqual(
             "openaiDeveloperDocs",
@@ -1132,13 +1122,13 @@ class GovernanceValidationTest(unittest.TestCase):
         write_p6_controls(root)
         manifest = json.loads((root / "manifests/slash_command_runtime_audits.json").read_text())
         audit = manifest["slash_command_runtime_audits"][0]
-        audit["command"] = "/review"
+        audit["command"] = "/goal"
         audit["forbidden_actions"] = ["silent-memory-write"]
         write_json(root / "manifests/slash_command_runtime_audits.json", manifest)
 
         errors = validate_repo(root)
-        self.assertIn("slash_command_runtime_audits:compact-runtime-audit command 必须匹配 command_contract: /goal", errors)
-        self.assertIn("slash_command_runtime_audits:compact-runtime-audit forbidden_actions 必须包含 bypass-verification", errors)
+        self.assertIn("slash_command_runtime_audits:review-runtime-audit command 必须匹配 command_contract: /review", errors)
+        self.assertIn("slash_command_runtime_audits:review-runtime-audit forbidden_actions 必须包含 bypass-verification", errors)
 
     def test_official_docs_freshness_gate_rejects_unofficial_source(self) -> None:
         root = make_repo(self)

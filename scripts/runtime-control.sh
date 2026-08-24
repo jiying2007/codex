@@ -3,6 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
+cd "$ROOT"
 exec env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" \
-  rtk python3 -m tools.codex_assets usage-report --root "$ROOT" "$@"
+  rtk python3 -m tools.codex_assets runtime-control --root "$ROOT" "$@"

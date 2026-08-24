@@ -20,7 +20,7 @@ rtk bash ~/knowledge-hub/tools/knowledge-context.sh --cwd "$PWD" --query "<任�
 ```
 
 - 已知项目加 `--project`；仅歧义/高风险回退 `--json` 与原文。耐久结论写 reviewing candidate，或声明无可归档结论；不得静默写 memory。
-- final/apply/目标切换前运行 session coach；HOT/CRITICAL 优先收口接力。automation 默认 disabled/report-only。
+- final/apply/目标切换前运行 Runtime Control；按 `checkpoint`、`compact`、`replan`、`stop` 决策优先收口接力。automation 默认 disabled/report-only。
 
 ## 3. 命令与安全
 
@@ -33,7 +33,7 @@ rtk bash ~/knowledge-hub/tools/knowledge-context.sh --cwd "$PWD" --query "<任�
 
 - 无新鲜证据不得声明完成/通过/可提交/可合并；共享或高风险逻辑升级回归。
 - SSOT 是 `manifests/*.json`、`src/codex-home/`；build 禁止手改，第三方镜像从上游导入，不手改 `~/.codex`。
-- source-to-live 必须依次执行 build、`doctor --scope all`、plan、apply dry-run、apply、`check.sh --no-build --plan`；receipt 必须绑定 source/build/target，失败即重建或重规划。最终运行 `final-ready.sh`。
+- source-to-live 必须依次执行 build、`doctor --scope all`、plan、apply dry-run、apply、`check.sh --no-build --plan`；receipt 必须绑定 source/build/target，失败即重建或重规划。最终运行 `runtime-control.sh gate --event final`。
 - 不自动 commit/push/merge/rebase；提交格式 `<type>(scope): <中文动词摘要>`，摘要不超过 50 字且无句号。
 
 ## 5. 并行与资产
