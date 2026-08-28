@@ -57,7 +57,7 @@ multi-search-engine,0.1.1,active,local
 git-activity-summary,1.0.0,active,local
 protocol-implementation-audit,0.1.0,active,local
 research-note-wrap,3.1.0,active,vendor
-session-wrap,4.0.0,active,local
+session-wrap,4.0.1,active,local
 skill-asset-manager,0.2.0,active,local
 sigmastar-release-app-flow,0.2.0,active,local
 windows-gui-release-orchestration,0.1.0,active,local

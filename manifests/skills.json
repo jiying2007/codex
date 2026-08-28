@@ -1652,8 +1652,8 @@
       "name": "session-wrap",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "4.0.0",
-      "vendor_rel": "vendor/skills/session-wrap/4.0.0",
+      "version": "4.0.1",
+      "vendor_rel": "vendor/skills/session-wrap/4.0.1",
       "target_rel": "skills/session-wrap",
       "profiles": [
         "solo-dev",
@@ -1667,7 +1667,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/session-wrap/4.0.0",
+      "source_path": "src/codex-home/vendor/skills/session-wrap/4.0.1",
       "imported_at": "2026-08-21",
       "review_status": "accepted"
     },

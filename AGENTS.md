@@ -7,6 +7,7 @@
 - 默认 adk-first、`token-lean`；Superpowers 仅在点名、adk 无覆盖、迁移回归或平台缺能力时启用 `superpowers-compat`。
 - 小任务直接实现验证；非平凡任务冻结目标、边界、风险、验收和阻塞；长任务用 `adk-planning-execution-loop`。
 - 每场景仅一个 primary skill；需求/拆解/调试/review/完成验证用对应 `adk-*`，收尾用 `session-wrap`。
+- 当前会话产生可报告的实质产出时，收尾前检查 `~/knowledge-hub/local/activity-report.json`：仅当其为启用的 v2 配置、`receipt_persistence=true` 且有显式 `subject_id` 时，必须按 `session-wrap` 写入脱敏 `activity-session-receipt` v2。没有实质事项、主体缺失、证据/隐私门禁不满足时不写入，并如实说明原因；不得从 Git、路径、memory 或聊天身份推断主体。
 - catalog 未命中时运行 `rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --profile token-lean --limit 3 --summary-json`；只读选中项完整 `SKILL.md`。零命中可直接执行，延迟加载不扩权。
 
 ## 2. 上下文与知识

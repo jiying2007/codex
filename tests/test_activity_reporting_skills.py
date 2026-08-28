@@ -18,7 +18,7 @@ class ActivityReportingSkillTest(unittest.TestCase):
         expected = {
             "activity-report": "1.0.0",
             "git-activity-summary": "1.0.0",
-            "session-wrap": "4.0.0",
+            "session-wrap": "4.0.1",
             "chronicle-workflow-miner": "1.3.0",
         }
         for name, version in expected.items():
@@ -50,7 +50,7 @@ class ActivityReportingSkillTest(unittest.TestCase):
 
     def test_session_receipt_is_bounded_and_chronicle_uses_it_first(self) -> None:
         session_wrap = (
-            ROOT / "src/codex-home/vendor/skills/session-wrap/4.0.0/SKILL.md"
+            ROOT / "src/codex-home/vendor/skills/session-wrap/4.0.1/SKILL.md"
         ).read_text(encoding="utf-8")
         miner = (
             ROOT / "src/codex-home/vendor/skills/chronicle-workflow-miner/1.3.0/SKILL.md"

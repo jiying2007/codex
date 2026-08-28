@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "token-lean",
-  "managed_count": 783,
+  "managed_count": 782,
   "items": [
     {
       "kind": "skill",
@@ -76,9 +76,9 @@
     {
       "kind": "skill",
       "name": "session-wrap",
-      "version": "4.0.0",
-      "source": "vendor/skills/session-wrap/4.0.0",
-      "sha256": "c0bbdd28da3367568ecd320c58f547179f183a4dffe05994b5c36f3150addf3c"
+      "version": "4.0.1",
+      "source": "vendor/skills/session-wrap/4.0.1",
+      "sha256": "207a0475e3be0b582caa3a2f4e65569e1e88f247c189e3d715cca2f760f1a0fc"
     }
   ]
 }

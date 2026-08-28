@@ -1,4 +1,0 @@
-interface:
-  display_name: "Session Wrap"
-  short_description: "收口当前会话并生成可选活动回执 v2"
-  default_prompt: "Use $session-wrap to close the current session with evidence-backed outcomes and optional activity receipt v2."
