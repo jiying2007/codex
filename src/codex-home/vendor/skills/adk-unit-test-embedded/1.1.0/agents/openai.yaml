@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Unit Test Embedded"
+  short_description: "嵌入式单元测试策略与样例"
+  default_prompt: "Use $adk-unit-test-embedded for its documented workflow."

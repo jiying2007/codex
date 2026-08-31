@@ -41,8 +41,8 @@ ADK_WORKFLOW_REQUIREMENTS = {
     },
 }
 
-SUPERPOWERS_FALLBACK_WORKFLOW = "superpowers-compat-fallback"
-SUPERPOWERS_COMPAT_PROFILE = "superpowers-compat"
+RETIRED_COMPAT_PROFILE = "superpowers-compat"
+RETIRED_COMPAT_WORKFLOW = "superpowers-compat-fallback"
 
 
 def check(root: str | pathlib.Path) -> tuple[list[str], dict[str, Any]]:
@@ -56,28 +56,13 @@ def check(root: str | pathlib.Path) -> tuple[list[str], dict[str, Any]]:
     workflows_by_name = {item["name"]: item for item in workflows if item.get("name")}
 
     errors: list[str] = []
-    if SUPERPOWERS_COMPAT_PROFILE not in profiles:
-        errors.append(f"缺少 Superpowers 兼容 profile: {SUPERPOWERS_COMPAT_PROFILE}")
-
     superpowers = [item for item in skills if "superpowers" in item.get("tags", [])]
-    active_superpowers = [item["name"] for item in superpowers if active(item, default_profile)]
-    if active_superpowers:
-        errors.append(f"default profile {default_profile} 仍激活 Superpowers skill: {', '.join(active_superpowers)}")
-
-    for item in superpowers:
-        if SUPERPOWERS_COMPAT_PROFILE not in item.get("profiles", []):
-            errors.append(f"Superpowers skill 未绑定兼容 profile: {item['name']}")
-
-    fallback = workflows_by_name.get(SUPERPOWERS_FALLBACK_WORKFLOW)
-    if not fallback:
-        errors.append(f"缺少 Superpowers fallback workflow: {SUPERPOWERS_FALLBACK_WORKFLOW}")
-    else:
-        if SUPERPOWERS_COMPAT_PROFILE not in fallback.get("profiles", []):
-            errors.append(f"{SUPERPOWERS_FALLBACK_WORKFLOW} 未绑定 {SUPERPOWERS_COMPAT_PROFILE}")
-        fallback_skills = set(fallback.get("skills", []))
-        missing = sorted({item["name"] for item in superpowers} - fallback_skills)
-        if missing:
-            errors.append(f"{SUPERPOWERS_FALLBACK_WORKFLOW} 未覆盖 Superpowers skill: {', '.join(missing)}")
+    if RETIRED_COMPAT_PROFILE in profiles:
+        errors.append(f"retired compatibility profile 仍存在: {RETIRED_COMPAT_PROFILE}")
+    if superpowers:
+        errors.append("retired compatibility skills 仍存在: " + ", ".join(sorted(item["name"] for item in superpowers)))
+    if RETIRED_COMPAT_WORKFLOW in workflows_by_name:
+        errors.append(f"retired compatibility workflow 仍存在: {RETIRED_COMPAT_WORKFLOW}")
 
     for workflow_name, rule in ADK_WORKFLOW_REQUIREMENTS.items():
         workflow = workflows_by_name.get(workflow_name)
@@ -101,9 +86,9 @@ def check(root: str | pathlib.Path) -> tuple[list[str], dict[str, Any]]:
     summary = {
         "schema_version": 1,
         "default_profile": default_profile,
-        "superpowers_compat_profile": SUPERPOWERS_COMPAT_PROFILE,
-        "superpowers_skills": sorted(item["name"] for item in superpowers),
-        "active_superpowers_in_default": sorted(active_superpowers),
+        "retired_compat_profile_present": RETIRED_COMPAT_PROFILE in profiles,
+        "retired_compat_skills": sorted(item["name"] for item in superpowers),
+        "retired_compat_workflow_present": RETIRED_COMPAT_WORKFLOW in workflows_by_name,
         "checked_workflows": sorted(ADK_WORKFLOW_REQUIREMENTS),
     }
     return errors, summary
@@ -129,8 +114,8 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "[INFO] "
             f"default_profile={summary['default_profile']} "
-            f"superpowers_skills={len(summary['superpowers_skills'])} "
-            f"active_superpowers_in_default={len(summary['active_superpowers_in_default'])}"
+            f"retired_compat_skills={len(summary['retired_compat_skills'])} "
+            f"retired_compat_profile_present={int(summary['retired_compat_profile_present'])}"
         )
     return 1 if errors else 0
 

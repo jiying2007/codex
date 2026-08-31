@@ -43,7 +43,7 @@
         "dev",
         "design"
       ],
-      "notes": "adk-first 协作配置；Superpowers 已移入 superpowers-compat fallback profile"
+      "notes": "adk-first 协作配置；外部参考不进入运行时 profile 或 fallback"
     },
     {
       "name": "token-lean",
@@ -56,18 +56,6 @@
         "core"
       ],
       "notes": "默认 profile；最多暴露 12 个通用 skill，协作、Git 收尾、资产治理和嵌入式能力按需延迟加载"
-    },
-    {
-      "name": "superpowers-compat",
-      "description": "显式 Superpowers 兼容配置，仅用于用户点名、回归对照或 ADK 不适用的 fallback",
-      "max_parallel_agents": 4,
-      "max_depth": 3,
-      "default_agent_type": "worker",
-      "enabled_mcp_groups": [
-        "core",
-        "dev"
-      ],
-      "notes": "不作为默认 profile；仅激活 Superpowers 兼容 Skill，不与默认 token-lean 的 ADK 主干混用"
     }
   ]
 }

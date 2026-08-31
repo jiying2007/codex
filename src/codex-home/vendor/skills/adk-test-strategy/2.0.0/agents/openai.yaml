@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Test Strategy"
+  short_description: "平台中立的软件测试策略与 TDD 分级，按行为、风险和现有测试入口生成可复跑的验证矩阵与证据"
+  default_prompt: "Use $adk-test-strategy for its documented workflow."

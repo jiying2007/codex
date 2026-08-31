@@ -952,7 +952,6 @@
         "architecture-planner",
         "test-validation-engineer",
         "code-review-governor",
-        "code-reviewer",
         "local-tester",
         "local-integrator"
       ],
@@ -962,7 +961,7 @@
       "verification": [
         "rtk bash scripts/check.sh"
       ],
-      "description": "实现、修复、重构和完成前验证的 adk-first 主链；Superpowers 已移入 superpowers-compat fallback profile。"
+      "description": "实现、修复、重构和完成前验证的 ADK 原生主链。"
     },
     {
       "name": "parallel-collab",
@@ -1007,7 +1006,7 @@
       "verification": [
         "rtk bash scripts/check.sh"
       ],
-      "description": "并行开发与 worktree 协作的 adk-first 主链；Superpowers 并行技能仅在 superpowers-compat 中保留。"
+      "description": "并行开发与 worktree 协作的 ADK 原生主链。"
     },
     {
       "name": "repo-governance-remediation",
@@ -1080,44 +1079,6 @@
         "rtk python3 -m unittest tests.test_runtime_control"
       ],
       "description": "唯一 Goal、Token、progress、checkpoint、evidence 与 delivery gate 控制面"
-    },
-    {
-      "name": "superpowers-compat-fallback",
-      "enabled": true,
-      "profiles": [
-        "superpowers-compat"
-      ],
-      "triggers": [
-        "Superpowers",
-        "显式 Superpowers fallback",
-        "兼容回归对照",
-        "adk 不适用"
-      ],
-      "skills": [
-        "brainstorming",
-        "dispatching-parallel-agents",
-        "executing-plans",
-        "finishing-a-development-branch",
-        "receiving-code-review",
-        "requesting-code-review",
-        "subagent-driven-development",
-        "systematic-debugging",
-        "test-driven-development",
-        "using-git-worktrees",
-        "using-superpowers",
-        "verification-before-completion",
-        "writing-plans"
-      ],
-      "agents": [],
-      "commands": [
-        "rtk bash scripts/check-routing-precedence.sh",
-        "rtk bash scripts/check-skills.sh"
-      ],
-      "verification": [
-        "rtk bash scripts/check-routing-precedence.sh",
-        "rtk bash scripts/check.sh"
-      ],
-      "description": "Superpowers 兼容 fallback，仅在用户显式点名、迁移回归对照或 ADK 不适用时启用。"
     },
     {
       "name": "knowledge-hub-governance",

@@ -15,7 +15,7 @@ def write_json(path: pathlib.Path, data: dict) -> None:
 
 
 class RoutingPrecedenceTest(unittest.TestCase):
-    def make_repo(self, superpowers_profile: str = "superpowers-compat") -> pathlib.Path:
+    def make_repo(self, include_retired_compat: bool = False) -> pathlib.Path:
         root = pathlib.Path(tempfile.mkdtemp(prefix="codex-routing-test-"))
         self.addCleanup(shutil.rmtree, root)
         write_json(root / "manifests/assets.json", {"schema_version": 2, "default_profile": "team-collab"})
@@ -23,7 +23,7 @@ class RoutingPrecedenceTest(unittest.TestCase):
             root / "manifests/profiles.json",
             {
                 "schema_version": 2,
-                "profiles": [{"name": "team-collab"}, {"name": "superpowers-compat"}],
+                "profiles": [{"name": "team-collab"}],
             },
         )
         skills = [
@@ -44,14 +44,15 @@ class RoutingPrecedenceTest(unittest.TestCase):
             {"name": name, "enabled": True, "profiles": ["team-collab"], "tags": ["adk" if name.startswith("adk-") else "parallel"]}
             for name in skills
         ]
-        skill_items.append(
-            {
-                "name": "writing-plans",
-                "enabled": True,
-                "profiles": [superpowers_profile],
-                "tags": ["superpowers"],
-            }
-        )
+        if include_retired_compat:
+            skill_items.append(
+                {
+                    "name": "writing-plans",
+                    "enabled": True,
+                    "profiles": ["superpowers-compat"],
+                    "tags": ["superpowers"],
+                }
+            )
         write_json(root / "manifests/skills.json", {"schema_version": 2, "skills": skill_items})
         write_json(
             root / "manifests/workflows.json",
@@ -95,25 +96,29 @@ class RoutingPrecedenceTest(unittest.TestCase):
                             "worktree-closeout",
                         ],
                     },
-                    {
-                        "name": "superpowers-compat-fallback",
-                        "enabled": True,
-                        "profiles": ["superpowers-compat"],
-                        "skills": ["writing-plans"],
-                    },
                 ],
             },
         )
+        if include_retired_compat:
+            profiles = json.loads((root / "manifests/profiles.json").read_text(encoding="utf-8"))
+            profiles["profiles"].append({"name": "superpowers-compat"})
+            write_json(root / "manifests/profiles.json", profiles)
+            workflows = json.loads((root / "manifests/workflows.json").read_text(encoding="utf-8"))
+            workflows["workflows"].append(
+                {"name": "superpowers-compat-fallback", "enabled": True, "profiles": ["superpowers-compat"], "skills": ["writing-plans"]}
+            )
+            write_json(root / "manifests/workflows.json", workflows)
         return root
 
-    def test_passes_when_superpowers_is_compat_only(self) -> None:
+    def test_passes_when_retired_compatibility_is_absent(self) -> None:
         errors, summary = check(self.make_repo())
         self.assertEqual([], errors)
-        self.assertEqual([], summary["active_superpowers_in_default"])
+        self.assertEqual([], summary["retired_compat_skills"])
+        self.assertFalse(summary["retired_compat_profile_present"])
 
-    def test_fails_when_superpowers_is_active_in_default_profile(self) -> None:
-        errors, _ = check(self.make_repo("team-collab"))
-        self.assertTrue(any("仍激活 Superpowers skill" in error for error in errors))
+    def test_fails_when_retired_compatibility_is_present(self) -> None:
+        errors, _ = check(self.make_repo(include_retired_compat=True))
+        self.assertTrue(any("retired compatibility" in error for error in errors))
 
 
 if __name__ == "__main__":

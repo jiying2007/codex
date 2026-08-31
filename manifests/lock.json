@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "profile": "token-lean",
-  "managed_count": 782,
+  "managed_count": 651,
   "items": [
     {
       "kind": "skill",
       "name": "adk-code-review-loop",
-      "version": "1.4.1",
-      "source": "vendor/skills/adk-code-review-loop/1.4.1",
-      "sha256": "32f218898e23af0025ab2725736a300e350449ef860d49be9223b311eb260fce"
+      "version": "1.4.2",
+      "source": "vendor/skills/adk-code-review-loop/1.4.2",
+      "sha256": "3f3ec123a476e10982f5124399a8e3b928a5680493527b5b86182e1d1fe8c4c0"
     },
     {
       "kind": "skill",
@@ -41,9 +41,9 @@
     {
       "kind": "skill",
       "name": "adk-runtime-router",
-      "version": "1.1.0",
-      "source": "vendor/skills/adk-runtime-router/1.1.0",
-      "sha256": "a74f1fbdea7017ceec10b2a568a130a33566738413d51521d95cd4031ef23acf"
+      "version": "2.0.0",
+      "source": "vendor/skills/adk-runtime-router/2.0.0",
+      "sha256": "755e3eb166a30db977b93c5c528fac026f23d501b40284ae2a3a78eceb32f6ae"
     },
     {
       "kind": "skill",

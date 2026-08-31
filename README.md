@@ -102,17 +102,16 @@ rtk bash scripts/check.sh
 
 Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow 以及并行上限。它不删除 `src/codex-home/vendor/` 中的能力实体，也不触碰 `~/.codex/skills/.system`。当前默认 profile 是 `token-lean`，由 `manifests/assets.json:default_profile` 声明。
 
-### 五个 Profile 的区别
+### 四个 Profile 的区别
 
 下表是当前 manifest 的实际绑定数量；“Skill”和“Agent”只统计本仓受管资产，不包含 Codex 内置 `.system` Skill 和平台默认 Agent。
 
 | Profile | 常驻 Skill | Custom Agent | Workflow | 并行 / 深度 | Catalog | 适用场景 |
 |---|---:|---:|---:|---:|---|---|
 | `minimal` | 1 | 0 | 0 | 2 / 2 | eager | 极简运行和资产 smoke；当前只常驻 `caveman` |
-| `solo-dev` | 37 | 5 | 5 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
+| `solo-dev` | 37 | 4 | 5 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
 | `token-lean` | 11 | 0 | 5 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
-| `team-collab` | 69 | 16 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
-| `superpowers-compat` | 13 | 0 | 1 | 4 / 3 | eager | 显式 Superpowers 兼容、迁移回归或 ADK 无等价能力时使用 |
+| `team-collab` | 69 | 15 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
 
 选择建议：
 
@@ -120,7 +119,6 @@ Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow
 - 单人嵌入式专项、归档和工具开发：使用 `solo-dev`。
 - 多 Agent 或需要完整 catalog：使用 `team-collab`。
 - 极低上下文实验：使用 `minimal`。
-- 只有用户明确点名、做兼容回归或 ADK 不适用时才使用 `superpowers-compat`。
 
 Profile 中的 `enabled_mcp_groups` 是能力声明；当前 `github`、`openaiDeveloperDocs` 和 `figma` MCP 条目仍为 `enabled=false`，切换 profile 不会自动启用外部服务或凭证访问。
 
@@ -134,7 +132,7 @@ rtk bash scripts/doctor.sh --scope live
 
 ### 一条命令快速切换
 
-下面以 `team-collab` 为例；把 profile 名替换为 `minimal`、`solo-dev`、`token-lean` 或 `superpowers-compat` 即可：
+下面以 `team-collab` 为例；把 profile 名替换为 `minimal`、`solo-dev` 或 `token-lean` 即可：
 
 ```bash
 rtk bash scripts/apply.sh \
@@ -251,7 +249,7 @@ rollback 恢复的是 live 文件；随后应重新 build 原 profile，并运�
 
 ## Skill 生命周期
 
-详细使用、迭代和长期维护规则见 `docs/skill-lifecycle.md`。日常原则是：通过自然语言或显式技能名触发；重复三次以上且有证据的本地流程再沉淀为 local/Chronicle-derived skill；使用 manifest 的 `local` / `chronicle-derived` 标签识别来源，不通过改名牺牲任务语义；`adk-*`、Superpowers 和其他第三方 skill 通过上游版本重新导入，不在本仓直接迭代正文。
+详细使用、迭代和长期维护规则见 `docs/skill-lifecycle.md`。日常原则是：通过自然语言或显式技能名触发；重复三次以上且有证据的本地流程再沉淀为 local/Chronicle-derived skill；使用 manifest 的 `local` / `chronicle-derived` 标签识别来源，不通过改名牺牲任务语义；`adk-*` 和其他受管第三方 skill 通过上游版本重新导入，不在本仓直接迭代正文。
 
 ```bash
 # 扫描运行目录中真实存在且未登记的 skill

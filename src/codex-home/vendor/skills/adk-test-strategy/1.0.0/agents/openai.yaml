@@ -1,3 +1,0 @@
-interface:
-  display_name: 'adk-test-strategy'
-  short_description: '嵌入式全栈测试策略与 TDD 分级，覆盖板级、启动链、BSP、OS/runtime、驱动、组件、设备应用、上位机工具、量产和现场维护的验证证据'

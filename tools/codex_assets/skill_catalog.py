@@ -12,7 +12,6 @@ DEFAULT_LIMIT = 3
 MAX_LIMIT = 20
 DEFAULT_OUTPUT_BUDGET = 2048
 MIN_MATCH_SCORE = 42
-FALLBACK_TAGS = {"superpowers"}
 EMBEDDED_QUERY_MARKERS = {
     "adb",
     "amp",
@@ -123,7 +122,7 @@ def _score(query: str, fields: dict[str, str]) -> tuple[int, list[str], list[str
 
 
 def _is_fallback(item: dict[str, Any]) -> bool:
-    return bool(set(item.get("tags", [])) & FALLBACK_TAGS) or item.get("profiles", []) == ["superpowers-compat"]
+    return "fallback" in {str(tag) for tag in item.get("tags", [])}
 
 
 def _embedded_only(item: dict[str, Any], description: str) -> bool:
@@ -344,7 +343,7 @@ def search_skills(
             "initial_surface": "name, short description, triggers, boundary",
             "deferred_surface": "full SKILL.md, references, scripts, assets",
             "permission_boundary": "deferred loading does not grant write, network, credential, or approval authority",
-            "fallback_condition": "routing ambiguity, high-risk conclusion, or explicit Superpowers compatibility request",
+            "fallback_condition": "routing ambiguity, high-risk conclusion, or a project-declared internal fallback",
             "no_skill_allowed": True,
         },
         "no_skill_reason": (

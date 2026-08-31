@@ -55,7 +55,6 @@ class SkillCatalogTest(unittest.TestCase):
                 "profiles": [
                     {"name": "token-lean"},
                     {"name": "team-collab"},
-                    {"name": "superpowers-compat"},
                 ],
             },
         )
@@ -96,15 +95,6 @@ class SkillCatalogTest(unittest.TestCase):
                 "target_rel": "skills/embedded-audio-stream-triage",
                 "profiles": ["team-collab"],
                 "tags": ["local", "embedded", "audio"],
-            },
-            {
-                "name": "writing-plans",
-                "enabled": True,
-                "version": "1.0.0",
-                "vendor_rel": "vendor/plugins/superpowers/1.0.0/skills/writing-plans",
-                "target_rel": "skills/writing-plans",
-                "profiles": ["superpowers-compat"],
-                "tags": ["superpowers"],
             },
             {
                 "name": "skill-asset-manager",
@@ -202,12 +192,6 @@ class SkillCatalogTest(unittest.TestCase):
             ["音频流丢帧", "音量重置"],
         )
         write_skill(
-            source / "vendor/plugins/superpowers/1.0.0/skills/writing-plans/SKILL.md",
-            "writing-plans",
-            "Write an implementation plan",
-            ["writing plans"],
-        )
-        write_skill(
             source / "vendor/skills/skill-asset-manager/0.2.0/SKILL.md",
             "skill-asset-manager",
             "Codex skill asset governance, version promotion, manifest update and rollback",
@@ -225,13 +209,11 @@ class SkillCatalogTest(unittest.TestCase):
         self.assertEqual("deferred", payload["candidates"][0]["activation_mode"])
         self.assertFalse(payload["candidates"][0]["fallback"])
 
-    def test_superpowers_fallback_requires_explicit_flag(self) -> None:
+    def test_removed_compatibility_is_not_discoverable(self) -> None:
         repo = self.make_repo()
-        hidden = search_skills(repo, "writing plans", "token-lean")
-        shown = search_skills(repo, "writing plans", "token-lean", include_fallback=True)
-        self.assertEqual("zero-hit", hidden["status"])
-        self.assertEqual(1, hidden["fallback_candidates_excluded"])
-        self.assertEqual("writing-plans", shown["candidates"][0]["name"])
+        payload = search_skills(repo, "writing plans", "token-lean", include_fallback=True)
+        self.assertEqual("zero-hit", payload["status"])
+        self.assertEqual(0, payload["fallback_candidates_excluded"])
 
     def test_generic_query_does_not_select_embedded_only_skill(self) -> None:
         repo = self.make_repo()

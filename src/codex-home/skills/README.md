@@ -34,7 +34,7 @@ rtk bash ~/codex/scripts/check.sh
 
 ## Profile 切换
 
-默认 profile 是 `token-lean`。其他可选值为 `minimal`、`solo-dev`、`team-collab` 和 `superpowers-compat`。
+默认 profile 是 `token-lean`。其他可选值为 `minimal`、`solo-dev` 和 `team-collab`。
 
 查看当前 live profile：
 
