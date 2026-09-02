@@ -1303,6 +1303,32 @@
       "review_status": "accepted"
     },
     {
+      "name": "embedded-product-readiness-gate",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/embedded-product-readiness-gate/0.1.0",
+      "target_rel": "skills/embedded-product-readiness-gate",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "readiness",
+        "hil",
+        "release",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-product-readiness-gate/0.1.0",
+      "imported_at": "2026-09-02",
+      "review_status": "accepted"
+    },
+    {
       "name": "embedded-runtime-performance-triage",
       "enabled": true,
       "source_kind": "vendor",
@@ -1399,6 +1425,32 @@
       "source_ref": "f458cee31a7577a47ba0c9a101976fa599385174",
       "source_path": "skills/mcp-builder",
       "imported_at": "2026-05-09",
+      "review_status": "accepted"
+    },
+    {
+      "name": "office-document-delivery",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/office-document-delivery/0.1.0",
+      "target_rel": "skills/office-document-delivery",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "documents",
+        "ooxml",
+        "pptx",
+        "xlsx",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/office-document-delivery/0.1.0",
+      "imported_at": "2026-09-02",
       "review_status": "accepted"
     },
     {

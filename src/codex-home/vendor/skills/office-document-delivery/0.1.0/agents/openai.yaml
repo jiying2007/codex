@@ -1,0 +1,4 @@
+interface:
+  display_name: "Office Document Delivery"
+  short_description: "Create office files with factual boundaries and OOXML checks"
+  default_prompt: "Use $office-document-delivery to create or revise PPTX, XLSX, DOCX, and companion Markdown while preserving sources and validating package integrity."

@@ -34,6 +34,7 @@ Accept app, kernel, firmware, driver, MCU, and boot logs; source paths; board/im
 2. Capture identity before and after the attempt: `boot_id`, uptime, PID, image/version, suspend return value, and relevant wake counters. Classify the result as refusal, early wake, resume, watchdog reset, or cold boot.
 3. Separate layers: app/MCU transaction failure, active producer or resource cleanup, driver/firmware wake lock, kernel wake source, external IRQ, and boot-medium/environment interference.
 4. Build a time-aligned evidence table. Mark observed facts, inferred causes, competing mutators, and missing probes separately.
+   - include power-policy ownership: distinguish the component requesting sleep from higher-level recharge, scheduler, watchdog, or task policies that may legally defer, cancel, or immediately reverse it.
 5. Check quiescing and restore symmetry: producers stop before consumer teardown; every failure path reopens gates safely; no stale wake lock or bus-suspend state survives an aborted transition.
 6. Compare controlled environments before changing code: no SD versus bootable debug SD, WiFi shadow or isolated peripheral, RTC versus external wake source, and a known-good image when available.
 7. Propose the smallest probe or patch. Route device reachability work to `adk-embedded-remote-debug-log-triage`; route broad unknown failures to `adk-systematic-debugging`.
@@ -48,6 +49,7 @@ Return a transition table, identity comparison, wake-source hypothesis matrix, s
 - Do not equate a user-space ACK with kernel suspend success.
 - Do not call a reboot a wakeup without comparing `boot_id`, uptime, and boot markers.
 - Do not treat a bootable debug medium as product-equivalent test evidence.
+- Do not attribute an unexpected wake solely to the last resume marker; compare policy logs and their owners with the wake-source and boot-identity evidence.
 - Do not reset, flash, alter wake configuration, or disable protection without explicit authorization and a restore plan.
 - Keep endpoints, raw logs, binaries, and credentials out of long-lived evidence.
 

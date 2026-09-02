@@ -1,0 +1,4 @@
+interface:
+  display_name: "Embedded Product Readiness Gate"
+  short_description: "Separate source, deployment, dependency, HIL, and owner proof"
+  default_prompt: "Use $embedded-product-readiness-gate to classify embedded delivery evidence without overstating Host or SIL results."

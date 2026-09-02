@@ -63,6 +63,7 @@ Accept any combination of:
 8. Build a failure-oriented validation matrix:
    - cover success, explicit failure, incomplete run, power loss, restart, missing or read-only storage, corrupted state, duplicate connection, repeated command, module timeout, cleanup failure, and station handoff;
    - separate host/SIL evidence from real-board/HIL and operator-flow evidence.
+   - bind every operator-flow result to station identity, tested firmware/application revision, profile/config digest, and tool version; stale device binaries or profile drift invalidate a product-flow claim until rechecked.
 9. Produce the smallest safe change:
    - prefer local state-machine, persistence, health, or cleanup fixes over unrelated module refactors;
    - hand validation evidence to the normal test and completion gates.
@@ -74,6 +75,7 @@ Accept any combination of:
 - Treat unavailable persistence as an explicit degraded or blocked state, not as a fresh pass.
 - Keep debug auto-complete or shortened-duration paths disabled in production profiles.
 - Make resource cleanup bounded and observable; a stage transition is incomplete until required resources are quiesced.
+- Treat a calibration, aging, or health success as product evidence only when the tested station, device build, profile, and operator-tool contract are identified; a Host simulation is source/SIL evidence only.
 
 ## Output
 

@@ -22,6 +22,7 @@ embedded-app-doc-handoff,0.1.0,active,local
 embedded-log-triage,0.3.0,active,local
 embedded-low-power-wakeup-triage,0.1.0,active,local
 embedded-production-test-lifecycle,0.2.0,active,local
+embedded-product-readiness-gate,0.1.0,active,local
 embedded-runtime-performance-triage,0.1.0,active,local
 adk-embedded-release-orchestration,1.0.0,active,agent-dev-kit
 adk-structured-requirements-questioning,1.0.0,active,agent-dev-kit
@@ -52,6 +53,7 @@ cli-creator,0.1.0,active,openai
 codex-parallel-collab,3.1.0,active,vendor
 activity-report,1.0.0,active,local
 mcp-builder,0.1.0,active,anthropics
+office-document-delivery,0.1.0,active,local
 mcu-firmware-release-closure,0.1.0,active,local
 multi-search-engine,0.1.1,active,local
 git-activity-summary,1.0.0,active,local
