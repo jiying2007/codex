@@ -27,6 +27,10 @@ from urllib.robotparser import RobotFileParser
 
 
 USER_AGENT = "CodexPublicKnowledgeArchive/0.1 (+public-only; no-auth)"
+
+
+def network_disabled() -> bool:
+    return os.environ.get("CODEX_OFFLINE_HERMETIC") == "1"
 MAX_PAGES_HARD_LIMIT = 100
 RESERVED_OUTPUT_ROOTS = (Path("/home/leiwenjun/.codex"), Path("/home/leiwenjun/codex"))
 
@@ -102,7 +106,7 @@ def safe_output_dir(value: str) -> Path:
 
 
 def request_bytes(url: str, timeout: int) -> tuple[int, str, bytes, str]:
-    if os.environ.get("CODEX_OFFLINE_HERMETIC") == "1":
+    if network_disabled():
         raise URLError("network disabled by CODEX_OFFLINE_HERMETIC")
     request = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml"})
     with urlopen(request, timeout=timeout) as response:  # nosec B310: explicit public allowlist checked by caller
@@ -110,6 +114,8 @@ def request_bytes(url: str, timeout: int) -> tuple[int, str, bytes, str]:
 
 
 def robots_allowed(url: str, timeout: int, cache: dict[str, bool]) -> bool:
+    if network_disabled():
+        return False
     parsed = urlparse(url)
     key = f"{parsed.scheme}://{parsed.netloc}"
     if key in cache:
