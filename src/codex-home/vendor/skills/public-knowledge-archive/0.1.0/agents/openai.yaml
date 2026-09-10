@@ -1,0 +1,4 @@
+interface:
+  display_name: "公开知识归档"
+  short_description: "按明确来源和域名白名单归档公开知识库并保留可追溯证据"
+  default_prompt: "Use $public-knowledge-archive to archive the user-specified public knowledge base with an explicit allowlist."

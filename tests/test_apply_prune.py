@@ -71,6 +71,32 @@ class ApplyPruneTest(unittest.TestCase):
         with self.assertRaisesRegex(CodexAssetError, "build tree 已变化"):
             apply_plan(plan, dry_run=True)
 
+    def test_prune_removes_explicit_retired_live_path_with_backup(self) -> None:
+        root = pathlib.Path(tempfile.mkdtemp(prefix="codex-retired-live-test-"))
+        self.addCleanup(shutil.rmtree, root)
+        build = root / "build/codex-home"
+        target = root / "live"
+        backup = root / "backup"
+        write_json(
+            root / "manifests/policies.json",
+            {"schema_version": 2, "protected_paths": [], "retired_live_paths": ["vendor/plugins/superpowers"]},
+        )
+        build.mkdir(parents=True)
+        write_json(build / "control/state/managed-files.json", {"schema_version": 2, "managed": []})
+        retired = target / "vendor/plugins/superpowers/1.0.0/README.md"
+        retired.parent.mkdir(parents=True)
+        retired.write_text("retired\n")
+        write_json(target / "control/state/managed-files.json", {"schema_version": 2, "managed": []})
+
+        plan = plan_apply(root, build, target, backup, overwrite=False, prune_stale=True)
+        deletes = [action for action in plan["actions"] if action["action"] == "delete"]
+        self.assertEqual(["vendor/plugins/superpowers"], [action["path"] for action in deletes])
+        self.assertEqual("retired-live-path", deletes[0]["reason"])
+
+        apply_plan(plan, dry_run=False)
+        self.assertFalse(retired.exists())
+        self.assertTrue((backup / "vendor/plugins/superpowers/1.0.0/README.md").is_file())
+
     def test_noop_is_explicit(self) -> None:
         root = pathlib.Path(tempfile.mkdtemp(prefix="codex-plan-noop-test-"))
         self.addCleanup(shutil.rmtree, root)

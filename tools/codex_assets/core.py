@@ -346,11 +346,103 @@ def inactive_plugin_skill_patterns(source: pathlib.Path, skills: list[dict[str, 
     plugins_dir = source / "vendor/plugins"
     if not plugins_dir.is_dir():
         return patterns
-    for skill_md in sorted(plugins_dir.glob("*/*/skills/*/SKILL.md")):
-        rel = skill_md.parent.relative_to(source).as_posix()
-        if rel not in active_sources:
-            patterns.append(f"{rel}/**")
+    for orphan_dir in sorted(plugins_dir.iterdir()):
+        if orphan_dir.is_dir() and not any(child.is_dir() for child in orphan_dir.iterdir()):
+            orphan_rel = orphan_dir.relative_to(source).as_posix()
+            patterns.extend([orphan_rel, f"{orphan_rel}/**"])
+    for plugin_dir in sorted(plugins_dir.glob("*/*")):
+        if not plugin_dir.is_dir():
+            continue
+        plugin_skills = sorted(plugin_dir.glob("skills/*/SKILL.md"))
+        if not plugin_skills or not any(
+            skill_md.parent.relative_to(source).as_posix() in active_sources
+            for skill_md in plugin_skills
+        ):
+            plugin_rel = plugin_dir.relative_to(source).as_posix()
+            patterns.extend([plugin_rel, f"{plugin_rel}/**"])
+            continue
+        for skill_md in plugin_skills:
+            rel = skill_md.parent.relative_to(source).as_posix()
+            if rel not in active_sources:
+                patterns.append(f"{rel}/**")
     return patterns
+
+
+def unmanaged_live_assets(
+    build: str | pathlib.Path,
+    target: str | pathlib.Path,
+    managed_paths: set[str] | None = None,
+) -> list[str]:
+    build_path = pathlib.Path(build).expanduser().resolve()
+    target_path = pathlib.Path(target).expanduser()
+    if not target_path.is_dir():
+        return []
+
+    def is_managed(rel: str) -> bool:
+        if managed_paths is not None:
+            return rel in managed_paths
+        return (build_path / rel).exists()
+
+    unmanaged: list[str] = []
+    for pattern in ["vendor/skills/*/*/SKILL.md", "vendor/plugins/*/*/skills/*/SKILL.md"]:
+        for skill_md in sorted(target_path.glob(pattern)):
+            rel = skill_md.parent.relative_to(target_path).as_posix()
+            if not is_managed(rel):
+                unmanaged.append(rel)
+    skills_dir = target_path / "skills"
+    if skills_dir.is_dir():
+        ignored = {".system", "scripts", "README.md", "registry.csv"}
+        for path in sorted(skills_dir.iterdir(), key=lambda p: p.name):
+            if path.name in ignored:
+                continue
+            rel = path.relative_to(target_path).as_posix()
+            if not is_managed(rel) and (path.is_symlink() or path.is_dir()):
+                unmanaged.append(rel)
+    return sorted(set(unmanaged))
+
+
+def live_drift(build: str | pathlib.Path, target: str | pathlib.Path, ignored: list[str] | None = None) -> dict[str, Any]:
+    build_path = pathlib.Path(build).expanduser().resolve()
+    target_path = pathlib.Path(target).expanduser()
+    ignored = ignored or []
+    state = target_path / "control/state/managed-files.json"
+    if not state.is_file():
+        return {"schema_version": 2, "status": "missing-live-state", "changed": [], "stale": [], "unmanaged": []}
+    managed = read_json(state).get("managed", [])
+    managed_paths = {
+        item["path"]
+        for item in managed
+        if isinstance(item, dict) and isinstance(item.get("path"), str)
+    }
+    changed: list[str] = []
+    stale: list[str] = []
+    for item in managed:
+        rel = item["path"]
+        if matches_any(rel, ignored):
+            continue
+        if item["type"] == "dir":
+            continue
+        live = target_path / rel
+        built = build_path / rel
+        if not built.exists() and not built.is_symlink():
+            stale.append(rel)
+            continue
+        if not live.exists() and not live.is_symlink():
+            changed.append(rel)
+            continue
+        if item["type"] == "symlink":
+            if not live.is_symlink() or os.readlink(live) != item.get("target"):
+                changed.append(rel)
+        elif item["type"] == "file":
+            if not live.is_file() or sha256(live) != item.get("sha256"):
+                changed.append(rel)
+    return {
+        "schema_version": 2,
+        "status": "ok",
+        "changed": changed,
+        "stale": stale,
+        "unmanaged": unmanaged_live_assets(build_path, target_path, managed_paths),
+    }
 
 
 def copy_entry(src: pathlib.Path, dst: pathlib.Path, rel: pathlib.Path, protected: list[str], skip_source: list[str]) -> None:
@@ -648,6 +740,25 @@ def plan_apply(
                 "backup": (backup_path / rel).as_posix(),
             })
             summary["delete"] += 1
+
+        for rel in repo.policies.get("retired_live_paths", []):
+            if not isinstance(rel, str) or not rel:
+                fail("retired_live_paths 必须是非空字符串数组")
+            if matches_any(rel, protected):
+                fail(f"retired live path 不能匹配 protected path: {rel}")
+            already_scheduled = any(
+                action.get("action") == "delete" and action.get("path") == rel
+                for action in actions
+            )
+            if not already_scheduled and ((target_path / rel).exists() or (target_path / rel).is_symlink()):
+                actions.append({
+                    "action": "delete",
+                    "path": rel,
+                    "kind": "retired-path",
+                    "backup": (backup_path / rel).as_posix(),
+                    "reason": "retired-live-path",
+                })
+                summary["delete"] += 1
 
     content_changes = summary["copy"] + summary["overwrite"] + summary["delete"]
     target_preconditions = target_precondition_rows(target_path, actions)
@@ -975,66 +1086,6 @@ def diff_build_live(build: str | pathlib.Path, target: str | pathlib.Path, ignor
     return same, diff, missing
 
 
-def live_drift(build: str | pathlib.Path, target: str | pathlib.Path, ignored: list[str] | None = None) -> dict[str, Any]:
-    build_path = pathlib.Path(build).expanduser().resolve()
-    target_path = pathlib.Path(target).expanduser()
-    ignored = ignored or []
-    state = target_path / "control/state/managed-files.json"
-    if not state.is_file():
-        return {"schema_version": 2, "status": "missing-live-state", "changed": [], "stale": [], "unmanaged": []}
-    managed = read_json(state).get("managed", [])
-    changed: list[str] = []
-    stale: list[str] = []
-    for item in managed:
-        rel = item["path"]
-        if matches_any(rel, ignored):
-            continue
-        if item["type"] == "dir":
-            continue
-        live = target_path / rel
-        built = build_path / rel
-        if not built.exists() and not built.is_symlink():
-            stale.append(rel)
-            continue
-        if not live.exists() and not live.is_symlink():
-            changed.append(rel)
-            continue
-        if item["type"] == "symlink":
-            if not live.is_symlink() or os.readlink(live) != item.get("target"):
-                changed.append(rel)
-        elif item["type"] == "file":
-            if not live.is_file() or sha256(live) != item.get("sha256"):
-                changed.append(rel)
-    return {
-        "schema_version": 2,
-        "status": "ok",
-        "changed": changed,
-        "stale": stale,
-        "unmanaged": unmanaged_live_assets(build_path, target_path),
-    }
-
-
-def unmanaged_live_assets(build: str | pathlib.Path, target: str | pathlib.Path) -> list[str]:
-    build_path = pathlib.Path(build).expanduser().resolve()
-    target_path = pathlib.Path(target).expanduser()
-    if not target_path.is_dir():
-        return []
-    unmanaged: list[str] = []
-    for pattern in ["vendor/skills/*/*/SKILL.md", "vendor/plugins/*/*/skills/*/SKILL.md"]:
-        for skill_md in sorted(target_path.glob(pattern)):
-            rel = skill_md.parent.relative_to(target_path).as_posix()
-            if not (build_path / rel).exists():
-                unmanaged.append(rel)
-    skills_dir = target_path / "skills"
-    if skills_dir.is_dir():
-        ignored = {".system", "scripts", "README.md", "registry.csv"}
-        for path in sorted(skills_dir.iterdir(), key=lambda p: p.name):
-            if path.name in ignored:
-                continue
-            rel = path.relative_to(target_path).as_posix()
-            if not (build_path / rel).exists() and (path.is_symlink() or path.is_dir()):
-                unmanaged.append(rel)
-    return sorted(set(unmanaged))
 
 
 def frontmatter_value(path: pathlib.Path, key: str) -> str:

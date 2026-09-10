@@ -111,7 +111,7 @@ Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow
 | `minimal` | 1 | 0 | 0 | 2 / 2 | eager | 极简运行和资产 smoke；当前只常驻 `caveman` |
 | `solo-dev` | 39 | 4 | 5 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
 | `token-lean` | 11 | 0 | 5 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
-| `team-collab` | 71 | 15 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
+| `team-collab` | 72 | 15 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
 
 选择建议：
 

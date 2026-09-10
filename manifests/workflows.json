@@ -835,6 +835,12 @@
         "多源搜索",
         "交叉验证",
         "浏览器查看",
+        "归档公开知识库",
+        "归档公开语雀",
+        "公开资料增量归档",
+        "访问语雀",
+        "读取语雀",
+        "语雀知识库",
         "微信公众号文章整理",
         "微信公众号批量搜索",
         "指定公众号近半年文章",
@@ -844,6 +850,7 @@
       "skills": [
         "multi-search-engine",
         "browser-reader",
+        "public-knowledge-archive",
         "wechat-account-research",
         "adk-knowledge-archive",
         "external-practice-absorption"
@@ -853,13 +860,62 @@
       ],
       "commands": [
         "rtk bash scripts/archive-search.sh",
+        "rtk python3 tools/codex_assets/public_knowledge_archive.py --help",
         "rtk bash scripts/wechat-archive.sh --help"
       ],
       "verification": [
         "rtk bash scripts/check-skills.sh",
-        "rtk python3 -m unittest tests.test_wechat_archive"
+        "rtk python3 -m unittest tests.test_wechat_archive",
+        "rtk python3 -m unittest tests.test_public_knowledge_archive"
       ],
       "routes": [
+        {
+          "name": "public-knowledge-archive",
+          "match_any": [
+            "归档公开知识库",
+            "归档公开语雀",
+            "公开资料增量归档",
+            "public knowledge archive"
+          ],
+          "exclude_any": [
+            "登录",
+            "账号密码",
+            "Cookie",
+            "绕过验证码",
+            "私有页面"
+          ],
+          "primary_skill": "public-knowledge-archive",
+          "supporting_skills": [
+            "adk-knowledge-archive"
+          ],
+          "fallback_skill": "browser-reader",
+          "mutually_exclusive_skills": [
+            "wechat-account-research"
+          ]
+        },
+        {
+          "name": "yuque-single-page-read",
+          "match_any": [
+            "访问语雀",
+            "读取语雀",
+            "语雀知识库",
+            "Yuque",
+            "yuque.com"
+          ],
+          "exclude_any": [
+            "批量抓取",
+            "批量导出",
+            "自动登录",
+            "账号密码",
+            "Cookie"
+          ],
+          "primary_skill": "browser-reader",
+          "supporting_skills": [],
+          "fallback_skill": "multi-search-engine",
+          "mutually_exclusive_skills": [
+            "wechat-account-research"
+          ]
+        },
         {
           "name": "wechat-account-batch-research",
           "match_any": [
