@@ -200,7 +200,7 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "63f62e0-dirty-20260910",
+      "source_ref": "276f49dcd4a43ffd4543ee43199fe6114042b55f",
       "source_path": "skills/adk-code-review-loop/SKILL.md",
       "imported_at": "2026-09-10",
       "review_status": "accepted"
@@ -501,7 +501,7 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "63f62e0-dirty-20260910",
+      "source_ref": "276f49dcd4a43ffd4543ee43199fe6114042b55f",
       "source_path": "skills/adk-interface-contract-design/SKILL.md",
       "imported_at": "2026-09-10",
       "review_status": "accepted"
@@ -644,7 +644,7 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "63f62e0-dirty-20260910",
+      "source_ref": "276f49dcd4a43ffd4543ee43199fe6114042b55f",
       "source_path": "skills/adk-planning-execution-loop/SKILL.md",
       "imported_at": "2026-09-10",
       "review_status": "accepted"
@@ -936,7 +936,7 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "63f62e0-dirty-20260910",
+      "source_ref": "276f49dcd4a43ffd4543ee43199fe6114042b55f",
       "source_path": "skills/adk-test-strategy/SKILL.md",
       "imported_at": "2026-09-10",
       "review_status": "accepted"
@@ -1004,7 +1004,7 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "63f62e0-dirty-20260910",
+      "source_ref": "276f49dcd4a43ffd4543ee43199fe6114042b55f",
       "source_path": "skills/adk-verification-before-completion/SKILL.md",
       "imported_at": "2026-09-10",
       "review_status": "accepted"

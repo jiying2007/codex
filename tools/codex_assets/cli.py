@@ -184,11 +184,30 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         else:
             if not (target / "skills/.system").is_dir():
                 warnings.append("live 缺少 skills/.system")
-            if not (target / "control/state/managed-files.json").is_file():
+            managed_state_path = target / "control/state/managed-files.json"
+            if not managed_state_path.is_file():
                 warnings.append("live 缺少 managed-files.json")
             profile_file = target / "control/state/active-profile.env"
             if profile_file.is_file():
-                print(f"[INFO ] {profile_file.read_text().strip()}")
+                profile_line = profile_file.read_text(encoding="utf-8").strip()
+                print(f"[INFO ] {profile_line}")
+                active_profile = ""
+                if not profile_line.startswith("PROFILE="):
+                    errors.append("live active-profile.env 格式无效")
+                else:
+                    active_profile = profile_line[len("PROFILE="):]
+                    if not active_profile:
+                        errors.append("live active-profile.env 格式无效")
+                if profile_line.startswith("PROFILE=") and active_profile and managed_state_path.is_file():
+                    managed_profile = read_json(managed_state_path).get("profile")
+                    if not isinstance(managed_profile, str) or not managed_profile:
+                        errors.append("live managed-files.json 缺少 profile")
+                    elif managed_profile != active_profile:
+                        errors.append(
+                            f"live profile 不一致: active={active_profile} managed={managed_profile}"
+                        )
+            elif managed_state_path.is_file():
+                errors.append("live 缺少 active-profile.env")
             for path in [
                 "control/scripts",
                 "control/catalog",
@@ -317,6 +336,8 @@ def cmd_promote_skill(args: argparse.Namespace) -> int:
     if not re.match(r"^[0-9]+\.[0-9]+\.[0-9]+([+-][A-Za-z0-9.-]+)?$", args.version):
         fail(f"version 必须是语义化版本: {args.version}")
     name = normalize_name(args.name or frontmatter_value(skill_path / "SKILL.md", "name") or skill_path.name)
+    if args.review_status == "accepted" and "-dirty-" in args.source_ref:
+        fail("accepted vendor skill 不得使用 dirty source_ref；请先提交并使用精确 commit")
     vendor_rel = f"vendor/skills/{name}/{args.version}"
     dest = repo.source / vendor_rel
     manifest_path = repo.manifests_dir / "skills.json"
@@ -350,9 +371,12 @@ def cmd_promote_skill(args: argparse.Namespace) -> int:
     if not args.dry_run:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(skill_path, dest)
-        items[:] = [item for item in items if item.get("name") != name]
-        items.append(entry)
-        items.sort(key=lambda item: item["name"])
+        for index, item in enumerate(items):
+            if item.get("name") == name:
+                items[index] = entry
+                break
+        else:
+            items.append(entry)
         write_json(manifest_path, manifest)
     print(f"[DONE] promoted {name}@{args.version}")
     return 0
