@@ -4,13 +4,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 MODE="post-apply"
+OFFLINE_HERMETIC=0
 TARGET="$HOME/.codex"
 RUN_BUILD=1
 PLAN=""
 
 usage() {
   printf '%s\n' \
-    'Usage: scripts/check.sh [--pre-apply] [--no-build] [--plan PATH] [--target PATH]' \
+    'Usage: scripts/check.sh [--pre-apply] [--offline-hermetic] [--no-build] [--plan PATH] [--target PATH]' \
     '' \
     'Run the complete Codex asset verification gate.' \
     '' \
@@ -43,6 +44,10 @@ while (($# > 0)); do
       ;;
     --no-build)
       RUN_BUILD=0
+      shift
+      ;;
+    --offline-hermetic)
+      OFFLINE_HERMETIC=1
       shift
       ;;
     --plan)
@@ -83,6 +88,10 @@ fi
 rtk bash "$ROOT/scripts/doctor.sh" --scope governance
 rtk bash "$ROOT/scripts/check-mcp-deny-paths.sh"
 rtk bash "$ROOT/scripts/governance-report.sh" --summary-json
+if [[ "$OFFLINE_HERMETIC" == "1" ]]; then
+  export CODEX_OFFLINE_HERMETIC=1
+  echo "[INFO] test_network=disabled mode=offline-hermetic"
+fi
 env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" rtk python3 -m unittest discover -s "$ROOT/tests" -p 'test_*.py'
 rtk bash "$ROOT/scripts/check-routing-precedence.sh"
 rtk bash "$ROOT/scripts/check-skills.sh"

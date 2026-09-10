@@ -186,6 +186,8 @@ def main() -> int:
         provenance = [item.get(field, "") for field in ["source_repo", "source_ref", "source_path", "imported_at"]]
         if any(provenance) and not all(provenance):
             errors.append(f"manifest:{name} 来源元数据不完整")
+        if "-dirty-" in str(manifest_item.get("source_ref", "")):
+            errors.append(f"manifest:{name} accepted runtime asset 不得使用 dirty source_ref")
         if item.get("enabled") and item.get("source_repo") and item.get("review_status") != "accepted":
             errors.append(f"manifest:{name} 第三方来源必须 review_status=accepted")
 
