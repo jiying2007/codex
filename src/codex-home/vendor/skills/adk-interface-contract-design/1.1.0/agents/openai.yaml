@@ -1,4 +1,0 @@
-interface:
-  display_name: "ADK Interface Contract Design"
-  short_description: "定义模块/API/消息接口契约"
-  default_prompt: "Use $adk-interface-contract-design for its documented workflow."

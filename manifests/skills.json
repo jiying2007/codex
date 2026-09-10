@@ -186,8 +186,8 @@
       "name": "adk-code-review-loop",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.4.2",
-      "vendor_rel": "vendor/skills/adk-code-review-loop/1.4.2",
+      "version": "1.6.0",
+      "vendor_rel": "vendor/skills/adk-code-review-loop/1.6.0",
       "target_rel": "skills/adk-code-review-loop",
       "profiles": [
         "team-collab",
@@ -200,9 +200,9 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "63f62e0",
+      "source_ref": "63f62e0-dirty-20260910",
       "source_path": "skills/adk-code-review-loop/SKILL.md",
-      "imported_at": "2026-08-31",
+      "imported_at": "2026-09-10",
       "review_status": "accepted"
     },
     {
@@ -488,8 +488,8 @@
       "name": "adk-interface-contract-design",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.1.0",
-      "vendor_rel": "vendor/skills/adk-interface-contract-design/1.1.0",
+      "version": "1.3.0",
+      "vendor_rel": "vendor/skills/adk-interface-contract-design/1.3.0",
       "target_rel": "skills/adk-interface-contract-design",
       "profiles": [
         "team-collab"
@@ -501,9 +501,9 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "083dc95",
+      "source_ref": "63f62e0-dirty-20260910",
       "source_path": "skills/adk-interface-contract-design/SKILL.md",
-      "imported_at": "2026-08-21",
+      "imported_at": "2026-09-10",
       "review_status": "accepted"
     },
     {
@@ -630,8 +630,8 @@
       "name": "adk-planning-execution-loop",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/adk-planning-execution-loop/1.0.0",
+      "version": "1.3.0",
+      "vendor_rel": "vendor/skills/adk-planning-execution-loop/1.3.0",
       "target_rel": "skills/adk-planning-execution-loop",
       "profiles": [
         "team-collab",
@@ -640,13 +640,13 @@
       "tags": [
         "agent-dev-kit",
         "adk",
-        "p2"
+        "p0"
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "2.9.0",
-      "source_path": "optional-skills/adk-planning-execution-loop/SKILL.md",
-      "imported_at": "2026-05-23",
+      "source_ref": "63f62e0-dirty-20260910",
+      "source_path": "skills/adk-planning-execution-loop/SKILL.md",
+      "imported_at": "2026-09-10",
       "review_status": "accepted"
     },
     {
@@ -923,8 +923,8 @@
       "name": "adk-test-strategy",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "2.0.0",
-      "vendor_rel": "vendor/skills/adk-test-strategy/2.0.0",
+      "version": "2.1.0",
+      "vendor_rel": "vendor/skills/adk-test-strategy/2.1.0",
       "target_rel": "skills/adk-test-strategy",
       "profiles": [
         "team-collab"
@@ -936,9 +936,9 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "12bfeaf1f85b297628b57ac15d12eedc849e3919",
+      "source_ref": "63f62e0-dirty-20260910",
       "source_path": "skills/adk-test-strategy/SKILL.md",
-      "imported_at": "2026-08-30",
+      "imported_at": "2026-09-10",
       "review_status": "accepted"
     },
     {
@@ -990,8 +990,8 @@
       "name": "adk-verification-before-completion",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.4.0",
-      "vendor_rel": "vendor/skills/adk-verification-before-completion/1.4.0",
+      "version": "1.6.0",
+      "vendor_rel": "vendor/skills/adk-verification-before-completion/1.6.0",
       "target_rel": "skills/adk-verification-before-completion",
       "profiles": [
         "team-collab",
@@ -1004,9 +1004,9 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "083dc95",
+      "source_ref": "63f62e0-dirty-20260910",
       "source_path": "skills/adk-verification-before-completion/SKILL.md",
-      "imported_at": "2026-08-21",
+      "imported_at": "2026-09-10",
       "review_status": "accepted"
     },
     {
@@ -1277,32 +1277,6 @@
       "review_status": "accepted"
     },
     {
-      "name": "embedded-production-test-lifecycle",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.2.0",
-      "vendor_rel": "vendor/skills/embedded-production-test-lifecycle/0.2.0",
-      "target_rel": "skills/embedded-production-test-lifecycle",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "local",
-        "embedded",
-        "production-test",
-        "aging",
-        "calibration",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-production-test-lifecycle/0.2.0",
-      "imported_at": "2026-08-22",
-      "review_status": "accepted"
-    },
-    {
       "name": "embedded-product-readiness-gate",
       "enabled": true,
       "source_kind": "vendor",
@@ -1326,6 +1300,32 @@
       "source_ref": "workspace",
       "source_path": "src/codex-home/vendor/skills/embedded-product-readiness-gate/0.1.0",
       "imported_at": "2026-09-02",
+      "review_status": "accepted"
+    },
+    {
+      "name": "embedded-production-test-lifecycle",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.2.0",
+      "vendor_rel": "vendor/skills/embedded-production-test-lifecycle/0.2.0",
+      "target_rel": "skills/embedded-production-test-lifecycle",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "embedded",
+        "production-test",
+        "aging",
+        "calibration",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-production-test-lifecycle/0.2.0",
+      "imported_at": "2026-08-22",
       "review_status": "accepted"
     },
     {
@@ -1428,32 +1428,6 @@
       "review_status": "accepted"
     },
     {
-      "name": "office-document-delivery",
-      "enabled": true,
-      "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/office-document-delivery/0.1.0",
-      "target_rel": "skills/office-document-delivery",
-      "profiles": [
-        "solo-dev",
-        "team-collab"
-      ],
-      "tags": [
-        "local",
-        "documents",
-        "ooxml",
-        "pptx",
-        "xlsx",
-        "chronicle-derived"
-      ],
-      "owner": "local",
-      "source_repo": "local/codex",
-      "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/office-document-delivery/0.1.0",
-      "imported_at": "2026-09-02",
-      "review_status": "accepted"
-    },
-    {
       "name": "mcu-firmware-release-closure",
       "enabled": true,
       "source_kind": "vendor",
@@ -1500,6 +1474,32 @@
       "source_ref": "workspace",
       "source_path": "src/codex-home/vendor/skills/multi-search-engine/0.1.1",
       "imported_at": "2026-05-10",
+      "review_status": "accepted"
+    },
+    {
+      "name": "office-document-delivery",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/office-document-delivery/0.1.0",
+      "target_rel": "skills/office-document-delivery",
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "documents",
+        "ooxml",
+        "pptx",
+        "xlsx",
+        "chronicle-derived"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/office-document-delivery/0.1.0",
+      "imported_at": "2026-09-02",
       "review_status": "accepted"
     },
     {
@@ -1550,6 +1550,30 @@
       "source_ref": "workspace",
       "source_path": "src/codex-home/vendor/skills/protocol-implementation-audit/0.1.0",
       "imported_at": "2026-06-15",
+      "review_status": "accepted"
+    },
+    {
+      "name": "public-knowledge-archive",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/public-knowledge-archive/0.1.0",
+      "target_rel": "skills/public-knowledge-archive",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "public-web",
+        "archive",
+        "provenance",
+        "no-auth"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/public-knowledge-archive/0.1.0",
+      "imported_at": "2026-09-03",
       "review_status": "accepted"
     },
     {

@@ -1,8 +1,8 @@
 ---
 name: adk-code-review-loop
 description: 独立代码审查与反馈修复闭环，覆盖发现分级、真实性核验、修复验证和复审
-version: 1.4.2
-last_updated: 2026-08-31
+version: 1.6.0
+last_updated: 2026-09-10
 triggers:
   - "独立代码审查"
   - "code review loop"
@@ -42,6 +42,7 @@ constraints:
 - 已声明审查目标是 `staged`、`working-tree` 还是 `whole-branch`，并记录 HEAD 与 index/diff 指纹等价物。
 - 审查 staged 内容时，已识别目标文件是否存在 unstaged overlay；存在时明确最新 working tree 不在本轮审查范围。
 - 已标记 reviewer independence：`independent` 或 `author-self-review`；后者不能冒充独立审查证据。
+- 若变更包含受控生命周期操作，已提供其 Requirement Baseline，或显式标记为 `not_applicable`。
 - 若 review 来自 CI/AI runner，必须有结构化 findings、trusted-trigger/secret 隔离决策和 SCM 发布边界。
 
 ## 发现分级
@@ -61,17 +62,25 @@ constraints:
 4. **读取 diff 与测试**：按文件查看实际改动和验证证据。
 5. **列出发现**：每条发现包含文件、位置、现象、影响和建议；检查异常分支、边界条件、权限/安全、兼容性、数据正确性、测试缺口和复杂度。
 6. **双 verdict 审查**：同时给出 spec-compliance verdict 与 quality verdict；同一次阅读 diff 覆盖需求符合性和代码质量，不重复派发多个局部 reviewer。
-7. **Review context 固定**：记录 review 对照的需求包、领域模型、非目标、验证基线和变更范围；缺少这些上下文时先标记 `question` 或 `cannot-verify-from-diff`，不得补脑通过。
+7. **Review context 固定**：记录 review 对照的需求包、领域模型、非目标、验证基线、生命周期操作契约（如适用）和变更范围；缺少这些上下文时先标记 `question` 或 `cannot-verify-from-diff`，不得补脑通过。
 8. **真实性核验**：判断问题是否可复现、是否有代码证据、是否属于本次范围；不能从 diff 判定的项标记为 `cannot-verify-from-diff`。
 9. **分级裁决**：按 blocker/major/minor/question/cannot-verify-from-diff 分类。
-10. **生成修复任务**：每个 blocker/major 对应一个最小修复动作和验证命令。
-11. **执行或交接修复**：修复不得顺带重构无关文件。
-12. **重新暂存并复审**：修复后若目标为 staged，先 stage 预期修复，再生成新的快照身份；复查原发现和新增风险。旧快照结论不得覆盖新 index。
-13. **整体验证**：任务级 review 通过后，仍需一次 whole-diff/whole-branch 视角检查跨任务集成问题。
-14. **独立性裁决**：优先使用 fresh independent review；只有自审时标记 `author-self-review`，高风险结论交 owner 或独立 reviewer 最终确认。
-15. **门禁交接**：将机械门禁和语义审查的独立结论交给 `adk-commit-pr-quality-gate` 或 `adk-verification-before-completion`。
-16. **CI/PR 发布核验**：若要发布 SCM comment，必须按 `manifests/pr_review_governance_contracts.json` 验证 schema-backed findings、untrusted PR 隔离和 inline anchoring。
-17. **Review 改进闭环**：重复 review 失败模式只能作为 trace-feedback-eval-handoff 候选进入 AAR，不得直接改 durable guidance。
+10. **设计变更分流**：若 finding 改变唯一 owner、状态转换、可见性、取消、超时、恢复或迟到完成语义，标记为 `design-change`，停止普通补丁闭环并回到契约设计。
+11. **生成修复任务**：每个 blocker/major 对应一个最小修复动作和验证命令。
+12. **执行或交接修复**：修复不得顺带重构无关文件。
+13. **重新暂存并复审**：修复后若目标为 staged，先 stage 预期修复，再生成新的快照身份；复查原发现和新增风险。旧快照结论不得覆盖新 index。
+14. **整体验证**：任务级 review 通过后，仍需一次 whole-diff/whole-branch 视角检查跨任务集成问题。
+15. **独立性裁决**：优先使用 fresh independent review；只有自审时标记 `author-self-review`，高风险结论交 owner 或独立 reviewer 最终确认。
+16. **门禁交接**：将机械门禁和语义审查的独立结论交给 `adk-commit-pr-quality-gate` 或 `adk-verification-before-completion`。
+17. **CI/PR 发布核验**：若要发布 SCM comment，必须按 `manifests/pr_review_governance_contracts.json` 验证 schema-backed findings、untrusted PR 隔离和 inline anchoring。
+18. **Review 改进闭环**：重复 review 失败模式只能作为 trace-feedback-eval-handoff 候选进入 AAR，不得直接改 durable guidance。
+
+## 收敛协议
+
+- 每轮记录 `review_round`、`review_mode`、`finding_classes`、`new_finding_class_count`、`reopened_finding_count`、`consecutive_clean_reviews`、`reviewer_independence`、`contract_change_decision` 和 `replan_reason`。
+- `targeted-finding-review` 只验证已知 finding 的修复；`whole-diff-review` 检查全部改动和跨文件影响；状态、异步完成或共享资源操作使用 `whole-lifecycle-review`，按 owner/state/event/resource/termination/invariant 审查。
+- 连续两轮出现新的 blocker 或 major finding class，或任一 finding 为 `design-change`，必须停止局部补丁循环并 `replan`。同一逻辑任务的 `author-self-review` 最多两轮；超过后必须进行 whole-lifecycle review，并交 owner 或 fresh independent reviewer。
+- `locally-clean` 仅表示自审快照内未发现 blocker/major；它不是 independent final pass。生命周期最终 pass 还要求最后快照未变化、`new_finding_class_count=0`、至少一轮适用的整体审查及 owner 或独立审查证据。
 
 完整报告模板、命令与样例见 `references/review-evidence-template.md` 和 `references/review-feedback-fixtures.md`。
 
@@ -79,7 +88,7 @@ constraints:
 - review 反馈不清楚时，先重写为可验证命题；仍不清楚则标记 question。
 - 发现与需求无关时，记录为 out-of-scope，不混入本次修复。
 - 修复后验证失败时，切换到 `adk-systematic-debugging` 定位。
-- 若 review 要求改 shared contract/schema，先回到 `adk-requirements-triage` 和 `adk-task-breakdown`。
+- 若 review 要求改 shared contract/schema 或生命周期操作契约，先回到 `adk-requirements-triage` 和 `adk-interface-contract-design`。
 
 ## Commands
 ```bash
@@ -96,6 +105,11 @@ rtk git diff --check
 - Working Tree Overlay: <none | paths>
 - latest_worktree_reviewed: true | false
 - Reviewer Independence: independent | author-self-review
+- Review Round / Mode: <n> / targeted-finding-review | whole-diff-review | whole-lifecycle-review
+- Finding Classes / New Finding Class Count / Reopened Finding Count / Consecutive Clean Reviews:
+- Lifecycle Operation Baseline: not_applicable | <path + digest>
+- Contract Change Decision: none | design-change
+- Replan Reason: <none | reason>
 - Mechanical Gate: pass | fail | not-run
 - Spec Verdict / Quality Verdict:
 - Final Verdict: pass | needs-fix
@@ -110,6 +124,9 @@ rtk git diff --check
 - `author-self-review` 可作为本地质量核验，但不得标记为 independent；高风险共享逻辑需要 owner 或独立审查证据。
 - pass 结论还必须处理 `cannot-verify-from-diff`：补验证证据、owner 接受风险或明确不适用。
 - 缺少 Requirement Baseline、Domain Model Baseline 或 Verification Baseline 时，不得给出 spec-compliance pass；必须先补上下文或降级为 `cannot-verify-from-diff`。
+- 受控生命周期操作缺少 owner/state/event baseline，或 finding 被标记为 `design-change` 却未回到设计阶段时，不得给出 spec-compliance pass。
+- `targeted-finding-review` 不得替代 whole-diff 或适用的 whole-lifecycle 审查。
+- 连续两轮新增 blocker/major finding class、超过自审轮次预算，或出现 `design-change` 后仍继续局部修补时，结论固定为 `needs-fix` 并要求 replan。
 - reviewer 不得修改工作树、切换分支或执行破坏性操作；审查默认只读。
 - reviewer 不得被要求忽略发现、预设严重级别或接受 implementer rationale 作为证据。
 - 误报必须说明证据，不得只写“不认同”。

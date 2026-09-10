@@ -1,8 +1,8 @@
 ---
 name: adk-interface-contract-design
-description: 定义模块/API/消息接口契约
-version: 1.1.0
-last_updated: 2026-07-07
+description: 定义模块、API、消息和受控生命周期操作的接口契约
+version: 1.3.0
+last_updated: 2026-09-10
 triggers:
   - "设计接口"
   - "API设计"
@@ -11,11 +11,13 @@ non_triggers:
   - 纯内部重命名
 inputs:
   - 调用方与被调方约束
+  - 有状态或异步操作的生命周期约束（如适用）
 outputs:
-  - 接口契约草案
+  - 接口或生命周期操作契约草案
 constraints:
   - 必须明确输入、输出、错误码
   - 机器消费接口必须声明 strict schema、additionalProperties=false 和 refusal handling
+  - 受控生命周期操作必须明确唯一 owner、状态事件和终止语义
 ---
 
 # adk-interface-contract-design
@@ -29,6 +31,7 @@ constraints:
 - 明确调用链 owner、版本策略和兼容窗口。
 - 确定输入输出数据源与错误语义边界。
 - 了解目标平台约束（内存对齐、字节序、对齐要求）。
+- 若请求会启动、取消或恢复共享资源操作，已识别唯一 owner 与状态可见性。
 
 
 ## Workflow
@@ -80,8 +83,9 @@ constraints:
    #define IFACE_MAX_RETRIES    3
    #define IFACE_RETRY_DELAY_MS 100
    ```
-5. **结构化输出契约**：API、消息、工具或 handoff schema 必须记录 required fields、enum、additionalProperties=false、refusal handling 和 parse-failure 处理。
-6. **生成契约用例**：正常、边界、异常三类样例。
+5. **受控生命周期契约（条件性）**：若操作跨越状态或独占资源，冻结 owner、状态、事件、资源、终止和 invariant；其中必须覆盖可见性、取消、超时、恢复、迟到完成与 generation/op-id 隔离。详见 [生命周期操作契约](references/lifecycle-operation-contract.md)。
+6. **结构化输出契约**：API、消息、工具或 handoff schema 必须记录 required fields、enum、additionalProperties=false、refusal handling 和 parse-failure 处理。
+7. **生成契约用例**：正常、边界、异常三类样例。
    ```bash
    # 编译契约测试
 
@@ -94,6 +98,7 @@ constraints:
 - 必须附至少 3 条验证用例（正常/边界/异常）。
 - 嵌入式接口必须验证结构体大小与对齐（`pahole` 或 `sizeof` 断言）。
 - 错误码必须覆盖所有可恢复与不可恢复场景。
+- 受控生命周期操作必须给出 owner × state × event × resource × termination × invariant 矩阵，并明确 generation/op-id、幂等、重试预算与 callback/cleanup 并发边界；缺失时不得进入实现或给出设计通过结论。
 
 ---
 
@@ -110,6 +115,7 @@ constraints:
 ```md
 status: pass | needs-fix | BLOCKED
 structured_schema: strict | not_applicable
+lifecycle_operation: not_applicable | contract-path
 commands:
 - <command + exit code>
 evidence:
@@ -121,3 +127,8 @@ risks:
 ## References
 - 详细背景、命令、模板、示例和扩展检查项保存在 `references/details.md`。
 - 入口文件只保留触发和执行所需的最小上下文，避免默认加载过多 token。
+
+## 合理化借口拦截
+
+- “先实现再补状态语义”不成立：状态、owner 或终止语义不明时先冻结契约。
+- “回调最终会完成”不成立：超时、取消和迟到完成必须有可验证处理。

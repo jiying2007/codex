@@ -23,9 +23,18 @@ rtk git diff --check --cached
   - target_paths_with_unstaged_changes:
   - latest_worktree_reviewed: true | false
 - Reviewer Independence: independent | author-self-review
+- Review Round:
+- Review Mode: targeted-finding-review | whole-diff-review | whole-lifecycle-review
+- Finding Classes:
+- New Finding Class Count:
+- Reopened Finding Count:
+- Consecutive Clean Reviews:
 - Requirement Baseline:
 - Domain Model Baseline:
 - Verification Baseline:
+- Lifecycle Operation Baseline: not_applicable | <path + digest>
+- Contract Change Decision: none | design-change
+- Replan Reason:
 - Mechanical Gate: pass | fail | not-run
 - Review Mode: task-level | whole-diff | whole-branch
 - Spec Verdict:
@@ -45,5 +54,6 @@ rtk git diff --check --cached
 - Fix Plan:
 - Re-review Result:
 - Final Verdict: pass | needs-fix
+- Quality Verdict: locally-clean | independent-final-pass | needs-fix
 - Final Readiness: true | false
 ```

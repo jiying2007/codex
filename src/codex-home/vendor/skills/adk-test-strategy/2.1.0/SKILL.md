@@ -1,8 +1,8 @@
 ---
 name: adk-test-strategy
 description: 平台中立的软件测试策略与 TDD 分级，按行为、风险和现有测试入口生成可复跑的验证矩阵与证据
-version: 2.0.0
-last_updated: 2026-08-30
+version: 2.1.0
+last_updated: 2026-09-10
 triggers:
   - "测试策略"
   - "TDD"
@@ -55,11 +55,12 @@ constraints:
 2. **选择测试级别**：按风险和影响面选择 Level 0/1/2，并说明理由。
 3. **发现现有入口**：读取仓库文档、脚本和测试目录，优先使用已有命令。
 4. **设计测试矩阵**：覆盖 happy path、边界、错误路径、回归样例、真实世界边界、集成环境缺口、安全边界和无法模拟的运行条件。
-5. **TDD 红灯检查**：Level 2 必须先写失败测试并记录失败原因。
-6. **最小实现验证**：只实现让测试通过的必要代码，避免顺手扩张范围。
-7. **回归扩展**：对共享逻辑或公共接口追加相关测试。
-8. **证据记录**：记录命令、退出码、结果摘要和关联工件。
-9. **完成前衔接**：把测试证据交给 `adk-verification-before-completion`。
+5. **验证资源矩阵**：并行执行前列出每项验证的输出目录、二进制/缓存、端口/设备与写入资源；只有全部写入资源隔离才可并行，共享 build directory、测试二进制或中间产物必须串行。
+6. **TDD 红灯检查**：Level 2 必须先写失败测试并记录失败原因。
+7. **最小实现验证**：只实现让测试通过的必要代码，避免顺手扩张范围。
+8. **回归扩展**：对共享逻辑或公共接口追加相关测试。
+9. **证据记录**：记录命令、退出码、结果摘要和关联工件。
+10. **完成前衔接**：把测试证据交给 `adk-verification-before-completion`。
 
 ## Evidence Template
 ```md
@@ -68,6 +69,9 @@ constraints:
 - Behavior Surface:
 - Test Matrix:
   | Case | Type | Command | Expected |
+  |---|---|---|---|
+- Validation Resource Matrix:
+  | Validation | Output directory | Binary/cache/device | Parallel decision |
   |---|---|---|---|
 - Red Evidence:
 - Green Evidence:
@@ -105,6 +109,7 @@ ctest --output-on-failure
 - Level 2 必须包含红灯和绿灯证据。
 - bugfix 必须包含复现或回归样例；无法自动化时必须说明原因。
 - 共享逻辑改动必须说明回归范围。
+- 声称并行的验证必须有 Validation Resource Matrix；共享输出目录、二进制、缓存、端口或设备时必须串行。
 - 不得只用覆盖率数字替代测试结论；必须说明现实环境、集成、安全或硬件条件中仍未验证的部分。
 - 所有完成结论必须交给 `adk-verification-before-completion` 复核。
 

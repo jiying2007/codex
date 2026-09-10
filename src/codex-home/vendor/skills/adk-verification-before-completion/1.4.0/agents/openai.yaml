@@ -1,4 +1,0 @@
-interface:
-  display_name: "ADK Verification Before Completion"
-  short_description: "完成前验证门禁，确保交付声明与证据一致"
-  default_prompt: "Use $adk-verification-before-completion for its documented workflow."

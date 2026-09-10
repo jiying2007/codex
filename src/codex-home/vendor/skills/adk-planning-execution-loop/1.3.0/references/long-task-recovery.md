@@ -7,9 +7,22 @@
 - Last completed checkpoint:
 - Current blocker:
 - Changed scope:
+- logical_task_open: true | false
+- milestone_close: true | false
+- session_handoff_required: true | false
 - Retry budget:
 - Staleness threshold:
 - Heartbeat:
+
+## Review Convergence
+
+- Review round:
+- Review mode:
+- Finding classes:
+- New finding class count:
+- Consecutive clean reviews:
+- Contract change decision:
+- Replan reason:
 
 ## Checkpoints
 
@@ -28,22 +41,11 @@
 - Stop condition: pass | replan | split | blocked | abort
 - Decision: pass | needs-fix | blocked
 
-## Repair Ledger
+## Validation Resource Matrix
 
-- Failed scope:
-- Passing scope to preserve:
-- Minimal rerun:
-- Rollback anchor:
-- Repair action:
-- Semantic verification:
-- Do not repeat:
-
-## Scope Change Handling
-
-- Change:
-- Impact:
-- Decision: continue | replan | split | abort
-- Owner:
+| Validation | Output directory | Binary/cache/device | Parallel decision |
+|---|---|---|---|
+|  |  |  |  |
 
 ## Recovery Prompt
 
@@ -58,9 +60,3 @@ Retry budget:
 Staleness threshold:
 Open items:
 ```
-
-## Failure Rollback
-
-- Failed stage:
-- Rollback anchor:
-- Verification after rollback:

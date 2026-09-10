@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "profile": "token-lean",
-  "managed_count": 673,
+  "managed_count": 679,
   "items": [
     {
       "kind": "skill",
       "name": "adk-code-review-loop",
-      "version": "1.4.2",
-      "source": "vendor/skills/adk-code-review-loop/1.4.2",
-      "sha256": "3f3ec123a476e10982f5124399a8e3b928a5680493527b5b86182e1d1fe8c4c0"
+      "version": "1.6.0",
+      "source": "vendor/skills/adk-code-review-loop/1.6.0",
+      "sha256": "0d5f86d0449b459d0a9025601d5a3f14134c94d06d5f40482fa26fa3e52cc644"
     },
     {
       "kind": "skill",
@@ -27,9 +27,9 @@
     {
       "kind": "skill",
       "name": "adk-planning-execution-loop",
-      "version": "1.0.0",
-      "source": "vendor/skills/adk-planning-execution-loop/1.0.0",
-      "sha256": "e5df6de7010840cc1efe12a98a484e1c1181046bb5d1beb6556ab8d84781bd74"
+      "version": "1.3.0",
+      "source": "vendor/skills/adk-planning-execution-loop/1.3.0",
+      "sha256": "ae38c8ae621b4b452688abc0f939b3ed3367b30b4c95cc0bc7cdf6a666112493"
     },
     {
       "kind": "skill",
@@ -69,9 +69,9 @@
     {
       "kind": "skill",
       "name": "adk-verification-before-completion",
-      "version": "1.4.0",
-      "source": "vendor/skills/adk-verification-before-completion/1.4.0",
-      "sha256": "371eac393452842d25c1daad17aab8718d5023cef99f06dd0092aab905e8e45a"
+      "version": "1.6.0",
+      "source": "vendor/skills/adk-verification-before-completion/1.6.0",
+      "sha256": "fed8b211e324f54e8af53efbd78772de60ea3712a4b4c8332b2ebce687fe2898"
     },
     {
       "kind": "skill",
