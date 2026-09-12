@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "provider": "agent-dev-kit",
+  "repository": "jiying2007/agent-dev-kit",
+  "provider_commit": "e71d419da3704a3d6ff8135020e58d5a4420427f",
+  "release_version": "5.0.0-rc.2",
+  "release_commit": "6ba03db87bd49010738fe353035b35e35fe7dccd",
+  "asset_profile": "embedded-fullstack",
+  "runtime_target": "codex-cli",
+  "asset_bundle_hash": null,
+  "hash_algorithm": "sha256",
+  "readiness": "BLOCKED_ASSET_BUNDLE_IDENTITY",
+  "provider_contract": "manifests/integrations/codex-runtime-binding.json",
+  "provider_bundle_descriptor": "manifests/integrations/codex-target-bundle.json",
+  "rules": {
+    "exact_provider_commit_required": true,
+    "canonical_repository_required": true,
+    "asset_profile_is_not_runtime_profile": true,
+    "consumer_lock_must_not_substitute_bundle_hash": true,
+    "historical_vendor_provenance_is_not_rewritten": true
+  }
+}
