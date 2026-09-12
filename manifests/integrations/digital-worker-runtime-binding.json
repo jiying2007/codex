@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "contract_version": "1.0",
+  "status": "candidate",
+  "role": "codex-runtime-distribution-and-host-integration",
+  "runtime_target": "codex-cli",
+  "owns": [
+    "codex_runtime_profiles",
+    "codex_target_mapping",
+    "codex_config_rendering",
+    "source_build_plan_dry_run_apply",
+    "codex_mcp_binding",
+    "codex_sandbox_and_permission_binding",
+    "live_drift_detection",
+    "runtime_execution_receipt"
+  ],
+  "must_not_own": [
+    "digital_worker_domain_gate_semantics",
+    "digital_worker_verification_pass",
+    "knowledge_lifecycle",
+    "reusable_agent_skill_source_of_truth",
+    "cross_runtime_effectiveness_evaluation"
+  ],
+  "identity_layers": {
+    "asset_profile": "agent-dev-kit profile such as embedded-fullstack",
+    "runtime_profile": "Codex distribution profile such as token-lean",
+    "runtime_target": "codex-cli",
+    "runtime_host": "workstation-ci-or-cloud-host"
+  },
+  "gate_semantics": {
+    "runtime_local_gate_only": true,
+    "runtime_success_implies_domain_verification_pass": false,
+    "runtime_release_gate_implies_product_release_readiness": false
+  },
+  "routing_precedence": [
+    "engineering_task_package_explicit_binding",
+    "explicit_project_runtime_binding",
+    "repository_metadata",
+    "cwd_path_heuristic"
+  ],
+  "readiness": "BLOCKED_ASSET_BUNDLE_IDENTITY",
+  "production_claim": "candidate-only; requires exact ADK bundle identity, Codex CI evidence and real digital-worker runtime evidence"
+}

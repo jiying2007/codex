@@ -1,0 +1,58 @@
+name: Runtime Binding Contract
+
+on:
+  pull_request:
+    paths:
+      - 'manifests/integrations/**'
+      - 'manifests/provider-locks/**'
+      - 'schemas/runtime-execution-receipt.schema.json'
+      - 'scripts/knowledge-provider.sh'
+      - 'scripts/validate-runtime-binding.py'
+      - 'AGENTS.md'
+      - '.github/workflows/runtime-binding-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'manifests/integrations/**'
+      - 'manifests/provider-locks/**'
+      - 'schemas/runtime-execution-receipt.schema.json'
+      - 'scripts/knowledge-provider.sh'
+      - 'scripts/validate-runtime-binding.py'
+      - 'AGENTS.md'
+      - '.github/workflows/runtime-binding-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Validate runtime binding contracts
+        run: python scripts/validate-runtime-binding.py
+      - name: Validate JSON syntax
+        run: |
+          python -m json.tool manifests/integrations/digital-worker-runtime-binding.json >/dev/null
+          python -m json.tool manifests/provider-locks/agent-dev-kit.json >/dev/null
+          python -m json.tool manifests/provider-locks/knowledge-hub.json >/dev/null
+          python -m json.tool schemas/runtime-execution-receipt.schema.json >/dev/null
+      - name: Validate provider adapter shell
+        run: bash -n scripts/knowledge-provider.sh
+      - name: Prove missing provider fails closed
+        run: |
+          set +e
+          HOME="$RUNNER_TEMP/no-provider-home" bash scripts/knowledge-provider.sh status >"$RUNNER_TEMP/provider-status.json"
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -q '"status":"BLOCKED"' "$RUNNER_TEMP/provider-status.json"
+      - name: Ensure CI never applies to a real Codex home
+        run: test ! -e "$HOME/.codex/control/state/active-profile.env"

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jiying2007.local/codex/runtime-execution-receipt.schema.json",
+  "title": "Codex Runtime Execution Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "work_item_id",
+    "run_id",
+    "runtime_binding",
+    "agent_assets",
+    "runtime",
+    "permissions",
+    "repository",
+    "execution",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "work_item_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "runtime_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "target", "runtime_profile"],
+      "properties": {
+        "repository": {"const": "jiying2007/codex"},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "target": {"const": "codex-cli"},
+        "runtime_profile": {"type": "string", "minLength": 1},
+        "runtime_host": {"type": "string", "minLength": 1}
+      }
+    },
+    "agent_assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider_repository", "provider_commit", "release_version", "asset_profile", "asset_bundle_hash"],
+      "properties": {
+        "provider_repository": {"const": "jiying2007/agent-dev-kit"},
+        "provider_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "release_version": {"type": "string", "minLength": 1},
+        "asset_profile": {"type": "string", "minLength": 1},
+        "asset_bundle_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "cli_version", "model"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "cli_version": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "model_provider": {"type": "string", "minLength": 1},
+        "mcp_fingerprint": {"type": "string"}
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sandbox", "approval"],
+      "properties": {
+        "sandbox": {"type": "string", "minLength": 1},
+        "approval": {"type": "string", "minLength": 1},
+        "network": {"type": "string"}
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "base_commit", "result_commit"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "base_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "result_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "runtime_local_gates"],
+      "properties": {
+        "status": {"enum": ["completed", "blocked", "failed", "cancelled"]},
+        "runtime_local_gates": {"type": "array", "items": {"type": "string"}},
+        "started_at": {"type": "string"},
+        "finished_at": {"type": "string"}
+      }
+    },
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "not": {
+    "anyOf": [
+      {"required": ["verification_pass"]},
+      {"required": ["release_ready"]},
+      {"required": ["domain_gate_pass"]}
+    ]
+  }
+}
