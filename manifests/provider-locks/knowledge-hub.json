@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "provider": "knowledge-hub",
+  "repository": "jiying2007/knowledge-hub",
+  "provider_commit": "e28e719516ff88c485627099e8cc58b20ade9a57",
+  "status": "candidate",
+  "readiness": "BLOCKED_ROUTE_OR_PROVIDER_CI",
+  "public_interfaces": [
+    "context",
+    "evidence-pack",
+    "action-check",
+    "proposal-route",
+    "activity-capture"
+  ],
+  "rules": {
+    "source_of_truth_stays_at_source": true,
+    "consumer_must_not_depend_on_provider_internal_temp_paths": true,
+    "provider_unavailable_is_blocked_not_pass": true,
+    "unresolved_project_route_is_needs_review_or_blocked": true
+  },
+  "known_blockers": [
+    "digital-worker governed project route pending",
+    "Knowledge Hub native transport/public-wrapper CI not fresh green"
+  ]
+}
