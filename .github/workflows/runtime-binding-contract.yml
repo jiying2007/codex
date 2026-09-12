@@ -55,6 +55,4 @@ jobs:
           test "$rc" -eq 2
           grep -q '"status":"BLOCKED"' "$RUNNER_TEMP/provider-status.json"
       - name: Ensure CI never applies to a real Codex home
-        run: |
-          test ! -e "$HOME/.codex/control/state/active-profile.env"
-          ! grep -R "scripts/apply.sh" .github/workflows/runtime-binding-contract.yml
+        run: test ! -e "$HOME/.codex/control/state/active-profile.env"
