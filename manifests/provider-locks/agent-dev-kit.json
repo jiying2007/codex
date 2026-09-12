@@ -2,7 +2,7 @@
   "schema_version": 1,
   "provider": "agent-dev-kit",
   "repository": "jiying2007/agent-dev-kit",
-  "provider_commit": "e71d419da3704a3d6ff8135020e58d5a4420427f",
+  "provider_commit": "cceef553ed6c43646ad62f87b23b2eefc1df8309",
   "release_version": "5.0.0-rc.2",
   "release_commit": "6ba03db87bd49010738fe353035b35e35fe7dccd",
   "asset_profile": "embedded-fullstack",
