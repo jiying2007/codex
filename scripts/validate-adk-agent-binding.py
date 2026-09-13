@@ -37,10 +37,19 @@ def git_blob_sha(path: Path) -> str:
 def main() -> None:
     provider = json.loads(PROVIDER.read_text(encoding="utf-8"))
     manifest = json.loads(AGENTS.read_text(encoding="utf-8"))
-    require(provider["schema"] == "codex-provider-lock/v2", "provider lock schema drift")
+    require(provider["schema"] == "codex-provider-lock/v3", "provider lock schema drift")
     require(provider["repository"] == "jiying2007/agent-dev-kit", "provider repository drift")
     require(provider["version"] == "5.1.0", "provider version drift")
     require(provider["provider_commit"] == "59cbd5cb40ca7077ee5407636bfc617e295ec7e5", "provider commit drift")
+    require(provider["delivery_mode"] == "exact-source-set", "provider delivery mode drift")
+    require(provider["binding_status"] == "source-set-bound", "provider binding status drift")
+    require(provider["source_set"] == {
+        "identity": "exact-release-source-blobs",
+        "consumer_assembly": "codex-runtime-distribution",
+        "required_entry_fields": [
+            "version", "vendor_rel", "source_repo", "source_ref", "source_path", "source_blob"
+        ],
+    }, "provider source-set contract drift")
     require(not (SOURCE / "vendor/agents/agent-dev-kit/2.9.0").exists(), "retired ADK 2.9.0 vendor tree still exists")
 
     adk_agents = {
@@ -66,12 +75,17 @@ def main() -> None:
         require(vendor.is_file(), f"{name}: vendored source missing")
         require(git_blob_sha(vendor) == item["source_blob"], f"{name}: vendored content != exact ADK source blob")
         rendered = json.dumps(item, ensure_ascii=False, sort_keys=True)
-        require("2.9.0" not in rendered, f"{name}: retired 2.9.0 token returned")
-        require("llm_agent/agent-dev-kit" not in rendered, f"{name}: retired nested repository identity returned")
+        for retired in ("2.9.0", "llm_agent/agent-dev-kit", "asset_bundle_hash", "BLOCKED_ASSET_BUNDLE_IDENTITY"):
+            require(retired not in rendered, f"{name}: retired compatibility token returned: {retired}")
+
+    provider_text = json.dumps(provider, ensure_ascii=False, sort_keys=True)
+    for retired in ("codex-provider-lock/v2", "asset_bundle_hash", "BLOCKED_ASSET_BUNDLE_IDENTITY", "manifest-first"):
+        require(retired not in provider_text, f"provider lock retired compatibility returned: {retired}")
 
     print("ADK agent binding PASS")
     print(f"provider_version={provider['version']}")
     print(f"provider_commit={provider['provider_commit']}")
+    print(f"binding_status={provider['binding_status']}")
     print(f"active_agents={len(adk_agents)}")
 
 

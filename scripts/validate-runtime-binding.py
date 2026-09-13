@@ -22,20 +22,9 @@ ADK_RELEASE = {
     "release_artifact_sha256": "d4684fe5888203b4a25e7dda9ab51b83fb900cae2d09adb6e5179a775748c965",
 }
 ADK_FIELDS = {
-    "schema",
-    "repository",
-    "version",
-    "release_tag",
-    "provider_commit",
-    "provider_tree",
-    "manifest_blob",
-    "release_artifact",
-    "asset_profile",
-    "asset_bundle_hash",
-    "delivery_mode",
-    "runtime_status",
-    "readiness",
-    "rules",
+    "schema", "repository", "version", "release_tag", "provider_commit", "provider_tree",
+    "manifest_blob", "release_artifact", "asset_profile", "delivery_mode", "binding_status",
+    "source_set", "rules",
 }
 
 
@@ -49,8 +38,8 @@ def exact_sha(value: object, length: int) -> bool:
 
 
 def validate_adk_lock(adk: dict[str, object]) -> None:
-    require(set(adk) == ADK_FIELDS, "ADK provider lock must use only the v2 canonical fields")
-    require(adk["schema"] == "codex-provider-lock/v2", "ADK provider lock schema drift")
+    require(set(adk) == ADK_FIELDS, "ADK provider lock must use only the terminal v3 fields")
+    require(adk["schema"] == "codex-provider-lock/v3", "ADK provider lock schema drift")
     require(adk["repository"] == "jiying2007/agent-dev-kit", "ADK canonical repository required")
     for field in ("version", "release_tag", "provider_commit", "provider_tree", "manifest_blob"):
         require(adk[field] == ADK_RELEASE[field], f"ADK exact release identity drift: {field}")
@@ -65,27 +54,37 @@ def validate_adk_lock(adk: dict[str, object]) -> None:
     require(artifact["sha256"] == ADK_RELEASE["release_artifact_sha256"], "ADK release artifact digest drift")
 
     require(adk["asset_profile"] == "embedded-fullstack", "required ADK asset profile drift")
-    require(adk["delivery_mode"] == "manifest-first", "ADK delivery mode drift")
-    bundle = adk["asset_bundle_hash"]
-    if bundle is None:
-        require(adk["readiness"] == "BLOCKED_ASSET_BUNDLE_IDENTITY", "missing bundle hash must fail closed")
-        require(adk["runtime_status"] == "source-integrated-bundle-pending", "pending bundle runtime status drift")
-    else:
-        require(exact_sha(bundle, 64), "bundle hash must be SHA-256")
-        require(adk["readiness"] != "BLOCKED_ASSET_BUNDLE_IDENTITY", "resolved bundle must advance readiness")
+    require(adk["delivery_mode"] == "exact-source-set", "ADK delivery mode drift")
+    require(adk["binding_status"] == "source-set-bound", "ADK source-set binding status drift")
+
+    source_set = adk["source_set"]
+    require(isinstance(source_set, dict), "ADK source-set declaration required")
+    require(source_set == {
+        "identity": "exact-release-source-blobs",
+        "consumer_assembly": "codex-runtime-distribution",
+        "required_entry_fields": [
+            "version", "vendor_rel", "source_repo", "source_ref", "source_path", "source_blob"
+        ],
+    }, "ADK source-set declaration drift")
 
     rules = adk["rules"]
     require(isinstance(rules, dict), "ADK provider rules required")
     require(set(rules) == {
         "consumer_must_bind_exact_release_source",
+        "consumer_must_bind_exact_source_blob_per_vendored_asset",
+        "consumer_must_own_runtime_assembly",
         "consumer_must_not_use_legacy_nested_repo_identity",
         "consumer_must_not_relabel_historical_evidence",
     }, "ADK provider rule set drift")
     require(all(value is True for value in rules.values()), "ADK provider rules must fail closed")
 
     serialized = json.dumps(adk, sort_keys=True)
-    for retired in ("5.0.0-rc.2", "llm_agent/agent-dev-kit", "provider_repo", "provider_contract"):
-        require(retired not in serialized, f"retired ADK provider compatibility resurfaced: {retired}")
+    for retired in (
+        "asset_bundle_hash", "BLOCKED_ASSET_BUNDLE_IDENTITY", "source-integrated-bundle-pending",
+        "manifest-first", "5.0.0-rc.2", "llm_agent/agent-dev-kit", "provider_repo", "provider_contract",
+        "agent_dev_kit-4.0.0",
+    ):
+        require(retired not in serialized, f"retired ADK compatibility resurfaced: {retired}")
 
 
 def main() -> None:
@@ -97,13 +96,29 @@ def main() -> None:
     hub = json.loads(HUB.read_text(encoding="utf-8"))
     receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
 
+    require(binding["schema_version"] == 2 and binding["contract_version"] == "2.0", "Codex runtime binding schema drift")
+    require(binding["status"] == "active", "Codex runtime binding must be active")
     require(binding["role"] == "codex-runtime-distribution-and-host-integration", "Codex role drift")
     require(binding["runtime_target"] == "codex-cli", "runtime target drift")
     require(binding["identity_layers"]["asset_profile"] != binding["identity_layers"]["runtime_profile"], "asset/runtime profile semantics must stay distinct")
+    source_binding = binding["source_binding"]
+    require(source_binding == {
+        "provider_repository": "jiying2007/agent-dev-kit",
+        "release_version": ADK_RELEASE["version"],
+        "provider_commit": ADK_RELEASE["provider_commit"],
+        "asset_profile": "embedded-fullstack",
+        "identity_mode": "exact-release-source-blobs",
+    }, "runtime source binding drift")
+    require(binding["readiness"] == "SOURCE_SET_BOUND", "runtime source binding readiness drift")
     require(binding["gate_semantics"]["runtime_success_implies_domain_verification_pass"] is False, "runtime must not claim domain PASS")
+    require(binding["gate_semantics"]["runtime_release_gate_implies_product_release_readiness"] is False, "runtime must not claim product release readiness")
     require("cross_runtime_effectiveness_evaluation" in binding["must_not_own"], "cross-runtime eval must remain outside Codex binding")
 
     validate_adk_lock(adk)
+
+    binding_text = json.dumps(binding, sort_keys=True)
+    for retired in ("asset_bundle_hash", "BLOCKED_ASSET_BUNDLE_IDENTITY", "exact ADK bundle", "candidate-only"):
+        require(retired not in binding_text, f"retired runtime binding compatibility resurfaced: {retired}")
 
     require(hub["repository"] == "jiying2007/knowledge-hub", "Knowledge Hub canonical repository required")
     require(re.fullmatch(r"[0-9a-f]{40}", hub["provider_commit"]) is not None, "Hub provider commit must be exact")
@@ -125,7 +140,8 @@ def main() -> None:
     print("runtime binding validation PASS")
     print(f"adk_version={adk['version']}")
     print(f"adk_commit={adk['provider_commit']}")
-    print(f"readiness={adk['readiness']}")
+    print(f"binding_status={adk['binding_status']}")
+    print(f"runtime_readiness={binding['readiness']}")
 
 
 if __name__ == "__main__":
