@@ -25,6 +25,11 @@ class RuntimeControlAdapterTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = pathlib.Path(tempfile.mkdtemp(prefix="codex-runtime-control-"))
         self.addCleanup(lambda: __import__("shutil").rmtree(self.temp))
+        self.bin_dir = self.temp / "bin"
+        self.bin_dir.mkdir()
+        rtk = self.bin_dir / "rtk"
+        rtk.write_text("#!/bin/sh\nexec \"$@\"\n", encoding="utf-8")
+        rtk.chmod(0o755)
         self.codex_home = self.temp / ".codex"
         self.codex_home.mkdir()
         rollout = self.codex_home / "rollout.jsonl"
@@ -59,6 +64,7 @@ class RuntimeControlAdapterTest(unittest.TestCase):
     def run_cli(self, *args: str) -> subprocess.CompletedProcess[str]:
         env = dict(os.environ)
         env["CODEX_THREAD_ID"] = "thread-1"
+        env["PATH"] = str(self.bin_dir) + os.pathsep + env.get("PATH", "")
         return subprocess.run(
             [str(SCRIPT), "--codex-home", str(self.codex_home), *args],
             cwd=str(self.temp),
@@ -143,13 +149,23 @@ class RuntimeControlAdapterTest(unittest.TestCase):
         self.assertTrue(decision["gate_allowed"])
         self.assertFalse(decision["completion_allowed"])
 
-    def test_engine_hash_mismatch_fails_closed(self) -> None:
+    def test_behavior_baseline_mismatch_fails_closed(self) -> None:
         config = json.loads((ROOT / "manifests/runtime_control.json").read_text(encoding="utf-8"))
-        config["engine"]["sha256"] = "0" * 64
+        config["engine"]["behavior_baseline"]["commit"] = "0" * 40
         path = self.temp / "bad-config.json"
         path.write_text(json.dumps(config), encoding="utf-8")
         with self.assertRaises(RuntimeControlAdapterError):
             load_runtime_config(ROOT, str(path))
+
+    def test_legacy_adk_wheel_bridge_is_absent(self) -> None:
+        self.assertEqual("codex-native", self.config["_engine"])
+        self.assertFalse((ROOT / "vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl").exists())
+        adapter = (ROOT / "tools/codex_assets/runtime_control.py").read_text(encoding="utf-8")
+        kernel = (ROOT / "tools/codex_assets/runtime_kernel.py").read_text(encoding="utf-8")
+        for forbidden in ("agent_dev_kit.runtime_control", "vendor/wheels", "sys.path.insert"):
+            self.assertNotIn(forbidden, adapter)
+        for forbidden in ("agent_dev_kit", "yaml", "jsonschema", "requests"):
+            self.assertNotIn(forbidden, kernel)
 
 
 if __name__ == "__main__":

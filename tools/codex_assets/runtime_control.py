@@ -1,4 +1,4 @@
-"""Codex source adapter and journal for the single ADK Runtime Control Engine."""
+"""Codex Runtime Control adapter, journal and CLI surface."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import sqlite3
-import sys
 import tempfile
 import time
 import uuid
@@ -17,9 +16,17 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
 from .core import CodexAssetError
+from .runtime_kernel import RuntimeControlError, evaluate, reduce_events, validate_policy
 
 
 UTC = timezone.utc
+ENGINE_BASELINE = {
+    "repository": "jiying2007/agent-dev-kit",
+    "version": "5.1.0",
+    "commit": "59cbd5cb40ca7077ee5407636bfc617e295ec7e5",
+    "engine_blob": "c01f71f2d8518266f947d696b8828cb102859ce1",
+    "support_blob": "4dbb0d10c0733f8cc7a897d5325cf819a34872f0",
+}
 
 
 class RuntimeControlAdapterError(CodexAssetError):
@@ -34,14 +41,6 @@ def _iso(value: datetime) -> str:
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -54,30 +53,26 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
         raise RuntimeControlAdapterError("unable to read runtime control manifest") from exc
     if not isinstance(value, dict) or set(value) != {"schema_version", "engine", "sources", "policy"}:
         raise RuntimeControlAdapterError("runtime control manifest fields are invalid")
-    if value.get("schema_version") != 1:
+    if value.get("schema_version") != 2:
         raise RuntimeControlAdapterError("unsupported runtime control manifest schema")
     engine = value.get("engine")
-    if not isinstance(engine, dict) or set(engine) != {"package", "version", "wheel", "sha256"}:
+    expected_engine_fields = {"kind", "module", "contract", "behavior_baseline"}
+    if not isinstance(engine, dict) or set(engine) != expected_engine_fields:
         raise RuntimeControlAdapterError("runtime control engine declaration is invalid")
-    if engine.get("package") != "agent-dev-kit" or engine.get("version") != "4.0.0":
-        raise RuntimeControlAdapterError("runtime control requires agent-dev-kit 4.0.0")
-    wheel = (root / str(engine.get("wheel", ""))).resolve()
-    if root not in wheel.parents or not wheel.is_file():
-        raise RuntimeControlAdapterError("runtime control wheel is missing or outside repository")
-    if _sha256_file(wheel) != engine.get("sha256"):
-        raise RuntimeControlAdapterError("runtime control wheel hash mismatch")
-    if str(wheel) not in sys.path:
-        sys.path.insert(0, str(wheel))
+    if engine.get("kind") != "codex-native":
+        raise RuntimeControlAdapterError("runtime control engine must be codex-native")
+    if engine.get("module") != "tools.codex_assets.runtime_kernel":
+        raise RuntimeControlAdapterError("runtime control native module drift")
+    if engine.get("contract") != "runtime_control.v1":
+        raise RuntimeControlAdapterError("runtime control contract drift")
+    if engine.get("behavior_baseline") != ENGINE_BASELINE:
+        raise RuntimeControlAdapterError("runtime control behavior baseline drift")
     try:
-        import agent_dev_kit
-        from agent_dev_kit.runtime_control import validate_policy
-    except ImportError as exc:
-        raise RuntimeControlAdapterError("runtime control engine package is not importable") from exc
-    if agent_dev_kit.__version__ != engine["version"]:
-        raise RuntimeControlAdapterError("runtime control engine version mismatch")
-    value["policy"] = validate_policy(value["policy"])
+        value["policy"] = validate_policy(value["policy"])
+    except RuntimeControlError as exc:
+        raise RuntimeControlAdapterError(str(exc)) from exc
     value["_path"] = str(path)
-    value["_wheel"] = str(wheel)
+    value["_engine"] = "codex-native"
     return value
 
 
@@ -267,18 +262,13 @@ def control_event(kind: str, thread_id: str, payload: Mapping[str, Any]) -> dict
 
 def _engine_state(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     try:
-        from agent_dev_kit.runtime_control import reduce_events
         return reduce_events(events)
-    except Exception as exc:
-        from agent_dev_kit.runtime_control import RuntimeControlError
-        if isinstance(exc, RuntimeControlError):
-            raise RuntimeControlAdapterError(str(exc)) from exc
-        raise
+    except RuntimeControlError as exc:
+        raise RuntimeControlAdapterError(str(exc)) from exc
 
 
 def _decision(state: Mapping[str, Any], config: Mapping[str, Any], gate_event: str) -> dict[str, Any]:
     try:
-        from agent_dev_kit.runtime_control import RuntimeControlError, evaluate
         return evaluate(state, config["policy"], gate_event=gate_event)
     except RuntimeControlError as exc:
         raise RuntimeControlAdapterError(str(exc)) from exc
@@ -326,7 +316,7 @@ def _append_action(args: argparse.Namespace, kind: str, payload: Mapping[str, An
 
 
 def run(args: argparse.Namespace) -> int:
-    root, config, paths, thread, journal = _active_context(args)
+    root, config, _, thread, journal = _active_context(args)
     action = args.runtime_action
 
     if action == "goal":
@@ -404,7 +394,7 @@ def run(args: argparse.Namespace) -> int:
             rate = 0.0
             if previous_total is not None and previous_time is not None and started > previous_time and total >= previous_total:
                 rate = (total - previous_total) * 60.0 / (started - previous_time)
-            state, decision = snapshot(
+            _, decision = snapshot(
                 root, config, codex_home=args.codex_home, gate_event=args.event, rate_per_minute=rate,
                 thread_id=args.thread_id,
             )

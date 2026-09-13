@@ -6,9 +6,15 @@ on:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
+      - 'manifests/runtime_control.json'
       - 'src/codex-home/vendor/agents/**'
       - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
+      - 'tools/codex_assets/runtime_control.py'
+      - 'tools/codex_assets/runtime_kernel.py'
+      - 'tests/test_runtime_control.py'
+      - 'vendor/wheels/**'
+      - 'docs/runtime-control.md'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
@@ -22,9 +28,15 @@ on:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
+      - 'manifests/runtime_control.json'
       - 'src/codex-home/vendor/agents/**'
       - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
+      - 'tools/codex_assets/runtime_control.py'
+      - 'tools/codex_assets/runtime_kernel.py'
+      - 'tests/test_runtime_control.py'
+      - 'vendor/wheels/**'
+      - 'docs/runtime-control.md'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
@@ -48,18 +60,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install validation dependency
+        run: python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
       - name: Validate runtime binding contracts
         run: python scripts/validate-runtime-binding.py
       - name: Validate exact ADK agent binding
         run: python scripts/validate-adk-agent-binding.py
       - name: Validate AGENTS terminal rules
         run: python scripts/validate-agent-rules.py
+      - name: Validate native Runtime Control
+        run: python -m unittest tests.test_runtime_control
       - name: Validate JSON syntax
         run: |
           python -m json.tool manifests/integrations/digital-worker-runtime-binding.json >/dev/null
           python -m json.tool manifests/provider-locks/agent-dev-kit.json >/dev/null
           python -m json.tool manifests/provider-locks/knowledge-hub.json >/dev/null
           python -m json.tool manifests/agents.json >/dev/null
+          python -m json.tool manifests/runtime_control.json >/dev/null
           python -m json.tool schemas/runtime-execution-receipt.schema.json >/dev/null
       - name: Validate provider adapter shell
         run: bash -n scripts/knowledge-provider.sh

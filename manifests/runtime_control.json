@@ -1,10 +1,16 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "engine": {
-    "package": "agent-dev-kit",
-    "version": "4.0.0",
-    "wheel": "vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl",
-    "sha256": "dd64702c2a405c34b08e5e07c4f5c09a04566ba72e6096bf6a0a8bb36b5a79a6"
+    "kind": "codex-native",
+    "module": "tools.codex_assets.runtime_kernel",
+    "contract": "runtime_control.v1",
+    "behavior_baseline": {
+      "repository": "jiying2007/agent-dev-kit",
+      "version": "5.1.0",
+      "commit": "59cbd5cb40ca7077ee5407636bfc617e295ec7e5",
+      "engine_blob": "c01f71f2d8518266f947d696b8828cb102859ce1",
+      "support_blob": "4dbb0d10c0733f8cc7a897d5325cf819a34872f0"
+    }
   },
   "sources": {
     "state_db": "~/.codex/state_5.sqlite",
