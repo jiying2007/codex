@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import pathlib
 import re
 from typing import Any
@@ -20,6 +21,12 @@ REQUIRED = {
     "overlays.json": ["schema_version", "overlays"],
     "runtime_control.json": ["schema_version", "engine", "sources", "policy"],
 }
+
+
+def _git_blob_sha(path: pathlib.Path) -> str:
+    data = path.read_bytes()
+    header = f"blob {len(data)}\0".encode("ascii")
+    return hashlib.sha1(header + data).hexdigest()
 
 
 def validate_repo(root: str | pathlib.Path) -> list[str]:
@@ -60,6 +67,14 @@ def validate_repo(root: str | pathlib.Path) -> list[str]:
 
     errors.extend(validate_context_budgets(repo))
 
+    provider_lock_path = repo.manifests_dir / "provider-locks/agent-dev-kit.json"
+    provider_lock = read_json(provider_lock_path) if provider_lock_path.is_file() else {}
+    provider_version = str(provider_lock.get("version", ""))
+    provider_commit = str(provider_lock.get("provider_commit", ""))
+    retired_agent_root = source / "vendor/agents/agent-dev-kit/2.9.0"
+    if retired_agent_root.exists():
+        errors.append("已退役 ADK 2.9.0 agent vendor tree 仍存在")
+
     for collection_name, key in [("skills.json", "skills"), ("agents.json", "agents")]:
         seen: set[str] = set()
         targets_by_profile: dict[str, dict[str, str]] = {}
@@ -96,10 +111,37 @@ def validate_repo(root: str | pathlib.Path) -> list[str]:
                     errors.append(f"{collection_name}:{name} 不安全路径 {field}={value}")
             vendor_rel = item.get("vendor_rel", "")
             target_rel = item.get("target_rel", "")
-            if vendor_rel and source.is_dir() and not (source / vendor_rel).exists():
+            vendor_path = source / vendor_rel if vendor_rel else None
+            if vendor_rel and source.is_dir() and not vendor_path.exists():
                 errors.append(f"{collection_name}:{name} vendor_rel 不存在: {vendor_rel}")
             if target_rel and matches_any(target_rel, protected):
                 errors.append(f"{collection_name}:{name} target_rel 不能指向 protected path: {target_rel}")
+
+            if collection_name == "agents.json" and vendor_rel.startswith("vendor/agents/agent-dev-kit/"):
+                provenance_fields = ["source_repo", "source_ref", "source_path", "source_blob", "imported_at", "review_status"]
+                missing = [field for field in provenance_fields if not item.get(field)]
+                if missing:
+                    errors.append(f"agents.json:{name} ADK 来源元数据不完整: {','.join(missing)}")
+                if item.get("source_repo") != "jiying2007/agent-dev-kit":
+                    errors.append(f"agents.json:{name} 使用已退役 ADK source_repo: {item.get('source_repo')}")
+                if item.get("version") != provider_version:
+                    errors.append(f"agents.json:{name} version 未绑定当前 ADK provider: {item.get('version')} != {provider_version}")
+                if item.get("source_ref") != provider_commit:
+                    errors.append(f"agents.json:{name} source_ref 未绑定当前 ADK provider commit")
+                source_blob = str(item.get("source_blob", ""))
+                if not re.fullmatch(r"[0-9a-f]{40}", source_blob):
+                    errors.append(f"agents.json:{name} source_blob 必须是 Git blob SHA")
+                elif vendor_path and vendor_path.is_file() and _git_blob_sha(vendor_path) != source_blob:
+                    errors.append(f"agents.json:{name} vendored 内容与 exact ADK source_blob 不一致")
+                if item.get("review_status") != "accepted":
+                    errors.append(f"agents.json:{name} ADK vendor agent 必须 accepted")
+                if item.get("imported_at") and not re.match(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", str(item["imported_at"])):
+                    errors.append(f"agents.json:{name} imported_at 必须是 YYYY-MM-DD")
+                retired_tokens = ("2.9.0", "llm_agent/agent-dev-kit")
+                rendered = " ".join(str(item.get(field, "")) for field in ["version", "vendor_rel", "source_repo", "source_ref"])
+                if any(token in rendered for token in retired_tokens):
+                    errors.append(f"agents.json:{name} 命中已退役 ADK compatibility token")
+
             for profile in item.get("profiles", []):
                 profile_targets = targets_by_profile.setdefault(profile, {})
                 if target_rel in profile_targets:

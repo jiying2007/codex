@@ -17,6 +17,7 @@
 5. Spec 链路场景必须给出 `requirements -> design -> tasks` 三段工件映射。
 6. 技能候选筛选场景必须给出安装范围（global-ready/project-bound）与依赖边界。
 7. 技能生态场景必须给出触发矩阵（主触发/回退触发）与安装入口兼容说明。
+8. 缺少 done-when、required evidence、artifact paths 或 blocker policy 时，结论必须为 `needs-fix`。
 
 ## 需求拆分方法
 - **按用户故事**：`作为<角色>，我希望<功能>，以便<价值>`。
@@ -57,7 +58,7 @@
 ## 执行流程
 1. 需求解构：提炼目标、非目标、关键场景、边界条件。
 2. 现状核对：定位代码入口、相关测试、现有约束与缺口。
-3. 验收固化：将需求写成可验证条目（输入、行为、输出、错误路径）。
+3. 验收固化：将需求写成可验证条目（输入、行为、输出、错误路径），并补齐 done-when、required evidence、artifact paths 和 blocker policy。
 4. 风险建模：列出技术/进度/依赖风险与回退条件。
 5. 工件映射：输出 requirements/design/tasks 的追溯关系。
 6. 路由说明：输出技能触发矩阵、回退触发词和安装入口兼容结论。
@@ -74,6 +75,7 @@
 ## 输出契约
 - 结论：`pass` 或 `needs-fix`。
 - 必备字段：目标、非目标、影响面、验收标准、风险、回退。
+- 必备字段：done-when、required evidence、artifact paths、blocker policy。
 - Spec 链路必备字段：Problem Statement、Requirements Baseline、Design Decisions、Task Slices。
 - 技能生态场景必备字段：Trigger Matrix、Fallback Trigger、Install Entry Compatibility。
 - 跨团队必备字段：Owner Matrix（R/A/C）、handoff 条件、签收责任人。

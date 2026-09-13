@@ -5,6 +5,10 @@ on:
     paths:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
+      - 'manifests/agents.json'
+      - 'src/codex-home/vendor/agents/**'
+      - 'tools/codex_assets/validate.py'
+      - 'scripts/validate-adk-agent-binding.py'
       - 'schemas/runtime-execution-receipt.schema.json'
       - 'scripts/knowledge-provider.sh'
       - 'scripts/validate-runtime-binding.py'
@@ -15,6 +19,10 @@ on:
     paths:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
+      - 'manifests/agents.json'
+      - 'src/codex-home/vendor/agents/**'
+      - 'tools/codex_assets/validate.py'
+      - 'scripts/validate-adk-agent-binding.py'
       - 'schemas/runtime-execution-receipt.schema.json'
       - 'scripts/knowledge-provider.sh'
       - 'scripts/validate-runtime-binding.py'
@@ -38,11 +46,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Validate runtime binding contracts
         run: python scripts/validate-runtime-binding.py
+      - name: Validate exact ADK agent binding
+        run: python scripts/validate-adk-agent-binding.py
       - name: Validate JSON syntax
         run: |
           python -m json.tool manifests/integrations/digital-worker-runtime-binding.json >/dev/null
           python -m json.tool manifests/provider-locks/agent-dev-kit.json >/dev/null
           python -m json.tool manifests/provider-locks/knowledge-hub.json >/dev/null
+          python -m json.tool manifests/agents.json >/dev/null
           python -m json.tool schemas/runtime-execution-receipt.schema.json >/dev/null
       - name: Validate provider adapter shell
         run: bash -n scripts/knowledge-provider.sh

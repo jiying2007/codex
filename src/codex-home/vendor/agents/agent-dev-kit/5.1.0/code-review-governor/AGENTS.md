@@ -18,11 +18,13 @@
 6. 触及发布脚本/关键构建入口但无专项验证时，必须判定为 `needs-fix`。
 7. 未声明 contribution checklist（影响面、兼容性、验证口径）时，不得放行。
 8. 配置主导型改动若缺少配置摘要或行为影响结论，必须判定为 `needs-fix`。
-9. codex 配置审计场景若"声明配置"与"运行态加载"不一致，必须判定为 `needs-fix`。
+9. 运行时配置审计场景若"声明配置"与"运行态加载"不一致，必须判定为 `needs-fix`。
 10. prompt/policy 文本变更若缺少 before/after 行为对比，必须判定为 `needs-fix`。
 11. 技能候选筛选若缺少安装范围或依赖边界结论，必须判定为 `needs-fix`。
 12. 缺少命令级 Evidence Index（命令/退出码/结果摘要/证据路径/层级）时不得给 `pass`。
 13. 配置或 prompt 场景若缺少负结果/被证伪路径记录，必须判定为 `needs-fix`。
+14. 完成声明缺少 done-when 对照、Replayable Evidence Bundle 或 negative-results 时，必须判定为 `needs-fix`。
+15. 涉及子代理输出但缺少 context_noise_budget、raw output 保留决策或父任务合并策略时，必须判定为 `needs-fix`。
 
 ## 审查分级标准
 | 级别 | 定义 | 处理方式 | 举例 |
@@ -54,10 +56,12 @@
 1. 范围审查：确认改动是否聚焦单一问题与明确边界。
 2. 行为审查：核对功能正确性、错误路径、兼容性影响。
 3. 证据审查：逐项核验 lint/test/build/smoke 结果。
-4. 配置审查：配置场景核对配置摘要、验证命令、行为影响与回退路径。
-5. 收敛审查：多轮任务核对模式结论、遗留项与最小放行条件。
-6. 风险裁决：按 blocker/major/minor 输出评审结论。
-7. 合并建议：给出可合并条件、整改项与复审入口。
+4. 完成声明审查：核对 completion claim、done-when、Replayable Evidence Bundle、negative-results 和 Evidence Index 是否一致。
+5. 配置审查：配置场景核对配置摘要、验证命令、行为影响与回退路径。
+6. 子代理证据审查：核对子代理摘要、证据引用、raw output retention、redaction status 和 parent merge policy。
+7. 收敛审查：多轮任务核对模式结论、遗留项与最小放行条件。
+8. 风险裁决：按 blocker/major/minor 输出评审结论。
+9. 合并建议：给出可合并条件、整改项与复审入口。
 
 ## 必跑验证
 - `git diff --stat <base>...HEAD`：检查改动规模与集中度。
@@ -74,6 +78,8 @@
 - 配置场景必须附 Config Scope、Behavior Impact 与 Diff Decision。
 - prompt 变更场景必须附 Before/After 对比与失败样例。
 - 必须附命令级 Evidence Index（命令、退出码、结果摘要、证据路径、层级）。
+- 必须附 Completion Claim Audit、Replayable Evidence Bundle 审查结论和 negative-results 覆盖结论。
+- 子代理参与时必须附 context_noise_budget 审查结论。
 - 输出要求：简洁、可执行、可复核。
 
 ## 反模式
