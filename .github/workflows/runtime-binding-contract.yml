@@ -7,18 +7,22 @@ on:
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
       - 'manifests/runtime_control.json'
+      - 'manifests/session_bootstrap.json'
       - 'src/codex-home/vendor/agents/**'
       - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
       - 'tools/codex_assets/runtime_control.py'
       - 'tools/codex_assets/runtime_kernel.py'
+      - 'tools/codex_assets/session_bootstrap.py'
       - 'tests/test_runtime_control.py'
+      - 'tests/test_session_bootstrap.py'
       - 'vendor/wheels/**'
       - 'docs/runtime-control.md'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
       - 'scripts/knowledge-provider.sh'
+      - 'scripts/session-bootstrap.sh'
       - 'scripts/validate-runtime-binding.py'
       - 'AGENTS.md'
       - '.github/workflows/runtime-binding-contract.yml'
@@ -29,18 +33,22 @@ on:
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
       - 'manifests/runtime_control.json'
+      - 'manifests/session_bootstrap.json'
       - 'src/codex-home/vendor/agents/**'
       - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
       - 'tools/codex_assets/runtime_control.py'
       - 'tools/codex_assets/runtime_kernel.py'
+      - 'tools/codex_assets/session_bootstrap.py'
       - 'tests/test_runtime_control.py'
+      - 'tests/test_session_bootstrap.py'
       - 'vendor/wheels/**'
       - 'docs/runtime-control.md'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
       - 'scripts/knowledge-provider.sh'
+      - 'scripts/session-bootstrap.sh'
       - 'scripts/validate-runtime-binding.py'
       - 'AGENTS.md'
       - '.github/workflows/runtime-binding-contract.yml'
@@ -85,6 +93,8 @@ jobs:
         run: python scripts/validate-agent-rules.py
       - name: Validate native Runtime Control
         run: python -m unittest tests.test_runtime_control
+      - name: Validate thin Session Bootstrap
+        run: python -m unittest tests.test_session_bootstrap
       - name: Validate JSON syntax
         run: |
           python -m json.tool manifests/integrations/digital-worker-runtime-binding.json >/dev/null
@@ -92,9 +102,12 @@ jobs:
           python -m json.tool manifests/provider-locks/knowledge-hub.json >/dev/null
           python -m json.tool manifests/agents.json >/dev/null
           python -m json.tool manifests/runtime_control.json >/dev/null
+          python -m json.tool manifests/session_bootstrap.json >/dev/null
           python -m json.tool schemas/runtime-execution-receipt.schema.json >/dev/null
-      - name: Validate provider adapter shell
-        run: bash -n scripts/knowledge-provider.sh
+      - name: Validate provider/bootstrap adapter shell
+        run: |
+          bash -n scripts/knowledge-provider.sh
+          bash -n scripts/session-bootstrap.sh
       - name: Prove missing provider fails closed
         run: |
           set +e

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "contract_version": "1.0",
+  "status": "active",
+  "role": "thin-session-bootstrap",
+  "runtime_binding": "codex-cli",
+  "owns": [
+    "task_mode_resolution",
+    "runtime_context_assembly",
+    "provider_preflight_request",
+    "identity_ref_assembly"
+  ],
+  "must_not_own": [
+    "digital_worker_domain_gate_semantics",
+    "digital_worker_verification_pass",
+    "knowledge_lifecycle",
+    "reusable_agent_skill_source_of_truth",
+    "cross_runtime_effectiveness_evaluation"
+  ],
+  "resolution_precedence": [
+    "explicit_mode",
+    "formal_signal",
+    "engineering_task_package",
+    "governed_signal",
+    "default_l0"
+  ],
+  "modes": {
+    "L0": {
+      "name": "quick-assist",
+      "default": true,
+      "knowledge_mode": "current-provider",
+      "digital_worker_run_required": false,
+      "formal_evidence_required": false
+    },
+    "L1": {
+      "name": "governed-engineering",
+      "default": false,
+      "knowledge_mode": "current-provider",
+      "digital_worker_contract_required": true,
+      "formal_evidence_required": false
+    },
+    "L2": {
+      "name": "formal-evidence",
+      "default": false,
+      "knowledge_mode": "exact-pinned-provider",
+      "digital_worker_contract_required": true,
+      "formal_evidence_required": true,
+      "required_inputs": [
+        "full_40_hex_base_commit",
+        "digital_worker_root",
+        "knowledge_provider_root",
+        "engineering_task_package"
+      ]
+    }
+  },
+  "provider_adapter": "scripts/knowledge-provider.sh",
+  "runtime_binding_contract": "manifests/integrations/digital-worker-runtime-binding.json",
+  "asset_provider_lock": "manifests/provider-locks/agent-dev-kit.json",
+  "output_contract": {
+    "kind": "codex-session-bootstrap/v1",
+    "contains_identity_refs_only": true,
+    "forbidden_claims": [
+      "verification_pass",
+      "domain_gate_pass",
+      "release_ready"
+    ]
+  },
+  "rules": {
+    "explicit_conflicts_fail_closed": true,
+    "formal_mode_requires_exact_inputs": true,
+    "runtime_local_readiness_is_not_domain_readiness": true,
+    "knowledge_provider_unavailable_is_not_pass": true,
+    "bootstrap_does_not_write_knowledge": true,
+    "bootstrap_does_not_modify_worktree": true
+  }
+}
