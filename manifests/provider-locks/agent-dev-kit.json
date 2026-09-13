@@ -1,5 +1,5 @@
 {
-  "schema": "codex-provider-lock/v2",
+  "schema": "codex-provider-lock/v3",
   "repository": "jiying2007/agent-dev-kit",
   "version": "5.1.0",
   "release_tag": "v5.1.0",
@@ -11,12 +11,24 @@
     "sha256": "d4684fe5888203b4a25e7dda9ab51b83fb900cae2d09adb6e5179a775748c965"
   },
   "asset_profile": "embedded-fullstack",
-  "asset_bundle_hash": null,
-  "delivery_mode": "manifest-first",
-  "runtime_status": "source-integrated-bundle-pending",
-  "readiness": "BLOCKED_ASSET_BUNDLE_IDENTITY",
+  "delivery_mode": "exact-source-set",
+  "binding_status": "source-set-bound",
+  "source_set": {
+    "identity": "exact-release-source-blobs",
+    "consumer_assembly": "codex-runtime-distribution",
+    "required_entry_fields": [
+      "version",
+      "vendor_rel",
+      "source_repo",
+      "source_ref",
+      "source_path",
+      "source_blob"
+    ]
+  },
   "rules": {
     "consumer_must_bind_exact_release_source": true,
+    "consumer_must_bind_exact_source_blob_per_vendored_asset": true,
+    "consumer_must_own_runtime_assembly": true,
     "consumer_must_not_use_legacy_nested_repo_identity": true,
     "consumer_must_not_relabel_historical_evidence": true
   }

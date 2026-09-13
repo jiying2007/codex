@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
-  "contract_version": "1.0",
-  "status": "candidate",
+  "schema_version": 2,
+  "contract_version": "2.0",
+  "status": "active",
   "role": "codex-runtime-distribution-and-host-integration",
   "runtime_target": "codex-cli",
   "owns": [
@@ -27,6 +27,13 @@
     "runtime_target": "codex-cli",
     "runtime_host": "workstation-ci-or-cloud-host"
   },
+  "source_binding": {
+    "provider_repository": "jiying2007/agent-dev-kit",
+    "release_version": "5.1.0",
+    "provider_commit": "59cbd5cb40ca7077ee5407636bfc617e295ec7e5",
+    "asset_profile": "embedded-fullstack",
+    "identity_mode": "exact-release-source-blobs"
+  },
   "gate_semantics": {
     "runtime_local_gate_only": true,
     "runtime_success_implies_domain_verification_pass": false,
@@ -38,6 +45,6 @@
     "repository_metadata",
     "cwd_path_heuristic"
   ],
-  "readiness": "BLOCKED_ASSET_BUNDLE_IDENTITY",
-  "production_claim": "candidate-only; requires exact ADK bundle identity, Codex CI evidence and real digital-worker runtime evidence"
+  "readiness": "SOURCE_SET_BOUND",
+  "production_claim": "runtime source/distribution binding is active; domain verification and product qualification remain independently governed"
 }
