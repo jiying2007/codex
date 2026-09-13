@@ -1,6 +1,6 @@
 # Runtime Control
 
-Runtime Control 是 Codex 任务执行、实时 Token/上下文观察、长任务连续性和阶段门禁的唯一控制面。旧任务表、用量面板、会话教练和 ready wrapper 已移除，不提供别名、双读、双写或状态迁移。
+Runtime Control 是 Codex 任务执行、Token/上下文观察、长任务连续性和阶段门禁的唯一运行控制面。旧任务表、用量面板、会话教练、ready wrapper 以及 ADK 4.0 wheel bridge 均已退役；active path 不提供别名、双读、双写或旧 engine fallback。
 
 ## 唯一架构
 
@@ -11,26 +11,29 @@ state_5.sqlite + session rollout + Runtime Control Journal
           tools.codex_assets.runtime_control
                          |
                          v
-       agent_dev_kit.runtime_control Engine 4.0.0
+           tools.codex_assets.runtime_kernel
                          |
                          v
        state/v1 + decision/v1 + gate exit code
 ```
 
-- `manifests/runtime_control.json`：唯一策略和 ADK wheel 版本/SHA-256 绑定。
-- `vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl`：唯一归约与决策实现。
+- `manifests/runtime_control.json`：唯一策略、native engine 声明和行为基线 provenance。
+- `tools/codex_assets/runtime_kernel.py`：stdlib-only 的 v1 reducer/decision kernel；不运行时依赖 `agent_dev_kit`、PyYAML 或 jsonschema。
+- 行为基线固定到 ADK 5.1.0 exact source：commit `59cbd5cb40ca7077ee5407636bfc617e295ec7e5`，engine blob `c01f71f2d8518266f947d696b8828cb102859ce1`，support blob `4dbb0d10c0733f8cc7a897d5325cf819a34872f0`。
 - `~/.codex/runtime-control/<thread-hash>.jsonl`：唯一任务 Journal。
 - `scripts/runtime-control.sh`：唯一用户入口。
 
-CLI 默认绑定当前 Codex 进程提供的 `CODEX_THREAD_ID`；自动化或外部终端可显式传 `--thread-id <id>`。只有两者都不存在时才选择最近活动线程。多会话环境不得依赖“最近活动”来执行写事件或阶段门禁。
+ADK 提供 reusable asset/control-plane 规范与行为基线；Codex 拥有 Codex-specific runtime distribution、journal、host observation 和本地 gate 实现。行为 provenance 不等于运行时包依赖。
 
-Codex adapter 只采集和规范化数据，不拥有阈值、优先级或完成判定。wheel 缺失、版本不符、摘要不符、事件冲突、累计用量回退或 schema 不符都会 fail closed。
+CLI 默认绑定当前 Codex 进程提供的 `CODEX_THREAD_ID`；自动化或外部终端可显式传 `--thread-id <id>`。只有两者都不存在时才选择最近活动线程。多会话环境不得依赖“最近活动”执行写事件或阶段门禁。
+
+配置 schema、行为基线、事件顺序、累计用量、证据或 gate contract 不一致时全部 fail closed。
 
 ## 数据边界
 
 Journal 只允许版本化结构事件：目标生命周期、累计用量快照、进度、心跳、重试、证据、checkpoint 和制品验证。它不保存 prompt、messages、content、目标原文、命令输出或真实 cwd；cwd 只保存 SHA-256。
 
-用量来自当前线程的最新 rollout `token_count`，线程和 rollout 定位来自 `~/.codex/state_5.sqlite` 与 `~/.codex/sessions`。任务状态不读取第二张目标表。
+用量来自当前线程最新 rollout 的 `token_count`；线程和 rollout 定位来自 `~/.codex/state_5.sqlite` 与 `~/.codex/sessions`。任务状态不读取第二张目标表。
 
 ## 基本流程
 
@@ -56,21 +59,12 @@ rtk bash scripts/runtime-control.sh goal complete
 rtk bash scripts/runtime-control.sh gate --event final
 ```
 
-`snapshot` 与 `watch` 都输出同一个 `runtime_control.decision/v1`；`goal status` 输出完整 `runtime_control.state/v1`。多项成功标准、必需证据或 checkpoint 证据通过重复对应参数表达。`watch --iterations <n>` 可用于有界自动化；省略时持续刷新，直到用户中断。
-
-若实测消耗或外部时限变化，使用 `goal update --token-budget <n>` 或 `--time-budget-seconds <n>` 显式修订预算。修订本身是 `goal.updated` 事件并保留在同一 Journal；不得改写旧事件或直接编辑状态。
+`snapshot` 与 `watch` 输出 `runtime_control.decision/v1`；`goal status` 输出 `runtime_control.state/v1`。预算修订通过 `goal update` 形成不可改写的 `goal.updated` Journal 事件。
 
 ## 决策和退出码
 
-Engine 使用固定优先级综合 Token 比例、上下文比例、时间预算、心跳新鲜度、重试预算、无进展次数、checkpoint、证据和制品：
+Kernel 按固定优先级综合 Token 比例、上下文比例、时间预算、心跳新鲜度、重试预算、无进展次数、checkpoint、证据和制品，输出 `continue / checkpoint / compact / replan / stop / pass`。
 
-- `continue`：继续执行。
-- `checkpoint`：先固化当前进度和证据。
-- `compact`：先压缩上下文，再恢复执行。
-- `replan`：状态陈旧、重试/无进展超限或门禁前提不足。
-- `stop`：Token 或时间预算耗尽。
-- `pass`：指定阶段门禁通过。
+`apply` 可在活动任务满足 repo/build/plan/dry-run 证据且运行状态健康时通过；`final / commit / release` 必须先完成目标，并满足当前 checkpoint、必需证据和相应制品契约。
 
-`gate --event apply` 允许活动任务在 repo/build/plan/dry-run 证据齐全且运行状态健康时通过。`final`、`commit`、`release` 必须先完成目标，并满足当前 checkpoint、必需证据和相应制品契约。
-
-门禁通过返回 0，门禁不通过返回 3，配置、制品、Journal 或采集错误返回 2。调用方必须消费退出码，不得根据输出文本另建判断。
+门禁通过返回 0，门禁不通过返回 3，配置、Journal 或采集错误返回 2。调用方必须消费退出码，不得根据输出文本另建判断。
