@@ -27,6 +27,14 @@
 7. **安全边界**：权限模型是否最小化，敏感数据是否加密。
 8. **演进空间**：未来需求是否能在当前架构下自然扩展。
 
+## Hotspot / YAGNI 范围门禁
+
+1. 默认范围顺序：用户明确 scope → 当前 diff/工作项 target paths → `base_ref..HEAD` 近期热点 → 一阶 contract/dependency。
+2. 默认 `broad_scan=false`；不得因“架构优化”自动扫描全仓或提出无关重构。
+3. 只有 shared contract、循环依赖、跨模块故障域、安全边界或用户显式要求时才扩域。
+4. 输出必须记录 `base_ref`、`history_window`、`selected_hotspots`、`first_order_dependencies`、`broad_scan`、`expansion_reason`。
+5. 无法证明扩域收益大于复杂度时，保持原范围并把建议列为 out-of-scope。
+
 ## 技术选型矩阵
 | 维度 | 权重 | 方案 A | 方案 B | 方案 C |
 |------|------|--------|--------|--------|
@@ -56,7 +64,7 @@
 - **架构适应度函数**：自动化验证架构约束（如依赖方向、接口兼容）。
 
 ## 执行流程
-1. 识别边界：明确模块职责、输入输出、读写所有权。
+1. 识别边界：先执行 Hotspot/YAGNI 范围门禁，再明确模块职责、输入输出和读写所有权。
 2. 画出依赖：标注强依赖、弱依赖、循环依赖风险点。
 3. 方案权衡：从复杂度、性能、可测试性、迁移成本进行对比。
 4. 模式判断：给出 `diagnosis/repro/planning/execution` 当前推进模式与切换条件。
@@ -73,6 +81,7 @@
 
 ## 输出契约
 - 必含：架构决策、备选方案、影响面、迁移/回退、验证计划。
+- 必含：Hotspot Scope（base/history/hotspots/一阶依赖/broad_scan/expansion_reason）。
 - 迁移场景必含：阶段矩阵（阶段目标、验收口径、回退锚点）。
 - 必含：能力归属（core/optional）与触发路由理由。
 - 技能筛选场景必含：安装范围（global-ready/project-bound）与依赖边界说明。

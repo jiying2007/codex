@@ -17,8 +17,11 @@
 5. 缺少 Evidence Index（命令/退出码/结果摘要/证据路径/层级）时不得给 `pass`。
 6. 配置审计场景缺少"声明配置 vs 运行态加载"对比证据时一律 `needs-fix`。
 7. prompt/policy 变更场景缺少 before/after 对比或失败样例时一律 `needs-fix`。
-8. codex runtime 场景缺少 doctor/health/pilot 三联证据时一律 `needs-fix`。
+8. runtime 场景缺少 adapter/health/pilot 三联证据时一律 `needs-fix`。
 9. Evidence Index 未包含负结果或被证伪路径记录时一律 `needs-fix`。
+10. 中高风险交付缺少 Replayable Evidence Bundle 时一律 `needs-fix`。
+11. UI 或用户可见行为缺少 Appshots/UI evidence boundary 或 not-applicable 说明时一律 `needs-fix`。
+12. runner、CLI、adapter 或 noninteractive 变更缺少 runner smoke contract 证据时一律 `needs-fix`。
 
 ## 测试策略
 - **测试金字塔**：单元测试（70%）> 集成测试（20%）> E2E 测试（10%）。
@@ -54,7 +57,7 @@
 ## 执行流程
 1. 测试设计：按风险分层生成测试矩阵。
 2. 用例实现：优先补关键路径与回归易损点。
-3. 执行与记录：保留命令、环境、结果和失败证据。
+3. 执行与记录：保留命令、环境、结果、失败证据和 Replayable Evidence Bundle。
 4. 缺陷分级：按 blocker/major/minor 标记并跟踪状态。
 5. 验收结论：对照标准给出通过或阻断意见。
 
@@ -71,7 +74,9 @@
 - 交接场景必含：handoff 验收项、接收方复验结果、签收状态。
 - 配置审计场景必含：配置摘要、运行态加载结果、差异结论。
 - prompt 变更场景必含：测试输入、before/after 对比、失败样例与最终判定。
-- codex runtime 场景必含：doctor 结果、global health 结果、pilot gate 结果。
+- runtime 场景必含：adapter 结果、health 结果、pilot gate 结果。
+- UI 或用户可见场景必含：Appshots/UI evidence boundary，至少说明 visible text boundary、permission scope 和 sensitive-content review。
+- runner、CLI、adapter 或 noninteractive 场景必含：runner smoke contract，记录 event stream/schema、sandbox/approval/cwd、thread/turn 或 resume/reply、failure/cancel path。
 - 必含：Evidence Index（命令、退出码、结果摘要、证据路径、层级、关联工件）。
 - 必含：至少一条负结果或被证伪路径，并可追溯到 `negative-results`。
 - 结论必须与失败统计一致，不得"带病放行"。
