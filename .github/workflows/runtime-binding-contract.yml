@@ -7,8 +7,10 @@ on:
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
       - 'src/codex-home/vendor/agents/**'
+      - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
       - 'scripts/validate-adk-agent-binding.py'
+      - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
       - 'scripts/knowledge-provider.sh'
       - 'scripts/validate-runtime-binding.py'
@@ -21,8 +23,10 @@ on:
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
       - 'src/codex-home/vendor/agents/**'
+      - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
       - 'scripts/validate-adk-agent-binding.py'
+      - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
       - 'scripts/knowledge-provider.sh'
       - 'scripts/validate-runtime-binding.py'
@@ -48,6 +52,8 @@ jobs:
         run: python scripts/validate-runtime-binding.py
       - name: Validate exact ADK agent binding
         run: python scripts/validate-adk-agent-binding.py
+      - name: Validate AGENTS terminal rules
+        run: python scripts/validate-agent-rules.py
       - name: Validate JSON syntax
         run: |
           python -m json.tool manifests/integrations/digital-worker-runtime-binding.json >/dev/null
