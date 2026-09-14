@@ -191,7 +191,7 @@
       "target_rel": "skills/adk-code-review-loop",
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -259,7 +259,7 @@
       "profiles": [
         "solo-dev",
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -516,7 +516,7 @@
       "profiles": [
         "solo-dev",
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -635,7 +635,7 @@
       "target_rel": "skills/adk-planning-execution-loop",
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -726,7 +726,7 @@
       "target_rel": "skills/adk-requirements-triage",
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -749,7 +749,7 @@
       "target_rel": "skills/adk-runtime-router",
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -882,7 +882,7 @@
       "target_rel": "skills/adk-systematic-debugging",
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -905,7 +905,7 @@
       "target_rel": "skills/adk-task-breakdown",
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -950,7 +950,7 @@
       "target_rel": "skills/adk-token-context-governance",
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -995,7 +995,7 @@
       "target_rel": "skills/adk-verification-before-completion",
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "agent-dev-kit",
@@ -1608,7 +1608,7 @@
       "profiles": [
         "solo-dev",
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "tags": [
         "local",

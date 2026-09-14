@@ -6,7 +6,7 @@
       "enabled": true,
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "triggers": [
         "优化 adk",
@@ -25,7 +25,7 @@
         "adk-token-context-governance",
         "adk-commit-pr-quality-gate"
       ],
-      "token_lean_activation": {
+      "context_activation": {
         "resident": [
           "adk-runtime-router",
           "adk-requirements-triage",
@@ -150,7 +150,7 @@
       "profiles": [
         "solo-dev",
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "triggers": [
         "skill 同步",
@@ -183,7 +183,7 @@
         "skill-asset-manager",
         "adk-skill-composition-governance"
       ],
-      "token_lean_activation": {
+      "context_activation": {
         "resident": [],
         "lazy": [
           "skill-asset-manager"
@@ -295,7 +295,7 @@
       "profiles": [
         "solo-dev",
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "triggers": [
         "日报",
@@ -315,7 +315,7 @@
         "git-activity-summary",
         "session-wrap"
       ],
-      "token_lean_activation": {
+      "context_activation": {
         "resident": [
           "session-wrap"
         ],
@@ -964,7 +964,7 @@
       "enabled": true,
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "triggers": [
         "实现",
@@ -985,7 +985,7 @@
         "adk-planning-execution-loop",
         "adk-runtime-router"
       ],
-      "token_lean_activation": {
+      "context_activation": {
         "resident": [
           "adk-requirements-triage",
           "adk-task-breakdown",
@@ -1024,7 +1024,7 @@
       "enabled": true,
       "profiles": [
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "triggers": [
         "并行施工",
@@ -1039,7 +1039,7 @@
         "adk-branch-closeout",
         "worktree-closeout"
       ],
-      "token_lean_activation": {
+      "context_activation": {
         "resident": [],
         "lazy": [
           "codex-parallel-collab",

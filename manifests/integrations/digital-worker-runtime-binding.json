@@ -23,7 +23,7 @@
   ],
   "identity_layers": {
     "asset_profile": "agent-dev-kit profile such as embedded-fullstack",
-    "runtime_profile": "Codex distribution profile such as token-lean",
+    "runtime_profile": "Codex distribution profile such as default",
     "runtime_target": "codex-cli",
     "runtime_host": "workstation-ci-or-cloud-host"
   },
