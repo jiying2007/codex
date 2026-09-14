@@ -19,7 +19,7 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 ## 常用命令
 
 ```bash
-# 生成默认 token-lean profile 的可注入产物
+# 生成默认 default profile 的可注入产物
 rtk bash scripts/build.sh
 
 # 分别检查 source、build 和治理关系
@@ -100,7 +100,7 @@ rtk bash scripts/check.sh
 
 ## Profile 选择与切换
 
-Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow 以及并行上限。它不删除 `src/codex-home/vendor/` 中的能力实体，也不触碰 `~/.codex/skills/.system`。当前默认 profile 是 `token-lean`，由 `manifests/assets.json:default_profile` 声明。
+Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow 以及并行上限。它不删除 `src/codex-home/vendor/` 中的能力实体，也不触碰 `~/.codex/skills/.system`。当前默认 profile 是 `default`，由 `manifests/assets.json:default_profile` 声明。
 
 ### 四个 Profile 的区别
 
@@ -110,12 +110,12 @@ Profile 决定 build 和 live 中常驻的受管 Skill、Custom Agent、Workflow
 |---|---:|---:|---:|---:|---|---|
 | `minimal` | 1 | 0 | 0 | 2 / 2 | eager | 极简运行和资产 smoke；当前只常驻 `caveman` |
 | `solo-dev` | 39 | 4 | 5 | 4 / 3 | eager | 个人深度开发、嵌入式专项、总结归档和本地工具 |
-| `token-lean` | 11 | 0 | 5 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
+| `default` | 11 | 0 | 5 | 4 / 3 | lazy | 默认日常配置；常驻 ADK 核心路由，长尾 Skill 延迟发现 |
 | `team-collab` | 72 | 15 | 14 | 6 / 4 | eager | 完整 ADK、多 Agent、复杂研发、研究、发布与治理 |
 
 选择建议：
 
-- 日常编码、调试、审查：优先 `token-lean`。
+- 日常编码、调试、审查：优先 `default`。
 - 单人嵌入式专项、归档和工具开发：使用 `solo-dev`。
 - 多 Agent 或需要完整 catalog：使用 `team-collab`。
 - 极低上下文实验：使用 `minimal`。
@@ -132,7 +132,7 @@ rtk bash scripts/doctor.sh --scope live
 
 ### 一条命令快速切换
 
-下面以 `team-collab` 为例；把 profile 名替换为 `minimal`、`solo-dev` 或 `token-lean` 即可：
+下面以 `team-collab` 为例；把 profile 名替换为 `minimal`、`solo-dev` 或 `default` 即可：
 
 ```bash
 rtk bash scripts/apply.sh \
@@ -187,7 +187,7 @@ rtk bash scripts/drift.sh --target ~/.codex
 2. 从 `team-collab` 切到较小 profile 必须使用 `--prune-stale`，否则旧的受管 Skill/Agent 入口可能残留。
 3. 不要直接使用 `apply.sh --dry-run --profile ...` 预览新 profile；当前 dry-run 不会自动重建，必须先显式 build。
 4. 切换过程中 build 和 live 暂时不同，因此 apply 前的 `doctor.sh --scope all` 可能报告预期的 profile drift；此时分别检查 `repo`、`build` 和 `governance`，应用后再检查 `all`。
-5. `scripts/check.sh` 默认重建 `token-lean`；同轮已有 build/plan 时可用 `--no-build --plan <path>`，source fingerprint、build receipt 或 target 不一致会失败。非默认 live profile 使用上面的 `doctor`、`diff` 和 `drift` 验收。
+5. `scripts/check.sh` 默认重建 `default`；同轮已有 build/plan 时可用 `--no-build --plan <path>`，source fingerprint、build receipt 或 target 不一致会失败。非默认 live profile 使用上面的 `doctor`、`diff` 和 `drift` 验收。
 6. `build.sh` 会更新 `manifests/lock.json`，临时切换也可能让 Git 工作区出现 lockfile 变更。
 
 ### 回切与回滚
@@ -196,7 +196,7 @@ rtk bash scripts/drift.sh --target ~/.codex
 
 ```bash
 rtk bash scripts/apply.sh \
-  --profile token-lean \
+  --profile default \
   --target ~/.codex \
   --prune-stale \
   --plan-out build/apply-plan.switch-back.json
@@ -277,7 +277,7 @@ rtk bash scripts/apply.sh --plan build/apply-plan.json
 
 profile、agent、skill、workflow、项目模板和 overlay 分层管理：
 
-- profile 决定当前启用的能力集合；默认 `token-lean` 只常驻核心路由，`team-collab` 保留完整 catalog，`minimal`、`solo-dev` 用于显式场景。
+- profile 决定当前启用的能力集合；默认 `default` 只常驻核心路由，`team-collab` 保留完整 catalog，`minimal`、`solo-dev` 用于显式场景。
 - skill 与 agent 是可注入能力资产，由 `manifests/skills.json` 和 `manifests/agents.json` 记录版本、来源和 profile 绑定。
 - workflow 是可复用工作流编排，显式声明触发词、依赖 skill、依赖 agent、入口命令和验证命令。
 - workflow recipe 把 workflow 的输入、完成标准、审查产物和失败模式变成可评测契约。

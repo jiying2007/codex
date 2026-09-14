@@ -48,7 +48,7 @@ RETIRED_COMPAT_WORKFLOW = "superpowers-compat-fallback"
 def check(root: str | pathlib.Path) -> tuple[list[str], dict[str, Any]]:
     repo = Repo.from_path(root)
     assets = repo.assets
-    default_profile = assets.get("default_profile", "token-lean")
+    default_profile = assets.get("default_profile", "default")
     profiles = {item.get("name") for item in repo.manifest("profiles.json").get("profiles", [])}
     skills = repo.manifest("skills.json").get("skills", [])
     workflows = repo.manifest("workflows.json").get("workflows", [])

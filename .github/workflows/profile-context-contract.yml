@@ -1,0 +1,116 @@
+name: Profile Context Contract
+
+on:
+  pull_request:
+    paths:
+      - 'manifests/profiles.json'
+      - 'manifests/assets.json'
+      - 'manifests/skills.json'
+      - 'manifests/workflows.json'
+      - 'manifests/workflow_recipes.json'
+      - 'manifests/project-templates.json'
+      - 'manifests/integrations/**'
+      - 'tools/codex_assets/core.py'
+      - 'tools/codex_assets/governance.py'
+      - 'tools/codex_assets/routing_precedence.py'
+      - 'tools/codex_assets/session_bootstrap.py'
+      - 'tools/codex_assets/skill_catalog.py'
+      - 'tests/test_skill_catalog.py'
+      - 'tests/test_profile_documentation.py'
+      - 'tests/test_activity_reporting_skills.py'
+      - 'tests/test_retired_profile.py'
+      - 'tests/smoke.sh'
+      - 'README.md'
+      - 'docs/**'
+      - 'src/codex-home/skills/README.md'
+      - '.github/workflows/profile-context-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'manifests/profiles.json'
+      - 'manifests/assets.json'
+      - 'manifests/skills.json'
+      - 'manifests/workflows.json'
+      - 'manifests/workflow_recipes.json'
+      - 'manifests/project-templates.json'
+      - 'manifests/integrations/**'
+      - 'tools/codex_assets/core.py'
+      - 'tools/codex_assets/governance.py'
+      - 'tools/codex_assets/routing_precedence.py'
+      - 'tools/codex_assets/session_bootstrap.py'
+      - 'tools/codex_assets/skill_catalog.py'
+      - 'tests/test_skill_catalog.py'
+      - 'tests/test_profile_documentation.py'
+      - 'tests/test_activity_reporting_skills.py'
+      - 'tests/test_retired_profile.py'
+      - 'tests/smoke.sh'
+      - 'README.md'
+      - 'docs/**'
+      - 'src/codex-home/skills/README.md'
+      - '.github/workflows/profile-context-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: profile-context-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Enforce SHA-pinned actions
+        run: |
+          python - <<'PY'
+          import pathlib, re
+          path = pathlib.Path('.github/workflows/profile-context-contract.yml')
+          failures = []
+          for lineno, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+              match = re.search(r'\buses:\s*[^\s@]+@([^\s#]+)', line)
+              if match and not re.fullmatch(r'[0-9a-f]{40}', match.group(1)):
+                  failures.append(f'{path}:{lineno}: {match.group(1)}')
+          if failures:
+              raise SystemExit('GitHub actions must be SHA pinned:\n' + '\n'.join(failures))
+          PY
+      - name: Install validation dependency
+        run: python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
+      - name: Validate profile manifests
+        run: |
+          python -m json.tool manifests/profiles.json >/dev/null
+          python -m json.tool manifests/assets.json >/dev/null
+          python -m json.tool manifests/skills.json >/dev/null
+          python -m json.tool manifests/workflows.json >/dev/null
+          python -m json.tool manifests/workflow_recipes.json >/dev/null
+          python -m json.tool manifests/project-templates.json >/dev/null
+      - name: Validate catalog and profile contracts
+        env:
+          CODEX_OFFLINE_HERMETIC: '1'
+        run: |
+          python -m unittest \
+            tests.test_skill_catalog \
+            tests.test_profile_documentation \
+            tests.test_activity_reporting_skills \
+            tests.test_retired_profile
+      - name: Reject retired token-lean active surfaces
+        run: |
+          set -euo pipefail
+          residual="$(git grep -nE 'token-lean|token_lean_activation' -- README.md docs manifests scripts tools/codex_assets src/codex-home/skills tests || true)"
+          unexpected="$(printf '%s\n' "$residual" | grep -v '^tests/test_retired_profile.py:' || true)"
+          if [[ -n "$unexpected" ]]; then
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+      - name: Validate Python syntax
+        run: python -m compileall -q tools/codex_assets tests

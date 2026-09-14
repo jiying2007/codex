@@ -130,7 +130,7 @@ MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `c
 
 ## 固定上下文与延迟 skill catalog
 
-默认 `token-lean` 只常驻核心路由、实现、验证和接力 skill，长尾能力仍保存在受信 vendor inventory。固定上下文预算在 `manifests/profiles.json:context_budget` 中声明，并由 `doctor` 阻断 AGENTS、常驻条目数或 catalog 字节回退。
+默认 `default` 只常驻核心路由、实现、验证和接力 skill，长尾能力仍保存在受信 vendor inventory。固定上下文预算在 `manifests/profiles.json:context_budget` 中声明，并由 `doctor` 阻断 AGENTS、常驻条目数或 catalog 字节回退。
 
 延迟加载顺序固定为：
 

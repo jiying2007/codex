@@ -12,7 +12,7 @@
 ## 常用命令
 
 ```bash
-# 构建默认 token-lean profile
+# 构建默认 default profile
 rtk bash ~/codex/scripts/build.sh
 
 # 预览应用计划
@@ -34,7 +34,7 @@ rtk bash ~/codex/scripts/check.sh
 
 ## Profile 切换
 
-默认 profile 是 `token-lean`。其他可选值为 `minimal`、`solo-dev` 和 `team-collab`。
+默认 profile 是 `default`。其他可选值为 `minimal`、`solo-dev` 和 `team-collab`。
 
 查看当前 live profile：
 
@@ -99,7 +99,7 @@ rtk bash ~/codex/scripts/context-preflight.sh
 
 ## 多源搜索
 
-当用户要求“多源搜索”“交叉验证”“资料核验”时，路由到 `multi-search-engine`。默认 `token-lean` 先用 `skill-search` 延迟发现，`team-collab` 直接激活；本地代码库问题仍优先读取仓库。
+当用户要求“多源搜索”“交叉验证”“资料核验”时，路由到 `multi-search-engine`。默认 `default` 先用 `skill-search` 延迟发现，`team-collab` 直接激活；本地代码库问题仍优先读取仓库。
 
 ## 浏览器读取
 

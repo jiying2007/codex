@@ -398,7 +398,7 @@
       "profiles": [
         "solo-dev",
         "team-collab",
-        "token-lean"
+        "default"
       ],
       "workflow": "activity-reporting",
       "context_inputs": [

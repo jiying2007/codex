@@ -46,8 +46,8 @@
       "notes": "adk-first 协作配置；外部参考不进入运行时 profile 或 fallback"
     },
     {
-      "name": "token-lean",
-      "description": "默认低上下文配置，常驻核心路由与交付门禁，长尾 skill 按查询延迟加载",
+      "name": "default",
+      "description": "默认运行配置，常驻核心路由与交付门禁，长尾 skill 按查询延迟加载",
       "catalog_mode": "lazy",
       "max_parallel_agents": 4,
       "max_depth": 3,
@@ -55,7 +55,7 @@
       "enabled_mcp_groups": [
         "core"
       ],
-      "notes": "默认 profile；最多暴露 12 个通用 skill，协作、Git 收尾、资产治理和嵌入式能力按需延迟加载"
+      "notes": "默认 profile；保持小型常驻能力面，协作、Git 收尾、资产治理和嵌入式能力按需延迟加载"
     }
   ]
 }

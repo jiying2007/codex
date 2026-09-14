@@ -37,7 +37,7 @@ class SkillCatalogTest(unittest.TestCase):
                 "schema_version": 2,
                 "source_root": "src/codex-home",
                 "build_root": "build/codex-home",
-                "default_profile": "token-lean",
+                "default_profile": "default",
                 "copy_roots": [],
             },
         )
@@ -53,7 +53,7 @@ class SkillCatalogTest(unittest.TestCase):
                     "skill_search_max_output_bytes": 2048,
                 },
                 "profiles": [
-                    {"name": "token-lean"},
+                    {"name": "default", "catalog_mode": "lazy"},
                     {"name": "team-collab"},
                 ],
             },
@@ -66,7 +66,7 @@ class SkillCatalogTest(unittest.TestCase):
                 "version": "1.0.0",
                 "vendor_rel": "vendor/skills/adk-runtime-router/1.0.0",
                 "target_rel": "skills/adk-runtime-router",
-                "profiles": ["token-lean", "team-collab"],
+                "profiles": ["default", "team-collab"],
                 "tags": ["adk", "routing"],
             },
             {
@@ -146,7 +146,7 @@ class SkillCatalogTest(unittest.TestCase):
                     },
                     {
                         "name": "asset-governance",
-                        "token_lean_activation": {
+                        "context_activation": {
                             "resident": [],
                             "lazy": ["skill-asset-manager"],
                             "fallback": [],
@@ -203,7 +203,7 @@ class SkillCatalogTest(unittest.TestCase):
 
     def test_deferred_skill_is_discovered_without_fallback_catalog(self) -> None:
         repo = self.make_repo()
-        payload = search_skills(repo, "请分析嵌入式日志异常", "token-lean", codex_home=repo.root / "live")
+        payload = search_skills(repo, "请分析嵌入式日志异常", "default", codex_home=repo.root / "live")
         self.assertEqual("embedded-log-triage", payload["candidates"][0]["name"])
         self.assertEqual("deferred", payload["candidates"][0]["activation"])
         self.assertEqual("deferred", payload["candidates"][0]["activation_mode"])
@@ -211,26 +211,26 @@ class SkillCatalogTest(unittest.TestCase):
 
     def test_removed_compatibility_is_not_discoverable(self) -> None:
         repo = self.make_repo()
-        payload = search_skills(repo, "writing plans", "token-lean", include_fallback=True)
+        payload = search_skills(repo, "writing plans", "default", include_fallback=True)
         self.assertEqual("zero-hit", payload["status"])
         self.assertEqual(0, payload["fallback_candidates_excluded"])
 
     def test_generic_query_does_not_select_embedded_only_skill(self) -> None:
         repo = self.make_repo()
-        payload = search_skills(repo, "分析普通 Python 日志问题", "token-lean")
+        payload = search_skills(repo, "分析普通 Python 日志问题", "default")
         self.assertEqual("zero-hit", payload["status"])
         self.assertTrue(payload["context_contract"]["no_skill_allowed"])
 
     def test_default_summary_uses_lean_budget(self) -> None:
         repo = self.make_repo(long_description=True)
-        payload = search_skills(repo, "请分析嵌入式日志异常", "token-lean")
+        payload = search_skills(repo, "请分析嵌入式日志异常", "default")
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         self.assertLessEqual(len(encoded), 2048)
         self.assertLessEqual(payload["returned"], 3)
 
     def test_workflow_route_selects_skill_asset_manager(self) -> None:
         repo = self.make_repo()
-        payload = search_skills(repo, "skill 资产版本治理", "token-lean")
+        payload = search_skills(repo, "skill 资产版本治理", "default")
         candidate = payload["candidates"][0]
         self.assertEqual("skill-asset-manager", candidate["name"])
         self.assertEqual("lazy", candidate["activation_mode"])
@@ -238,29 +238,29 @@ class SkillCatalogTest(unittest.TestCase):
 
     def test_workflow_route_boosts_remote_log_primary(self) -> None:
         repo = self.make_repo()
-        payload = search_skills(repo, "通过 SSH 设备日志排查现场日志", "token-lean")
+        payload = search_skills(repo, "通过 SSH 设备日志排查现场日志", "default")
         candidate = payload["candidates"][0]
         self.assertEqual("adk-embedded-remote-debug-log-triage", candidate["name"])
         self.assertEqual("primary", candidate["route"]["role"])
 
     def test_workflow_route_boosts_offline_log_primary(self) -> None:
         repo = self.make_repo()
-        payload = search_skills(repo, "仅分析日志文本：这是粘贴串口日志", "token-lean")
+        payload = search_skills(repo, "仅分析日志文本：这是粘贴串口日志", "default")
         candidate = payload["candidates"][0]
         self.assertEqual("embedded-log-triage", candidate["name"])
         self.assertEqual("offline-pasted-log-triage", candidate["route"]["name"])
 
     def test_workflow_primary_bypasses_embedded_context_marker_gate(self) -> None:
         repo = self.make_repo()
-        payload = search_skills(repo, "排查音频流丢帧和音量重置", "token-lean")
+        payload = search_skills(repo, "排查音频流丢帧和音量重置", "default")
         candidate = payload["candidates"][0]
         self.assertEqual("embedded-audio-stream-triage", candidate["name"])
         self.assertEqual("primary", candidate["route"]["role"])
 
     def test_catalog_and_summary_obey_budgets(self) -> None:
         repo = self.make_repo(long_description=True)
-        metrics = catalog_metrics(repo, "token-lean")
-        payload = search_skills(repo, "嵌入式日志异常", "token-lean", limit=20, max_output_bytes=4096)
+        metrics = catalog_metrics(repo, "default")
+        payload = search_skills(repo, "嵌入式日志异常", "default", limit=20, max_output_bytes=4096)
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         self.assertEqual(1, metrics["active_count"])
         self.assertLessEqual(len(encoded), 4096)

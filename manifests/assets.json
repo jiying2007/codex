@@ -2,7 +2,7 @@
   "schema_version": 2,
   "source_root": "src/codex-home",
   "build_root": "build/codex-home",
-  "default_profile": "token-lean",
+  "default_profile": "default",
   "copy_roots": [
     "AGENTS.md",
     "README.md",

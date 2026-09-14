@@ -29,7 +29,7 @@ class ActivityReportingSkillTest(unittest.TestCase):
         workflows = {row["name"]: row for row in read_json("manifests/workflows.json")["workflows"]}
         workflow = workflows["activity-reporting"]
         self.assertEqual("activity-report", workflow["routes"][0]["primary_skill"])
-        self.assertIn("token-lean", workflow["profiles"])
+        self.assertIn("default", workflow["profiles"])
         self.assertTrue(all(not route.get("fallback_skill") for route in workflow["routes"]))
 
     def test_reporting_skill_is_facts_first_and_privacy_bounded(self) -> None:

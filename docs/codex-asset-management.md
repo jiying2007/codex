@@ -3,7 +3,7 @@
 ## 日常维护
 
 1. 修改 `src/codex-home/` 中的人工资产，或修改 `manifests/*.json`。
-2. 运行 `rtk bash scripts/build.sh`，使用默认 `token-lean` profile。
+2. 运行 `rtk bash scripts/build.sh`，使用默认 `default` profile。
 3. 运行 `rtk bash scripts/doctor.sh --scope repo` 和 `rtk bash scripts/doctor.sh --scope build`。
 4. 若修改了 workflow、project template 或 overlay，运行 `rtk bash scripts/doctor.sh --scope governance`。
 5. 运行 `rtk bash scripts/plan.sh --target ~/.codex --prune-stale --output build/apply-plan.json` 生成审计计划。
@@ -43,7 +43,7 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 
 本仓库把长期维护对象拆成六层：
 
-- `profiles`：运行能力边界；默认 `token-lean`，显式完整兼容为 `team-collab`。
+- `profiles`：运行能力边界；默认 `default`，显式完整兼容为 `team-collab`。
 - `skills`：可复用操作能力，存放版本、来源、目标路径和启用 profile。
 - `agents`：可用子代理或本地 agent 配置，按 profile 激活。
 - `workflows`：把触发词、skill、agent、命令和验证命令串成可复用流程。
@@ -87,12 +87,12 @@ rtk bash scripts/governance-report.sh --summary-json
 
 ### 固定上下文预算与延迟 skill catalog
 
-`manifests/profiles.json:context_budget` 是固定上下文预算 SSOT。根/source AGENTS 各不超过 4,500 bytes，`token-lean` 最多 12 个常驻 skill、catalog 不超过 4,000 bytes；查询最多 20 项、默认 3 项，`--summary-json` 不超过 2,048 bytes。
+`manifests/profiles.json:context_budget` 是固定上下文预算 SSOT。根/source AGENTS 各不超过 4,500 bytes，`default` 最多 12 个常驻 skill、catalog 不超过 4,000 bytes；查询最多 20 项、默认 3 项，`--summary-json` 不超过 2,048 bytes。
 
 长尾 skill 不删除，实体仍由 `manifests/skills.json` 和 vendor 目录治理。运行时先查摘要：
 
 ```bash
-rtk bash scripts/skill-search.sh --query "<任务>" --profile token-lean --limit 3 --summary-json
+rtk bash scripts/skill-search.sh --query "<任务>" --profile default --limit 3 --summary-json
 ```
 
 只有在 `why_selected` 足以区分相邻候选后才读取 `load_path`。默认排除 Superpowers；仅显式兼容时使用 `--include-fallback`。需要旧式完整 catalog 时可构建并 apply `team-collab`，但 catalog 只在新线程刷新。
@@ -104,7 +104,7 @@ rtk bash scripts/skill-search.sh --query "<任务>" --profile token-lean --limit
 - 安全切换先显式 build，再用 `plan.sh --prune-stale` 生成计划，随后对同一 plan 执行 dry-run 和 apply。
 - `apply.sh --dry-run --profile <name>` 不会自动重建目标 profile，因此不能代替“先 build 再 dry-run”。
 - build 与 live 暂时使用不同 profile 时，apply 前的 `doctor --scope all` 会报告预期漂移；分别检查 `repo`、`build`、`governance`，apply 后再检查 `all`。
-- `scripts/check.sh` 默认重建 `token-lean`。同轮已有 build/plan 时使用 `--no-build --plan <path>`；doctor 校验 source fingerprint，apply 校验 build receipt 与 target，失败时必须重建/重规划。
+- `scripts/check.sh` 默认重建 `default`。同轮已有 build/plan 时使用 `--no-build --plan <path>`；doctor 校验 source fingerprint，apply 校验 build receipt 与 target，失败时必须重建/重规划。
 - profile catalog 只在新线程刷新。完整对比、命令、回切和 rollback 流程见根 `README.md` 的“Profile 选择与切换”。
 
 ## Codex 工作模型
@@ -388,7 +388,7 @@ rtk bash scripts/runtime-control.sh gate --event final
 
 ## 多源搜索能力
 
-`multi-search-engine` 用于当前信息、资料核验、标准/库/工具对比和多来源交叉验证。它在默认 `token-lean` 下通过 `skill-search` 延迟发现，在 `team-collab` 下直接激活。
+`multi-search-engine` 用于当前信息、资料核验、标准/库/工具对比和多来源交叉验证。它在默认 `default` 下通过 `skill-search` 延迟发现，在 `team-collab` 下直接激活。
 
 约束：
 
@@ -399,7 +399,7 @@ rtk bash scripts/runtime-control.sh gate --event final
 
 ## 浏览器读取能力
 
-`browser-reader` 与 `agent-browser` 用于普通 HTTP 抓取不可达、需要 JS 渲染或用户手动验证后的单页读取。默认 `token-lean` 通过 `skill-search` 延迟发现，`team-collab` 直接激活。
+`browser-reader` 与 `agent-browser` 用于普通 HTTP 抓取不可达、需要 JS 渲染或用户手动验证后的单页读取。默认 `default` 通过 `skill-search` 延迟发现，`team-collab` 直接激活。
 
 边界：
 

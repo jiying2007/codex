@@ -196,7 +196,14 @@ def _route_hints(repo: Repo, query: str) -> dict[str, dict[str, Any]]:
     return hints
 
 
-def _token_lean_activation_modes(repo: Repo) -> dict[str, str]:
+def _profile_catalog_mode(repo: Repo, profile: str) -> str:
+    for item in repo.manifest("profiles.json").get("profiles", []):
+        if item.get("name") == profile:
+            return str(item.get("catalog_mode", "eager"))
+    return "eager"
+
+
+def _context_activation_modes(repo: Repo) -> dict[str, str]:
     priority = {"lazy": 1, "fallback": 2, "resident": 3}
     modes: dict[str, str] = {}
     manifest_path = repo.manifests_dir / "workflows.json"
@@ -204,7 +211,7 @@ def _token_lean_activation_modes(repo: Repo) -> dict[str, str]:
         return modes
     workflows = json.loads(manifest_path.read_text(encoding="utf-8")).get("workflows", [])
     for workflow in workflows:
-        activation = workflow.get("token_lean_activation")
+        activation = workflow.get("context_activation")
         if not isinstance(activation, dict):
             continue
         for mode in ("resident", "lazy", "fallback"):
@@ -251,7 +258,7 @@ def search_skills(
     candidates: list[dict[str, Any]] = []
     fallback_excluded = 0
     route_hints = _route_hints(repo, query)
-    activation_modes = _token_lean_activation_modes(repo) if profile == "token-lean" else {}
+    activation_modes = _context_activation_modes(repo) if _profile_catalog_mode(repo, profile) == "lazy" else {}
     for item in repo.manifest("skills.json").get("skills", []):
         if not item.get("enabled", True) or item.get("review_status") in {"pending", "rejected"}:
             continue

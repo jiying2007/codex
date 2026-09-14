@@ -20,7 +20,7 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 `manifests/profiles.json` 定义可选运行 profile。profile 是能力选择边界，不直接包含文件路径。
 
-默认 `token-lean` 通过 `context_budget` 把常驻 skill 控制在 20 项以内；`team-collab` 保留完整 catalog。`skill-search` 对全部受信 manifest 做摘要检索，只有命中后才加载原始 `SKILL.md`，因此 profile 瘦身不删除 vendor 能力。
+默认 `default` 通过 `context_budget` 把常驻 skill 控制在 20 项以内；`team-collab` 保留完整 catalog。`skill-search` 对全部受信 manifest 做摘要检索，只有命中后才加载原始 `SKILL.md`，因此 profile 瘦身不删除 vendor 能力。
 
 `manifests/skills.json` 与 `manifests/agents.json` 定义可激活能力：
 
@@ -134,7 +134,7 @@ rtk bash scripts/drift.sh
 
 ## Schema 与测试
 
-`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/test_governance.py` 覆盖跨 manifest 引用，`tests/test_skill_catalog.py` 覆盖延迟发现、fallback 隔离和字节预算。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`token-lean`、`team-collab` 和 `superpowers-compat` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
+`schemas/*.schema.json` 记录 manifest 结构要求，`doctor --scope repo` 会执行内置结构与语义校验。`tests/test_governance.py` 覆盖跨 manifest 引用，`tests/test_skill_catalog.py` 覆盖延迟发现、fallback 隔离和字节预算。`tests/smoke.sh` 会为 `minimal`、`solo-dev`、`default`、`team-collab` 和 `superpowers-compat` 创建临时 Codex Home，验证 build、plan、apply、diff、drift、doctor 和 `.system` 保留。
 
 ## 回滚
 

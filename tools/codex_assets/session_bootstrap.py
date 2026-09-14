@@ -146,7 +146,7 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
         raise BootstrapError("ADK provider lock is not exact-source-set/source-set-bound")
 
     runtime_profile = args.runtime_profile
-    if runtime_profile not in {"minimal", "solo-dev", "token-lean", "team-collab"}:
+    if runtime_profile not in {"minimal", "solo-dev", "default", "team-collab"}:
         raise BootstrapError(f"unsupported runtime profile: {runtime_profile}")
 
     repo_root_raw = _git(cwd, "rev-parse", "--show-toplevel")
@@ -288,7 +288,7 @@ def configure_parser() -> argparse.ArgumentParser:
     parser.add_argument("--base-commit")
     parser.add_argument("--digital-worker-root")
     parser.add_argument("--knowledge-root")
-    parser.add_argument("--runtime-profile", default="token-lean")
+    parser.add_argument("--runtime-profile", default="default")
     parser.add_argument("--summary-json", action="store_true")
     return parser
 
