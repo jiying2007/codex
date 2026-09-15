@@ -21,6 +21,7 @@ on:
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
+      - 'schemas/runtime-execution-receipt.v2.schema.json'
       - 'scripts/knowledge-provider.sh'
       - 'scripts/session-bootstrap.sh'
       - 'scripts/validate-runtime-binding.py'
@@ -47,6 +48,7 @@ on:
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
+      - 'schemas/runtime-execution-receipt.v2.schema.json'
       - 'scripts/knowledge-provider.sh'
       - 'scripts/session-bootstrap.sh'
       - 'scripts/validate-runtime-binding.py'
@@ -104,6 +106,7 @@ jobs:
           python -m json.tool manifests/runtime_control.json >/dev/null
           python -m json.tool manifests/session_bootstrap.json >/dev/null
           python -m json.tool schemas/runtime-execution-receipt.schema.json >/dev/null
+          python -m json.tool schemas/runtime-execution-receipt.v2.schema.json >/dev/null
       - name: Validate provider/bootstrap adapter shell
         run: |
           bash -n scripts/knowledge-provider.sh
