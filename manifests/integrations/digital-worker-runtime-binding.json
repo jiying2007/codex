@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "contract_version": "2.0",
+  "contract_version": "2.1",
   "status": "active",
   "role": "codex-runtime-distribution-and-host-integration",
   "runtime_target": "codex-cli",
@@ -34,6 +34,13 @@
     "asset_profile": "embedded-fullstack",
     "identity_mode": "exact-release-source-blobs"
   },
+  "execution_receipt_contract": {
+    "schema": "schemas/runtime-execution-receipt.v2.schema.json",
+    "schema_version": 2,
+    "identity_model": "execution-source-set-bound",
+    "legacy_v1_schema": "schemas/runtime-execution-receipt.schema.json",
+    "legacy_v1_status": "historical-read-only"
+  },
   "gate_semantics": {
     "runtime_local_gate_only": true,
     "runtime_success_implies_domain_verification_pass": false,
@@ -46,5 +53,5 @@
     "cwd_path_heuristic"
   ],
   "readiness": "SOURCE_SET_BOUND",
-  "production_claim": "runtime source/distribution binding is active; domain verification and product qualification remain independently governed"
+  "production_claim": "runtime source/distribution binding and source-set-bound execution receipt are active; domain verification and product qualification remain independently governed"
 }
