@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "1.0",
+  "contract_version": "1.1",
   "status": "active",
   "role": "thin-session-bootstrap",
   "runtime_binding": "codex-cli",
@@ -8,7 +8,9 @@
     "task_mode_resolution",
     "runtime_context_assembly",
     "provider_preflight_request",
-    "identity_ref_assembly"
+    "identity_ref_assembly",
+    "formal_execution_source_set_freeze",
+    "governance_escalation_provenance"
   ],
   "must_not_own": [
     "digital_worker_domain_gate_semantics",
@@ -47,7 +49,9 @@
       "formal_evidence_required": true,
       "required_inputs": [
         "full_40_hex_base_commit",
-        "digital_worker_root",
+        "digital_worker_exact_governance_identity",
+        "digital_worker_selected_domain_refs",
+        "digital_worker_selected_routing_refs",
         "knowledge_provider_root",
         "engineering_task_package"
       ]
@@ -59,6 +63,12 @@
   "output_contract": {
     "kind": "codex-session-bootstrap/v1",
     "contains_identity_refs_only": true,
+    "formal_identity_fields": [
+      "digital_worker.governance_identity",
+      "execution_source_set.identity",
+      "session_bootstrap_identity",
+      "governance_escalation"
+    ],
     "forbidden_claims": [
       "verification_pass",
       "domain_gate_pass",
@@ -68,6 +78,10 @@
   "rules": {
     "explicit_conflicts_fail_closed": true,
     "formal_mode_requires_exact_inputs": true,
+    "formal_mode_requires_exact_digital_worker_governance_identity": true,
+    "formal_execution_source_set_is_runtime_frozen_from_exact_refs": true,
+    "l1_to_l2_requires_new_bootstrap_and_execution_source_set": true,
+    "l1_context_remains_provisional_and_is_never_auto_promoted": true,
     "runtime_local_readiness_is_not_domain_readiness": true,
     "knowledge_provider_unavailable_is_not_pass": true,
     "bootstrap_does_not_write_knowledge": true,
