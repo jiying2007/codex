@@ -11,6 +11,7 @@ from tools.codex_assets.session_bootstrap import BootstrapError, build_envelope,
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+BASE_COMMIT = "a" * 40
 
 
 class SessionBootstrapTests(unittest.TestCase):
@@ -37,12 +38,36 @@ class SessionBootstrapTests(unittest.TestCase):
         )
         return subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
 
+    def write_engineering_package(
+        self,
+        path: pathlib.Path,
+        *,
+        package_id: str = "PKG-RUN-001",
+        work_item_id: str = "WORK-001",
+        run_id: str = "RUN-001",
+        base_commit: str = BASE_COMMIT,
+    ) -> None:
+        path.write_text(
+            json.dumps(
+                {
+                    "package_id": package_id,
+                    "work_item_id": work_item_id,
+                    "run_id": run_id,
+                    "repo_root": "firmware/main",
+                    "base_commit": base_commit,
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
     def formal_fixture(self, base: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path, pathlib.Path, str, str, str]:
         dw = base / "digital-worker"
         kh = base / "knowledge-hub"
         etp = base / "engineering-task-package.json"
         (kh / "registry/integrations").mkdir(parents=True)
-        etp.write_text("{}\n", encoding="utf-8")
+        self.write_engineering_package(etp)
 
         knowledge_contract_rel = "registry/integrations/digital-worker.json"
         knowledge_contract_path = kh / knowledge_contract_rel
@@ -104,7 +129,7 @@ class SessionBootstrapTests(unittest.TestCase):
             str(base),
             "--formal",
             "--base-commit",
-            "a" * 40,
+            BASE_COMMIT,
             "--digital-worker-root",
             str(dw),
             "--digital-worker-domain-ref",
@@ -138,6 +163,7 @@ class SessionBootstrapTests(unittest.TestCase):
             self.assertEqual(envelope["agent_assets"]["delivery_mode"], "exact-source-set")
             self.assertEqual(envelope["runtime_binding"]["readiness"], "SOURCE_SET_BOUND")
             self.assertIsNone(envelope["execution_source_set"])
+            self.assertIsNone(envelope["work_identity"])
             self.assertTrue(envelope["session_bootstrap_identity"].startswith("sha256:"))
 
     def test_l1_requires_digital_worker_and_current_knowledge_provider(self) -> None:
@@ -162,6 +188,7 @@ class SessionBootstrapTests(unittest.TestCase):
             self.assertEqual(envelope["knowledge"]["mode"], "current-provider")
             self.assertIsNone(envelope["digital_worker"]["governance_identity"])
             self.assertIsNone(envelope["execution_source_set"])
+            self.assertIsNone(envelope["work_identity"])
 
     def test_l2_fails_closed_without_exact_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -181,7 +208,7 @@ class SessionBootstrapTests(unittest.TestCase):
                 tmp,
                 "--formal",
                 "--base-commit",
-                "a" * 40,
+                BASE_COMMIT,
                 "--digital-worker-root",
                 str(dw),
                 "--knowledge-root",
@@ -196,7 +223,29 @@ class SessionBootstrapTests(unittest.TestCase):
             )
             self.assertIsNone(envelope["execution_source_set"])
 
-    def test_l2_accepts_exact_governance_and_knowledge_identity_and_freezes_source_set(self) -> None:
+    def test_l2_requires_authoritative_work_item_identity_from_engineering_package(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = pathlib.Path(tmp)
+            dw, kh, etp, domain_ref, routing_ref, skill_ref = self.formal_fixture(base)
+            package = json.loads(etp.read_text(encoding="utf-8"))
+            package.pop("work_item_id")
+            etp.write_text(json.dumps(package, indent=2) + "\n", encoding="utf-8")
+            envelope = build_envelope(self.formal_args(base, dw, kh, etp, domain_ref, routing_ref, skill_ref))
+            self.assertEqual(envelope["status"], "blocked")
+            self.assertTrue(any("work_item_id must be a non-empty string" in item for item in envelope["blocked_reasons"]))
+            self.assertIsNone(envelope["execution_source_set"])
+
+    def test_l2_blocks_engineering_package_base_commit_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = pathlib.Path(tmp)
+            dw, kh, etp, domain_ref, routing_ref, skill_ref = self.formal_fixture(base)
+            self.write_engineering_package(etp, base_commit="b" * 40)
+            envelope = build_envelope(self.formal_args(base, dw, kh, etp, domain_ref, routing_ref, skill_ref))
+            self.assertEqual(envelope["status"], "blocked")
+            self.assertTrue(any("base_commit mismatch" in item for item in envelope["blocked_reasons"]))
+            self.assertIsNone(envelope["execution_source_set"])
+
+    def test_l2_accepts_exact_governance_work_run_and_knowledge_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = pathlib.Path(tmp)
             dw, kh, etp, domain_ref, routing_ref, skill_ref = self.formal_fixture(base)
@@ -214,12 +263,45 @@ class SessionBootstrapTests(unittest.TestCase):
             self.assertEqual(len(governance["contract_catalog_digest"]), 64)
             self.assertEqual(len(governance["identity_digest"]), 64)
 
+            self.assertEqual(
+                envelope["work_identity"],
+                {
+                    "work_item_id": "WORK-001",
+                    "run_id": "RUN-001",
+                    "engineering_package_id": "PKG-RUN-001",
+                },
+            )
+            engineering = envelope["execution_source_set"]["materials"]["engineering"]
+            self.assertEqual(engineering["work_item_id"], "WORK-001")
+            self.assertEqual(engineering["run_id"], "RUN-001")
+            self.assertEqual(engineering["package_id"], "PKG-RUN-001")
+            self.assertEqual(engineering["base_commit"], BASE_COMMIT)
+            self.assertEqual(len(engineering["engineering_task_package_sha256"]), 64)
             self.assertTrue(envelope["knowledge"]["commit"])
             self.assertTrue(envelope["execution_source_set"]["identity"].startswith("sha256:"))
             self.assertTrue(envelope["session_bootstrap_identity"].startswith("sha256:"))
+
+            receipt_schema = json.loads((ROOT / "schemas/runtime-execution-receipt.v2.schema.json").read_text(encoding="utf-8"))
+            for field in ("work_item_id", "run_id", "execution_source_set_identity"):
+                self.assertIn(field, receipt_schema["required"])
+
             rendered = json.dumps(envelope, sort_keys=True)
             for forbidden in ("verification_pass", "domain_gate_pass", "release_ready"):
                 self.assertNotIn(f'"{forbidden}"', rendered)
+
+    def test_changing_run_identity_refreezes_execution_source_set(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = pathlib.Path(tmp)
+            dw, kh, etp, domain_ref, routing_ref, skill_ref = self.formal_fixture(base)
+            first = build_envelope(self.formal_args(base, dw, kh, etp, domain_ref, routing_ref, skill_ref))
+            self.assertEqual(first["status"], "ready")
+            first_identity = first["execution_source_set"]["identity"]
+
+            self.write_engineering_package(etp, run_id="RUN-002")
+            second = build_envelope(self.formal_args(base, dw, kh, etp, domain_ref, routing_ref, skill_ref))
+            self.assertEqual(second["status"], "ready")
+            self.assertEqual(second["work_identity"]["run_id"], "RUN-002")
+            self.assertNotEqual(first_identity, second["execution_source_set"]["identity"])
 
     def test_l1_to_l2_escalation_refreezes_and_never_promotes_prior_context(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
