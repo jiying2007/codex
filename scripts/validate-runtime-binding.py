@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BINDING = ROOT / "manifests/integrations/digital-worker-runtime-binding.json"
 ADK = ROOT / "manifests/provider-locks/agent-dev-kit.json"
 HUB = ROOT / "manifests/provider-locks/knowledge-hub.json"
-RECEIPT = ROOT / "schemas/runtime-execution-receipt.schema.json"
+RECEIPT_V2 = ROOT / "schemas/runtime-execution-receipt.v2.schema.json"
+RECEIPT_V1 = ROOT / "schemas/runtime-execution-receipt.schema.json"
 ADAPTER = ROOT / "scripts/knowledge-provider.sh"
 AGENTS = ROOT / "AGENTS.md"
 
@@ -87,16 +88,60 @@ def validate_adk_lock(adk: dict[str, object]) -> None:
         require(retired not in serialized, f"retired ADK compatibility resurfaced: {retired}")
 
 
+def validate_receipt_v2(receipt: dict[str, object], binding: dict[str, object]) -> None:
+    contract = binding.get("execution_receipt_contract")
+    require(isinstance(contract, dict), "runtime binding must declare execution receipt contract")
+    require(contract == {
+        "schema": "schemas/runtime-execution-receipt.v2.schema.json",
+        "schema_version": 2,
+        "identity_model": "execution-source-set-bound",
+        "legacy_v1_schema": "schemas/runtime-execution-receipt.schema.json",
+        "legacy_v1_status": "historical-read-only",
+    }, "runtime execution receipt contract drift")
+
+    require(receipt.get("additionalProperties") is False, "receipt v2 must be closed schema")
+    props = receipt.get("properties")
+    require(isinstance(props, dict), "receipt v2 properties missing")
+    required = receipt.get("required")
+    require(isinstance(required, list), "receipt v2 required fields missing")
+    for field in (
+        "execution_source_set_identity",
+        "digital_worker_governance_identity",
+        "runtime_binding",
+        "agent_assets",
+    ):
+        require(field in required, f"receipt v2 must require {field}")
+
+    agent_assets = props.get("agent_assets")
+    require(isinstance(agent_assets, dict), "receipt v2 agent_assets missing")
+    asset_required = agent_assets.get("required")
+    require(isinstance(asset_required, list), "receipt v2 agent asset identity missing")
+    for field in ("release_version", "release_tag", "release_commit", "asset_profile", "source_set_identity"):
+        require(field in asset_required, f"receipt v2 must bind immutable/source-set asset identity: {field}")
+
+    runtime_binding = props.get("runtime_binding")
+    require(isinstance(runtime_binding, dict), "receipt v2 runtime_binding missing")
+    binding_required = runtime_binding.get("required")
+    require(isinstance(binding_required, list), "receipt v2 runtime binding identity missing")
+    for field in ("source_set_identity_ref", "runtime_distribution_identity_ref"):
+        require(field in binding_required, f"receipt v2 must bind runtime source/distribution identity: {field}")
+
+    text = RECEIPT_V2.read_text(encoding="utf-8")
+    for forbidden_claim in ("verification_pass", "release_ready", "domain_gate_pass"):
+        require(forbidden_claim in text, f"receipt v2 must explicitly forbid {forbidden_claim}")
+    require("asset_bundle_hash" not in json.dumps(props, sort_keys=True), "receipt v2 must not use retired asset_bundle_hash")
+
+
 def main() -> None:
-    for path in [BINDING, ADK, HUB, RECEIPT, ADAPTER, AGENTS]:
+    for path in [BINDING, ADK, HUB, RECEIPT_V2, RECEIPT_V1, ADAPTER, AGENTS]:
         require(path.is_file(), f"missing runtime binding asset: {path.relative_to(ROOT)}")
 
     binding = json.loads(BINDING.read_text(encoding="utf-8"))
     adk = json.loads(ADK.read_text(encoding="utf-8"))
     hub = json.loads(HUB.read_text(encoding="utf-8"))
-    receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+    receipt_v2 = json.loads(RECEIPT_V2.read_text(encoding="utf-8"))
 
-    require(binding["schema_version"] == 2 and binding["contract_version"] == "2.0", "Codex runtime binding schema drift")
+    require(binding["schema_version"] == 2 and binding["contract_version"] == "2.1", "Codex runtime binding schema drift")
     require(binding["status"] == "active", "Codex runtime binding must be active")
     require(binding["role"] == "codex-runtime-distribution-and-host-integration", "Codex role drift")
     require(binding["runtime_target"] == "codex-cli", "runtime target drift")
@@ -115,6 +160,7 @@ def main() -> None:
     require("cross_runtime_effectiveness_evaluation" in binding["must_not_own"], "cross-runtime eval must remain outside Codex binding")
 
     validate_adk_lock(adk)
+    validate_receipt_v2(receipt_v2, binding)
 
     binding_text = json.dumps(binding, sort_keys=True)
     for retired in ("asset_bundle_hash", "BLOCKED_ASSET_BUNDLE_IDENTITY", "exact ADK bundle", "candidate-only"):
@@ -123,11 +169,6 @@ def main() -> None:
     require(hub["repository"] == "jiying2007/knowledge-hub", "Knowledge Hub canonical repository required")
     require(re.fullmatch(r"[0-9a-f]{40}", hub["provider_commit"]) is not None, "Hub provider commit must be exact")
     require(hub["rules"]["consumer_must_not_depend_on_provider_internal_temp_paths"] is True, "Hub internal paths must not be contract")
-
-    text = RECEIPT.read_text(encoding="utf-8")
-    for forbidden in ["verification_pass", "release_ready", "domain_gate_pass"]:
-        require(forbidden in text, f"receipt schema must explicitly forbid {forbidden}")
-    require(receipt["additionalProperties"] is False, "receipt must be closed schema")
 
     adapter = ADAPTER.read_text(encoding="utf-8")
     for token in ["knowledge-context.sh", "knowledge-evidence-pack.sh", "knowledge-action-check.sh", "knowledge-proposal-route.sh", "knowledge-activity.sh", "BLOCKED"]:
@@ -142,6 +183,7 @@ def main() -> None:
     print(f"adk_commit={adk['provider_commit']}")
     print(f"binding_status={adk['binding_status']}")
     print(f"runtime_readiness={binding['readiness']}")
+    print("receipt_schema=runtime-execution-receipt.v2")
 
 
 if __name__ == "__main__":
