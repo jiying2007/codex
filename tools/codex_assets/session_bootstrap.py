@@ -81,6 +81,12 @@ def _require_full_sha(value: str | None, name: str) -> str:
     return value or ""
 
 
+def _require_nonempty_string(value: Any, name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise BootstrapError(f"{name} must be a non-empty string")
+    return value.strip()
+
+
 def _normalize_repo_ref(value: str, name: str) -> str:
     candidate = pathlib.PurePosixPath(value)
     if candidate.is_absolute() or not value or ".." in candidate.parts:
@@ -170,6 +176,37 @@ def _validate_formal_digital_worker_identity(
     return identity
 
 
+def _validate_formal_engineering_identity(
+    engineering_task_package: pathlib.Path,
+    requested_base_commit: str,
+) -> dict[str, Any]:
+    try:
+        package = _read_json(engineering_task_package)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise BootstrapError(f"cannot read engineering task package: {exc}") from exc
+
+    package_id = _require_nonempty_string(package.get("package_id"), "engineering task package package_id")
+    work_item_id = _require_nonempty_string(package.get("work_item_id"), "engineering task package work_item_id")
+    run_id = _require_nonempty_string(package.get("run_id"), "engineering task package run_id")
+    repo_root = _require_nonempty_string(package.get("repo_root"), "engineering task package repo_root")
+    package_base_commit = _require_full_sha(package.get("base_commit"), "engineering task package base_commit")
+    if package_base_commit != requested_base_commit:
+        raise BootstrapError(
+            "engineering task package base_commit mismatch: "
+            f"requested={requested_base_commit} package={package_base_commit}"
+        )
+
+    return {
+        "package_id": package_id,
+        "work_item_id": work_item_id,
+        "run_id": run_id,
+        "repo_root": repo_root,
+        "base_commit": package_base_commit,
+        "engineering_task_package_ref": str(engineering_task_package),
+        "engineering_task_package_sha256": hashlib.sha256(engineering_task_package.read_bytes()).hexdigest(),
+    }
+
+
 def _validate_formal_knowledge_identity(
     digital_worker_root: pathlib.Path,
     knowledge_root: pathlib.Path,
@@ -230,8 +267,7 @@ def _formal_execution_source_set(
     knowledge: dict[str, Any],
     agent_assets: dict[str, Any],
     runtime_binding: dict[str, Any],
-    base_commit: str,
-    engineering_task_package: pathlib.Path,
+    engineering: dict[str, Any],
 ) -> dict[str, Any]:
     materials = {
         "digital_worker_governance": {
@@ -267,11 +303,7 @@ def _formal_execution_source_set(
             "profile": runtime_binding.get("profile"),
             "source_binding": runtime_binding.get("source_binding"),
         },
-        "engineering": {
-            "base_commit": base_commit,
-            "engineering_task_package_ref": str(engineering_task_package),
-            "engineering_task_package_sha256": hashlib.sha256(engineering_task_package.read_bytes()).hexdigest(),
-        },
+        "engineering": engineering,
     }
     return {
         "kind": "codex-execution-source-set/v1",
@@ -351,6 +383,7 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
     degraded: list[str] = []
     knowledge: dict[str, Any]
     digital_worker_governance: dict[str, Any] | None = None
+    engineering_identity: dict[str, Any] | None = None
     prior_path: pathlib.Path | None = None
     prior_bootstrap: dict[str, Any] | None = None
 
@@ -397,7 +430,13 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
             base_commit = _require_full_sha(args.base_commit, "base_commit")
         except BootstrapError as exc:
             blocked.append(str(exc))
-            base_commit = args.base_commit
+            base_commit = args.base_commit or ""
+
+        if task_package is not None and task_package.is_file() and re.fullmatch(r"[0-9a-f]{40}", base_commit):
+            try:
+                engineering_identity = _validate_formal_engineering_identity(task_package, base_commit)
+            except BootstrapError as exc:
+                blocked.append(str(exc))
 
         if digital_worker_root.is_dir():
             try:
@@ -450,15 +489,27 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
     }
 
     execution_source_set: dict[str, Any] | None = None
-    if mode == "L2" and not blocked and digital_worker_governance is not None and task_package is not None:
+    if (
+        mode == "L2"
+        and not blocked
+        and digital_worker_governance is not None
+        and engineering_identity is not None
+    ):
         execution_source_set = _formal_execution_source_set(
             digital_worker=digital_worker_governance,
             knowledge=knowledge,
             agent_assets=agent_assets,
             runtime_binding=runtime_binding,
-            base_commit=base_commit,
-            engineering_task_package=task_package,
+            engineering=engineering_identity,
         )
+
+    work_identity = None
+    if engineering_identity is not None:
+        work_identity = {
+            "work_item_id": engineering_identity["work_item_id"],
+            "run_id": engineering_identity["run_id"],
+            "engineering_package_id": engineering_identity["package_id"],
+        }
 
     prior_session_identity = prior_bootstrap.get("session_bootstrap_identity") if prior_bootstrap else None
     session_identity = _session_bootstrap_identity(
@@ -497,6 +548,7 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
         "task": args.task,
         "cwd": str(cwd),
         "session_bootstrap_identity": session_identity,
+        "work_identity": work_identity,
         "target_repository": {
             "root": str(repo_root) if repo_root else None,
             "head": repo_head,
