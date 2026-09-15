@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "1.1",
+  "contract_version": "1.2",
   "status": "active",
   "role": "thin-session-bootstrap",
   "runtime_binding": "codex-cli",
@@ -10,6 +10,7 @@
     "provider_preflight_request",
     "identity_ref_assembly",
     "formal_execution_source_set_freeze",
+    "formal_work_run_identity_freeze",
     "governance_escalation_provenance"
   ],
   "must_not_own": [
@@ -53,7 +54,7 @@
         "digital_worker_selected_domain_refs",
         "digital_worker_selected_routing_refs",
         "knowledge_provider_root",
-        "engineering_task_package"
+        "engineering_task_package_with_package_id_work_item_id_run_id_base_commit"
       ]
     }
   },
@@ -64,11 +65,19 @@
     "kind": "codex-session-bootstrap/v1",
     "contains_identity_refs_only": true,
     "formal_identity_fields": [
+      "work_identity",
       "digital_worker.governance_identity",
       "execution_source_set.identity",
+      "execution_source_set.materials.engineering",
       "session_bootstrap_identity",
       "governance_escalation"
     ],
+    "runtime_receipt_handoff": {
+      "schema": "schemas/runtime-execution-receipt.v2.schema.json",
+      "work_item_id_from": "work_identity.work_item_id",
+      "run_id_from": "work_identity.run_id",
+      "execution_source_set_identity_from": "execution_source_set.identity"
+    },
     "forbidden_claims": [
       "verification_pass",
       "domain_gate_pass",
@@ -79,7 +88,11 @@
     "explicit_conflicts_fail_closed": true,
     "formal_mode_requires_exact_inputs": true,
     "formal_mode_requires_exact_digital_worker_governance_identity": true,
+    "formal_mode_requires_authoritative_work_run_identity_from_engineering_task_package": true,
+    "formal_engineering_task_package_base_commit_must_match_requested_base_commit": true,
     "formal_execution_source_set_is_runtime_frozen_from_exact_refs": true,
+    "formal_execution_source_set_binds_work_item_run_and_package_identity": true,
+    "runtime_receipt_v2_must_reuse_frozen_work_run_and_source_set_identity": true,
     "l1_to_l2_requires_new_bootstrap_and_execution_source_set": true,
     "l1_context_remains_provisional_and_is_never_auto_promoted": true,
     "runtime_local_readiness_is_not_domain_readiness": true,
