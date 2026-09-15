@@ -29,15 +29,18 @@ def _git(path: pathlib.Path, *args: str) -> str | None:
         return None
 
 
-def _canonical_json_sha256(path: pathlib.Path) -> str:
-    data = _read_json(path)
+def _canonical_value_sha256(value: Any) -> str:
     payload = json.dumps(
-        data,
+        value,
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _canonical_json_sha256(path: pathlib.Path) -> str:
+    return _canonical_value_sha256(_read_json(path))
 
 
 def resolve_mode(
@@ -78,6 +81,95 @@ def _require_full_sha(value: str | None, name: str) -> str:
     return value or ""
 
 
+def _normalize_repo_ref(value: str, name: str) -> str:
+    candidate = pathlib.PurePosixPath(value)
+    if candidate.is_absolute() or not value or ".." in candidate.parts:
+        raise BootstrapError(f"{name} must be a safe repository-relative path: {value}")
+    return candidate.as_posix()
+
+
+def _validate_tracked_clean_refs(
+    root: pathlib.Path,
+    refs: list[str],
+    *,
+    category: str,
+) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw in refs:
+        ref = _normalize_repo_ref(raw, category)
+        if ref in seen:
+            continue
+        seen.add(ref)
+        path = root / ref
+        if not path.is_file():
+            raise BootstrapError(f"{category} missing: {ref}")
+        if _git(root, "ls-files", "--error-unmatch", "--", ref) is None:
+            raise BootstrapError(f"{category} is not git-tracked: {ref}")
+        normalized.append(ref)
+    if normalized:
+        dirty = _git(root, "status", "--porcelain", "--", *normalized)
+        if dirty:
+            raise BootstrapError(f"{category} refs must match the exact digital-worker checkout")
+    return normalized
+
+
+def _validate_formal_digital_worker_identity(
+    digital_worker_root: pathlib.Path,
+    *,
+    domain_refs: list[str],
+    routing_refs: list[str],
+    skill_refs: list[str],
+) -> dict[str, Any]:
+    if not digital_worker_root.is_dir():
+        raise BootstrapError(f"digital-worker root missing: {digital_worker_root}")
+    commit = _require_full_sha(_git(digital_worker_root, "rev-parse", "HEAD"), "digital-worker provider commit")
+
+    catalog_ref = "contracts/catalog.json"
+    catalog_path = digital_worker_root / catalog_ref
+    if not catalog_path.is_file():
+        raise BootstrapError(f"digital-worker contract catalog missing: {catalog_path}")
+    if _git(digital_worker_root, "ls-files", "--error-unmatch", "--", catalog_ref) is None:
+        raise BootstrapError("digital-worker contract catalog must be git-tracked")
+
+    selected_domains = _validate_tracked_clean_refs(
+        digital_worker_root,
+        domain_refs,
+        category="digital-worker domain ref",
+    )
+    selected_routing = _validate_tracked_clean_refs(
+        digital_worker_root,
+        routing_refs,
+        category="digital-worker routing ref",
+    )
+    selected_skills = _validate_tracked_clean_refs(
+        digital_worker_root,
+        skill_refs,
+        category="digital-worker skill ref",
+    )
+    if not selected_domains:
+        raise BootstrapError("L2 requires at least one explicit digital-worker domain ref")
+    if not selected_routing:
+        raise BootstrapError("L2 requires at least one explicit digital-worker routing ref")
+
+    dirty_catalog = _git(digital_worker_root, "status", "--porcelain", "--", catalog_ref)
+    if dirty_catalog:
+        raise BootstrapError("digital-worker contract catalog must match the exact checkout")
+
+    identity = {
+        "provider": "digital-worker",
+        "repository": "jiying2007/digital-worker",
+        "provider_commit": commit,
+        "contract_catalog_ref": catalog_ref,
+        "contract_catalog_digest": _canonical_json_sha256(catalog_path),
+        "selected_domain_refs": selected_domains,
+        "selected_routing_refs": selected_routing,
+        "materially_used_domain_skills": selected_skills,
+    }
+    identity["identity_digest"] = _canonical_value_sha256(identity)
+    return identity
+
+
 def _validate_formal_knowledge_identity(
     digital_worker_root: pathlib.Path,
     knowledge_root: pathlib.Path,
@@ -116,6 +208,96 @@ def _validate_formal_knowledge_identity(
         "contract": contract_rel,
         "contract_canonical_sha256": actual_digest,
     }
+
+
+def _load_prior_bootstrap(path_value: str | None) -> tuple[pathlib.Path | None, dict[str, Any] | None]:
+    if not path_value:
+        return None, None
+    path = pathlib.Path(path_value).expanduser().resolve()
+    if not path.is_file():
+        raise BootstrapError(f"prior session bootstrap missing: {path}")
+    prior = _read_json(path)
+    if prior.get("kind") != "codex-session-bootstrap/v1":
+        raise BootstrapError("prior session bootstrap has incompatible kind")
+    if prior.get("status") != "ready":
+        raise BootstrapError("prior session bootstrap is not ready")
+    return path, prior
+
+
+def _formal_execution_source_set(
+    *,
+    digital_worker: dict[str, Any],
+    knowledge: dict[str, Any],
+    agent_assets: dict[str, Any],
+    runtime_binding: dict[str, Any],
+    base_commit: str,
+    engineering_task_package: pathlib.Path,
+) -> dict[str, Any]:
+    materials = {
+        "digital_worker_governance": {
+            key: digital_worker[key]
+            for key in (
+                "repository",
+                "provider_commit",
+                "contract_catalog_ref",
+                "contract_catalog_digest",
+                "selected_domain_refs",
+                "selected_routing_refs",
+                "materially_used_domain_skills",
+                "identity_digest",
+            )
+        },
+        "knowledge_provider": {
+            "commit": knowledge.get("commit"),
+            "contract": knowledge.get("contract"),
+            "contract_canonical_sha256": knowledge.get("contract_canonical_sha256"),
+        },
+        "agent_assets": {
+            "provider_repository": agent_assets.get("provider_repository"),
+            "release_version": agent_assets.get("release_version"),
+            "release_tag": agent_assets.get("release_tag"),
+            "release_commit": agent_assets.get("release_commit"),
+            "asset_profile": agent_assets.get("asset_profile"),
+            "source_set_identity": agent_assets.get("source_set_identity"),
+        },
+        "runtime_binding": {
+            "repository": runtime_binding.get("repository"),
+            "commit": runtime_binding.get("commit"),
+            "target": runtime_binding.get("target"),
+            "profile": runtime_binding.get("profile"),
+            "source_binding": runtime_binding.get("source_binding"),
+        },
+        "engineering": {
+            "base_commit": base_commit,
+            "engineering_task_package_ref": str(engineering_task_package),
+            "engineering_task_package_sha256": hashlib.sha256(engineering_task_package.read_bytes()).hexdigest(),
+        },
+    }
+    return {
+        "kind": "codex-execution-source-set/v1",
+        "identity": f"sha256:{_canonical_value_sha256(materials)}",
+        "materials": materials,
+    }
+
+
+def _session_bootstrap_identity(
+    *,
+    mode: str,
+    task: str,
+    cwd: pathlib.Path,
+    runtime_profile: str,
+    execution_source_set_identity: str | None,
+    prior_session_identity: str | None,
+) -> str:
+    material = {
+        "mode": mode,
+        "task": task,
+        "cwd": str(cwd),
+        "runtime_profile": runtime_profile,
+        "execution_source_set_identity": execution_source_set_identity,
+        "prior_session_identity": prior_session_identity,
+    }
+    return f"sha256:{_canonical_value_sha256(material)}"
 
 
 def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
@@ -168,6 +350,21 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
     blocked: list[str] = []
     degraded: list[str] = []
     knowledge: dict[str, Any]
+    digital_worker_governance: dict[str, Any] | None = None
+    prior_path: pathlib.Path | None = None
+    prior_bootstrap: dict[str, Any] | None = None
+
+    try:
+        prior_path, prior_bootstrap = _load_prior_bootstrap(args.prior_session_bootstrap)
+    except BootstrapError as exc:
+        blocked.append(str(exc))
+
+    if args.escalate_from_l1 and prior_bootstrap is None:
+        blocked.append("L1 to L2 escalation requires --prior-session-bootstrap")
+    if args.escalate_from_l1 and mode != "L2":
+        blocked.append("--escalate-from-l1 requires L2 mode")
+    if prior_bootstrap is not None and mode == "L2" and prior_bootstrap.get("mode") != "L1":
+        blocked.append("L2 prior session bootstrap must be L1 for governed escalation")
 
     if mode == "L0":
         knowledge = {
@@ -201,6 +398,18 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
         except BootstrapError as exc:
             blocked.append(str(exc))
             base_commit = args.base_commit
+
+        if digital_worker_root.is_dir():
+            try:
+                digital_worker_governance = _validate_formal_digital_worker_identity(
+                    digital_worker_root,
+                    domain_refs=args.digital_worker_domain_ref,
+                    routing_refs=args.digital_worker_routing_ref,
+                    skill_refs=args.digital_worker_skill_ref,
+                )
+            except BootstrapError as exc:
+                blocked.append(str(exc))
+
         if blocked:
             knowledge = {
                 "mode": "exact-pinned-provider",
@@ -222,6 +431,64 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
                 }
 
     mode_contract = bootstrap_contract["modes"][mode]
+    agent_assets = {
+        "provider_repository": provider_lock.get("repository"),
+        "release_version": provider_lock.get("version"),
+        "release_tag": provider_lock.get("release_tag"),
+        "release_commit": provider_lock.get("provider_commit"),
+        "asset_profile": provider_lock.get("asset_profile"),
+        "delivery_mode": provider_lock.get("delivery_mode"),
+        "source_set_identity": provider_lock.get("source_set", {}).get("identity"),
+    }
+    runtime_binding = {
+        "repository": "jiying2007/codex",
+        "commit": codex_commit,
+        "target": binding.get("runtime_target"),
+        "profile": runtime_profile,
+        "readiness": binding.get("readiness"),
+        "source_binding": binding.get("source_binding"),
+    }
+
+    execution_source_set: dict[str, Any] | None = None
+    if mode == "L2" and not blocked and digital_worker_governance is not None and task_package is not None:
+        execution_source_set = _formal_execution_source_set(
+            digital_worker=digital_worker_governance,
+            knowledge=knowledge,
+            agent_assets=agent_assets,
+            runtime_binding=runtime_binding,
+            base_commit=base_commit,
+            engineering_task_package=task_package,
+        )
+
+    prior_session_identity = prior_bootstrap.get("session_bootstrap_identity") if prior_bootstrap else None
+    session_identity = _session_bootstrap_identity(
+        mode=mode,
+        task=args.task,
+        cwd=cwd,
+        runtime_profile=runtime_profile,
+        execution_source_set_identity=execution_source_set.get("identity") if execution_source_set else None,
+        prior_session_identity=prior_session_identity,
+    )
+
+    governance_escalation: dict[str, Any] | None = None
+    if mode == "L2" and prior_bootstrap is not None:
+        if prior_session_identity == session_identity:
+            blocked.append("L1 to L2 escalation must create a new session bootstrap identity")
+        prior_source_set = prior_bootstrap.get("execution_source_set") or {}
+        if execution_source_set is not None and prior_source_set.get("identity") == execution_source_set.get("identity"):
+            blocked.append("L1 to L2 escalation must freeze a new Execution Source Set")
+        governance_escalation = {
+            "from_level": "L1",
+            "to_level": "L2",
+            "escalation_reason": "formal-evidence",
+            "prior_context_disposition": "provisional-not-promoted",
+            "prior_session_bootstrap_ref": str(prior_path),
+            "prior_session_bootstrap_identity": prior_session_identity,
+            "new_execution_source_set_ref": execution_source_set.get("identity") if execution_source_set else None,
+            "new_session_bootstrap_ref": session_identity,
+            "formal_evidence_start_ref": session_identity,
+        }
+
     envelope = {
         "kind": bootstrap_contract["output_contract"]["kind"],
         "status": "blocked" if blocked else "ready",
@@ -229,6 +496,7 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
         "mode_name": mode_contract["name"],
         "task": args.task,
         "cwd": str(cwd),
+        "session_bootstrap_identity": session_identity,
         "target_repository": {
             "root": str(repo_root) if repo_root else None,
             "head": repo_head,
@@ -238,25 +506,13 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
             "root": str(digital_worker_root),
             "required": mode in {"L1", "L2"},
             "engineering_task_package": str(task_package) if task_package else None,
+            "governance_identity": digital_worker_governance,
         },
         "knowledge": knowledge,
-        "agent_assets": {
-            "provider_repository": provider_lock.get("repository"),
-            "release_version": provider_lock.get("version"),
-            "release_tag": provider_lock.get("release_tag"),
-            "release_commit": provider_lock.get("provider_commit"),
-            "asset_profile": provider_lock.get("asset_profile"),
-            "delivery_mode": provider_lock.get("delivery_mode"),
-            "source_set_identity": provider_lock.get("source_set", {}).get("identity"),
-        },
-        "runtime_binding": {
-            "repository": "jiying2007/codex",
-            "commit": codex_commit,
-            "target": binding.get("runtime_target"),
-            "profile": runtime_profile,
-            "readiness": binding.get("readiness"),
-            "source_binding": binding.get("source_binding"),
-        },
+        "agent_assets": agent_assets,
+        "runtime_binding": runtime_binding,
+        "execution_source_set": execution_source_set,
+        "governance_escalation": governance_escalation,
         "routing": {
             "precedence": bootstrap_contract["resolution_precedence"],
             "knowledge_mode": mode_contract["knowledge_mode"],
@@ -287,8 +543,13 @@ def configure_parser() -> argparse.ArgumentParser:
     parser.add_argument("--engineering-task-package")
     parser.add_argument("--base-commit")
     parser.add_argument("--digital-worker-root")
+    parser.add_argument("--digital-worker-domain-ref", action="append", default=[])
+    parser.add_argument("--digital-worker-routing-ref", action="append", default=[])
+    parser.add_argument("--digital-worker-skill-ref", action="append", default=[])
     parser.add_argument("--knowledge-root")
     parser.add_argument("--runtime-profile", default="default")
+    parser.add_argument("--prior-session-bootstrap")
+    parser.add_argument("--escalate-from-l1", action="store_true")
     parser.add_argument("--summary-json", action="store_true")
     return parser
 
