@@ -13,8 +13,12 @@ on:
       - 'tools/codex_assets/validate.py'
       - 'tools/codex_assets/runtime_control.py'
       - 'tools/codex_assets/runtime_kernel.py'
+      - 'tools/codex_assets/execution_policy/**'
+      - 'tools/codex_assets/model.py'
+      - 'tools/codex_assets/privacy_ref.py'
       - 'tools/codex_assets/session_bootstrap.py'
       - 'tests/test_runtime_control.py'
+      - 'tests/test_runtime_control_v2.py'
       - 'tests/test_session_bootstrap.py'
       - 'vendor/wheels/**'
       - 'docs/runtime-control.md'
@@ -40,8 +44,12 @@ on:
       - 'tools/codex_assets/validate.py'
       - 'tools/codex_assets/runtime_control.py'
       - 'tools/codex_assets/runtime_kernel.py'
+      - 'tools/codex_assets/execution_policy/**'
+      - 'tools/codex_assets/model.py'
+      - 'tools/codex_assets/privacy_ref.py'
       - 'tools/codex_assets/session_bootstrap.py'
       - 'tests/test_runtime_control.py'
+      - 'tests/test_runtime_control_v2.py'
       - 'tests/test_session_bootstrap.py'
       - 'vendor/wheels/**'
       - 'docs/runtime-control.md'
@@ -93,8 +101,10 @@ jobs:
         run: python scripts/validate-adk-agent-binding.py
       - name: Validate AGENTS terminal rules
         run: python scripts/validate-agent-rules.py
-      - name: Validate native Runtime Control
+      - name: Validate native Runtime Control v1 compatibility
         run: python -m unittest tests.test_runtime_control
+      - name: Validate ADK v5.1.1 Runtime Control v2 source set
+        run: python -m unittest tests.test_runtime_control_v2
       - name: Validate thin Session Bootstrap
         run: python -m unittest tests.test_session_bootstrap
       - name: Validate JSON syntax
