@@ -1,25 +1,15 @@
-"""Deterministic event reducer and fail-closed policy engine for Runtime Control."""
+"""Canonical event reducer and decision engine for runtime control."""
 
 from __future__ import annotations
 
-import copy
-import hashlib
-import json
 from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
 from .contracts import (
     ARTIFACT_TYPES,
-    DECISION_SCHEMA,
-    DECISION_SCHEMA_V2,
-    GOAL_INTAKE_SCHEMA,
     GATE_EVENTS,
-    POLICY_SCHEMA,
-    POLICY_SCHEMA_V2,
-    STATE_SCHEMA,
-    TASK_MODES,
-    RuntimeControlError,
+    GOAL_INTAKE_SCHEMA,
     _identifier,
     _ids,
     _integer,
@@ -29,410 +19,591 @@ from .contracts import (
     _timestamp,
     _validate_event,
     _validate_goal_intake,
-    validate_policy,
 )
-
-
-UTC = UTC
-ModeAuthorityVerifier = Callable[[Mapping[str, Any]], Mapping[str, Any]]
-
-
-def goal_intake_attestation_sha256(
-    task_mode: str,
-    artifact_mode: str,
-    provenance: Mapping[str, Any],
-    *,
-    goal_id: str,
-    request_sha256: str,
-    routing_decision_sha256: str,
-    authority_id: str,
-) -> str:
-    """Return canonical attestation digest for an attested goal intake."""
-    from .contracts import goal_intake_attestation_sha256 as _digest
-
-    return _digest(
-        task_mode,
-        artifact_mode,
-        provenance,
-        goal_id=goal_id,
-        request_sha256=request_sha256,
-        routing_decision_sha256=routing_decision_sha256,
-        authority_id=authority_id,
-    )
+from .contracts import (
+    DECISION_SCHEMA as DECISION_SCHEMA,
+)
+from .contracts import (
+    DECISION_SCHEMA_V2 as DECISION_SCHEMA_V2,
+)
+from .contracts import (
+    EVENT_SCHEMA as EVENT_SCHEMA,
+)
+from .contracts import (
+    POLICY_SCHEMA as POLICY_SCHEMA,
+)
+from .contracts import (
+    POLICY_SCHEMA_V2 as POLICY_SCHEMA_V2,
+)
+from .contracts import (
+    STATE_SCHEMA as STATE_SCHEMA,
+)
+from .contracts import (
+    RuntimeControlError as RuntimeControlError,
+)
+from .contracts import (
+    goal_intake_attestation_sha256 as goal_intake_attestation_sha256,
+)
+from .contracts import (
+    validate_policy as validate_policy,
+)
 
 
 def _initial_state(thread_id: str) -> dict[str, Any]:
     return {
         "schema_version": STATE_SCHEMA,
-        "thread_id": thread_id,
-        "goal_id": "",
-        "goal_generation": 0,
-        "status": "idle",
-        "started_at": "",
-        "last_event_at": "",
-        "last_progress_at": "",
-        "last_heartbeat_at": "",
-        "last_checkpoint_at": "",
-        "goal_intake": None,
-        "goal_intake_attestation_sha256": "",
-        "task_mode": "",
-        "artifact_mode": "",
-        "mode_authority": None,
-        "goal_replan_identity": "",
-        "usage": {"tokens_used": 0, "token_budget": 0, "context_ratio": 0.0},
-        "retry": {"total": 0, "no_progress": 0},
-        "evidence_ids": [],
+        "identity": {"thread_id": thread_id, "cwd_hash": None, "model": None},
+        "goal": {
+            "goal_id": None,
+            "status": "idle",
+            "started_at": None,
+            "completed_at": None,
+            "token_budget": None,
+            "time_budget_seconds": None,
+            "usage_baseline_tokens": 0,
+            "success_criteria": [],
+            "required_evidence": [],
+            "open_items_count": 0,
+            "task_mode": None,
+            "artifact_mode": None,
+            "request_sha256": None,
+            "routing_decision_sha256": None,
+            "mode_authority_id": None,
+            "intake_attestation_sha256": None,
+            "intake_provenance": None,
+            "intake_revision": 0,
+        },
+        "usage": {
+            "observed_at": None,
+            "input_tokens": 0,
+            "cached_input_tokens": 0,
+            "output_tokens": 0,
+            "reasoning_tokens": 0,
+            "total_tokens": 0,
+            "context_window": 0,
+            "last_input_tokens": 0,
+            "last_delta_tokens": 0,
+            "rate_per_minute": 0.0,
+        },
+        "progress": {
+            "revision": 0,
+            "last_progress_at": None,
+            "heartbeat_at": None,
+            "last_heartbeat_revision": -1,
+            "no_progress_heartbeats": 0,
+        },
+        "retry": {"used": 0},
+        "checkpoint": {"revision": 0, "verified": False, "evidence_ids": []},
+        "evidence": {},
         "artifacts": {},
-        "event_count": 0,
+        "events_applied": 0,
+        "last_event_at": None,
     }
 
 
-def _require_active(state: Mapping[str, Any], event_type: str) -> None:
-    if state.get("status") != "active":
-        raise RuntimeControlError(f"{event_type} requires an active goal")
-
-
-def _payload_fields(payload: Mapping[str, Any], expected: set[str], label: str) -> None:
-    if set(payload) != expected:
-        raise RuntimeControlError(f"{label} payload fields are invalid")
-
-
-def _reset_goal_state(
-    state: dict[str, Any],
-    goal_id: str,
-    observed_at: datetime,
-    intake: Mapping[str, Any],
-) -> None:
-    state["goal_id"] = goal_id
-    state["goal_generation"] += 1
-    state["status"] = "active"
-    state["started_at"] = _iso(observed_at)
-    state["last_progress_at"] = _iso(observed_at)
-    state["last_heartbeat_at"] = ""
-    state["last_checkpoint_at"] = ""
-    state["goal_intake"] = copy.deepcopy(dict(intake))
-    state["goal_intake_attestation_sha256"] = str(intake["attestation_sha256"])
-    state["task_mode"] = str(intake["task_mode"])
-    state["artifact_mode"] = str(intake["artifact_mode"])
-    state["mode_authority"] = None
-    state["goal_replan_identity"] = ""
-    state["usage"] = {"tokens_used": 0, "token_budget": 0, "context_ratio": 0.0}
-    state["retry"] = {"total": 0, "no_progress": 0}
-    state["evidence_ids"] = []
+def _reset_goal_state(state: dict[str, Any], payload: Mapping[str, Any], at: datetime) -> None:
+    base_required = {
+        "goal_id", "token_budget", "time_budget_seconds", "usage_baseline_tokens",
+        "success_criteria", "required_evidence", "open_items_count",
+    }
+    payload_fields = frozenset(payload)
+    if payload_fields not in {frozenset(base_required), frozenset(base_required | {"intake"})}:
+        raise RuntimeControlError("goal.started payload fields are invalid")
+    goal_id = _identifier(payload.get("goal_id"), "goal.goal_id")
+    intake = None
+    if "intake" in payload:
+        intake = _validate_goal_intake(
+            payload.get("intake"), event_at=at, expected_kind="routing-decision",
+            expected_goal_id=goal_id,
+        )
+    state["goal"] = {
+        "goal_id": goal_id,
+        "status": "active",
+        "started_at": _iso(at),
+        "completed_at": None,
+        "token_budget": _integer(payload.get("token_budget"), "goal.token_budget", positive=True),
+        "time_budget_seconds": _integer(
+            payload.get("time_budget_seconds"), "goal.time_budget_seconds", positive=True
+        ),
+        "usage_baseline_tokens": _integer(
+            payload.get("usage_baseline_tokens"), "goal.usage_baseline_tokens"
+        ),
+        "success_criteria": _ids(payload.get("success_criteria"), "goal.success_criteria", non_empty=True),
+        "required_evidence": _ids(
+            payload.get("required_evidence"), "goal.required_evidence", non_empty=True
+        ),
+        "open_items_count": _integer(payload.get("open_items_count"), "goal.open_items_count"),
+        "task_mode": intake["task_mode"] if intake else None,
+        "artifact_mode": intake["artifact_mode"] if intake else None,
+        "request_sha256": intake["request_sha256"] if intake else None,
+        "routing_decision_sha256": intake["routing_decision_sha256"] if intake else None,
+        "mode_authority_id": intake["authority_id"] if intake else None,
+        "intake_attestation_sha256": intake["attestation_sha256"] if intake else None,
+        "intake_provenance": intake["provenance"] if intake else None,
+        "intake_revision": 1 if intake else 0,
+    }
+    state["progress"] = {
+        "revision": 0,
+        "last_progress_at": _iso(at),
+        "heartbeat_at": _iso(at),
+        "last_heartbeat_revision": -1,
+        "no_progress_heartbeats": 0,
+    }
+    state["retry"] = {"used": 0}
+    state["checkpoint"] = {"revision": 0, "verified": False, "evidence_ids": []}
+    state["evidence"] = {}
     state["artifacts"] = {}
 
 
-def _event_goal_id(payload: Mapping[str, Any], field: str = "goal_id") -> str:
-    return _identifier(payload.get(field), field)
-
-
 def reduce_events(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
-    """Reduce append-only runtime events into one deterministic state."""
     state: dict[str, Any] | None = None
-    thread_id = ""
-    last_time: datetime | None = None
-    fingerprints: set[str] = set()
+    seen: dict[str, str] = {}
+    last_at: datetime | None = None
 
     for raw in events:
         event = _validate_event(raw)
-        if event["fingerprint"] in fingerprints:
-            raise RuntimeControlError("runtime control event history contains a duplicate record")
-        fingerprints.add(event["fingerprint"])
-        if not thread_id:
-            thread_id = event["thread_id"]
-            state = _initial_state(thread_id)
-        elif event["thread_id"] != thread_id:
-            raise RuntimeControlError("runtime control events must belong to one thread")
-        observed_at = event["observed_at"]
-        if last_time is not None and observed_at < last_time:
-            raise RuntimeControlError("runtime control event history must be monotonic")
-        last_time = observed_at
-        assert state is not None
-        payload = event["payload"]
-        event_type = event["event_type"]
+        event_id = event["event_id"]
+        if event_id in seen:
+            if seen[event_id] != event["fingerprint"]:
+                raise RuntimeControlError("duplicate event_id has a different payload")
+            continue
+        seen[event_id] = event["fingerprint"]
+        at = event["observed_at"]
+        if last_at is not None and at < last_at:
+            raise RuntimeControlError("runtime control events must be time ordered")
+        last_at = at
 
-        if event_type == "goal.started":
-            _payload_fields(payload, {"goal_id", "intake"}, event_type)
-            goal_id = _event_goal_id(payload)
-            intake = _validate_goal_intake(
-                payload.get("intake"),
-                event_at=observed_at,
-                expected_kind="goal-start",
-                expected_goal_id=goal_id,
-            )
-            if state["status"] == "active":
-                raise RuntimeControlError("goal.started cannot replace an active goal")
-            _reset_goal_state(state, goal_id, observed_at, intake)
-        elif event_type == "goal.updated":
-            _payload_fields(payload, {"goal_id", "supersedes_goal_id", "intake"}, event_type)
-            supersedes = _event_goal_id(payload, "supersedes_goal_id")
-            if not state["goal_id"] or supersedes != state["goal_id"]:
-                raise RuntimeControlError("goal.updated must supersede the current goal")
-            goal_id = _event_goal_id(payload)
-            if goal_id == supersedes:
-                raise RuntimeControlError("goal.updated requires a new goal_id")
-            intake = _validate_goal_intake(
-                payload.get("intake"),
-                event_at=observed_at,
-                expected_kind="goal-update",
-                expected_goal_id=goal_id,
-            )
-            replan_payload = {
-                "supersedes_goal_id": supersedes,
-                "goal_id": goal_id,
-                "intake_attestation_sha256": intake["attestation_sha256"],
+        if state is None:
+            state = _initial_state(event["thread_id"])
+        if event["thread_id"] != state["identity"]["thread_id"]:
+            raise RuntimeControlError("one state cannot mix thread_id values")
+
+        kind = event["event_type"]
+        payload = event["payload"]
+        goal = state["goal"]
+
+        if kind == "goal.started":
+            if goal["status"] == "active":
+                raise RuntimeControlError("cannot start a second active goal")
+            _reset_goal_state(state, payload, at)
+        elif kind == "goal.updated":
+            allowed = {
+                "open_items_count", "token_budget", "time_budget_seconds",
+                "intake", "mode_change_reason",
             }
-            _reset_goal_state(state, goal_id, observed_at, intake)
-            state["goal_replan_identity"] = hashlib.sha256(
-                json.dumps(
-                    replan_payload,
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ).encode("utf-8")
-            ).hexdigest()
-        elif event_type == "goal.completed":
-            _payload_fields(payload, {"goal_id"}, event_type)
-            _require_active(state, event_type)
-            if _event_goal_id(payload) != state["goal_id"]:
-                raise RuntimeControlError("goal.completed goal_id mismatch")
-            state["status"] = "completed"
-        elif event_type == "goal.aborted":
-            _payload_fields(payload, {"goal_id", "reason_id"}, event_type)
-            _require_active(state, event_type)
-            if _event_goal_id(payload) != state["goal_id"]:
-                raise RuntimeControlError("goal.aborted goal_id mismatch")
-            _identifier(payload.get("reason_id"), "reason_id")
-            state["status"] = "aborted"
-        elif event_type == "usage.snapshot":
-            _payload_fields(payload, {"tokens_used", "token_budget", "context_ratio"}, event_type)
-            _require_active(state, event_type)
-            tokens_used = _integer(payload.get("tokens_used"), "tokens_used")
-            token_budget = _integer(payload.get("token_budget"), "token_budget", positive=True)
-            context_ratio = _number(payload.get("context_ratio"), "context_ratio")
-            if context_ratio < 0:
-                raise RuntimeControlError("context_ratio must be non-negative")
+            if goal["status"] != "active" or not payload or not set(payload) <= allowed:
+                raise RuntimeControlError("goal.updated requires one active goal and canonical budget fields")
+            has_intake = "intake" in payload
+            has_reason = "mode_change_reason" in payload
+            if has_intake != has_reason:
+                raise RuntimeControlError(
+                    "goal.updated mode changes require intake and mode_change_reason"
+                )
+            if has_intake:
+                if payload.get("mode_change_reason") != "replan":
+                    raise RuntimeControlError("goal mode may change only through an explicit replan")
+                intake = _validate_goal_intake(
+                    payload.get("intake"), event_at=at, expected_kind="goal-replan",
+                    expected_goal_id=str(goal["goal_id"]),
+                )
+                if intake["attestation_sha256"] == goal.get("intake_attestation_sha256"):
+                    raise RuntimeControlError("goal replan must carry a new intake attestation")
+                goal["task_mode"] = intake["task_mode"]
+                goal["artifact_mode"] = intake["artifact_mode"]
+                goal["request_sha256"] = intake["request_sha256"]
+                goal["routing_decision_sha256"] = intake["routing_decision_sha256"]
+                goal["mode_authority_id"] = intake["authority_id"]
+                goal["intake_attestation_sha256"] = intake["attestation_sha256"]
+                goal["intake_provenance"] = intake["provenance"]
+                goal["intake_revision"] = int(goal.get("intake_revision") or 0) + 1
+            if "open_items_count" in payload:
+                goal["open_items_count"] = _integer(
+                    payload.get("open_items_count"), "goal.open_items_count"
+                )
+            if "token_budget" in payload:
+                goal["token_budget"] = _integer(payload.get("token_budget"), "goal.token_budget", positive=True)
+            if "time_budget_seconds" in payload:
+                goal["time_budget_seconds"] = _integer(
+                    payload.get("time_budget_seconds"), "goal.time_budget_seconds", positive=True
+                )
+        elif kind == "goal.completed":
+            if goal["status"] != "active" or payload:
+                raise RuntimeControlError("goal.completed requires one active goal and empty payload")
+            goal["status"] = "completed"
+            goal["completed_at"] = _iso(at)
+            state["progress"]["last_progress_at"] = _iso(at)
+            state["progress"]["heartbeat_at"] = _iso(at)
+        elif kind == "goal.aborted":
+            if goal["status"] != "active" or payload:
+                raise RuntimeControlError("goal.aborted requires one active goal and empty payload")
+            goal["status"] = "aborted"
+            goal["completed_at"] = _iso(at)
+        elif kind == "usage.snapshot":
+            required = {
+                "cwd_hash", "model", "input_tokens", "cached_input_tokens", "output_tokens",
+                "reasoning_tokens", "total_tokens", "context_window", "last_input_tokens",
+                "last_delta_tokens", "rate_per_minute",
+            }
+            if set(payload) != required:
+                raise RuntimeControlError("usage.snapshot payload fields are invalid")
+            total = _integer(payload.get("total_tokens"), "usage.total_tokens")
+            previous = int(state["usage"]["total_tokens"])
+            if total < previous:
+                raise RuntimeControlError("usage snapshot must be monotonic")
+            input_tokens = _integer(payload.get("input_tokens"), "usage.input_tokens")
+            cached = _integer(payload.get("cached_input_tokens"), "usage.cached_input_tokens")
+            if cached > input_tokens:
+                raise RuntimeControlError("cached_input_tokens must not exceed input_tokens")
+            output_tokens = _integer(payload.get("output_tokens"), "usage.output_tokens")
+            reasoning_tokens = _integer(payload.get("reasoning_tokens"), "usage.reasoning_tokens")
+            if reasoning_tokens > output_tokens:
+                raise RuntimeControlError("reasoning_tokens must not exceed output_tokens")
+            if total != input_tokens + output_tokens:
+                raise RuntimeControlError("total_tokens must equal input_tokens + output_tokens")
+            context_window = _integer(payload.get("context_window"), "usage.context_window", positive=True)
+            last_input_tokens = _integer(payload.get("last_input_tokens"), "usage.last_input_tokens")
+            if last_input_tokens > context_window:
+                raise RuntimeControlError("last_input_tokens must not exceed context_window")
+            for field in ("input_tokens", "cached_input_tokens", "output_tokens", "reasoning_tokens"):
+                if int(payload.get(field) or 0) < int(state["usage"].get(field) or 0):
+                    raise RuntimeControlError("usage snapshot cumulative fields must be monotonic")
+            state["identity"]["cwd_hash"] = _sha256(payload.get("cwd_hash"), "usage.cwd_hash")
+            state["identity"]["model"] = _identifier(payload.get("model"), "usage.model")
             state["usage"] = {
-                "tokens_used": tokens_used,
-                "token_budget": token_budget,
-                "context_ratio": context_ratio,
+                "observed_at": _iso(at),
+                "input_tokens": input_tokens,
+                "cached_input_tokens": cached,
+                "output_tokens": output_tokens,
+                "reasoning_tokens": reasoning_tokens,
+                "total_tokens": total,
+                "context_window": context_window,
+                "last_input_tokens": last_input_tokens,
+                "last_delta_tokens": _integer(payload.get("last_delta_tokens"), "usage.last_delta_tokens"),
+                "rate_per_minute": max(0.0, _number(payload.get("rate_per_minute"), "usage.rate_per_minute")),
             }
-        elif event_type == "progress.advanced":
-            _payload_fields(payload, {"progress_id"}, event_type)
-            _require_active(state, event_type)
-            _identifier(payload.get("progress_id"), "progress_id")
-            state["last_progress_at"] = _iso(observed_at)
-            state["retry"]["no_progress"] = 0
-        elif event_type == "heartbeat.recorded":
-            _payload_fields(payload, set(), event_type)
-            _require_active(state, event_type)
-            state["last_heartbeat_at"] = _iso(observed_at)
-        elif event_type == "checkpoint.verified":
-            _payload_fields(payload, {"checkpoint_id"}, event_type)
-            _require_active(state, event_type)
-            _identifier(payload.get("checkpoint_id"), "checkpoint_id")
-            state["last_checkpoint_at"] = _iso(observed_at)
-        elif event_type == "retry.recorded":
-            _payload_fields(payload, {"retry_id", "progress_made"}, event_type)
-            _require_active(state, event_type)
-            _identifier(payload.get("retry_id"), "retry_id")
-            progress_made = payload.get("progress_made")
-            if not isinstance(progress_made, bool):
-                raise RuntimeControlError("progress_made must be boolean")
-            state["retry"]["total"] += 1
-            if progress_made:
-                state["retry"]["no_progress"] = 0
-                state["last_progress_at"] = _iso(observed_at)
+        elif kind == "progress.advanced":
+            if goal["status"] != "active" or set(payload) != {"revision"}:
+                raise RuntimeControlError("progress.advanced requires active goal and revision")
+            revision = _integer(payload.get("revision"), "progress.revision", positive=True)
+            if revision <= state["progress"]["revision"]:
+                raise RuntimeControlError("progress revision must increase")
+            state["progress"]["revision"] = revision
+            state["progress"]["last_progress_at"] = _iso(at)
+        elif kind == "heartbeat.recorded":
+            if goal["status"] != "active" or payload:
+                raise RuntimeControlError("heartbeat.recorded requires active goal and empty payload")
+            progress = state["progress"]
+            if progress["last_heartbeat_revision"] == progress["revision"]:
+                progress["no_progress_heartbeats"] += 1
             else:
-                state["retry"]["no_progress"] += 1
-        elif event_type == "evidence.added":
-            _payload_fields(payload, {"evidence_id"}, event_type)
-            _require_active(state, event_type)
-            evidence_id = _identifier(payload.get("evidence_id"), "evidence_id")
-            if evidence_id not in state["evidence_ids"]:
-                state["evidence_ids"].append(evidence_id)
-        elif event_type == "artifact.verified":
-            _payload_fields(payload, {"artifact_type", "artifact_id"}, event_type)
-            _require_active(state, event_type)
+                progress["no_progress_heartbeats"] = 0
+            progress["last_heartbeat_revision"] = progress["revision"]
+            progress["heartbeat_at"] = _iso(at)
+        elif kind == "retry.recorded":
+            if goal["status"] != "active" or set(payload) != {"reason_id"}:
+                raise RuntimeControlError("retry.recorded requires active goal and reason_id")
+            _identifier(payload.get("reason_id"), "retry.reason_id")
+            state["retry"]["used"] += 1
+        elif kind == "evidence.added":
+            if goal["status"] not in {"active", "completed"} or set(payload) != {"evidence_id", "sha256"}:
+                raise RuntimeControlError("evidence.added payload fields are invalid")
+            evidence_id = _identifier(payload.get("evidence_id"), "evidence.evidence_id")
+            digest = _sha256(payload.get("sha256"), "evidence.sha256")
+            existing = state["evidence"].get(evidence_id)
+            if existing is not None and existing != digest:
+                raise RuntimeControlError("evidence_id cannot change digest")
+            state["evidence"][evidence_id] = digest
+        elif kind == "checkpoint.verified":
+            required = {"revision", "evidence_ids"}
+            if goal["status"] not in {"active", "completed"} or set(payload) != required:
+                raise RuntimeControlError("checkpoint.verified payload fields are invalid")
+            revision = _integer(payload.get("revision"), "checkpoint.revision")
+            if revision > state["progress"]["revision"]:
+                raise RuntimeControlError("checkpoint revision cannot exceed progress revision")
+            evidence_ids = _ids(payload.get("evidence_ids"), "checkpoint.evidence_ids", non_empty=True)
+            state["checkpoint"] = {"revision": revision, "verified": True, "evidence_ids": evidence_ids}
+        elif kind == "artifact.verified":
+            if set(payload) != {"artifact_type", "evidence_id"}:
+                raise RuntimeControlError("artifact.verified payload fields are invalid")
             artifact_type = payload.get("artifact_type")
             if artifact_type not in ARTIFACT_TYPES:
                 raise RuntimeControlError("unknown artifact_type")
-            artifact_id = _identifier(payload.get("artifact_id"), "artifact_id")
-            current = state["artifacts"].get(artifact_type)
-            if current is not None and current != artifact_id:
-                raise RuntimeControlError("artifact type already verified with a different identity")
-            state["artifacts"][artifact_type] = artifact_id
+            evidence_id = _identifier(payload.get("evidence_id"), "artifact.evidence_id")
+            state["artifacts"][artifact_type] = evidence_id
+        else:  # pragma: no cover
+            raise RuntimeControlError("unhandled runtime control event")
 
-        state["last_event_at"] = _iso(observed_at)
-        state["event_count"] += 1
+        state["events_applied"] += 1
+        state["last_event_at"] = _iso(at)
 
     if state is None:
-        raise RuntimeControlError("runtime control event history is empty")
-    state["evidence_ids"] = sorted(state["evidence_ids"])
-    state["artifacts"] = dict(sorted(state["artifacts"].items()))
+        raise RuntimeControlError("runtime control requires at least one event")
     return state
-
-
-def _missing_artifacts(state: Mapping[str, Any], required: Iterable[str]) -> list[str]:
-    artifacts = state.get("artifacts")
-    if not isinstance(artifacts, dict):
-        raise RuntimeControlError("state artifacts are invalid")
-    return sorted(item for item in required if item not in artifacts)
-
-
-def _effective_artifact_mode(
-    state: Mapping[str, Any],
-    policy: Mapping[str, Any],
-    verifier: ModeAuthorityVerifier | None,
-) -> tuple[str, dict[str, Any] | None, list[str]]:
-    mode = state.get("artifact_mode")
-    if mode not in TASK_MODES:
-        raise RuntimeControlError("state artifact_mode is invalid")
-    authority_policy = policy.get("mode_authority_policy")
-    if not isinstance(authority_policy, dict):
-        raise RuntimeControlError("mode authority policy is missing")
-    trusted = authority_policy.get("trusted_mode_authorities")
-    backend = authority_policy.get("verification_backend")
-    managed = authority_policy.get("managed")
-    if managed is not True or not isinstance(trusted, list) or not isinstance(backend, str):
-        raise RuntimeControlError("mode authority policy is invalid")
-    if mode != "readonly":
-        return str(mode), None, []
-    intake = state.get("goal_intake")
-    if not isinstance(intake, dict):
-        raise RuntimeControlError("readonly state is missing attested goal intake")
-    authority_id = intake.get("authority_id")
-    if authority_id not in trusted:
-        return "implementation", None, ["mode-authority-untrusted-fallback"]
-    if backend != "managed-authority-registry" or verifier is None:
-        return "implementation", None, ["mode-authority-verifier-unavailable-fallback"]
-    try:
-        result = dict(verifier(intake))
-    except Exception as exc:
-        raise RuntimeControlError("mode authority verification failed closed") from exc
-    if set(result) != {"verified", "authority_id", "attestation_sha256"}:
-        raise RuntimeControlError("mode authority verifier result is invalid")
-    if result.get("verified") is not True:
-        return "implementation", result, ["mode-authority-verification-fallback"]
-    if result.get("authority_id") != authority_id:
-        raise RuntimeControlError("mode authority verifier returned a different authority")
-    if result.get("attestation_sha256") != state.get("goal_intake_attestation_sha256"):
-        raise RuntimeControlError("mode authority verifier attestation mismatch")
-    return "readonly", result, []
 
 
 def evaluate(
     state: Mapping[str, Any],
     policy: Mapping[str, Any],
     *,
-    now: datetime | None = None,
     gate_event: str = "steady",
-    mode_authority_verifier: ModeAuthorityVerifier | None = None,
+    task_mode: str | None = None,
+    mode_authority_verifier: Callable[[Mapping[str, Any], Mapping[str, Any]], bool] | None = None,
+    as_of: datetime | None = None,
 ) -> dict[str, Any]:
-    """Evaluate one reduced state against policy and return a fail-closed decision."""
     normalized_policy = validate_policy(policy)
-    if state.get("schema_version") != STATE_SCHEMA:
+    if not isinstance(state, dict) or state.get("schema_version") != STATE_SCHEMA:
         raise RuntimeControlError("unsupported runtime control state schema")
     if gate_event not in GATE_EVENTS:
         raise RuntimeControlError("unsupported gate_event")
-    thread_id = _identifier(state.get("thread_id"), "thread_id")
-    timestamp = (now or datetime.now(UTC)).astimezone(UTC)
+    goal = state.get("goal") or {}
     policy_schema = normalized_policy["schema_version"]
-    decision_schema = DECISION_SCHEMA if policy_schema == POLICY_SCHEMA else DECISION_SCHEMA_V2
-    effective_artifact_mode = "legacy-v1"
-    mode_authority_evidence: dict[str, Any] | None = None
-    gate_applicable = True
-    action = "continue"
-    reasons: list[str] = []
-    missing: list[str] = []
-
-    if state.get("status") == "active":
-        usage = state.get("usage")
-        if not isinstance(usage, dict):
-            raise RuntimeControlError("state usage is invalid")
-        tokens_used = _integer(usage.get("tokens_used"), "tokens_used")
-        token_budget = _integer(usage.get("token_budget"), "token_budget")
-        context_ratio = _number(usage.get("context_ratio"), "context_ratio")
-        token_ratio = (tokens_used / token_budget) if token_budget else 0.0
-        token_policy = normalized_policy["token"]
-        context_policy = normalized_policy["context"]
-        progress_policy = normalized_policy["progress"]
-
-        if token_budget and token_ratio >= token_policy["stop_ratio"]:
-            action = "stop"
-            reasons.append("token-stop-threshold")
-        elif token_budget and token_ratio >= token_policy["compact_ratio"]:
-            action = "compact"
-            reasons.append("token-compact-threshold")
-        elif token_budget and token_ratio >= token_policy["checkpoint_ratio"]:
-            action = "checkpoint"
-            reasons.append("token-checkpoint-threshold")
-        elif context_ratio >= context_policy["compact_ratio"]:
-            action = "compact"
-            reasons.append("context-compact-threshold")
-
-        last_progress = _timestamp(state.get("last_progress_at"), "last_progress_at")
-        staleness = max(0, int((timestamp - last_progress).total_seconds()))
-        retry = state.get("retry")
-        if not isinstance(retry, dict):
-            raise RuntimeControlError("state retry is invalid")
-        total_retry = _integer(retry.get("total"), "retry.total")
-        no_progress = _integer(retry.get("no_progress"), "retry.no_progress")
-        if total_retry >= progress_policy["retry_limit"] and no_progress:
-            action = "stop"
-            reasons.append("retry-limit")
-        if no_progress >= progress_policy["no_progress_limit"]:
-            action = "stop"
-            reasons.append("no-progress-limit")
-        if staleness >= progress_policy["staleness_seconds"]:
-            action = "stop"
-            reasons.append("progress-stale")
-    else:
-        staleness = 0
-
     if policy_schema == POLICY_SCHEMA:
-        required = normalized_policy["gate_policy"][gate_event]
+        if task_mode is not None and task_mode != "implementation":
+            raise RuntimeControlError(
+                "runtime_control.policy/v1 supports only legacy implementation behavior"
+            )
+        normalized_task_mode = "implementation"
+        normalized_artifact_mode = "implementation"
+        effective_artifact_mode = "implementation"
+        mode_authority_managed = True
     else:
-        effective_artifact_mode, mode_authority_evidence, authority_reasons = _effective_artifact_mode(
-            state, normalized_policy, mode_authority_verifier
+        if task_mode is not None:
+            raise RuntimeControlError(
+                "runtime_control.policy/v2 task mode is state-bound and cannot be overridden"
+            )
+        provenance = goal.get("intake_provenance")
+        if not isinstance(provenance, dict) or provenance.get("kind") not in {
+            "routing-decision", "goal-replan"
+        }:
+            raise RuntimeControlError("runtime_control.policy/v2 requires an attested goal intake")
+        last_event_at = state.get("last_event_at")
+        if not last_event_at:
+            raise RuntimeControlError("runtime control state is missing its event provenance")
+        bound_intake = _validate_goal_intake(
+            {
+                "schema_version": GOAL_INTAKE_SCHEMA,
+                "task_mode": goal.get("task_mode"),
+                "artifact_mode": goal.get("artifact_mode"),
+                "goal_id": goal.get("goal_id"),
+                "request_sha256": goal.get("request_sha256"),
+                "routing_decision_sha256": goal.get("routing_decision_sha256"),
+                "authority_id": goal.get("mode_authority_id"),
+                "attestation_sha256": goal.get("intake_attestation_sha256"),
+                "provenance": provenance,
+            },
+            event_at=_timestamp(last_event_at, "state.last_event_at"),
+            expected_kind=str(provenance["kind"]),
+            expected_goal_id=str(goal.get("goal_id")),
         )
-        reasons.extend(authority_reasons)
-        required = normalized_policy["artifact_applicability"][effective_artifact_mode][gate_event]
-        gate_applicable = required is not None
-        if required is None:
-            required = []
-    missing = _missing_artifacts(state, required)
-    if missing and action != "stop":
-        action = "blocked"
-        reasons.append("missing-artifact")
-    if not gate_applicable and action != "stop":
-        action = "blocked"
-        reasons.append("gate-not-applicable")
+        normalized_task_mode = str(bound_intake["task_mode"])
+        normalized_artifact_mode = str(bound_intake["artifact_mode"])
+        authority_policy = normalized_policy["mode_authority_policy"]
+        authority_registered = (
+            authority_policy["verification_backend"] == "managed-authority-registry"
+            and bound_intake["authority_id"]
+            in authority_policy["trusted_mode_authorities"]
+        )
+        mode_authority_managed = False
+        if authority_registered and mode_authority_verifier is not None:
+            try:
+                mode_authority_managed = mode_authority_verifier(
+                    bound_intake, authority_policy
+                ) is True
+            except Exception:
+                mode_authority_managed = False
+        effective_artifact_mode = normalized_artifact_mode
+        if not mode_authority_managed and normalized_artifact_mode == "readonly":
+            effective_artifact_mode = "implementation"
+    now = as_of or datetime.now(UTC)
+    if now.tzinfo is None:
+        raise RuntimeControlError("as_of must include timezone")
+    now = now.astimezone(UTC)
 
-    reason_list = sorted(set(reasons)) or ["within-policy"]
-    decision: dict[str, Any] = {
-        "schema_version": decision_schema,
-        "thread_id": thread_id,
-        "goal_id": state.get("goal_id", ""),
-        "goal_generation": _integer(state.get("goal_generation"), "goal_generation"),
-        "evaluated_at": _iso(timestamp),
+    usage = state.get("usage") or {}
+    progress = state.get("progress") or {}
+    retry = state.get("retry") or {}
+    checkpoint = state.get("checkpoint") or {}
+    evidence = state.get("evidence") or {}
+    artifacts = state.get("artifacts") or {}
+    reasons: list[str] = []
+
+    required_evidence = set(goal.get("required_evidence") or [])
+    evidence_present = set(evidence)
+    missing_evidence = sorted(required_evidence - evidence_present)
+    checkpoint_missing = sorted(set(checkpoint.get("evidence_ids") or []) - evidence_present)
+    if policy_schema == POLICY_SCHEMA:
+        gate_applicable = True
+        required_artifacts = normalized_policy["gate_policy"][gate_event]
+    else:
+        configured_artifacts = normalized_policy["artifact_applicability"][effective_artifact_mode][gate_event]
+        gate_applicable = configured_artifacts is not None
+        required_artifacts = configured_artifacts or []
+    missing_artifacts = sorted(item for item in required_artifacts if item not in artifacts)
+    artifact_evidence_missing = sorted(
+        item for item in required_artifacts if item in artifacts and artifacts[item] not in evidence_present
+    )
+
+    total_tokens = int(usage.get("total_tokens") or 0)
+    baseline_tokens = int(goal.get("usage_baseline_tokens") or 0)
+    goal_tokens = max(total_tokens - baseline_tokens, 0)
+    if usage.get("observed_at") and total_tokens < baseline_tokens:
+        raise RuntimeControlError("goal usage baseline cannot exceed current usage snapshot")
+    token_budget = goal.get("token_budget")
+    token_ratio = (goal_tokens / token_budget) if token_budget else None
+    context_window = int(usage.get("context_window") or 0)
+    last_input_tokens = int(usage.get("last_input_tokens") or 0)
+    context_ratio = (last_input_tokens / context_window) if context_window else 0.0
+
+    started_at = _timestamp(goal["started_at"], "goal.started_at") if goal.get("started_at") else None
+    time_elapsed = (now - started_at).total_seconds() if started_at else 0.0
+    time_budget = goal.get("time_budget_seconds")
+    heartbeat_at = _timestamp(progress["heartbeat_at"], "progress.heartbeat_at") if progress.get("heartbeat_at") else None
+    heartbeat_age = (now - heartbeat_at).total_seconds() if heartbeat_at else None
+    if heartbeat_age is not None and heartbeat_age < 0:
+        raise RuntimeControlError("heartbeat cannot be in the future")
+
+    completion_valid = True
+    if goal.get("status") == "completed":
+        if not gate_applicable:
+            reasons.append("gate-not-applicable")
+        if int(goal.get("open_items_count") or 0) != 0:
+            reasons.append("open-items-remain")
+        if not checkpoint.get("verified"):
+            reasons.append("checkpoint-not-verified")
+        elif int(checkpoint.get("revision") or 0) != int(progress.get("revision") or 0):
+            reasons.append("checkpoint-stale")
+        if missing_evidence or checkpoint_missing:
+            reasons.append("required-evidence-missing")
+        if missing_artifacts or artifact_evidence_missing:
+            reasons.append("required-artifact-missing")
+        if int(retry.get("used") or 0) >= int(normalized_policy["progress"]["retry_limit"]):
+            reasons.append("retry-budget-exhausted")
+        if int(progress.get("no_progress_heartbeats") or 0) >= int(
+            normalized_policy["progress"]["no_progress_limit"]
+        ):
+            reasons.append("no-progress-limit-reached")
+        completion_valid = not reasons
+
+    if goal.get("status") == "aborted":
+        action = "blocked"
+        reasons.append("goal-aborted")
+    elif goal.get("status") == "completed":
+        action = "pass" if completion_valid else "replan"
+    elif goal.get("status") != "active":
+        action = "continue"
+    elif token_ratio is not None and token_ratio >= normalized_policy["token"]["stop_ratio"]:
+        action = "stop"
+        reasons.append("token-budget-exhausted")
+    elif time_budget and time_elapsed >= time_budget:
+        action = "stop"
+        reasons.append("time-budget-exhausted")
+    elif heartbeat_age is None or heartbeat_age > normalized_policy["progress"]["staleness_seconds"]:
+        action = "replan"
+        reasons.append("heartbeat-stale")
+    elif int(retry.get("used") or 0) >= int(normalized_policy["progress"]["retry_limit"]):
+        action = "replan"
+        reasons.append("retry-budget-exhausted")
+    elif int(progress.get("no_progress_heartbeats") or 0) >= int(
+        normalized_policy["progress"]["no_progress_limit"]
+    ):
+        action = "replan"
+        reasons.append("no-progress-limit-reached")
+    elif context_ratio >= normalized_policy["context"]["compact_ratio"]:
+        action = "compact"
+        reasons.append("context-pressure")
+    elif token_ratio is not None and token_ratio >= normalized_policy["token"]["compact_ratio"]:
+        action = "compact"
+        reasons.append("token-budget-critical")
+    elif (
+        token_ratio is not None
+        and token_ratio >= normalized_policy["token"]["checkpoint_ratio"]
+        and (
+            not checkpoint.get("verified")
+            or int(checkpoint.get("revision") or 0) != int(progress.get("revision") or 0)
+        )
+    ):
+        action = "checkpoint"
+        reasons.append("token-budget-warning")
+    else:
+        action = "continue"
+
+    gate_allowed = gate_event == "steady" and gate_applicable
+    if not gate_applicable:
+        gate_allowed = False
+    elif gate_event == "apply":
+        gate_allowed = (
+            goal.get("status") in {"active", "completed"}
+            and action in {"continue", "pass"}
+            and not missing_artifacts
+            and not artifact_evidence_missing
+        )
+    elif gate_event != "steady":
+        gate_allowed = goal.get("status") == "completed" and completion_valid
+
+    if gate_event != "steady" and not gate_allowed:
+        if not gate_applicable:
+            reasons.append("gate-not-applicable")
+        if missing_artifacts or artifact_evidence_missing:
+            reasons.append("required-artifact-missing")
+        if gate_event != "apply" and goal.get("status") != "completed":
+            reasons.append("goal-not-completed")
+        if action == "continue":
+            action = "replan"
+    elif gate_event != "steady" and gate_allowed:
+        action = "pass"
+
+    reasons = list(dict.fromkeys(reasons))
+    completion_allowed = (
+        goal.get("status") == "completed" and completion_valid and gate_applicable
+    )
+    status = "pass" if gate_allowed and gate_event != "steady" else (
+        "pass" if completion_allowed else (
+        "active" if action == "continue" else (
+            "attention" if action in {"checkpoint", "compact"} else "fail"
+        )
+    ))
+    decision = {
+        "schema_version": DECISION_SCHEMA if policy_schema == POLICY_SCHEMA else DECISION_SCHEMA_V2,
+        "status": status,
         "gate_event": gate_event,
-        "action": action,
-        "reasons": reason_list,
-        "missing_artifacts": missing,
-        "progress_staleness_seconds": staleness,
+        "recommended_action": action,
+        "completion_allowed": completion_allowed,
+        "advisory_only": action in {"continue", "checkpoint", "compact"},
+        "evaluated_at": _iso(now),
+        "thread_id": (state.get("identity") or {}).get("thread_id"),
+        "goal_id": goal.get("goal_id"),
+        "goal_status": goal.get("status"),
+        "gate_allowed": gate_allowed,
+        "goal_tokens": goal_tokens,
+        "token_budget": token_budget,
+        "token_ratio": round(token_ratio, 6) if token_ratio is not None else None,
+        "context_ratio": round(context_ratio, 6),
+        "time_elapsed_seconds": round(time_elapsed, 3),
+        "heartbeat_age_seconds": round(heartbeat_age, 3) if heartbeat_age is not None else None,
+        "retry_remaining": max(
+            int(normalized_policy["progress"]["retry_limit"]) - int(retry.get("used") or 0), 0
+        ),
+        "no_progress_remaining": max(
+            int(normalized_policy["progress"]["no_progress_limit"])
+            - int(progress.get("no_progress_heartbeats") or 0),
+            0,
+        ),
+        "missing_evidence": missing_evidence,
+        "checkpoint_evidence_missing": checkpoint_missing,
+        "missing_artifacts": missing_artifacts,
+        "artifact_evidence_missing": artifact_evidence_missing,
+        "reasons": reasons,
     }
     if policy_schema == POLICY_SCHEMA_V2:
         decision.update({
-            "goal_intake_attestation_sha256": _sha256(
-                state.get("goal_intake_attestation_sha256"),
-                "goal_intake_attestation_sha256",
-            ),
-            "task_mode": state.get("task_mode"),
-            "artifact_mode": state.get("artifact_mode"),
+            "task_mode": normalized_task_mode,
+            "artifact_mode": normalized_artifact_mode,
             "effective_artifact_mode": effective_artifact_mode,
+            "mode_authority_id": goal.get("mode_authority_id"),
+            "mode_authority_managed": mode_authority_managed,
+            "intake_attestation_sha256": goal.get("intake_attestation_sha256"),
+            "intake_provenance": goal.get("intake_provenance"),
             "gate_applicable": gate_applicable,
-            "mode_authority_evidence": mode_authority_evidence,
-            "goal_replan_identity": state.get("goal_replan_identity", ""),
+            "required_artifacts": list(required_artifacts),
         })
     return decision
