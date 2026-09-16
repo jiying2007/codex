@@ -22,10 +22,10 @@ from .runtime_kernel import RuntimeControlError, evaluate, reduce_events, valida
 UTC = timezone.utc
 ENGINE_BASELINE = {
     "repository": "jiying2007/agent-dev-kit",
-    "version": "5.1.0",
-    "commit": "59cbd5cb40ca7077ee5407636bfc617e295ec7e5",
-    "engine_blob": "c01f71f2d8518266f947d696b8828cb102859ce1",
-    "support_blob": "4dbb0d10c0733f8cc7a897d5325cf819a34872f0",
+    "version": "5.1.1",
+    "commit": "e36dfec69f21806431b07daddc4bd78412179e62",
+    "engine_blob": "0acf94e0b6b2224ec6dbabd9d31d9b4e14366a03",
+    "support_blob": "4e9ee519e5673025446ddf93dd2a088edd02e283",
 }
 
 
