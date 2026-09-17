@@ -1,0 +1,69 @@
+name: Runtime R2 Execution Contract
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/runtime-r2-provider-execution.yml'
+      - '.github/workflows/runtime-r2-execution-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/runtime-r2-provider-execution.yml'
+      - '.github/workflows/runtime-r2-execution-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install YAML parser
+        run: python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
+      - name: Validate runtime-owned R2 execution boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import pathlib, re, yaml
+          paths=[
+              pathlib.Path('.github/workflows/runtime-r2-provider-execution.yml'),
+              pathlib.Path('.github/workflows/runtime-r2-execution-contract.yml'),
+          ]
+          for path in paths:
+              text=path.read_text(encoding='utf-8')
+              yaml.load(text, Loader=yaml.BaseLoader)
+              bad=[]
+              for lineno,line in enumerate(text.splitlines(),1):
+                  m=re.search(r'\buses:\s*[^\s@]+@([^\s#]+)',line)
+                  if m and not re.fullmatch(r'[0-9a-f]{40}',m.group(1)):
+                      bad.append(f'{path}:{lineno}:{m.group(1)}')
+              assert not bad, 'unpinned actions: '+', '.join(bad)
+          provider=paths[0].read_text(encoding='utf-8')
+          assert 'CODEX_RUNTIME_CREDENTIAL' in provider
+          assert 'CLAUDE_RUNTIME_CREDENTIAL' not in provider
+          assert 'repository: jiying2007/digital-worker' in provider
+          assert 'digital_worker_commit' in provider
+          assert 'frozen_inputs_sha256' in provider
+          assert "assert plan['frozen_inputs_sha256'] == os.environ['EXPECTED_FROZEN_INPUTS_SHA256']" in provider
+          assert 'verification_or_release_authority' in provider
+          assert "'verification_or_release_authority':False" in provider
+          assert "'verification_pass_claimed':False" in provider
+          assert "'r2_qualified':False" in provider
+          assert 'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6' in provider
+          assert 'result-tree.tar.gz' in provider
+          assert 'workflow_dispatch:' in provider
+          assert '\n  pull_request:' not in provider
+          assert '\n  push:' not in provider
+          print('[PASS] Codex owns provider credential/execution and emits attested execution-fact-only R2 evidence')
+          PY

@@ -1,0 +1,365 @@
+name: Codex R2 Provider Execution
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type RUN_REAL_R2 to authorize Codex provider execution only"
+        required: true
+        type: string
+      digital_worker_commit:
+        description: "Exact Digital Worker commit that defines the frozen R2 plan"
+        required: true
+        type: string
+      frozen_inputs_sha256:
+        description: "Expected frozen controlled-task SHA-256 produced by Digital Worker"
+        required: true
+        type: string
+      target_repository:
+        description: "Frozen target repository"
+        required: true
+        default: "jiying2007/ota_download_test"
+        type: string
+      target_base_commit:
+        description: "Exact frozen target base commit"
+        required: true
+        default: "eeb926bd1fff75d2a5d5abb9f0ede9c8f582cc6d"
+        type: string
+      codex_model:
+        description: "Exact model identifier passed to the Codex execution adapter"
+        required: true
+        default: "gpt-5.3-codex"
+        type: string
+      provider_identity:
+        description: "Auditable provider identity behind the Codex runtime transport"
+        required: true
+        default: "openai"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-r2-provider-${{ github.run_id }}
+  cancel-in-progress: false
+
+env:
+  CODEX_BINDING_COMMIT: d12e782b46430d6bfc828f24a41f94f871a7a19a
+
+jobs:
+  execute:
+    name: Execute Codex and attest native evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Enforce explicit runtime-owned authorization
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          DIGITAL_WORKER_COMMIT: ${{ inputs.digital_worker_commit }}
+          FROZEN_INPUTS_SHA256: ${{ inputs.frozen_inputs_sha256 }}
+          TARGET_BASE_COMMIT: ${{ inputs.target_base_commit }}
+          CODEX_RUNTIME_CREDENTIAL: ${{ secrets.CODEX_RUNTIME_CREDENTIAL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$CONFIRMATION" = RUN_REAL_R2
+          [[ "$DIGITAL_WORKER_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$FROZEN_INPUTS_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$TARGET_BASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          if [ -z "$CODEX_RUNTIME_CREDENTIAL" ]; then
+            echo '::error::BLOCKED_MISSING_CODEX_RUNTIME_CREDENTIAL'
+            exit 2
+          fi
+
+      - name: Checkout exact Digital Worker governance source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: jiying2007/digital-worker
+          ref: ${{ inputs.digital_worker_commit }}
+          path: digital-worker
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Checkout exact frozen target base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ${{ inputs.target_repository }}
+          ref: ${{ inputs.target_base_commit }}
+          path: r2-target
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Checkout exact Codex runtime binding
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: jiying2007/codex
+          ref: d12e782b46430d6bfc828f24a41f94f871a7a19a
+          path: codex-binding
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+
+      - name: Install exact runtime distribution dependencies
+        run: python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2' 'jsonschema==4.26.0'
+
+      - name: Recompute and verify the canonical frozen plan
+        env:
+          DIGITAL_WORKER_COMMIT: ${{ inputs.digital_worker_commit }}
+          EXPECTED_FROZEN_INPUTS_SHA256: ${{ inputs.frozen_inputs_sha256 }}
+          TARGET_BASE_COMMIT: ${{ inputs.target_base_commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C digital-worker rev-parse HEAD)" = "$DIGITAL_WORKER_COMMIT"
+          test "$(git -C r2-target rev-parse HEAD)" = "$TARGET_BASE_COMMIT"
+          test -z "$(git -C r2-target status --porcelain=v1 --untracked-files=all)"
+          python digital-worker/scripts/runtime_r2_evidence.py prepare \
+            --root "$GITHUB_WORKSPACE/digital-worker" \
+            --target-root "$GITHUB_WORKSPACE/r2-target" \
+            --output "$RUNNER_TEMP/frozen-plan.json"
+          python - "$RUNNER_TEMP/frozen-plan.json" <<'PY'
+          import json, os, pathlib
+          plan=json.loads(pathlib.Path(os.environ['RUNNER_TEMP'], 'frozen-plan.json').read_text())
+          assert plan['schema'] == 'digital-worker-runtime-r2-plan/v1'
+          assert plan['frozen_inputs_sha256'] == os.environ['EXPECTED_FROZEN_INPUTS_SHA256']
+          assert plan['controlled_task']['exact_base_commit'] == os.environ['TARGET_BASE_COMMIT']
+          binding=plan['runtime_bindings']['codex']
+          assert binding['repository'] == 'jiying2007/codex'
+          assert binding['commit'] == os.environ['CODEX_BINDING_COMMIT']
+          assert binding['runtime_target'] == 'codex-cli'
+          PY
+
+      - name: Materialize exact Codex source set into isolated home
+        shell: bash
+        run: |
+          set -euo pipefail
+          binding="$GITHUB_WORKSPACE/codex-binding"
+          build="$RUNNER_TEMP/codex-build"
+          home="$RUNNER_TEMP/codex-home"
+          PYTHONPATH="$binding" python -m tools.codex_assets build --root "$binding" --profile default --build "$build"
+          PYTHONPATH="$binding" python -m tools.codex_assets apply --root "$binding" --build "$build" --target "$home"
+          PYTHONPATH="$binding" python -m tools.codex_assets diff --root "$binding" --build "$build" --target "$home"
+          python - "$home" "$RUNNER_TEMP/codex-install.json" <<'PY'
+          import hashlib, json, pathlib, sys
+          home, out = map(pathlib.Path, sys.argv[1:])
+          managed = json.loads((home / 'control/state/managed-files.json').read_text(encoding='utf-8'))
+          def canonical(v): return json.dumps(v, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+          source = {
+              'runtime_binding_repository': 'jiying2007/codex',
+              'runtime_binding_commit': 'd12e782b46430d6bfc828f24a41f94f871a7a19a',
+              'profile': managed.get('profile'),
+              'source_fingerprint': managed.get('source_fingerprint'),
+              'managed_state_sha256': hashlib.sha256((home / 'control/state/managed-files.json').read_bytes()).hexdigest(),
+          }
+          files=[]
+          for path in sorted(p for p in home.rglob('*') if p.is_file()):
+              files.append({'path': path.relative_to(home).as_posix(), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
+          receipt = {
+              'schema': 'codex-r2-runtime-install/v1',
+              'source_set_identity_ref': 'sha256:' + hashlib.sha256(canonical(source)).hexdigest(),
+              'runtime_distribution_identity_ref': 'sha256:' + hashlib.sha256(canonical(files)).hexdigest(),
+              'profile': managed.get('profile'),
+              'files': len(files),
+          }
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+
+      - name: Create runtime-local provider authorization receipt
+        env:
+          EXPECTED_FROZEN_INPUTS_SHA256: ${{ inputs.frozen_inputs_sha256 }}
+          DIGITAL_WORKER_COMMIT: ${{ inputs.digital_worker_commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - "$RUNNER_TEMP/frozen-plan.json" "$RUNNER_TEMP/provider-authorization.json" <<'PY'
+          import hashlib, json, os, pathlib, sys
+          plan_path, out = map(pathlib.Path, sys.argv[1:])
+          plan=json.loads(plan_path.read_text())
+          value={
+              'schema':'codex-r2-provider-authorization/v1',
+              'authorized':True,
+              'authorization_mode':'explicit-runtime-owned-workflow-dispatch',
+              'actor':os.environ['GITHUB_ACTOR'],
+              'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+              'workflow_sha':os.environ['GITHUB_SHA'],
+              'digital_worker_commit':os.environ['DIGITAL_WORKER_COMMIT'],
+              'frozen_plan_sha256':hashlib.sha256(plan_path.read_bytes()).hexdigest(),
+              'frozen_inputs_sha256':plan['frozen_inputs_sha256'],
+              'scope':'codex-provider-execution-only',
+              'verification_or_release_authority':False,
+          }
+          assert value['frozen_inputs_sha256'] == os.environ['EXPECTED_FROZEN_INPUTS_SHA256']
+          out.write_text(json.dumps(value, indent=2, sort_keys=True)+'\n')
+          PY
+          date -u +%Y-%m-%dT%H:%M:%SZ > "$RUNNER_TEMP/codex-started-at"
+
+      - name: Read frozen provider prompt
+        id: frozen-prompt
+        shell: bash
+        run: |
+          {
+            echo 'text<<R2_PROMPT_EOF'
+            python - "$RUNNER_TEMP/frozen-plan.json" <<'PY'
+          import json, os, pathlib
+          print(json.loads(pathlib.Path(os.environ['RUNNER_TEMP'], 'frozen-plan.json').read_text())['prompt'])
+          PY
+            echo 'R2_PROMPT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run Codex through the runtime-owned execution adapter
+        id: provider
+        uses: openai/codex-action@5c3f4ccdb2b8790f73d6b21751ac00e602aa0c02
+        with:
+          openai-api-key: ${{ secrets.CODEX_RUNTIME_CREDENTIAL }}
+          responses-api-endpoint: ${{ vars.CODEX_RUNTIME_ENDPOINT }}
+          prompt: ${{ steps.frozen-prompt.outputs.text }}
+          output-file: ${{ runner.temp }}/codex-final.txt
+          working-directory: ${{ github.workspace }}/r2-target
+          codex-home: ${{ runner.temp }}/codex-home
+          model: ${{ inputs.codex_model }}
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+
+      - name: Build native execution receipt and replay-complete result bundle
+        env:
+          TARGET_REPOSITORY: ${{ inputs.target_repository }}
+          CODEX_MODEL: ${{ inputs.codex_model }}
+          PROVIDER_IDENTITY: ${{ inputs.provider_identity }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          date -u +%Y-%m-%dT%H:%M:%SZ > "$RUNNER_TEMP/codex-finished-at"
+          codex --version > "$RUNNER_TEMP/codex-version.txt"
+          git -C r2-target status --porcelain=v1 --untracked-files=all > "$RUNNER_TEMP/codex-status.txt"
+          git -C r2-target diff --binary > "$RUNNER_TEMP/codex.patch"
+          tar --exclude=.git -C r2-target -czf "$RUNNER_TEMP/result-tree.tar.gz" .
+          python - "$RUNNER_TEMP/frozen-plan.json" "$RUNNER_TEMP/provider-authorization.json" "$RUNNER_TEMP/codex-install.json" "$GITHUB_WORKSPACE/r2-target" "$RUNNER_TEMP/result-tree.tar.gz" "$RUNNER_TEMP/codex-native.json" <<'PY'
+          import hashlib, json, os, pathlib, sys
+          plan_path, auth_path, install_path, target, result_archive, out = map(pathlib.Path, sys.argv[1:])
+          plan=json.loads(plan_path.read_text()); auth=json.loads(auth_path.read_text()); install=json.loads(install_path.read_text())
+          assert auth['authorized'] is True and auth['frozen_inputs_sha256'] == plan['frozen_inputs_sha256']
+          def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
+          def tree_digest(root):
+              rows=[]
+              for p in sorted(x for x in root.rglob('*') if x.is_file() and '.git' not in x.parts):
+                  rows.append((p.relative_to(root).as_posix(), sha(p)))
+              return hashlib.sha256(json.dumps(rows, separators=(',', ':')).encode()).hexdigest()
+          controlled=plan['controlled_task']; governance=controlled['digital_worker_governance_identity_ref'].removeprefix('sha256:')
+          version=pathlib.Path(os.environ['RUNNER_TEMP'], 'codex-version.txt').read_text().strip()
+          receipt={
+              'schema_version':2,
+              'work_item_id':controlled['work_item_id'],
+              'run_id':controlled['run_id'],
+              'execution_source_set_identity':controlled['runtime_source_set_identity_ref'],
+              'digital_worker_governance_identity':governance,
+              'runtime_binding':{
+                  'repository':'jiying2007/codex','commit':os.environ['CODEX_BINDING_COMMIT'],'target':'codex-cli',
+                  'runtime_profile':install['profile'],'runtime_host':'github-actions:'+os.environ['GITHUB_RUN_ID'],
+                  'source_set_identity_ref':install['source_set_identity_ref'],
+                  'runtime_distribution_identity_ref':install['runtime_distribution_identity_ref'],
+              },
+              'agent_assets':{
+                  'provider_repository':plan['adk_release_identity']['repository'],'release_version':plan['adk_release_identity']['version'],
+                  'release_tag':plan['adk_release_identity']['tag'],'release_commit':plan['adk_release_identity']['commit'],
+                  'asset_profile':controlled['adk_asset_profile'],'source_set_identity':install['source_set_identity_ref'],
+              },
+              'runtime':{'provider':os.environ['PROVIDER_IDENTITY'],'cli_version':version,'model':os.environ['CODEX_MODEL'],'model_provider':os.environ['PROVIDER_IDENTITY']},
+              'permissions':{'sandbox':'workspace-write','approval':'explicit-runtime-owned-workflow-dispatch','network':'runtime-owned-codex-provider-transport'},
+              'repository':{'repository':os.environ['TARGET_REPOSITORY'],'base_commit':controlled['exact_base_commit'],'result_commit':None},
+              'execution':{
+                  'status':'completed','runtime_local_gates':['exact-base','source-set-applied','codex-adapter-success','replay-bundle-complete'],
+                  'started_at':pathlib.Path(os.environ['RUNNER_TEMP'],'codex-started-at').read_text().strip(),
+                  'finished_at':pathlib.Path(os.environ['RUNNER_TEMP'],'codex-finished-at').read_text().strip(),
+              },
+              'evidence_refs':[
+                  'provider-authorization:sha256:'+sha(auth_path),
+                  'provider-output:sha256:'+sha(pathlib.Path(os.environ['RUNNER_TEMP'],'codex-final.txt')),
+                  'worktree-result:sha256:'+tree_digest(target),
+                  'replay-result-archive:sha256:'+sha(result_archive),
+              ],
+          }
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True)+'\n')
+          PY
+          python - <<'PY'
+          import json, os
+          from jsonschema import Draft202012Validator
+          schema=json.load(open('codex-binding/schemas/runtime-execution-receipt.v2.schema.json'))
+          receipt=json.load(open(os.environ['RUNNER_TEMP'] + '/codex-native.json'))
+          Draft202012Validator(schema).validate(receipt)
+          forbidden={'verification_pass','verification_status','domain_verification_status','release_ready','domain_gate_pass','r2_qualified'}
+          def walk(v):
+              if isinstance(v,dict):
+                  for k,x in v.items():
+                      if k.lower().replace('-','_') in forbidden and (x is True or str(x).lower() in {'pass','passed','success','ready'}):
+                          raise SystemExit('forbidden verification/release authority claim in runtime receipt')
+                      walk(x)
+              elif isinstance(v,list):
+                  for x in v: walk(x)
+          walk(receipt)
+          PY
+
+      - name: Assemble immutable evidence subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/codex-r2-evidence"
+          mkdir -p "$evidence"
+          cp "$RUNNER_TEMP/frozen-plan.json" "$evidence/"
+          cp "$RUNNER_TEMP/provider-authorization.json" "$evidence/"
+          cp "$RUNNER_TEMP/codex-install.json" "$evidence/"
+          cp "$RUNNER_TEMP/codex-native.json" "$evidence/"
+          cp "$RUNNER_TEMP/codex-status.txt" "$evidence/"
+          cp "$RUNNER_TEMP/codex.patch" "$evidence/"
+          cp "$RUNNER_TEMP/codex-version.txt" "$evidence/"
+          cp "$RUNNER_TEMP/codex-final.txt" "$evidence/"
+          cp "$RUNNER_TEMP/result-tree.tar.gz" "$evidence/"
+          python - "$evidence" <<'PY'
+          import hashlib, json, os, pathlib, sys
+          root=pathlib.Path(sys.argv[1])
+          files=[]
+          for p in sorted(x for x in root.iterdir() if x.is_file()):
+              files.append({'path':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()})
+          manifest={
+              'schema':'codex-r2-evidence-bundle/v1','runtime':'codex','status':'provider-execution-completed-pending-digital-worker-verification',
+              'workflow_repository':os.environ['GITHUB_REPOSITORY'],'workflow_sha':os.environ['GITHUB_SHA'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+              'verification_pass_claimed':False,'r2_qualified':False,'files':files,
+          }
+          (root/'bundle-manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+          PY
+          tar -C "$evidence" -czf "$RUNNER_TEMP/codex-r2-evidence-${GITHUB_RUN_ID}.tar.gz" .
+
+      - name: Attest runtime-owned evidence provenance
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: ${{ runner.temp }}/codex-r2-evidence-${{ github.run_id }}.tar.gz
+
+      - name: Export offline-verifiable provenance bundle
+        shell: bash
+        env:
+          ATTESTATION_BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          test -s "$ATTESTATION_BUNDLE_PATH"
+          cp "$ATTESTATION_BUNDLE_PATH" "$RUNNER_TEMP/codex-r2-evidence-${GITHUB_RUN_ID}.attestation.json"
+
+      - name: Upload Codex R2 native evidence candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: codex-r2-native-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/codex-r2-evidence-${{ github.run_id }}.tar.gz
+            ${{ runner.temp }}/codex-r2-evidence-${{ github.run_id }}.attestation.json
+          if-no-files-found: error
+          retention-days: 30
