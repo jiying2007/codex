@@ -22,6 +22,7 @@ TARGET_ROOT=
 PLAN=
 OUT=
 MODEL=gpt-5.3-codex
+PYTHON_BIN=${PYTHON_BIN:-python3}
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -49,12 +50,18 @@ PLAN=$(cd "$(dirname "$PLAN")" && pwd)/$(basename "$PLAN")
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)
 
-for cmd in git python codex tar sha256sum; do
+for cmd in git codex tar sha256sum; do
   command -v "$cmd" >/dev/null 2>&1 || { echo "missing command: $cmd" >&2; exit 2; }
 done
+command -v "$PYTHON_BIN" >/dev/null 2>&1 || { echo "missing Python 3 interpreter: $PYTHON_BIN" >&2; exit 2; }
+"$PYTHON_BIN" - <<'PY'
+import sys
+if sys.version_info < (3, 9):
+    raise SystemExit(f"Python >= 3.9 required, got {sys.version}")
+PY
 
 read_plan() {
-  python - "$PLAN" "$1" <<'PY'
+  "$PYTHON_BIN" - "$PLAN" "$1" <<'PY'
 import json, pathlib, sys
 value=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 for part in sys.argv[2].split("."):
@@ -88,12 +95,12 @@ test -z "$(git -C "$TARGET_ROOT" status --porcelain=v1 --untracked-files=all)" |
   exit 2
 }
 
-python "$DW_ROOT/scripts/runtime_r2_evidence.py" prepare \
+"$PYTHON_BIN" "$DW_ROOT/scripts/runtime_r2_evidence.py" prepare \
   --root "$DW_ROOT" \
   --target-root "$TARGET_ROOT" \
   --output "$OUT/recomputed-plan.json"
 
-python - "$PLAN" "$OUT/recomputed-plan.json" <<'PY'
+"$PYTHON_BIN" - "$PLAN" "$OUT/recomputed-plan.json" <<'PY'
 import json, pathlib, sys
 a=json.loads(pathlib.Path(sys.argv[1]).read_text())
 b=json.loads(pathlib.Path(sys.argv[2]).read_text())
@@ -105,20 +112,20 @@ PY
 
 BUILD="$OUT/codex-build"
 R2_HOME="$OUT/codex-home"
-PYTHONPATH="$ROOT" python -m tools.codex_assets build \
+PYTHONPATH="$ROOT" "$PYTHON_BIN" -m tools.codex_assets build \
   --root "$ROOT" \
   --profile default \
   --build "$BUILD"
-PYTHONPATH="$ROOT" python -m tools.codex_assets apply \
+PYTHONPATH="$ROOT" "$PYTHON_BIN" -m tools.codex_assets apply \
   --root "$ROOT" \
   --build "$BUILD" \
   --target "$R2_HOME"
-PYTHONPATH="$ROOT" python -m tools.codex_assets diff \
+PYTHONPATH="$ROOT" "$PYTHON_BIN" -m tools.codex_assets diff \
   --root "$ROOT" \
   --build "$BUILD" \
   --target "$R2_HOME"
 
-python - "$R2_HOME" "$EXPECTED_BINDING" "$OUT/codex-install.json" <<'PY'
+"$PYTHON_BIN" - "$R2_HOME" "$EXPECTED_BINDING" "$OUT/codex-install.json" <<'PY'
 import hashlib, json, pathlib, sys
 home=pathlib.Path(sys.argv[1])
 binding_commit=sys.argv[2]
@@ -146,7 +153,7 @@ receipt={
 out.write_text(json.dumps(receipt, indent=2, sort_keys=True)+"\n", encoding="utf-8")
 PY
 
-python - "$PLAN" "$OUT/provider-authorization.json" <<'PY'
+"$PYTHON_BIN" - "$PLAN" "$OUT/provider-authorization.json" <<'PY'
 import hashlib, json, pathlib, sys
 plan_path=pathlib.Path(sys.argv[1])
 out=pathlib.Path(sys.argv[2])
@@ -166,7 +173,7 @@ value={
 out.write_text(json.dumps(value, indent=2, sort_keys=True)+"\n")
 PY
 
-python - "$PLAN" "$OUT/prompt.txt" <<'PY'
+"$PYTHON_BIN" - "$PLAN" "$OUT/prompt.txt" <<'PY'
 import json, pathlib, sys
 plan=json.loads(pathlib.Path(sys.argv[1]).read_text())
 pathlib.Path(sys.argv[2]).write_text(plan["prompt"]+"\n", encoding="utf-8")
@@ -202,7 +209,7 @@ git -C "$TARGET_ROOT" status --porcelain=v1 --untracked-files=all > "$OUT/codex-
 git -C "$TARGET_ROOT" diff --binary > "$OUT/codex.patch"
 tar --exclude=.git -C "$TARGET_ROOT" -czf "$OUT/result-tree.tar.gz" .
 
-python - "$PLAN" "$OUT/provider-authorization.json" "$OUT/codex-install.json" \
+"$PYTHON_BIN" - "$PLAN" "$OUT/provider-authorization.json" "$OUT/codex-install.json" \
   "$TARGET_ROOT" "$OUT/result-tree.tar.gz" "$OUT/codex-native.json" "$MODEL" "$TARGET_REPOSITORY" <<'PY'
 import hashlib, json, pathlib, sys
 plan_path,auth_path,install_path,target,result_archive,out=map(pathlib.Path,sys.argv[1:7])
@@ -279,25 +286,25 @@ receipt={
 out.write_text(json.dumps(receipt, indent=2, sort_keys=True)+"\n")
 PY
 
-python - "$ROOT/schemas/runtime-execution-receipt.v2.schema.json" "$OUT/codex-native.json" <<'PY'
+"$PYTHON_BIN" - "$ROOT/schemas/runtime-execution-receipt.v2.schema.json" "$OUT/codex-native.json" <<'PY'
 import json, pathlib, sys
 try:
     from jsonschema import Draft202012Validator
 except ImportError as exc:
-    raise SystemExit("jsonschema is required: python -m pip install jsonschema") from exc
+    raise SystemExit("jsonschema is required: "$PYTHON_BIN" -m pip install jsonschema") from exc
 schema=json.loads(pathlib.Path(sys.argv[1]).read_text())
 receipt=json.loads(pathlib.Path(sys.argv[2]).read_text())
 Draft202012Validator(schema).validate(receipt)
 PY
 
-python "$DW_ROOT/scripts/runtime_r2_evidence.py" project-receipt \
+"$PYTHON_BIN" "$DW_ROOT/scripts/runtime_r2_evidence.py" project-receipt \
   --root "$DW_ROOT" \
   --runtime codex \
   --native-receipt "$OUT/codex-native.json" \
   --frozen-plan "$PLAN" \
   --output "$OUT/codex-portable.json"
 
-python - "$OUT" <<'PY'
+"$PYTHON_BIN" - "$OUT" <<'PY'
 import hashlib, json, pathlib, sys
 root=pathlib.Path(sys.argv[1])
 files=[]
