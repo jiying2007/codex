@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BINDING = ROOT / "manifests/integrations/digital-worker-runtime-binding.json"
 ADK = ROOT / "manifests/provider-locks/agent-dev-kit.json"
-RUNTIME = ROOT / "manifests/runtime_control.json"
+RUNTIME = ROOT / "manifests/execution_policy.json"
 ENGINE = ROOT / "tools/codex_assets/execution_policy/engine.py"
 CONTRACTS = ROOT / "tools/codex_assets/execution_policy/contracts.py"
 HUB = ROOT / "manifests/provider-locks/knowledge-hub.json"
@@ -83,8 +83,12 @@ def validate_adk_lock(adk: dict[str, object]) -> None:
 
 
 def validate_runtime_source(runtime: dict[str, object]) -> None:
+    require(runtime.get("schema_version") == 3, "Execution Policy manifest schema drift")
     engine = runtime.get("engine")
-    require(isinstance(engine, dict), "runtime engine declaration required")
+    require(isinstance(engine, dict), "Execution Policy engine declaration required")
+    require(engine.get("kind") == "codex-native", "Execution Policy engine kind drift")
+    require(engine.get("module") == "tools.codex_assets.execution_policy.engine", "Execution Policy engine module drift")
+    require(engine.get("contract") == "runtime_control.policy/v2", "Execution Policy wire contract must be v2")
     baseline = engine.get("behavior_baseline")
     require(baseline == {
         "repository": "jiying2007/agent-dev-kit",
@@ -96,6 +100,11 @@ def validate_runtime_source(runtime: dict[str, object]) -> None:
     require(ENGINE.is_file() and CONTRACTS.is_file(), "vendored execution policy source missing")
     require(git_blob_sha(ENGINE) == ADK_RELEASE["engine_blob"], "vendored runtime engine != provider canonical blob")
     require(git_blob_sha(CONTRACTS) == ADK_RELEASE["support_blob"], "vendored runtime contracts != provider canonical blob")
+    policy = runtime.get("policy")
+    require(isinstance(policy, dict) and policy.get("schema_version") == "runtime_control.policy/v2", "Execution Policy manifest must be v2-only")
+    serialized = json.dumps(runtime, sort_keys=True)
+    for retired in ("runtime_control.policy/v1", "runtime_control.v1", "tools.codex_assets.runtime_kernel"):
+        require(retired not in serialized, f"retired runtime-control compatibility resurfaced: {retired}")
 
 
 def validate_receipt_v2(receipt: dict[str, object], binding: dict[str, object]) -> None:
