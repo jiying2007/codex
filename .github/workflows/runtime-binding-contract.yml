@@ -21,7 +21,6 @@ on:
       - 'tests/test_session_bootstrap.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
-      - 'scripts/execution-policy.sh'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
@@ -52,7 +51,6 @@ on:
       - 'tests/test_session_bootstrap.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
-      - 'scripts/execution-policy.sh'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
@@ -121,7 +119,6 @@ jobs:
         run: |
           bash -n scripts/knowledge-provider.sh
           bash -n scripts/session-bootstrap.sh
-          bash -n scripts/execution-policy.sh
       - name: Prove missing provider fails closed
         run: |
           set +e
