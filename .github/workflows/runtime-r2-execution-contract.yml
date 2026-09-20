@@ -60,6 +60,15 @@ jobs:
           assert 'CLAUDE_RUNTIME_CREDENTIAL' not in local
           assert 'codex exec' in local
           assert 'CODEX_HOME=' in local
+          assert 'RUNTIME_HOME=' in local
+          assert '${CODEX_HOME:-}' in local
+          assert 'HOME/.codex' in local
+          assert 'runtime_home_mode":"shared-user-home"' in local
+          assert 'credential_state_in_evidence":False' in local
+          assert 'local_state_exclusions' in local
+          assert 'R2_HOME="$OUT/codex-home"' not in local
+          assert 'isolated CODEX_HOME' not in local
+          assert 'runtime home must be a shared user Codex home outside the evidence directory' in local
           assert '"authorization_mode":"explicit-local-operator-execution"' in local
           assert '"runtime_host":"local-terminal"' in local
           assert '"github_provider_credential_used":False' in local
@@ -86,5 +95,5 @@ jobs:
           assert blocks, 'no embedded Python blocks found'
           for index, block in enumerate(blocks, 1):
               compile(block, f'embedded-python-{index}', 'exec')
-          print('[PASS] Codex R2 execution is local-terminal owned, Python-3-only, and GitHub-provider-credential free')
+          print('[PASS] Codex R2 execution reuses shared user CODEX_HOME, keeps local auth/config out of evidence identity, and remains provider-credential free in GitHub')
           PY
