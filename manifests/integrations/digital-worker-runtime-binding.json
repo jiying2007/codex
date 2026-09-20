@@ -29,8 +29,8 @@
   },
   "source_binding": {
     "provider_repository": "jiying2007/agent-dev-kit",
-    "release_version": "5.1.1",
-    "provider_commit": "e36dfec69f21806431b07daddc4bd78412179e62",
+    "release_version": "7.0.4",
+    "provider_commit": "1d6c28e89eb98a4af5ac978707730783f0c84437",
     "asset_profile": "embedded-fullstack",
     "identity_mode": "exact-release-source-blobs"
   },
