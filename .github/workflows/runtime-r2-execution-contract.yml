@@ -53,6 +53,8 @@ jobs:
 
           local=pathlib.Path('scripts/runtime-r2-local.sh').read_text(encoding='utf-8')
           assert 'PYTHON_BIN=${PYTHON_BIN:-python3}' in local
+          assert 'if sys.version_info < (3, 11):' in local
+          assert 'Python >= 3.11 required' in local
           assert 'for cmd in git python ' not in local
           assert 'CODEX_RUNTIME_CREDENTIAL' not in local
           assert 'CLAUDE_RUNTIME_CREDENTIAL' not in local
