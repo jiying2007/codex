@@ -58,7 +58,8 @@ jobs:
           assert 'for cmd in git python ' not in local
           assert 'CODEX_RUNTIME_CREDENTIAL' not in local
           assert 'CLAUDE_RUNTIME_CREDENTIAL' not in local
-          assert 'codex exec' in local
+          assert 'CODEX_EXEC_ARGS=(exec --ephemeral --json --sandbox workspace-write)' in local
+          assert 'codex "${CODEX_EXEC_ARGS[@]}"' in local
           assert 'CODEX_HOME=' in local
           assert 'RUNTIME_HOME=' in local
           assert '${CODEX_HOME:-}' in local
