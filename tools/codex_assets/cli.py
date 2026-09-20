@@ -30,8 +30,8 @@ from .archive_search import run as run_archive_search
 from .archive_governance import ArchiveGovernanceError, run_check as run_archive_check
 from .governance import governance_errors, governance_report
 from .memory_curator import run as run_memory_curator
-from .runtime_control import configure_parser as configure_runtime_control_parser
-from .runtime_control import run as run_runtime_control
+from .execution_policy_adapter import configure_parser as configure_execution_policy_parser
+from .execution_policy_adapter import run as run_execution_policy
 from .skill_catalog import render_human as render_skill_search_human
 from .skill_catalog import search_skills
 from .workflow_mining_report import configure_parser as configure_workflow_mining_report_parser
@@ -497,8 +497,8 @@ def cmd_feishu_codex_bot(args: argparse.Namespace) -> int:
     return run_feishu_codex_bot(args)
 
 
-def cmd_runtime_control(args: argparse.Namespace) -> int:
-    return run_runtime_control(args)
+def cmd_execution_policy(args: argparse.Namespace) -> int:
+    return run_execution_policy(args)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -670,9 +670,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--write-memory-candidate", action="store_true")
     p.set_defaults(func=cmd_curate_memory)
 
-    p = sub.add_parser("runtime-control", parents=[common])
-    configure_runtime_control_parser(p)
-    p.set_defaults(func=cmd_runtime_control)
+    p = sub.add_parser("execution-policy", parents=[common])
+    configure_execution_policy_parser(p)
+    p.set_defaults(func=cmd_execution_policy)
     return parser
 
 

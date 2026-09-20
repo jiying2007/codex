@@ -1,4 +1,4 @@
-"""Codex Runtime Control adapter, journal and CLI surface."""
+"""Codex adapter for the canonical ADK Execution Policy v2 engine."""
 
 from __future__ import annotations
 
@@ -16,21 +16,27 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
 from .core import CodexAssetError
-from .runtime_kernel import RuntimeControlError, evaluate, reduce_events, validate_policy
+from .execution_policy.engine import (
+    ExecutionPolicyError,
+    evaluate,
+    goal_intake_attestation_sha256,
+    reduce_events,
+    validate_policy,
+)
 
 
 UTC = timezone.utc
 ENGINE_BASELINE = {
     "repository": "jiying2007/agent-dev-kit",
-    "version": "5.1.1",
-    "commit": "e36dfec69f21806431b07daddc4bd78412179e62",
-    "engine_blob": "0acf94e0b6b2224ec6dbabd9d31d9b4e14366a03",
-    "support_blob": "4e9ee519e5673025446ddf93dd2a088edd02e283",
+    "version": "7.0.4",
+    "commit": "1d6c28e89eb98a4af5ac978707730783f0c84437",
+    "engine_blob": "05dd80065ec4c58c342e48ff12d4cd53d3897740",
+    "support_blob": "626af591141b2dda6302edbe4363637435066628",
 }
 
 
-class RuntimeControlAdapterError(CodexAssetError):
-    """Raised when Codex runtime sources or journal state violate the adapter contract."""
+class ExecutionPolicyAdapterError(CodexAssetError):
+    """Raised when Codex runtime inputs or journal state violate Execution Policy."""
 
 
 def _now() -> datetime:
@@ -46,31 +52,31 @@ def _sha256_text(value: str) -> str:
 
 
 def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
-    path = Path(config_path).expanduser().resolve() if config_path else root / "manifests/runtime_control.json"
+    path = Path(config_path).expanduser().resolve() if config_path else root / "manifests/execution_policy.json"
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeControlAdapterError("unable to read runtime control manifest") from exc
+        raise ExecutionPolicyAdapterError("unable to read runtime control manifest") from exc
     if not isinstance(value, dict) or set(value) != {"schema_version", "engine", "sources", "policy"}:
-        raise RuntimeControlAdapterError("runtime control manifest fields are invalid")
-    if value.get("schema_version") != 2:
-        raise RuntimeControlAdapterError("unsupported runtime control manifest schema")
+        raise ExecutionPolicyAdapterError("runtime control manifest fields are invalid")
+    if value.get("schema_version") != 3:
+        raise ExecutionPolicyAdapterError("unsupported runtime control manifest schema")
     engine = value.get("engine")
     expected_engine_fields = {"kind", "module", "contract", "behavior_baseline"}
     if not isinstance(engine, dict) or set(engine) != expected_engine_fields:
-        raise RuntimeControlAdapterError("runtime control engine declaration is invalid")
+        raise ExecutionPolicyAdapterError("runtime control engine declaration is invalid")
     if engine.get("kind") != "codex-native":
-        raise RuntimeControlAdapterError("runtime control engine must be codex-native")
-    if engine.get("module") != "tools.codex_assets.runtime_kernel":
-        raise RuntimeControlAdapterError("runtime control native module drift")
-    if engine.get("contract") != "runtime_control.v1":
-        raise RuntimeControlAdapterError("runtime control contract drift")
+        raise ExecutionPolicyAdapterError("runtime control engine must be codex-native")
+    if engine.get("module") != "tools.codex_assets.execution_policy.engine":
+        raise ExecutionPolicyAdapterError("runtime control native module drift")
+    if engine.get("contract") != "runtime_control.policy/v2":
+        raise ExecutionPolicyAdapterError("runtime control contract drift")
     if engine.get("behavior_baseline") != ENGINE_BASELINE:
-        raise RuntimeControlAdapterError("runtime control behavior baseline drift")
+        raise ExecutionPolicyAdapterError("runtime control behavior baseline drift")
     try:
         value["policy"] = validate_policy(value["policy"])
-    except RuntimeControlError as exc:
-        raise RuntimeControlAdapterError(str(exc)) from exc
+    except ExecutionPolicyError as exc:
+        raise ExecutionPolicyAdapterError(str(exc)) from exc
     value["_path"] = str(path)
     value["_engine"] = "codex-native"
     return value
@@ -79,7 +85,7 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
 def _resolved_sources(config: Mapping[str, Any], codex_home: str = "") -> dict[str, Path]:
     sources = config.get("sources")
     if not isinstance(sources, dict) or set(sources) != {"state_db", "sessions_root", "journal_dir"}:
-        raise RuntimeControlAdapterError("runtime control sources are invalid")
+        raise ExecutionPolicyAdapterError("runtime control sources are invalid")
     home = Path(codex_home).expanduser().resolve() if codex_home else Path("~/.codex").expanduser().resolve()
 
     def resolve(value: Any, default_name: str) -> Path:
@@ -95,13 +101,13 @@ def _resolved_sources(config: Mapping[str, Any], codex_home: str = "") -> dict[s
     return {
         "state_db": resolve(sources.get("state_db"), "state_5.sqlite"),
         "sessions_root": resolve(sources.get("sessions_root"), "sessions"),
-        "journal_dir": resolve(sources.get("journal_dir"), "runtime-control"),
+        "journal_dir": resolve(sources.get("journal_dir"), "execution-policy"),
     }
 
 
 def _connect_ro(path: Path) -> sqlite3.Connection:
     if not path.is_file():
-        raise RuntimeControlAdapterError("Codex state database is unavailable")
+        raise ExecutionPolicyAdapterError("Codex state database is unavailable")
     return sqlite3.connect("file:{}?mode=ro".format(path), uri=True)
 
 
@@ -124,9 +130,9 @@ def active_thread(state_db: Path, thread_id: str = "") -> dict[str, Any]:
                     """
                 ).fetchone()
     except sqlite3.Error as exc:
-        raise RuntimeControlAdapterError("unable to read active Codex thread") from exc
+        raise ExecutionPolicyAdapterError("unable to read active Codex thread") from exc
     if row is None or not row[0] or not row[1] or not row[2] or not row[3]:
-        raise RuntimeControlAdapterError("active Codex thread metadata is incomplete")
+        raise ExecutionPolicyAdapterError("active Codex thread metadata is incomplete")
     return {
         "thread_id": str(row[0]),
         "model": str(row[1]),
@@ -138,7 +144,7 @@ def active_thread(state_db: Path, thread_id: str = "") -> dict[str, Any]:
 
 def latest_token_info(path: Path) -> dict[str, Any]:
     if not path.is_file():
-        raise RuntimeControlAdapterError("active rollout file is unavailable")
+        raise ExecutionPolicyAdapterError("active rollout file is unavailable")
     with path.open("rb") as stream:
         stream.seek(0, os.SEEK_END)
         position = stream.tell()
@@ -159,7 +165,7 @@ def latest_token_info(path: Path) -> dict[str, Any]:
                 payload = record.get("payload") or {}
                 if payload.get("type") == "token_count" and isinstance(payload.get("info"), dict):
                     return {"timestamp": record.get("timestamp"), "info": payload["info"]}
-    raise RuntimeControlAdapterError("active rollout has no token_count record")
+    raise ExecutionPolicyAdapterError("active rollout has no token_count record")
 
 
 def usage_event(thread: Mapping[str, Any], *, rate_per_minute: float = 0.0) -> dict[str, Any]:
@@ -171,7 +177,7 @@ def usage_event(thread: Mapping[str, Any], *, rate_per_minute: float = 0.0) -> d
     output_tokens = int(total.get("output_tokens") or 0)
     total_tokens = int(total.get("total_tokens") or 0)
     if total_tokens != input_tokens + output_tokens:
-        raise RuntimeControlAdapterError("Codex total token usage is inconsistent")
+        raise ExecutionPolicyAdapterError("Codex total token usage is inconsistent")
     now = _now()
     stable = "{}:{}:{}".format(thread["thread_id"], total_tokens, _iso(now))
     return {
@@ -211,10 +217,10 @@ def load_journal(path: Path) -> list[dict[str, Any]]:
                     continue
                 value = json.loads(line)
                 if not isinstance(value, dict):
-                    raise RuntimeControlAdapterError("journal line {} is not an object".format(line_number))
+                    raise ExecutionPolicyAdapterError("journal line {} is not an object".format(line_number))
                 events.append(value)
     except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeControlAdapterError("runtime control journal is invalid") from exc
+        raise ExecutionPolicyAdapterError("runtime control journal is invalid") from exc
     return events
 
 
@@ -246,7 +252,7 @@ def append_journal(path: Path, event: Mapping[str, Any]) -> None:
             os.fsync(stream.fileno())
             fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
     except OSError as exc:
-        raise RuntimeControlAdapterError("unable to append runtime control journal") from exc
+        raise ExecutionPolicyAdapterError("unable to append runtime control journal") from exc
 
 
 def control_event(kind: str, thread_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -260,18 +266,56 @@ def control_event(kind: str, thread_id: str, payload: Mapping[str, Any]) -> dict
     }
 
 
+def _goal_intake(args: argparse.Namespace, now: datetime) -> dict[str, Any]:
+    artifact_mode = {
+        "readonly": "readonly",
+        "debugging": "readonly",
+        "review": "readonly",
+        "implementation": "implementation",
+        "release": "release",
+    }[args.task_mode]
+    issued_at = args.issued_at or _iso(now)
+    provenance = {
+        "kind": "routing-decision",
+        "source_id": args.source_id,
+        "source_version": args.source_version,
+        "decision_id": args.decision_id,
+        "issued_at": issued_at,
+    }
+    intake = {
+        "schema_version": "runtime_control.goal-intake/v1",
+        "task_mode": args.task_mode,
+        "artifact_mode": artifact_mode,
+        "goal_id": args.goal_id,
+        "request_sha256": args.request_sha256,
+        "routing_decision_sha256": args.routing_decision_sha256,
+        "authority_id": args.authority_id,
+        "provenance": provenance,
+    }
+    intake["attestation_sha256"] = goal_intake_attestation_sha256(
+        intake["task_mode"],
+        intake["artifact_mode"],
+        provenance,
+        goal_id=intake["goal_id"],
+        request_sha256=intake["request_sha256"],
+        routing_decision_sha256=intake["routing_decision_sha256"],
+        authority_id=intake["authority_id"],
+    )
+    return intake
+
+
 def _engine_state(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     try:
         return reduce_events(events)
-    except RuntimeControlError as exc:
-        raise RuntimeControlAdapterError(str(exc)) from exc
+    except ExecutionPolicyError as exc:
+        raise ExecutionPolicyAdapterError(str(exc)) from exc
 
 
 def _decision(state: Mapping[str, Any], config: Mapping[str, Any], gate_event: str) -> dict[str, Any]:
     try:
         return evaluate(state, config["policy"], gate_event=gate_event)
-    except RuntimeControlError as exc:
-        raise RuntimeControlAdapterError(str(exc)) from exc
+    except ExecutionPolicyError as exc:
+        raise ExecutionPolicyAdapterError(str(exc)) from exc
 
 
 def snapshot(
@@ -308,7 +352,7 @@ def _active_context(args: argparse.Namespace) -> tuple[Path, dict[str, Any], dic
 def _append_action(args: argparse.Namespace, kind: str, payload: Mapping[str, Any]) -> int:
     root, config, _, thread, journal = _active_context(args)
     if not journal.is_file():
-        raise RuntimeControlAdapterError("no active runtime control goal journal")
+        raise ExecutionPolicyAdapterError("no active runtime control goal journal")
     append_journal(journal, control_event(kind, thread["thread_id"], payload))
     state, _ = snapshot(root, config, codex_home=args.codex_home, thread_id=args.thread_id)
     _emit(state)
@@ -325,17 +369,26 @@ def run(args: argparse.Namespace) -> int:
             if existing:
                 state = _engine_state(existing + [usage_event(thread)])
                 if state["goal"]["status"] == "active":
-                    raise RuntimeControlAdapterError("one active goal already exists for this thread")
+                    raise ExecutionPolicyAdapterError("one active goal already exists for this thread")
             baseline = usage_event(thread)["payload"]["total_tokens"]
-            started = control_event("goal.started", thread["thread_id"], {
-                "goal_id": args.goal_id,
-                "token_budget": args.token_budget,
-                "time_budget_seconds": args.time_budget_seconds,
-                "usage_baseline_tokens": baseline,
-                "success_criteria": args.success_criterion,
-                "required_evidence": args.required_evidence,
-                "open_items_count": args.open_items,
-            })
+            now = _now()
+            started = {
+                "schema_version": "runtime_control.event/v1",
+                "event_id": "evt-{}".format(uuid.uuid4().hex),
+                "event_type": "goal.started",
+                "thread_id": thread["thread_id"],
+                "observed_at": _iso(now),
+                "payload": {
+                    "goal_id": args.goal_id,
+                    "token_budget": args.token_budget,
+                    "time_budget_seconds": args.time_budget_seconds,
+                    "usage_baseline_tokens": baseline,
+                    "success_criteria": args.success_criterion,
+                    "required_evidence": args.required_evidence,
+                    "open_items_count": args.open_items,
+                    "intake": _goal_intake(args, now),
+                },
+            }
             _write_new_journal(journal, started)
         elif args.goal_action == "update":
             payload = {
@@ -346,7 +399,7 @@ def run(args: argparse.Namespace) -> int:
                 }.items() if value is not None
             }
             if not payload:
-                raise RuntimeControlAdapterError("goal update requires at least one field")
+                raise ExecutionPolicyAdapterError("goal update requires at least one field")
             return _append_action(args, "goal.updated", payload)
         elif args.goal_action == "complete":
             return _append_action(args, "goal.completed", {})
@@ -405,7 +458,7 @@ def run(args: argparse.Namespace) -> int:
             if iterations == 0 or count < iterations:
                 time.sleep(max(args.interval, 1.0))
         return 0
-    raise RuntimeControlAdapterError("unsupported runtime-control action")
+    raise ExecutionPolicyAdapterError("unsupported runtime-control action")
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:
@@ -423,6 +476,14 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     start.add_argument("--success-criterion", action="append", required=True)
     start.add_argument("--required-evidence", action="append", required=True)
     start.add_argument("--open-items", type=int, required=True)
+    start.add_argument("--task-mode", choices=["readonly", "implementation", "debugging", "review", "release"], required=True)
+    start.add_argument("--request-sha256", required=True)
+    start.add_argument("--routing-decision-sha256", required=True)
+    start.add_argument("--authority-id", required=True)
+    start.add_argument("--decision-id", required=True)
+    start.add_argument("--source-id", required=True)
+    start.add_argument("--source-version", required=True)
+    start.add_argument("--issued-at", default="")
     update = goal_sub.add_parser("update")
     update.add_argument("--open-items", type=int)
     update.add_argument("--token-budget", type=int)

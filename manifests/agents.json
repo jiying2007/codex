@@ -8,7 +8,9 @@
       "version": "0.1.0",
       "vendor_rel": "control/agents-local/agent-browser.toml",
       "target_rel": "agents/agent-browser.toml",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "受限浏览器读取代理"
@@ -17,80 +19,90 @@
       "name": "architecture-planner",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/architecture-planner/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/architecture-planner/AGENTS.md",
       "target_rel": "agents/architecture-planner/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "架构方案、模块边界和技术决策规划",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/architecture-planner/AGENTS.md",
       "source_blob": "3b7638b277806f0e752a2ae5d261a93047c394b0",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     },
     {
       "name": "build-release-engineer",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/build-release-engineer/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/build-release-engineer/AGENTS.md",
       "target_rel": "agents/build-release-engineer/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "构建、打包、版本发布和回滚链路",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/build-release-engineer/AGENTS.md",
       "source_blob": "e9fca2c67489d9dd5471f6b075ba2d660397f322",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     },
     {
       "name": "code-review-governor",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/code-review-governor/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/code-review-governor/AGENTS.md",
       "target_rel": "agents/code-review-governor/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "代码审查、反馈闭环和质量放行治理",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/code-review-governor/AGENTS.md",
       "source_blob": "c30ad03e8ed093d90c702a26a4bf53e27110c047",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     },
     {
       "name": "component-engineer",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/component-engineer/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/component-engineer/AGENTS.md",
       "target_rel": "agents/component-engineer/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "组件接口、模块实现和集成边界治理",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/component-engineer/AGENTS.md",
       "source_blob": "5f837f15739eb4cddc39c5afcbea605463cf673b",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     },
     {
       "name": "driver-engineer",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/driver-engineer/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/driver-engineer/AGENTS.md",
       "target_rel": "agents/driver-engineer/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "驱动实现、bring-up 和底层联调",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/driver-engineer/AGENTS.md",
       "source_blob": "648d4a236fd86696bfeba861e57a3f849adee80b",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     },
     {
@@ -100,7 +112,10 @@
       "version": "1.0.0",
       "vendor_rel": "control/agents-local/local-architect.toml",
       "target_rel": "agents/local-architect.toml",
-      "profiles": ["solo-dev", "team-collab"],
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
       "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "xhigh",
       "description": "架构拆解与边界控制"
@@ -112,7 +127,9 @@
       "version": "0.1.0",
       "vendor_rel": "control/agents-local/local-context-curator.toml",
       "target_rel": "agents/local-context-curator.toml",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "上下文压缩与会话接力整理代理"
@@ -124,7 +141,10 @@
       "version": "1.0.0",
       "vendor_rel": "control/agents-local/local-implementer.toml",
       "target_rel": "agents/local-implementer.toml",
-      "profiles": ["solo-dev", "team-collab"],
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
       "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "实现代理"
@@ -136,7 +156,10 @@
       "version": "1.0.0",
       "vendor_rel": "control/agents-local/local-integrator.toml",
       "target_rel": "agents/local-integrator.toml",
-      "profiles": ["solo-dev", "team-collab"],
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
       "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "收口整合代理"
@@ -148,7 +171,10 @@
       "version": "1.0.0",
       "vendor_rel": "control/agents-local/local-tester.toml",
       "target_rel": "agents/local-tester.toml",
-      "profiles": ["solo-dev", "team-collab"],
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
       "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "high",
       "description": "测试与验证代理"
@@ -157,64 +183,72 @@
       "name": "performance-reliability-engineer",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/performance-reliability-engineer/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/performance-reliability-engineer/AGENTS.md",
       "target_rel": "agents/performance-reliability-engineer/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "性能剖析、稳定性和可靠性风险治理",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/performance-reliability-engineer/AGENTS.md",
       "source_blob": "65bcc09b0fa086341b157a1e2a69dfece063f38a",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     },
     {
       "name": "requirements-analyst",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/requirements-analyst/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/requirements-analyst/AGENTS.md",
       "target_rel": "agents/requirements-analyst/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "需求澄清、验收标准和范围边界分析",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/requirements-analyst/AGENTS.md",
       "source_blob": "92c58a6112800359ac32c88bc141f9335763ea40",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     },
     {
       "name": "security-compliance-reviewer",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/security-compliance-reviewer/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/security-compliance-reviewer/AGENTS.md",
       "target_rel": "agents/security-compliance-reviewer/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "安全、合规、凭据和供应链风险审查",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/security-compliance-reviewer/AGENTS.md",
       "source_blob": "8beec5332ddc26fb57db894b38a88c49303f3a15",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     },
     {
       "name": "test-validation-engineer",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "5.1.1",
-      "vendor_rel": "vendor/agents/agent-dev-kit/5.1.1/test-validation-engineer/AGENTS.md",
+      "version": "7.0.4",
+      "vendor_rel": "vendor/agents/agent-dev-kit/7.0.4/test-validation-engineer/AGENTS.md",
       "target_rel": "agents/test-validation-engineer/AGENTS.md",
-      "profiles": ["team-collab"],
+      "profiles": [
+        "team-collab"
+      ],
       "description": "测试策略、验证证据和完成前门禁",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "e36dfec69f21806431b07daddc4bd78412179e62",
+      "source_ref": "1d6c28e89eb98a4af5ac978707730783f0c84437",
       "source_path": "agents/test-validation-engineer/AGENTS.md",
       "source_blob": "dd66ee4e568e2493615f8e7c1e28a4931abe8603",
-      "imported_at": "2026-09-16",
+      "imported_at": "2026-09-20",
       "review_status": "accepted"
     }
   ]

@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BINDING = ROOT / "manifests/integrations/digital-worker-runtime-binding.json"
 ADK = ROOT / "manifests/provider-locks/agent-dev-kit.json"
-RUNTIME = ROOT / "manifests/runtime_control.json"
+RUNTIME = ROOT / "manifests/execution_policy.json"
 ENGINE = ROOT / "tools/codex_assets/execution_policy/engine.py"
 CONTRACTS = ROOT / "tools/codex_assets/execution_policy/contracts.py"
 HUB = ROOT / "manifests/provider-locks/knowledge-hub.json"
@@ -19,14 +19,14 @@ ADAPTER = ROOT / "scripts/knowledge-provider.sh"
 AGENTS = ROOT / "AGENTS.md"
 
 ADK_RELEASE = {
-    "version": "5.1.1",
-    "release_tag": "v5.1.1",
-    "provider_commit": "e36dfec69f21806431b07daddc4bd78412179e62",
-    "provider_tree": "9c37468930231bdfa7f230e38ed1b85e0dc0f5f5",
-    "manifest_blob": "4715a03db12ac28d2978356306381c028c75af76",
-    "release_artifact_sha256": "1924d79034a216f04dde0d08826dd5b87c597f090721335c1cec16e9bc88cbc1",
-    "engine_blob": "0acf94e0b6b2224ec6dbabd9d31d9b4e14366a03",
-    "support_blob": "4e9ee519e5673025446ddf93dd2a088edd02e283",
+    "version": "7.0.4",
+    "release_tag": "v7.0.4",
+    "provider_commit": "1d6c28e89eb98a4af5ac978707730783f0c84437",
+    "provider_tree": "c5b8fa7b11a81597ac2c7cd6fb44d7abf9605137",
+    "manifest_blob": "a5e5963545318c4a4498cda0d49d10f08c5f6412",
+    "release_artifact_sha256": "497e44ec83d2506c8721019aeca979965127b481203f33387806c51c0d1aff68",
+    "engine_blob": "05dd80065ec4c58c342e48ff12d4cd53d3897740",
+    "support_blob": "626af591141b2dda6302edbe4363637435066628",
 }
 ADK_FIELDS = {
     "schema", "repository", "version", "release_tag", "provider_commit", "provider_tree",
@@ -54,13 +54,13 @@ def validate_adk_lock(adk: dict[str, object]) -> None:
     require(adk["schema"] == "codex-provider-lock/v3", "ADK provider lock schema drift")
     require(adk["repository"] == "jiying2007/agent-dev-kit", "ADK canonical repository required")
     for field in ("version", "release_tag", "provider_commit", "provider_tree", "manifest_blob"):
-        require(adk[field] == ADK_RELEASE[field], f"ADK exact release identity drift: {field}")
+        require(adk[field] == ADK_RELEASE[field], f"ADK 7.0.4 exact release identity drift: {field}")
     require(exact_sha(adk["provider_commit"], 40), "ADK provider commit must be exact")
     require(exact_sha(adk["provider_tree"], 40), "ADK provider tree must be exact")
     require(exact_sha(adk["manifest_blob"], 40), "ADK manifest blob must be exact")
     artifact = adk["release_artifact"]
     require(isinstance(artifact, dict) and set(artifact) == {"name", "sha256"}, "ADK release artifact fields drift")
-    require(artifact["name"] == "agent-dev-kit-5.1.1.tar.gz", "ADK release artifact name drift")
+    require(artifact["name"] == "agent-dev-kit-7.0.4.tar.gz", "ADK release artifact name drift")
     require(artifact["sha256"] == ADK_RELEASE["release_artifact_sha256"], "ADK release artifact digest drift")
     require(adk["asset_profile"] == "embedded-fullstack", "required ADK asset profile drift")
     require(adk["delivery_mode"] == "exact-source-set", "ADK delivery mode drift")
@@ -83,8 +83,12 @@ def validate_adk_lock(adk: dict[str, object]) -> None:
 
 
 def validate_runtime_source(runtime: dict[str, object]) -> None:
+    require(runtime.get("schema_version") == 3, "Execution Policy manifest schema drift")
     engine = runtime.get("engine")
-    require(isinstance(engine, dict), "runtime engine declaration required")
+    require(isinstance(engine, dict), "Execution Policy engine declaration required")
+    require(engine.get("kind") == "codex-native", "Execution Policy engine kind drift")
+    require(engine.get("module") == "tools.codex_assets.execution_policy.engine", "Execution Policy engine module drift")
+    require(engine.get("contract") == "runtime_control.policy/v2", "Execution Policy wire contract must be v2")
     baseline = engine.get("behavior_baseline")
     require(baseline == {
         "repository": "jiying2007/agent-dev-kit",
@@ -92,10 +96,15 @@ def validate_runtime_source(runtime: dict[str, object]) -> None:
         "commit": ADK_RELEASE["provider_commit"],
         "engine_blob": ADK_RELEASE["engine_blob"],
         "support_blob": ADK_RELEASE["support_blob"],
-    }, "runtime behavior baseline must bind exact v5.1.1 canonical execution policy")
+    }, "runtime behavior baseline must bind exact v7.0.4 canonical execution policy")
     require(ENGINE.is_file() and CONTRACTS.is_file(), "vendored execution policy source missing")
     require(git_blob_sha(ENGINE) == ADK_RELEASE["engine_blob"], "vendored runtime engine != provider canonical blob")
     require(git_blob_sha(CONTRACTS) == ADK_RELEASE["support_blob"], "vendored runtime contracts != provider canonical blob")
+    policy = runtime.get("policy")
+    require(isinstance(policy, dict) and policy.get("schema_version") == "runtime_control.policy/v2", "Execution Policy manifest must be v2-only")
+    serialized = json.dumps(runtime, sort_keys=True)
+    for retired in ("runtime_control.policy/v1", "runtime_control.v1", "tools.codex_assets.runtime_kernel"):
+        require(retired not in serialized, f"retired runtime-control compatibility resurfaced: {retired}")
 
 
 def validate_receipt_v2(receipt: dict[str, object], binding: dict[str, object]) -> None:
