@@ -44,7 +44,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CODEX_BINDING_COMMIT: d12e782b46430d6bfc828f24a41f94f871a7a19a
+  CODEX_BINDING_COMMIT: 79acb193cef381b4c8b72f00e0af15f87e32765c
 
 jobs:
   execute:
@@ -100,7 +100,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: jiying2007/codex
-          ref: d12e782b46430d6bfc828f24a41f94f871a7a19a
+          ref: 79acb193cef381b4c8b72f00e0af15f87e32765c
           path: codex-binding
           persist-credentials: false
           fetch-depth: 1
@@ -157,7 +157,7 @@ jobs:
           def canonical(v): return json.dumps(v, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
           source = {
               'runtime_binding_repository': 'jiying2007/codex',
-              'runtime_binding_commit': 'd12e782b46430d6bfc828f24a41f94f871a7a19a',
+              'runtime_binding_commit': '79acb193cef381b4c8b72f00e0af15f87e32765c',
               'profile': managed.get('profile'),
               'source_fingerprint': managed.get('source_fingerprint'),
               'managed_state_sha256': hashlib.sha256((home / 'control/state/managed-files.json').read_bytes()).hexdigest(),
