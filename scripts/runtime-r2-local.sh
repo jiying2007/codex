@@ -291,7 +291,7 @@ import json, pathlib, sys
 try:
     from jsonschema import Draft202012Validator
 except ImportError as exc:
-    raise SystemExit("jsonschema is required: "$PYTHON_BIN" -m pip install jsonschema") from exc
+    raise SystemExit("jsonschema is required: python3 -m pip install jsonschema") from exc
 schema=json.loads(pathlib.Path(sys.argv[1]).read_text())
 receipt=json.loads(pathlib.Path(sys.argv[2]).read_text())
 Draft202012Validator(schema).validate(receipt)
