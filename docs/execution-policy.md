@@ -6,7 +6,7 @@ Codex 的唯一任务执行策略面绑定 ADK 7.0.4 canonical Execution Policy 
 - exact engine：`tools/codex_assets/execution_policy/engine.py`
 - exact contracts：`tools/codex_assets/execution_policy/contracts.py`
 - Codex host adapter：`tools/codex_assets/execution_policy_adapter.py`
-- CLI：`scripts/execution-policy.sh`
+- CLI：`python3 -m tools.codex_assets execution-policy`
 
 旧 `runtime-control` Python/CLI/config surface 已 hard-cut，不提供 alias、fallback、双读或双写。保留的 `runtime_control.*` 字符串仅是 ADK 冻结 wire schema 名称，不表示旧执行面仍存在。
 
