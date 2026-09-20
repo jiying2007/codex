@@ -16,7 +16,6 @@ from tools.codex_assets.execution_policy_adapter import (
 )
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts/execution-policy.sh"
 
 
 class ExecutionPolicyAdapterTest(unittest.TestCase):
@@ -58,7 +57,7 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
         env = dict(os.environ)
         env["CODEX_THREAD_ID"] = "thread-1"
         return subprocess.run(
-            [str(SCRIPT), "--codex-home", str(self.codex_home), *args],
+            ["python3", "-m", "tools.codex_assets", "execution-policy", "--root", str(ROOT), "--codex-home", str(self.codex_home), *args],
             cwd=str(self.temp),
             env=env,
             text=True,
@@ -141,6 +140,7 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
         for relative in (
             "manifests/runtime_control.json",
             "scripts/runtime-control.sh",
+            "scripts/execution-policy.sh",
             "tools/codex_assets/runtime_control.py",
             "tools/codex_assets/runtime_kernel.py",
         ):
