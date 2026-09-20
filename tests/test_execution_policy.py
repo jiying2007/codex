@@ -56,6 +56,7 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
     def run_cli(self, *args: str) -> subprocess.CompletedProcess[str]:
         env = dict(os.environ)
         env["CODEX_THREAD_ID"] = "thread-1"
+        env["PYTHONPATH"] = str(ROOT) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
         return subprocess.run(
             ["python3", "-m", "tools.codex_assets", "execution-policy", "--root", str(ROOT), "--codex-home", str(self.codex_home), *args],
             cwd=str(self.temp),
