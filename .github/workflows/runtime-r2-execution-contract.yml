@@ -58,7 +58,8 @@ jobs:
           assert 'for cmd in git python ' not in local
           assert 'CODEX_RUNTIME_CREDENTIAL' not in local
           assert 'CLAUDE_RUNTIME_CREDENTIAL' not in local
-          assert 'codex exec' in local
+          assert 'CODEX_EXEC_ARGS=(exec --ephemeral --json --sandbox workspace-write)' in local
+          assert 'codex "${CODEX_EXEC_ARGS[@]}"' in local
           assert 'CODEX_HOME=' in local
           assert 'RUNTIME_HOME=' in local
           assert '${CODEX_HOME:-}' in local
@@ -69,6 +70,11 @@ jobs:
           assert 'R2_HOME="$OUT/codex-home"' not in local
           assert 'isolated CODEX_HOME' not in local
           assert 'runtime home must be a shared user Codex home outside the evidence directory' in local
+          assert 'MODEL=' in local
+          assert 'MODEL_SELECTION_MODE="shared-user-home-default"' in local
+          assert 'CODEX_EXEC_ARGS+=(--model "$MODEL")' in local
+          assert 'gpt-5.3-codex' not in local
+          assert 'runtime-selection.json' in local
           assert '"authorization_mode":"explicit-local-operator-execution"' in local
           assert '"runtime_host":"local-terminal"' in local
           assert '"github_provider_credential_used":False' in local
@@ -95,5 +101,5 @@ jobs:
           assert blocks, 'no embedded Python blocks found'
           for index, block in enumerate(blocks, 1):
               compile(block, f'embedded-python-{index}', 'exec')
-          print('[PASS] Codex R2 execution reuses shared user CODEX_HOME, keeps local auth/config out of evidence identity, and remains provider-credential free in GitHub')
+          print('[PASS] Codex R2 execution reuses shared user CODEX_HOME and its default model/provider config, supports explicit model override, keeps local auth/config out of evidence identity, and remains provider-credential free in GitHub')
           PY

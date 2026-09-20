@@ -10,7 +10,7 @@ Usage:
     --frozen-plan /path/to/frozen-plan.json \
     --out /path/to/output \
     [--runtime-home /path/to/existing-codex-home] \
-    [--model gpt-5.3-codex]
+    [--model MODEL]
 
 The script must be run from an exact Codex runtime-binding checkout that matches
 frozen-plan.json. It uses a local Codex CLI login only; no provider credential is
@@ -25,7 +25,7 @@ TARGET_ROOT=
 PLAN=
 OUT=
 RUNTIME_HOME=
-MODEL=gpt-5.3-codex
+MODEL=
 PYTHON_BIN=${PYTHON_BIN:-python3}
 
 while [ "$#" -gt 0 ]; do
@@ -214,17 +214,49 @@ plan=json.loads(pathlib.Path(sys.argv[1]).read_text())
 pathlib.Path(sys.argv[2]).write_text(plan["prompt"]+"\n", encoding="utf-8")
 PY
 
+if [ -n "$MODEL" ]; then
+  MODEL_SELECTION_MODE="explicit-cli-override"
+  RECEIPT_MODEL="$MODEL"
+else
+  MODEL_SELECTION_MODE="shared-user-home-default"
+  RECEIPT_MODEL=$("$PYTHON_BIN" - "$R2_HOME/config.toml" <<'PY'
+import pathlib, sys, tomllib
+path=pathlib.Path(sys.argv[1])
+model=""
+if path.is_file():
+    data=tomllib.loads(path.read_text(encoding="utf-8"))
+    model=data.get("model") or ""
+    profile=data.get("profile")
+    profiles=data.get("profiles")
+    if not model and isinstance(profile,str) and isinstance(profiles,dict):
+        selected=profiles.get(profile)
+        if isinstance(selected,dict):
+            model=selected.get("model") or ""
+print(model or "shared-user-home-default")
+PY
+  )
+fi
+
+"$PYTHON_BIN" - "$OUT/runtime-selection.json" "$MODEL_SELECTION_MODE" "$RECEIPT_MODEL" <<'PY'
+import json, pathlib, sys
+out=pathlib.Path(sys.argv[1])
+out.write_text(json.dumps({
+    "schema":"codex-r2-runtime-selection/v1",
+    "model_selection_mode":sys.argv[2],
+    "model":sys.argv[3],
+}, indent=2, sort_keys=True)+"\n", encoding="utf-8")
+PY
+
 date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/started-at.txt"
+CODEX_EXEC_ARGS=(exec --ephemeral --json --sandbox workspace-write)
+if [ -n "$MODEL" ]; then
+  CODEX_EXEC_ARGS+=(--model "$MODEL")
+fi
+CODEX_EXEC_ARGS+=(-o "$OUT/codex-final.txt" "$(cat "$OUT/prompt.txt")")
 set +e
 (
   cd "$TARGET_ROOT"
-  CODEX_HOME="$R2_HOME" codex exec \
-    --ephemeral \
-    --json \
-    --sandbox workspace-write \
-    --model "$MODEL" \
-    -o "$OUT/codex-final.txt" \
-    "$(cat "$OUT/prompt.txt")"
+  CODEX_HOME="$R2_HOME" codex "${CODEX_EXEC_ARGS[@]}"
 ) > "$OUT/codex-events.jsonl" 2> "$OUT/codex-stderr.log"
 RC=$?
 set -e
@@ -246,7 +278,7 @@ git -C "$TARGET_ROOT" diff --binary > "$OUT/codex.patch"
 tar --exclude=.git -C "$TARGET_ROOT" -czf "$OUT/result-tree.tar.gz" .
 
 "$PYTHON_BIN" - "$PLAN" "$OUT/provider-authorization.json" "$OUT/codex-install.json" \
-  "$TARGET_ROOT" "$OUT/result-tree.tar.gz" "$OUT/codex-native.json" "$MODEL" "$TARGET_REPOSITORY" <<'PY'
+  "$TARGET_ROOT" "$OUT/result-tree.tar.gz" "$OUT/codex-native.json" "$RECEIPT_MODEL" "$TARGET_REPOSITORY" <<'PY'
 import hashlib, json, pathlib, sys
 plan_path,auth_path,install_path,target,result_archive,out=map(pathlib.Path,sys.argv[1:7])
 model=sys.argv[7]
@@ -363,7 +395,7 @@ PY
 tar -C "$OUT" -czf "$OUT/codex-r2-local-evidence.tar.gz" \
   bundle-manifest.json provider-authorization.json codex-install.json codex-native.json \
   codex-portable.json codex-status.txt codex.patch codex-version.txt codex-final.txt \
-  codex-events.jsonl result-tree.tar.gz
+  codex-events.jsonl runtime-selection.json result-tree.tar.gz
 sha256sum "$OUT/codex-r2-local-evidence.tar.gz" > "$OUT/codex-r2-local-evidence.tar.gz.sha256"
 
 echo "Codex local R2 execution evidence ready: $OUT/codex-portable.json"
