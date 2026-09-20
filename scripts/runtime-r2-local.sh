@@ -9,11 +9,14 @@ Usage:
     --target-root /path/to/frozen-target \
     --frozen-plan /path/to/frozen-plan.json \
     --out /path/to/output \
+    [--runtime-home /path/to/existing-codex-home] \
     [--model gpt-5.3-codex]
 
 The script must be run from an exact Codex runtime-binding checkout that matches
 frozen-plan.json. It uses a local Codex CLI login only; no provider credential is
-read from or written to GitHub.
+read from or written to GitHub. By default it reuses the caller's existing
+CODEX_HOME, or ~/.codex when CODEX_HOME is unset; it does not create an isolated
+runtime home under the evidence directory.
 EOF
 }
 
@@ -21,6 +24,7 @@ DW_ROOT=
 TARGET_ROOT=
 PLAN=
 OUT=
+RUNTIME_HOME=
 MODEL=gpt-5.3-codex
 PYTHON_BIN=${PYTHON_BIN:-python3}
 
@@ -30,6 +34,7 @@ while [ "$#" -gt 0 ]; do
     --target-root) TARGET_ROOT=$2; shift 2 ;;
     --frozen-plan) PLAN=$2; shift 2 ;;
     --out) OUT=$2; shift 2 ;;
+    --runtime-home) RUNTIME_HOME=$2; shift 2 ;;
     --model) MODEL=$2; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -49,6 +54,23 @@ TARGET_ROOT=$(cd "$TARGET_ROOT" && pwd)
 PLAN=$(cd "$(dirname "$PLAN")" && pwd)/$(basename "$PLAN")
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)
+
+if [ -n "$RUNTIME_HOME" ]; then
+  mkdir -p "$RUNTIME_HOME"
+  R2_HOME=$(cd "$RUNTIME_HOME" && pwd)
+elif [ -n "${CODEX_HOME:-}" ]; then
+  mkdir -p "$CODEX_HOME"
+  R2_HOME=$(cd "$CODEX_HOME" && pwd)
+else
+  mkdir -p "$HOME/.codex"
+  R2_HOME=$(cd "$HOME/.codex" && pwd)
+fi
+case "$R2_HOME" in
+  "$OUT"|"$OUT"/*)
+    echo "runtime home must be a shared user Codex home outside the evidence directory: $R2_HOME" >&2
+    exit 2
+    ;;
+esac
 
 for cmd in git codex tar sha256sum; do
   command -v "$cmd" >/dev/null 2>&1 || { echo "missing command: $cmd" >&2; exit 2; }
@@ -111,7 +133,6 @@ if a["controlled_task"] != b["controlled_task"]:
 PY
 
 BUILD="$OUT/codex-build"
-R2_HOME="$OUT/codex-home"
 PYTHONPATH="$ROOT" "$PYTHON_BIN" -m tools.codex_assets build \
   --root "$ROOT" \
   --profile default \
@@ -125,30 +146,42 @@ PYTHONPATH="$ROOT" "$PYTHON_BIN" -m tools.codex_assets diff \
   --build "$BUILD" \
   --target "$R2_HOME"
 
-"$PYTHON_BIN" - "$R2_HOME" "$EXPECTED_BINDING" "$OUT/codex-install.json" <<'PY'
-import hashlib, json, pathlib, sys
-home=pathlib.Path(sys.argv[1])
-binding_commit=sys.argv[2]
-out=pathlib.Path(sys.argv[3])
-managed=json.loads((home / "control/state/managed-files.json").read_text(encoding="utf-8"))
+"$PYTHON_BIN" - "$ROOT" "$BUILD" "$R2_HOME" "$EXPECTED_BINDING" "$OUT/codex-install.json" <<'PY'
+import fnmatch, hashlib, json, pathlib, sys
+root=pathlib.Path(sys.argv[1])
+build=pathlib.Path(sys.argv[2])
+home=pathlib.Path(sys.argv[3])
+binding_commit=sys.argv[4]
+out=pathlib.Path(sys.argv[5])
+managed_path=build / "control/state/managed-files.json"
+managed=json.loads(managed_path.read_text(encoding="utf-8"))
+policies=json.loads((root / "manifests/policies.json").read_text(encoding="utf-8"))
+allowed=[str(x) for x in policies.get("allowed_live_drift_paths", [])]
 def canonical(v):
     return json.dumps(v, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+def allowed_drift(path):
+    return any(fnmatch.fnmatch(path, pattern) for pattern in allowed)
+effective=[
+    item for item in managed.get("managed", [])
+    if not allowed_drift(str(item.get("path", "")))
+]
 source={
     "runtime_binding_repository":"jiying2007/codex",
     "runtime_binding_commit":binding_commit,
     "profile":managed.get("profile"),
     "source_fingerprint":managed.get("source_fingerprint"),
-    "managed_state_sha256":hashlib.sha256((home / "control/state/managed-files.json").read_bytes()).hexdigest(),
+    "managed_state_sha256":hashlib.sha256(managed_path.read_bytes()).hexdigest(),
 }
-files=[]
-for path in sorted(p for p in home.rglob("*") if p.is_file()):
-    files.append({"path":path.relative_to(home).as_posix(),"sha256":hashlib.sha256(path.read_bytes()).hexdigest()})
 receipt={
-    "schema":"codex-r2-runtime-install/v1",
+    "schema":"codex-r2-runtime-install/v2",
+    "runtime_home_mode":"shared-user-home",
     "source_set_identity_ref":"sha256:"+hashlib.sha256(canonical(source)).hexdigest(),
-    "runtime_distribution_identity_ref":"sha256:"+hashlib.sha256(canonical(files)).hexdigest(),
+    "runtime_distribution_identity_ref":"sha256:"+hashlib.sha256(canonical(effective)).hexdigest(),
     "profile":managed.get("profile"),
-    "files":len(files),
+    "managed_entries":len(managed.get("managed", [])),
+    "identity_entries":len(effective),
+    "local_state_exclusions":allowed,
+    "credential_state_in_evidence":False,
 }
 out.write_text(json.dumps(receipt, indent=2, sort_keys=True)+"\n", encoding="utf-8")
 PY
@@ -196,9 +229,10 @@ set -e
 if [ "$RC" -ne 0 ]; then
   cat >&2 <<EOF
 Codex local R2 execution failed with exit code $RC.
-If this isolated CODEX_HOME is not authenticated, run:
-  CODEX_HOME="$R2_HOME" codex login
-then rerun this script from a clean frozen target checkout.
+The run reused the existing shared Codex home:
+  CODEX_HOME="$R2_HOME"
+Fix the normal Codex CLI authentication/network/provider configuration, then rerun
+this script from a clean frozen target checkout.
 EOF
   exit "$RC"
 fi
