@@ -38,6 +38,7 @@ jobs:
           set -euo pipefail
           test ! -e .github/workflows/runtime-r2-provider-execution.yml
           bash -n scripts/runtime-r2-local.sh
+          PYTHON_BIN=python3 bash scripts/runtime-r2-local.sh --help >/dev/null
           python - <<'PY'
           import pathlib, re, yaml
           workflow=pathlib.Path('.github/workflows/runtime-r2-execution-contract.yml')
@@ -51,6 +52,8 @@ jobs:
           assert not bad, 'unpinned actions: '+', '.join(bad)
 
           local=pathlib.Path('scripts/runtime-r2-local.sh').read_text(encoding='utf-8')
+          assert 'PYTHON_BIN=${PYTHON_BIN:-python3}' in local
+          assert 'for cmd in git python ' not in local
           assert 'CODEX_RUNTIME_CREDENTIAL' not in local
           assert 'CLAUDE_RUNTIME_CREDENTIAL' not in local
           assert 'codex exec' in local
@@ -63,5 +66,23 @@ jobs:
           assert '"r2_qualified":False' in local
           assert 'runtime_r2_evidence.py" project-receipt' in local
           assert 'result-tree.tar.gz' in local
-          print('[PASS] Codex R2 execution is local-terminal owned and GitHub-provider-credential free')
+
+          lines=local.splitlines()
+          blocks=[]
+          current=None
+          for line in lines:
+              if "<<'PY'" in line:
+                  current=[]
+                  continue
+              if current is not None and line == 'PY':
+                  blocks.append('\n'.join(current))
+                  current=None
+                  continue
+              if current is not None:
+                  current.append(line)
+          assert current is None, 'unterminated Python heredoc'
+          assert blocks, 'no embedded Python blocks found'
+          for index, block in enumerate(blocks, 1):
+              compile(block, f'embedded-python-{index}', 'exec')
+          print('[PASS] Codex R2 execution is local-terminal owned, Python-3-only, and GitHub-provider-credential free')
           PY
