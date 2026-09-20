@@ -56,8 +56,8 @@ done
 command -v "$PYTHON_BIN" >/dev/null 2>&1 || { echo "missing Python 3 interpreter: $PYTHON_BIN" >&2; exit 2; }
 "$PYTHON_BIN" - <<'PY'
 import sys
-if sys.version_info < (3, 9):
-    raise SystemExit(f"Python >= 3.9 required, got {sys.version}")
+if sys.version_info < (3, 11):
+    raise SystemExit(f"Python >= 3.11 required, got {sys.version}")
 PY
 
 read_plan() {
