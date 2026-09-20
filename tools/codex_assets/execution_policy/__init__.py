@@ -1,1 +1,1 @@
-"""Vendored ADK v5.1.1 execution-policy source used by the Codex-native runtime kernel."""
+"""Exact ADK 7.0.4 Execution Policy source set vendored for Codex runtime assembly."""
