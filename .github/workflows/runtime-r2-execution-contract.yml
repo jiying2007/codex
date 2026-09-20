@@ -5,11 +5,13 @@ on:
     paths:
       - '.github/workflows/runtime-r2-provider-execution.yml'
       - '.github/workflows/runtime-r2-execution-contract.yml'
+      - 'scripts/runtime-r2-local.sh'
   push:
     branches: [main]
     paths:
       - '.github/workflows/runtime-r2-provider-execution.yml'
       - '.github/workflows/runtime-r2-execution-contract.yml'
+      - 'scripts/runtime-r2-local.sh'
   workflow_dispatch:
 
 permissions:
@@ -30,40 +32,36 @@ jobs:
           python-version: '3.12'
       - name: Install YAML parser
         run: python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
-      - name: Validate runtime-owned R2 execution boundary
+      - name: Validate runtime-owned local R2 execution boundary
         shell: bash
         run: |
           set -euo pipefail
+          test ! -e .github/workflows/runtime-r2-provider-execution.yml
+          bash -n scripts/runtime-r2-local.sh
           python - <<'PY'
           import pathlib, re, yaml
-          paths=[
-              pathlib.Path('.github/workflows/runtime-r2-provider-execution.yml'),
-              pathlib.Path('.github/workflows/runtime-r2-execution-contract.yml'),
-          ]
-          for path in paths:
-              text=path.read_text(encoding='utf-8')
-              yaml.load(text, Loader=yaml.BaseLoader)
-              bad=[]
-              for lineno,line in enumerate(text.splitlines(),1):
-                  m=re.search(r'\buses:\s*[^\s@]+@([^\s#]+)',line)
-                  if m and not re.fullmatch(r'[0-9a-f]{40}',m.group(1)):
-                      bad.append(f'{path}:{lineno}:{m.group(1)}')
-              assert not bad, 'unpinned actions: '+', '.join(bad)
-          provider=paths[0].read_text(encoding='utf-8')
-          assert 'CODEX_RUNTIME_CREDENTIAL' in provider
-          assert 'CLAUDE_RUNTIME_CREDENTIAL' not in provider
-          assert 'repository: jiying2007/digital-worker' in provider
-          assert 'digital_worker_commit' in provider
-          assert 'frozen_inputs_sha256' in provider
-          assert "assert plan['frozen_inputs_sha256'] == os.environ['EXPECTED_FROZEN_INPUTS_SHA256']" in provider
-          assert 'verification_or_release_authority' in provider
-          assert "'verification_or_release_authority':False" in provider
-          assert "'verification_pass_claimed':False" in provider
-          assert "'r2_qualified':False" in provider
-          assert 'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6' in provider
-          assert 'result-tree.tar.gz' in provider
-          assert 'workflow_dispatch:' in provider
-          assert '\n  pull_request:' not in provider
-          assert '\n  push:' not in provider
-          print('[PASS] Codex owns provider credential/execution and emits attested execution-fact-only R2 evidence')
+          workflow=pathlib.Path('.github/workflows/runtime-r2-execution-contract.yml')
+          text=workflow.read_text(encoding='utf-8')
+          yaml.load(text, Loader=yaml.BaseLoader)
+          bad=[]
+          for lineno,line in enumerate(text.splitlines(),1):
+              m=re.search(r'\buses:\s*[^\s@]+@([^\s#]+)',line)
+              if m and not re.fullmatch(r'[0-9a-f]{40}',m.group(1)):
+                  bad.append(f'{workflow}:{lineno}:{m.group(1)}')
+          assert not bad, 'unpinned actions: '+', '.join(bad)
+
+          local=pathlib.Path('scripts/runtime-r2-local.sh').read_text(encoding='utf-8')
+          assert 'CODEX_RUNTIME_CREDENTIAL' not in local
+          assert 'CLAUDE_RUNTIME_CREDENTIAL' not in local
+          assert 'codex exec' in local
+          assert 'CODEX_HOME=' in local
+          assert '"authorization_mode":"explicit-local-operator-execution"' in local
+          assert '"runtime_host":"local-terminal"' in local
+          assert '"github_provider_credential_used":False' in local
+          assert '"verification_or_release_authority":False' in local
+          assert '"verification_pass_claimed":False' in local
+          assert '"r2_qualified":False' in local
+          assert 'runtime_r2_evidence.py" project-receipt' in local
+          assert 'result-tree.tar.gz' in local
+          print('[PASS] Codex R2 execution is local-terminal owned and GitHub-provider-credential free')
           PY
