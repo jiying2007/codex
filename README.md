@@ -338,7 +338,7 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 - 唯一配置：`manifests/execution_policy.json`。
 - Canonical engine：`tools/codex_assets/execution_policy/engine.py`，行为基线绑定 ADK 7.0.4 exact source identity。
 - Codex host adapter：`tools/codex_assets/execution_policy_adapter.py`。
-- 唯一 CLI：`python3 -m tools.codex_assets execution-policy`；shell 入口仅为 `scripts/execution-policy.sh`。
+- 唯一 CLI：`python3 -m tools.codex_assets execution-policy`；不提供额外 shell wrapper。
 - Journal：`~/.codex/execution-policy/`；只保存结构化事件与哈希，不保存 prompt/messages/raw cwd。
 - 旧 `runtime-control` Python/CLI/config surface 已 hard-cut；仅保留冻结的 `runtime_control.*` wire schema identity，不提供 alias、fallback、双读或双写。
 
