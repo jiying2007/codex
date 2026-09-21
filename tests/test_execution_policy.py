@@ -19,6 +19,12 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class ExecutionPolicyActiveDocsRatchetTest(unittest.TestCase):
+    def test_adapter_operator_errors_use_execution_policy_name(self) -> None:
+        adapter = (ROOT / "tools/codex_assets/execution_policy_adapter.py").read_text(encoding="utf-8")
+        self.assertNotIn("runtime control", adapter.lower())
+        self.assertIn("Execution Policy manifest", adapter)
+        self.assertIn("Execution Policy journal", adapter)
+
     def test_readme_uses_only_execution_policy_v2_active_entrypoints(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         retired = (
