@@ -81,6 +81,12 @@ import sys
 if sys.version_info < (3, 11):
     raise SystemExit(f"Python >= 3.11 required, got {sys.version}")
 PY
+"$PYTHON_BIN" - <<'PY'
+try:
+    import jsonschema  # noqa: F401
+except ImportError as exc:
+    raise SystemExit("jsonschema is required for R2 replay postflight: python3 -m pip install jsonschema") from exc
+PY
 
 read_plan() {
   "$PYTHON_BIN" - "$PLAN" "$1" <<'PY'
@@ -277,17 +283,31 @@ git -C "$TARGET_ROOT" status --porcelain=v1 --untracked-files=all > "$OUT/codex-
 git -C "$TARGET_ROOT" diff --binary > "$OUT/codex.patch"
 tar --exclude=.git -C "$TARGET_ROOT" -czf "$OUT/result-tree.tar.gz" .
 
+POSTFLIGHT="$OUT/postflight"
+rm -rf "$POSTFLIGHT"
+"$PYTHON_BIN" "$DW_ROOT/scripts/runtime_r2_result_postflight.py" \
+  --frozen-plan "$PLAN" \
+  --result-archive "$OUT/result-tree.tar.gz" \
+  --out "$POSTFLIGHT" \
+  --summary-json > "$OUT/result-postflight-summary.json"
+
 "$PYTHON_BIN" - "$PLAN" "$OUT/provider-authorization.json" "$OUT/codex-install.json" \
-  "$TARGET_ROOT" "$OUT/result-tree.tar.gz" "$OUT/codex-native.json" "$RECEIPT_MODEL" "$TARGET_REPOSITORY" <<'PY'
+  "$TARGET_ROOT" "$OUT/result-tree.tar.gz" "$POSTFLIGHT/result-postflight.json" \
+  "$OUT/codex-native.json" "$RECEIPT_MODEL" "$TARGET_REPOSITORY" <<'PY'
 import hashlib, json, pathlib, sys
-plan_path,auth_path,install_path,target,result_archive,out=map(pathlib.Path,sys.argv[1:7])
-model=sys.argv[7]
-target_repository=sys.argv[8]
+plan_path,auth_path,install_path,target,result_archive,postflight_path,out=map(pathlib.Path,sys.argv[1:8])
+model=sys.argv[8]
+target_repository=sys.argv[9]
 plan=json.loads(plan_path.read_text())
 auth=json.loads(auth_path.read_text())
 install=json.loads(install_path.read_text())
 if auth["authorized"] is not True or auth["frozen_inputs_sha256"] != plan["frozen_inputs_sha256"]:
     raise SystemExit("local provider authorization does not match frozen plan")
+postflight=json.loads(postflight_path.read_text())
+if postflight.get("status") != "pass" or postflight.get("replay_self_contained") is not True:
+    raise SystemExit("replay result postflight did not pass")
+if postflight.get("verification_pass_claimed") is not False or postflight.get("r2_qualified") is not False:
+    raise SystemExit("replay result postflight overclaimed verification authority")
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 def tree_digest(root):
@@ -339,7 +359,7 @@ receipt={
     },
     "execution":{
         "status":"completed",
-        "runtime_local_gates":["exact-base","source-set-applied","codex-cli-success","replay-bundle-complete"],
+        "runtime_local_gates":["exact-base","source-set-applied","codex-cli-success","replay-bundle-complete","replay-postflight-pass"],
         "started_at":pathlib.Path(out.parent,"started-at.txt").read_text().strip(),
         "finished_at":pathlib.Path(out.parent,"finished-at.txt").read_text().strip(),
     },
@@ -349,6 +369,7 @@ receipt={
         "provider-output:sha256:"+sha(pathlib.Path(out.parent,"codex-final.txt")),
         "worktree-result:sha256:"+tree_digest(target),
         "replay-result-archive:sha256:"+sha(result_archive),
+        "replay-postflight:sha256:"+sha(postflight_path),
     ],
 }
 out.write_text(json.dumps(receipt, indent=2, sort_keys=True)+"\n")
@@ -395,7 +416,8 @@ PY
 tar -C "$OUT" -czf "$OUT/codex-r2-local-evidence.tar.gz" \
   bundle-manifest.json provider-authorization.json codex-install.json codex-native.json \
   codex-portable.json codex-status.txt codex.patch codex-version.txt codex-final.txt \
-  codex-events.jsonl runtime-selection.json result-tree.tar.gz
+  codex-events.jsonl runtime-selection.json result-tree.tar.gz result-postflight-summary.json \
+  postflight/result-postflight.json postflight/result-postflight-host.log postflight/result-postflight-ota.log
 sha256sum "$OUT/codex-r2-local-evidence.tar.gz" > "$OUT/codex-r2-local-evidence.tar.gz.sha256"
 
 echo "Codex local R2 execution evidence ready: $OUT/codex-portable.json"
