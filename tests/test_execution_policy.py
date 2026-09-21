@@ -18,6 +18,21 @@ from tools.codex_assets.execution_policy_adapter import (
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
+class ExecutionPolicyActiveDocsRatchetTest(unittest.TestCase):
+    def test_readme_uses_only_execution_policy_v2_active_entrypoints(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        retired = (
+            "scripts/runtime-control.sh",
+            "manifests/runtime_control.json",
+            "tools/codex_assets/runtime_control.py",
+            "tools/codex_assets/runtime_kernel.py",
+        )
+        for token in retired:
+            self.assertNotIn(token, readme)
+        self.assertIn("python3 -m tools.codex_assets execution-policy", readme)
+        self.assertIn("manifests/execution_policy.json", readme)
+
+
 class ExecutionPolicyAdapterTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = pathlib.Path(tempfile.mkdtemp(prefix="codex-execution-policy-"))
