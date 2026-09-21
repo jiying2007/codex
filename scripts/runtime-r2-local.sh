@@ -283,16 +283,15 @@ git -C "$TARGET_ROOT" status --porcelain=v1 --untracked-files=all > "$OUT/codex-
 git -C "$TARGET_ROOT" diff --binary > "$OUT/codex.patch"
 tar --exclude=.git -C "$TARGET_ROOT" -czf "$OUT/result-tree.tar.gz" .
 
-POSTFLIGHT="$OUT/postflight"
-rm -rf "$POSTFLIGHT"
+rm -f "$OUT/result-postflight.json" "$OUT/result-postflight-host.log" "$OUT/result-postflight-ota.log" "$OUT/result-postflight-summary.json"
 "$PYTHON_BIN" "$DW_ROOT/scripts/runtime_r2_result_postflight.py" \
   --frozen-plan "$PLAN" \
   --result-archive "$OUT/result-tree.tar.gz" \
-  --out "$POSTFLIGHT" \
+  --out "$OUT" \
   --summary-json > "$OUT/result-postflight-summary.json"
 
 "$PYTHON_BIN" - "$PLAN" "$OUT/provider-authorization.json" "$OUT/codex-install.json" \
-  "$TARGET_ROOT" "$OUT/result-tree.tar.gz" "$POSTFLIGHT/result-postflight.json" \
+  "$TARGET_ROOT" "$OUT/result-tree.tar.gz" "$OUT/result-postflight.json" \
   "$OUT/codex-native.json" "$RECEIPT_MODEL" "$TARGET_REPOSITORY" <<'PY'
 import hashlib, json, pathlib, sys
 plan_path,auth_path,install_path,target,result_archive,postflight_path,out=map(pathlib.Path,sys.argv[1:8])
@@ -417,7 +416,7 @@ tar -C "$OUT" -czf "$OUT/codex-r2-local-evidence.tar.gz" \
   bundle-manifest.json provider-authorization.json codex-install.json codex-native.json \
   codex-portable.json codex-status.txt codex.patch codex-version.txt codex-final.txt \
   codex-events.jsonl runtime-selection.json result-tree.tar.gz result-postflight-summary.json \
-  postflight/result-postflight.json postflight/result-postflight-host.log postflight/result-postflight-ota.log
+  result-postflight.json result-postflight-host.log result-postflight-ota.log
 sha256sum "$OUT/codex-r2-local-evidence.tar.gz" > "$OUT/codex-r2-local-evidence.tar.gz.sha256"
 
 echo "Codex local R2 execution evidence ready: $OUT/codex-portable.json"
