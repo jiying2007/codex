@@ -83,6 +83,14 @@ jobs:
           assert '"r2_qualified":False' in local
           assert 'runtime_r2_evidence.py" project-receipt' in local
           assert 'result-tree.tar.gz' in local
+          assert 'runtime_r2_result_postflight.py' in local
+          assert 'result-postflight.json' in local
+          assert 'result-postflight-host.log' in local
+          assert 'result-postflight-ota.log' in local
+          assert 'replay-postflight-pass' in local
+          assert 'replay-postflight:sha256:' in local
+          assert 'jsonschema is required for R2 replay postflight' in local
+          assert local.index('runtime_r2_result_postflight.py') < local.index('codex-native.json')
 
           lines=local.splitlines()
           blocks=[]
@@ -101,5 +109,5 @@ jobs:
           assert blocks, 'no embedded Python blocks found'
           for index, block in enumerate(blocks, 1):
               compile(block, f'embedded-python-{index}', 'exec')
-          print('[PASS] Codex R2 execution reuses shared user CODEX_HOME and its default model/provider config, supports explicit model override, keeps local auth/config out of evidence identity, and remains provider-credential free in GitHub')
+          print('[PASS] Codex R2 execution reuses shared user CODEX_HOME, gates evidence on replay-self-contained Digital Worker postflight, keeps local auth/config out of evidence identity, and remains provider-credential free in GitHub')
           PY
