@@ -75,14 +75,14 @@ rtk bash scripts/archive-search.sh "context-preflight"
 rtk bash scripts/context-preflight.sh
 
 # 查看统一任务、Token、上下文和决策快照
-rtk bash scripts/runtime-control.sh snapshot
+rtk python3 -m tools.codex_assets execution-policy snapshot
 
 # 实时观察同一状态与决策
-rtk bash scripts/runtime-control.sh watch
+rtk python3 -m tools.codex_assets execution-policy watch
 
 # apply / final 等阶段统一门禁
-rtk bash scripts/runtime-control.sh gate --event apply
-rtk bash scripts/runtime-control.sh gate --event final
+rtk python3 -m tools.codex_assets execution-policy gate --event apply
+rtk python3 -m tools.codex_assets execution-policy gate --event final
 
 # 从低上下文 catalog 查询长尾 skill；命中后再读取返回的 load_path
 rtk bash scripts/skill-search.sh --query "多源搜索和交叉验证" --summary-json
@@ -229,7 +229,7 @@ rollback 恢复的是 live 文件；随后应重新 build 原 profile，并运�
 | `manifests/eval_suites.json` | routing、governance、completion 等 eval 契约和 promotion gate |
 | `manifests/cli_command_contracts.json` | slash command 的输入、允许动作、禁止动作、输出和验证契约 |
 | `manifests/guidance_promotions.json` | 从会话、归档、manifest 或官方资料提升到 AGENTS/skill/archive/memory 的门禁 |
-| `manifests/runtime_control.json` | Runtime Control Engine 制品绑定、事件源、Journal、策略、门禁与保留契约 |
+| `manifests/execution_policy.json` | Execution Policy v2 制品绑定、事件源、Journal、策略、门禁与保留契约 |
 | `manifests/prompt_experiments.json` | AGENTS、skill 和 prompt 指导规则实验、grader、人工评审和回退契约 |
 | `manifests/trace_eval_contracts.json` | 过程轨迹评分契约，约束必要事件、禁止事件、rubric 和最低分 |
 | `manifests/context_state_contracts.json` | stable/dynamic/evidence/excluded context 的可验证状态契约 |
@@ -331,28 +331,30 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 - `archive-search` 默认在 `.cache/archive-search.sqlite` 维护轻量索引。
 - 支持 `--topic`、`--tag`、`--type`、`--since`、`--until`、`--rebuild-index` 做 metadata 过滤与索引控制。
 
-## Runtime Control
+## Execution Policy
 
-任务、Token、上下文、进度、心跳、重试、checkpoint、证据和阶段门禁使用同一套控制面：
+任务、Token、上下文、进度、checkpoint、证据和阶段门禁统一由 **Execution Policy v2** 管理：
 
-- 唯一 Engine：锁定在 `vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl` 的 `agent_dev_kit.runtime_control`。
-- 唯一运行清单：`manifests/runtime_control.json`；wheel 版本或 SHA-256 不匹配时 fail closed。
-- 唯一 Journal：`~/.codex/runtime-control/<thread-hash>.jsonl`；不保存 prompt、消息正文、目标原文和真实 cwd。
-- 唯一入口：`scripts/runtime-control.sh`；Codex adapter 只采集 `state_5.sqlite` 与 rollout token snapshot，所有归约和决策均由 Engine 完成。
+- 唯一配置：`manifests/execution_policy.json`。
+- Canonical engine：`tools/codex_assets/execution_policy/engine.py`，行为基线绑定 ADK 7.0.4 exact source identity。
+- Codex host adapter：`tools/codex_assets/execution_policy_adapter.py`。
+- 唯一 CLI：`python3 -m tools.codex_assets execution-policy`；shell 入口仅为 `scripts/execution-policy.sh`。
+- Journal：`~/.codex/execution-policy/`；只保存结构化事件与哈希，不保存 prompt/messages/raw cwd。
+- 旧 `runtime-control` Python/CLI/config surface 已 hard-cut；仅保留冻结的 `runtime_control.*` wire schema identity，不提供 alias、fallback、双读或双写。
 
 ```bash
-rtk bash scripts/runtime-control.sh snapshot
-rtk bash scripts/runtime-control.sh watch
-rtk bash scripts/runtime-control.sh goal start --goal-id <id> --token-budget <n> --time-budget-seconds <n> --success-criterion <id> --required-evidence <id> --open-items <n>
-rtk bash scripts/runtime-control.sh progress --revision <n>
-rtk bash scripts/runtime-control.sh goal update --open-items <n> [--token-budget <n>] [--time-budget-seconds <n>]
-rtk bash scripts/runtime-control.sh heartbeat
-rtk bash scripts/runtime-control.sh checkpoint --revision <n> --evidence-id <id>
-rtk bash scripts/runtime-control.sh gate --event apply
-rtk bash scripts/runtime-control.sh gate --event final
+rtk python3 -m tools.codex_assets execution-policy snapshot
+rtk python3 -m tools.codex_assets execution-policy watch
+rtk python3 -m tools.codex_assets execution-policy goal start --goal-id <id> --token-budget <n> --time-budget-seconds <n> --success-criterion <id> --required-evidence <id> --open-items <n> --task-mode implementation --request-sha256 <sha256> --routing-decision-sha256 <sha256> --authority-id digital-worker --decision-id <decision-id> --source-id digital-worker --source-version <version>
+rtk python3 -m tools.codex_assets execution-policy progress --revision <n>
+rtk python3 -m tools.codex_assets execution-policy goal update --open-items <n> [--token-budget <n>] [--time-budget-seconds <n>]
+rtk python3 -m tools.codex_assets execution-policy heartbeat
+rtk python3 -m tools.codex_assets execution-policy checkpoint --revision <n> --evidence-id <id>
+rtk python3 -m tools.codex_assets execution-policy gate --event apply
+rtk python3 -m tools.codex_assets execution-policy gate --event final
 ```
 
-同一决策只会建议 `continue`、`checkpoint`、`compact`、`replan`、`stop` 或 `pass`。活动任务在 apply 所需制品证据齐全且运行状态健康时可以通过 apply 门禁；final、commit 和 release 必须在任务完成且 checkpoint、必需证据和制品全部有效后通过。
+没有受信 mode-authority verifier 时，readonly/debug/review 不会自动获得更弱门禁，而是 fail-closed 使用 implementation artifact boundary。完整契约见 `docs/execution-policy.md`。
 
 ## 回答压缩与输出裁剪边界
 
