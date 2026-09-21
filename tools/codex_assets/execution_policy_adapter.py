@@ -56,23 +56,23 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise ExecutionPolicyAdapterError("unable to read runtime control manifest") from exc
+        raise ExecutionPolicyAdapterError("unable to read Execution Policy manifest") from exc
     if not isinstance(value, dict) or set(value) != {"schema_version", "engine", "sources", "policy"}:
-        raise ExecutionPolicyAdapterError("runtime control manifest fields are invalid")
+        raise ExecutionPolicyAdapterError("Execution Policy manifest fields are invalid")
     if value.get("schema_version") != 3:
-        raise ExecutionPolicyAdapterError("unsupported runtime control manifest schema")
+        raise ExecutionPolicyAdapterError("unsupported Execution Policy manifest schema")
     engine = value.get("engine")
     expected_engine_fields = {"kind", "module", "contract", "behavior_baseline"}
     if not isinstance(engine, dict) or set(engine) != expected_engine_fields:
-        raise ExecutionPolicyAdapterError("runtime control engine declaration is invalid")
+        raise ExecutionPolicyAdapterError("Execution Policy engine declaration is invalid")
     if engine.get("kind") != "codex-native":
-        raise ExecutionPolicyAdapterError("runtime control engine must be codex-native")
+        raise ExecutionPolicyAdapterError("Execution Policy engine must be codex-native")
     if engine.get("module") != "tools.codex_assets.execution_policy.engine":
-        raise ExecutionPolicyAdapterError("runtime control native module drift")
+        raise ExecutionPolicyAdapterError("Execution Policy native module drift")
     if engine.get("contract") != "runtime_control.policy/v2":
-        raise ExecutionPolicyAdapterError("runtime control contract drift")
+        raise ExecutionPolicyAdapterError("Execution Policy contract drift")
     if engine.get("behavior_baseline") != ENGINE_BASELINE:
-        raise ExecutionPolicyAdapterError("runtime control behavior baseline drift")
+        raise ExecutionPolicyAdapterError("Execution Policy behavior baseline drift")
     try:
         value["policy"] = validate_policy(value["policy"])
     except ExecutionPolicyError as exc:
@@ -85,7 +85,7 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
 def _resolved_sources(config: Mapping[str, Any], codex_home: str = "") -> dict[str, Path]:
     sources = config.get("sources")
     if not isinstance(sources, dict) or set(sources) != {"state_db", "sessions_root", "journal_dir"}:
-        raise ExecutionPolicyAdapterError("runtime control sources are invalid")
+        raise ExecutionPolicyAdapterError("Execution Policy sources are invalid")
     home = Path(codex_home).expanduser().resolve() if codex_home else Path("~/.codex").expanduser().resolve()
 
     def resolve(value: Any, default_name: str) -> Path:
@@ -220,7 +220,7 @@ def load_journal(path: Path) -> list[dict[str, Any]]:
                     raise ExecutionPolicyAdapterError("journal line {} is not an object".format(line_number))
                 events.append(value)
     except (OSError, json.JSONDecodeError) as exc:
-        raise ExecutionPolicyAdapterError("runtime control journal is invalid") from exc
+        raise ExecutionPolicyAdapterError("Execution Policy journal is invalid") from exc
     return events
 
 
@@ -252,7 +252,7 @@ def append_journal(path: Path, event: Mapping[str, Any]) -> None:
             os.fsync(stream.fileno())
             fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
     except OSError as exc:
-        raise ExecutionPolicyAdapterError("unable to append runtime control journal") from exc
+        raise ExecutionPolicyAdapterError("unable to append Execution Policy journal") from exc
 
 
 def control_event(kind: str, thread_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -352,7 +352,7 @@ def _active_context(args: argparse.Namespace) -> tuple[Path, dict[str, Any], dic
 def _append_action(args: argparse.Namespace, kind: str, payload: Mapping[str, Any]) -> int:
     root, config, _, thread, journal = _active_context(args)
     if not journal.is_file():
-        raise ExecutionPolicyAdapterError("no active runtime control goal journal")
+        raise ExecutionPolicyAdapterError("no active Execution Policy goal journal")
     append_journal(journal, control_event(kind, thread["thread_id"], payload))
     state, _ = snapshot(root, config, codex_home=args.codex_home, thread_id=args.thread_id)
     _emit(state)
