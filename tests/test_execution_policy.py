@@ -26,17 +26,23 @@ class ExecutionPolicyActiveDocsRatchetTest(unittest.TestCase):
         self.assertIn("Execution Policy journal", adapter)
 
     def test_readme_uses_only_execution_policy_v2_active_entrypoints(self) -> None:
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        active_docs = [
+            (ROOT / "README.md").read_text(encoding="utf-8"),
+            (ROOT / "docs/execution-policy.md").read_text(encoding="utf-8"),
+        ]
         retired = (
             "scripts/runtime-control.sh",
+            "scripts/execution-policy.sh",
             "manifests/runtime_control.json",
             "tools/codex_assets/runtime_control.py",
             "tools/codex_assets/runtime_kernel.py",
         )
-        for token in retired:
-            self.assertNotIn(token, readme)
-        self.assertIn("python3 -m tools.codex_assets execution-policy", readme)
-        self.assertIn("manifests/execution_policy.json", readme)
+        for text in active_docs:
+            for token in retired:
+                self.assertNotIn(token, text)
+            self.assertIn("python3 -m tools.codex_assets execution-policy", text)
+        self.assertIn("manifests/execution_policy.json", active_docs[0])
+        self.assertFalse((ROOT / "scripts/execution-policy.sh").exists())
 
 
 class ExecutionPolicyAdapterTest(unittest.TestCase):
