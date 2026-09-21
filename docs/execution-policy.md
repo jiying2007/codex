@@ -17,7 +17,7 @@ Execution Policy v2 要求每个 goal 在 `goal.started` 时携带可验证 inta
 入口示例：
 
 ```bash
-scripts/execution-policy.sh goal start \
+python3 -m tools.codex_assets execution-policy goal start \
   --goal-id example \
   --token-budget 200000 \
   --time-budget-seconds 14400 \
