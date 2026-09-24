@@ -1,0 +1,86 @@
+name: ADK Upgrade Backup Repair
+on:
+  push:
+    branches: ['import/adk-daily-core-7.0.31']
+    paths: ['.github/workflows/adk-upgrade-backup-fix.yml']
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.repository == 'jiying2007/codex' && github.ref == 'refs/heads/import/adk-daily-core-7.0.31'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Apply the exact reviewed backup ordering patch
+        run: |
+          python - <<'PY'
+          import hashlib, subprocess
+          from pathlib import Path
+          assert subprocess.check_output(['git','rev-parse','HEAD^'],text=True).strip() == '30599dcc1879e8a43a7ab2a6e0420c01d5ba7f95'
+          path = Path('tools/codex_assets/core.py')
+          data = path.read_bytes()
+          def blob(data):
+              return hashlib.sha1(f'blob {len(data)}\0'.encode()+data).hexdigest()
+          assert blob(data) == 'cc284a082832b8700addd8032b11aa239abe6c52'
+          patch = '''--- a/tools/codex_assets/core.py
+          +++ b/tools/codex_assets/core.py
+          @@ -979,19 +979,22 @@
+               target = pathlib.Path(plan["target"]).expanduser()
+               if not dry_run:
+                   target.mkdir(parents=True, exist_ok=True)
+          +    # Snapshot all original paths before any mutation. A stale directory can
+          +    # contain individually managed files; backing it up after child deletion
+          +    # would replace the complete backup with an empty directory.
+          +    for action in plan["actions"]:
+          +        if action["action"] in {"overwrite", "delete"}:
+          +            backup_existing(target / action["path"], pathlib.Path(action["backup"]), dry_run)
+               for action in plan["actions"]:
+                   rel = action["path"]
+                   if action["action"] == "mkdir":
+                       if not dry_run:
+                           (target / rel).mkdir(parents=True, exist_ok=True)
+                   elif action["action"] in {"copy", "overwrite"}:
+          -            if action["action"] == "overwrite":
+          -                backup_existing(target / rel, pathlib.Path(action["backup"]), dry_run)
+                       copy_one(build / rel, target / rel, dry_run)
+                   elif action["action"] == "delete":
+                       dest = target / rel
+                       if dest.exists() or dest.is_symlink():
+          -                backup_existing(dest, pathlib.Path(action["backup"]), dry_run)
+                           if not dry_run:
+                               remove_path(dest)
+               return "applied"
+          '''
+          subprocess.run(['git','apply','--check','-'],input=patch,text=True,check=True)
+          subprocess.run(['git','apply','-'],input=patch,text=True,check=True)
+          assert blob(path.read_bytes()) == 'd7c5221c50de0bcefc7b3373827a6459f0aaab83'
+          ci = Path('.github/workflows/runtime-binding-contract.yml')
+          assert blob(ci.read_bytes()) == '5c8b7d529a49e8e1861b55f0f5478a1ab98eebbf'
+          text = ci.read_text()
+          anchor = "      - 'tools/codex_assets/validate.py'\n"
+          assert text.count(anchor) == 2
+          text = text.replace(anchor, anchor + "      - 'tools/codex_assets/core.py'\n      - 'tests/test_apply_prune.py'\n      - 'tests/test_apply_backup_integrity.py'\n")
+          anchor = 'run: python -m unittest tests.test_adk_skill_audit tests.test_adk_daily_core_import'
+          assert text.count(anchor) == 1
+          text = text.replace(anchor, anchor + ' tests.test_apply_prune tests.test_apply_backup_integrity')
+          ci.write_text(text)
+          subprocess.run(['git','diff','--check'],check=True)
+          PY
+      - name: Verify source import and actual backup regressions
+        env:
+          CODEX_OFFLINE_HERMETIC: '1'
+        run: |
+          python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
+          python -m unittest tests.test_adk_skill_audit tests.test_adk_daily_core_import tests.test_apply_prune tests.test_apply_backup_integrity tests.test_agent_rules tests.test_session_bootstrap tests.test_session_bootstrap_independence tests.test_execution_policy tests.test_execution_policy_source_set tests.test_skill_catalog tests.test_profile_documentation tests.test_activity_reporting_skills tests.test_retired_profile
+      - name: Commit only the verified patch on this branch
+        run: |
+          git add -- tools/codex_assets/core.py .github/workflows/runtime-binding-contract.yml
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(apply): 在任何资源修改前完成原始路径备份'
+          git push origin HEAD:refs/heads/import/adk-daily-core-7.0.31
