@@ -22,7 +22,7 @@ jobs:
         env:
           CODEX_OFFLINE_HERMETIC: '1'
         run: |
-          test "$(git rev-parse HEAD^)" = d5720c18ea9b1d4267da2285ffc559c559b74ecd
+          test "$(git rev-parse HEAD:tools/codex_assets/core.py)" = d7c5221c50de0bcefc7b3373827a6459f0aaab83
           echo '62abd3e38d7d25c3fd6dccc49c544624d06ae03d324f730bc85c2717199132b5  .github/member-core.patch' | sha256sum --check --strict
           git apply --check .github/member-core.patch
           git apply .github/member-core.patch
