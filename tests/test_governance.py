@@ -149,7 +149,9 @@ def make_repo(test_case: unittest.TestCase) -> pathlib.Path:
     for relative in (
         "manifests/execution_policy.json",
         "manifests/provider-locks/agent-dev-kit.json",
-        "tools/codex_assets/execution_policy/engine.py",
+        "tools/codex_assets/execution_policy/__init__.py",
+        "tools/codex_assets/execution_policy/decision.py",
+        "tools/codex_assets/execution_policy/reducer.py",
         "tools/codex_assets/execution_policy/contracts.py",
     ):
         destination = root / relative
@@ -911,7 +913,7 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertEqual(["docs-to-agents"], report["guidance_promotions"])
         self.assertEqual(2, report["schema_version"])
         self.assertNotIn("runtime_control", report)
-        self.assertEqual("7.0.4", report["execution_policy"]["engine_version"])
+        self.assertEqual("7.0.31", report["execution_policy"]["engine_version"])
         self.assertEqual("routing", report["eval_suite_links"]["routing-eval"]["kind"])
         self.assertEqual("/review", report["cli_command_contract_links"]["review-command"]["command"])
         self.assertEqual("agents", report["guidance_promotion_links"]["docs-to-agents"]["destination"])
@@ -954,11 +956,11 @@ class GovernanceValidationTest(unittest.TestCase):
 
     def test_execution_policy_requires_exact_source_blob(self) -> None:
         root = make_repo(self)
-        source = root / "tools/codex_assets/execution_policy/engine.py"
+        source = root / "tools/codex_assets/execution_policy/decision.py"
         source.write_bytes(source.read_bytes() + b"\n# source drift\n")
 
         errors = validate_repo(root)
-        self.assertIn("execution_policy.json: Execution Policy source blob drift: engine.py", errors)
+        self.assertIn("execution_policy.json: Execution Policy source blob drift: decision.py", errors)
 
     def test_automation_requires_run_lifecycle(self) -> None:
         root = make_repo(self)

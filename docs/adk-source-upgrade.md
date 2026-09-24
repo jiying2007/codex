@@ -111,3 +111,14 @@ Agent/Execution Policy 仍按其独立 7.0.4 来源锁定；不能宣称整个 r
 先处理来源和候选差异，再分批导入现有 active Skill 的完整支持目录，保留本地 profile/触发映射并重新验证；Agent、Execution Policy 与 provider lock 的升级必须保持各自真实身份一致。实际 apply、漂移检查、回退和成员任务验证继续走原流程。
 
 审计命令本身不升级 provider pin、不改已安装 Skill、不自动写成员 ~/.codex，不接触 Digital Worker 正式证据或 engineering-platform。上述首批导入只修改仓库的资源源目录；默认小团队路径保持 CLI + ADK + 项目验收 + Knowledge Hub。
+
+### Agent / Execution Policy 同源迁移（2026-09-24）
+
+在完成上述 Skill 导入后，9 个既有 Agent 及执行策略更新至同一固定 ADK 7.0.31
+来源。Agent 正文经核验没有变化；不是新增角色或提高能力数量。执行策略复制完整
+canonical package/contracts/decision/reducer，移除旧 engine.py；调用方改用真实
+owner 模块，Provider lock 与可选 L2 的当前 source binding 同步，历史 receipt 不改写。
+
+安装目标与 Agent profile 保持原样，默认配置不新增多 Agent；主机的会话、权限与
+知识提供方不变。配置 schema 4 的显式迁移及合成历史日志回放见 `execution-policy.md`。
+上文各批次“仍固定7.0.4”只描述当时交付范围，不是当前运行资源的版本。
