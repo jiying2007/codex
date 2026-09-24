@@ -16,6 +16,10 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 
 `~/.codex/skills/.system`、认证、session、日志、缓存、密钥和本机私有配置始终由运行目录优先，本仓库不跟踪、不复制、不覆盖。
 
+小团队成员首次安装或升级，使用 [成员安装与现场验收](docs/member-rollout.md)。
+复用现有 build/doctor/plan/apply/diff/drift/rollback；不需要部署 Digital Worker，
+不要求成员为了安装资源而配置飞书 SDK、复制他人凭证或运行全部维护侧测试。
+
 ## 常用命令
 
 ```bash

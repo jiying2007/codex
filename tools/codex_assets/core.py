@@ -667,8 +667,8 @@ def plan_apply(
 ) -> dict[str, Any]:
     repo = Repo.from_path(root)
     build_path = pathlib.Path(build).expanduser().resolve()
-    target_path = pathlib.Path(target).expanduser()
-    backup_path = pathlib.Path(backup_root).expanduser()
+    target_path = pathlib.Path(target).expanduser().absolute()
+    backup_path = pathlib.Path(backup_root).expanduser().absolute()
     if not build_path.is_dir():
         fail(f"构建目录不存在: {build_path}")
     state_path = build_path / "control/state/managed-files.json"
@@ -676,6 +676,8 @@ def plan_apply(
         fail(f"构建目录缺少 managed-files.json: {build_path}")
     protected = repo.policies.get("protected_paths", [])
     always_generated = {"skills/registry.csv", "control/state/active-profile.env", "control/state/managed-files.json"}
+    # Do not read managed state through a redirected directory before preflight.
+    require_real_directories(target_path / "control/state", target_path)
     previous_managed = managed_items(target_path)
     actions: list[dict[str, Any]] = [{"action": "mkdir", "path": "."}]
     summary = {"copy": 0, "keep": 0, "overwrite": 0, "delete": 0, "mkdir": 1, "skip": 0}
@@ -700,7 +702,7 @@ def plan_apply(
             actions.append({"action": "keep", "path": rel, "reason": "same-symlink"})
             summary["keep"] += 1
             continue
-        if not src.is_symlink() and src.is_file() and dest.is_file() and filecmp.cmp(src, dest, shallow=False):
+        if not src.is_symlink() and src.is_file() and not dest.is_symlink() and dest.is_file() and filecmp.cmp(src, dest, shallow=False):
             actions.append({"action": "keep", "path": rel, "reason": "same-file"})
             summary["keep"] += 1
             continue
@@ -761,6 +763,7 @@ def plan_apply(
                 summary["delete"] += 1
 
     content_changes = summary["copy"] + summary["overwrite"] + summary["delete"]
+    validate_install_layout({"target": str(target_path), "actions": actions})
     target_preconditions = target_precondition_rows(target_path, actions)
     return {
         "schema_version": 3,
@@ -785,6 +788,61 @@ def plan_apply(
         "summary": summary,
         "actions": actions,
     }
+
+
+def require_real_directories(directory: pathlib.Path, root: pathlib.Path) -> None:
+    """Reject aliases in directory positions; asset leaf symlinks remain valid.
+
+    Inspect lexical paths, not resolve(), so a link introduced after planning
+    cannot silently change the destination. This is a preflight check, not a
+    filesystem lock against concurrent writers.
+    """
+    root = root.expanduser().absolute()
+    directory = directory.expanduser().absolute()
+    try:
+        relative = directory.relative_to(root)
+    except ValueError:
+        fail(f"install directory is outside target: {directory}")
+    current = root
+    for part in (None, *relative.parts):
+        if part is not None:
+            current = current / part
+        if current.is_symlink():
+            fail(f"install directory symlink is not allowed: {current}; use the explicit real directory")
+        if current.exists() and not current.is_dir():
+            fail(f"install parent is not a directory: {current}")
+
+
+def validate_install_layout(plan: dict[str, Any], *, new_backup: bool = False) -> None:
+    """Check every action before writes, including rollback's reverse actions."""
+    target = pathlib.Path(plan["target"]).expanduser().absolute()
+    require_real_directories(target, target)
+    replacements = {action.get("path") for action in plan.get("actions", [])
+                    if action.get("action") in {"copy", "overwrite"}
+                    and isinstance(action.get("path"), str)}
+    for action in plan.get("actions", []):
+        rel = action.get("path")
+        if (not isinstance(rel, str) or not rel
+                or pathlib.PurePosixPath(rel).is_absolute()
+                or ".." in pathlib.PurePosixPath(rel).parts
+                or (rel == "." and action.get("action") != "mkdir")):
+            fail("install action requires a safe relative path")
+        if action.get("action") == "skip":
+            continue
+        if any(parent.as_posix() in replacements
+               for parent in pathlib.PurePosixPath(rel).parents):
+            fail(f"install plan replaces directory ancestor of another action: {rel}")
+        dest = target / rel
+        directory = dest if action.get("action") == "mkdir" else dest.parent
+        require_real_directories(directory, target)
+        if action.get("action") in {"overwrite", "delete"}:
+            value = action.get("backup")
+            if not isinstance(value, str) or not value:
+                fail("install mutation requires a backup path")
+            backup = pathlib.Path(value).expanduser().absolute()
+            require_real_directories(backup.parent, pathlib.Path(backup.anchor))
+            if new_backup and backup.is_symlink():
+                fail(f"install backup leaf symlink already exists: {backup}; choose a fresh backup directory")
 
 
 def path_identity(path: pathlib.Path) -> str:
@@ -886,6 +944,7 @@ def validate_apply_plan(
 ) -> str:
     if plan.get("schema_version") != 3:
         fail("apply plan schema_version 非 3，请重新生成 plan")
+    validate_install_layout(plan)
     build = pathlib.Path(str(plan.get("build", ""))).expanduser().resolve()
     if not build.is_dir():
         fail(f"apply plan 构建目录不存在: {build}")
@@ -934,7 +993,7 @@ def unchanged_from_managed(path: pathlib.Path, item: dict[str, Any] | None) -> b
     if item.get("type") == "symlink":
         return path.is_symlink() and os.readlink(path) == item.get("target")
     if item.get("type") == "file":
-        return path.is_file() and sha256(path) == item.get("sha256")
+        return not path.is_symlink() and path.is_file() and sha256(path) == item.get("sha256")
     return False
 
 
@@ -968,6 +1027,11 @@ def copy_one(src: pathlib.Path, dest: pathlib.Path, dry_run: bool) -> None:
                 dest.unlink()
         dest.symlink_to(os.readlink(src))
     elif src.is_file():
+        # copy2 follows an existing destination link (and copies into an existing
+        # directory). Replace the reviewed leaf itself after its backup instead.
+        # A new inode also avoids modifying another name of a hardlinked file.
+        if dest.exists() or dest.is_symlink():
+            remove_path(dest)
         shutil.copy2(src, dest)
 
 
@@ -975,6 +1039,7 @@ def apply_plan(plan: dict[str, Any], dry_run: bool) -> str:
     plan_state = validate_apply_plan(plan)
     if plan_state == "already-applied":
         return "already-applied"
+    validate_install_layout(plan, new_backup=True)
     build = pathlib.Path(plan["build"])
     target = pathlib.Path(plan["target"]).expanduser()
     if not dry_run:
@@ -984,8 +1049,10 @@ def apply_plan(plan: dict[str, Any], dry_run: bool) -> str:
     # would replace the complete backup with an empty directory.
     for action in plan["actions"]:
         if action["action"] in {"overwrite", "delete"}:
+            validate_install_layout({"target": str(target), "actions": [action]})
             backup_existing(target / action["path"], pathlib.Path(action["backup"]), dry_run)
     for action in plan["actions"]:
+        validate_install_layout({"target": str(target), "actions": [action]})
         rel = action["path"]
         if action["action"] == "mkdir":
             if not dry_run:
@@ -1025,12 +1092,17 @@ def restore_path(backup: pathlib.Path, dest: pathlib.Path, dry_run: bool) -> Non
 
 def rollback_plan(plan_path: str | pathlib.Path, dry_run: bool = False, remove_copies: bool = True) -> dict[str, int]:
     plan = read_json(pathlib.Path(plan_path).expanduser())
+    # Refuse an unsafe later action before restoring/removing any earlier one.
+    # Backup *leaves* may be symlinks: they are restored as links, never read as
+    # their referent's contents.
+    validate_install_layout(plan)
     target = pathlib.Path(plan["target"]).expanduser()
     summary = {"restored": 0, "removed": 0, "skipped": 0}
     for action in reversed(plan.get("actions", [])):
         rel = action.get("path", "")
         if not rel or rel == ".":
             continue
+        validate_install_layout({"target": str(target), "actions": [action]})
         dest = target / rel
         if action.get("action") == "overwrite":
             backup = pathlib.Path(action.get("backup", "")).expanduser()
@@ -1081,7 +1153,7 @@ def diff_build_live(build: str | pathlib.Path, target: str | pathlib.Path, ignor
             else:
                 print(f"[DIFF] {rel_text}")
                 diff += 1
-        elif dest.is_file() and filecmp.cmp(src, dest, shallow=False):
+        elif not dest.is_symlink() and dest.is_file() and filecmp.cmp(src, dest, shallow=False):
             same += 1
         else:
             print(f"[DIFF] {rel_text}")
