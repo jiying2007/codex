@@ -1,0 +1,205 @@
+name: Doctor Policy Repair Materialize
+on:
+  push:
+    branches: ['fix/doctor-execution-policy']
+    paths: ['.github/workflows/doctor-policy-materialize.yml']
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Materialize only the exact reviewed source changes
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          assert subprocess.check_output(['git','rev-parse','HEAD^'],text=True).strip() == '8bf0778eca51bb83355e734217555d8025036df6'
+          identities = {
+              'docs/execution-policy.md': ('d05248654e7b938d9c178a9b742c60d48ce601a8','1c4bb4feba9fa647729cd7306fc2a54791c8fcef'),
+              'manifests/eval_suites.json': ('386fd69b3b5e255c63be070ee6513edc429fbba5','9df55d26eb3bdf78b1b8f489eba1e2d6448592d4'),
+              'tests/test_check_script.py': ('7267dbd9a4ae10890bc855f8dca94356c76415df','5ba909411a999d594715b6c82bdb072f69e2c230'),
+              'tests/test_governance.py': ('1e2ad307c1f8410e1e36ed73da5d5fd74ad3b4f0','d4a2d1a1c3dad998ab3f7ae5f321689c081c6c59'),
+              'tests/test_governance_summary.py': ('116aa36ddd56de4138a8cbb5fecfd3b494830e2a','ba8f7944f86994ca17b3f7f3f62e8b193ad1f507'),
+              'tools/codex_assets/execution_policy_adapter.py': ('09945f38ec119b4989de2ea7afaac24593e25dcc','79d7dd006a6d9c892db108f4519282a5e2726aca'),
+              'tools/codex_assets/governance.py': ('22a18553ed6fa049ebafe0d7afb28c7529e4b8d5','b0382b79a51e04b4ceef382ea89202d083faa45a'),
+              'tools/codex_assets/validate.py': ('f874a8cdf911bec9e8b05bb5a525288844ac0fd2','4996bb981f4ca6ddd00983c5c3fbbd19d96df554'),
+          }
+          def blob(data):
+              return hashlib.sha1(f'blob {len(data)}\0'.encode()+data).hexdigest()
+          texts = {}
+          for path, (before, after) in identities.items():
+              data=Path(path).read_bytes()
+              assert blob(data)==before,path
+              texts[path]=data.decode('utf-8')
+          def replace(text, old, new, count=1):
+              assert text.count(old)==count,old
+              return text.replace(old,new)
+          p='tools/codex_assets/validate.py'
+          s=replace(texts[p],'"runtime_control.json": [','"execution_policy.json": [')
+          texts[p]=replace(s,'        data = read_json(path)\n','        data = read_json(path)\n        if not isinstance(data, dict):\n            errors.append(f"{name} 必须是 JSON object")\n            continue\n')
+          p='tools/codex_assets/governance.py'
+          s=replace(texts[p],'import hashlib\n','')
+          s=replace(s,'from .core import Repo, active, matches_any\n','from .core import Repo, active, matches_any\nfrom .execution_policy_adapter import ExecutionPolicyAdapterError, load_runtime_config\n')
+          s=s.replace('    runtime_control = repo.manifest("runtime_control.json")\n','    execution_policy = load_runtime_config(repo.root)\n',1)
+          s=replace(s,'    runtime_control = repo.manifest("runtime_control.json")\n','')
+          s=s.replace('        "schema_version": 1,','        "schema_version": 2,',1)
+          s=replace(s,'        "runtime_control": {\n            "schema_version": runtime_control.get("schema_version"),\n            "engine_version": (runtime_control.get("engine") or {}).get("version"),\n            "policy_schema": (runtime_control.get("policy") or {}).get("schema_version"),\n','        "execution_policy": {\n            "schema_version": execution_policy["schema_version"],\n            "engine_version": execution_policy["engine"]["behavior_baseline"]["version"],\n            "policy_schema": execution_policy["policy"]["schema_version"],\n')
+          s=replace(s,'    validate_runtime_control(runtime_control, repo.root, errors)\n','    try:\n        load_runtime_config(repo.root)\n    except ExecutionPolicyAdapterError as exc:\n        errors.append(f"execution_policy.json: {exc}")\n')
+          start=s.index('def validate_runtime_control(')
+          end=s.index('def validate_prompt_experiments(',start)
+          texts[p]=s[:start]+s[end:]
+          p='tools/codex_assets/execution_policy_adapter.py'
+          s=replace(texts[p],'def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:\n','def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:\n    # One read-only contract for runtime, doctor and governance. No state/session\n    # reads, journal creation, or Digital Worker checkout is needed here.\n    retired = root / "manifests/runtime_control.json"\n    if retired.exists() or retired.is_symlink():\n        raise ExecutionPolicyAdapterError("retired Execution Policy manifest must be removed")\n')
+          anchor='        raise ExecutionPolicyAdapterError("Execution Policy behavior baseline drift")\n'
+          addition='''    sources = value.get("sources")
+              if (not isinstance(sources, dict)
+                      or set(sources) != {"state_db", "sessions_root", "journal_dir"}
+                      or any(not isinstance(item, str) or any(ord(char) < 32 for char in item)
+                             for item in sources.values())):
+                  raise ExecutionPolicyAdapterError("Execution Policy sources are invalid")
+              try:
+                  provider = json.loads((root / "manifests/provider-locks/agent-dev-kit.json").read_text(encoding="utf-8"))
+              except (OSError, ValueError) as exc:
+                  raise ExecutionPolicyAdapterError("Execution Policy provider lock is unavailable") from exc
+              if (not isinstance(provider, dict)
+                      or provider.get("schema") != "codex-provider-lock/v3"
+                      or provider.get("repository") != ENGINE_BASELINE["repository"]
+                      or provider.get("version") != ENGINE_BASELINE["version"]
+                      or provider.get("provider_commit") != ENGINE_BASELINE["commit"]
+                      or provider.get("delivery_mode") != "exact-source-set"
+                      or provider.get("binding_status") != "source-set-bound"):
+                  raise ExecutionPolicyAdapterError("Execution Policy provider identity drift")
+              for filename, key in (("engine.py", "engine_blob"), ("contracts.py", "support_blob")):
+                  source = root / "tools/codex_assets/execution_policy" / filename
+                  if source.is_symlink():
+                      raise ExecutionPolicyAdapterError("Execution Policy source must be a regular file")
+                  try:
+                      data = source.read_bytes()
+                  except OSError as exc:
+                      raise ExecutionPolicyAdapterError("Execution Policy source is unavailable") from exc
+                  actual_blob = hashlib.sha1(f"blob {len(data)}\\0".encode("ascii") + data).hexdigest()
+                  if actual_blob != ENGINE_BASELINE[key]:
+                      raise ExecutionPolicyAdapterError(f"Execution Policy source blob drift: {filename}")
+          '''
+          texts[p]=replace(s,anchor,anchor+addition)
+          p='tests/test_governance.py'
+          s=replace(texts[p],'import hashlib\n','')
+          start=s.index('    wheel = root / "vendor/wheels/')
+          end=s.index('    return root\n',start)
+          fixture='''    # Reuse the real fixed source contract; do not create a legacy wheel fixture.
+              repository = pathlib.Path(__file__).resolve().parents[1]
+              for relative in (
+                  "manifests/execution_policy.json",
+                  "manifests/provider-locks/agent-dev-kit.json",
+                  "tools/codex_assets/execution_policy/engine.py",
+                  "tools/codex_assets/execution_policy/contracts.py",
+              ):
+                  destination = root / relative
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copyfile(repository / relative, destination)
+          '''
+          s=s[:start]+fixture+s[end:]
+          s=replace(s,'        self.assertEqual("4.0.0", report["runtime_control"]["engine_version"])','        self.assertEqual(2, report["schema_version"])\n        self.assertNotIn("runtime_control", report)\n        self.assertEqual("7.0.4", report["execution_policy"]["engine_version"])')
+          start=s.index('    def test_runtime_control_requires_valid_wheel_hash(')
+          end=s.index('    def test_automation_requires_run_lifecycle(',start)
+          test='''    def test_execution_policy_requires_exact_source_blob(self) -> None:
+                  root = make_repo(self)
+                  source = root / "tools/codex_assets/execution_policy/engine.py"
+                  source.write_bytes(source.read_bytes() + b"\\n# source drift\\n")
+
+                  errors = validate_repo(root)
+                  self.assertIn("execution_policy.json: Execution Policy source blob drift: engine.py", errors)
+
+          '''
+          texts[p]=s[:start]+test+s[end:]
+          p='tests/test_governance_summary.py'
+          s=replace(texts[p],'import subprocess\n','import subprocess\nimport sys\n')
+          texts[p]=replace(s,'                "rtk",\n                "python3",','                sys.executable,')
+          p='tests/test_check_script.py'
+          s=replace(texts[p],'import pathlib\nimport subprocess\n','import pathlib\nimport os\nimport subprocess\nimport sys\nimport tempfile\n')
+          s=replace(s,'RUNTIME_CONTROL = ROOT / "scripts" / "runtime-control.sh"\n','')
+          s=replace(s,'["rtk", "bash", str(CHECK), *args]','["bash", str(CHECK), *args]')
+          start=s.index('    def test_runtime_control_help_is_side_effect_free_from_non_repo_cwd(')
+          end=s.index('\n\nif __name__',start)
+          test='''    def test_execution_policy_help_is_side_effect_free_from_non_repo_cwd(self) -> None:
+                  with tempfile.TemporaryDirectory() as home:
+                      result = subprocess.run(
+                          [sys.executable, "-m", "tools.codex_assets", "execution-policy", "--help"],
+                          cwd=home,
+                          env={**os.environ, "HOME": home, "PYTHONPATH": str(ROOT)},
+                          check=False, capture_output=True, text=True, timeout=15,
+                      )
+                      self.assertEqual([], list(pathlib.Path(home).iterdir()))
+                  self.assertEqual(0, result.returncode, result.stderr)
+                  self.assertIn("codex-assets execution-policy", result.stdout)
+                  self.assertNotIn("[DONE] build", result.stdout)
+          '''
+          texts[p]=s[:start]+test+s[end:]
+          p='manifests/eval_suites.json'
+          value=json.loads(texts[p])
+          item=next(item for item in value['eval_suites'] if item['name']=='completion-gate-eval')
+          item['owner']='execution-policy'
+          item['cases_path']='tests/test_execution_policy.py'
+          item['success_metric']='Execution Policy v2 final gate accepts attested completed goals and rejects incomplete or missing goals; delivery also needs check.sh evidence'
+          item['commands']=['rtk python3 -m unittest tests.test_execution_policy tests.test_execution_policy_source_set','rtk python3 -m tools.codex_assets execution-policy --thread-id "${CODEX_THREAD_ID:?current thread id required}" gate --event final','rtk bash scripts/check.sh']
+          item['artifacts'][0]='runtime_control.decision/v2'
+          item['promotion_gate']='delivery claims require the current thread Execution Policy final gate plus check.sh evidence; fixture success is not live qualification'
+          texts[p]=json.dumps(value,ensure_ascii=False,indent=2)+'\n'
+          p='docs/execution-policy.md'
+          texts[p]+='''
+          ## 安装前检查与同源校验
+
+          `doctor --scope repo`、`doctor --scope governance`、完整 governance report 与运行时
+          共用 `execution_policy_adapter.load_runtime_config`，不再维护旧 wheel/v1 配置校验器。
+          加载器只读取当前 manifest、provider lock 和两份固定 engine/contract 源文件；
+          核对字段、策略下限、sources 结构、provider 身份和 Git blob 后才返回配置。
+          它不访问 state database、session、journal 或 Digital Worker checkout。
+          缺失/混入退役 manifest、错误来源、v1 策略、放宽 artifact gate 或保存 raw content 均失败。
+
+          完整 `governance-report --json` 使用 schema_version=2 和 `execution_policy` 字段，
+          不提供旧字段 alias；有界 count-only `--summary-json` 投影仍为 v1。
+          仓库检查通过不代表 live 已更新，也不替代 Skill 来源补齐、真实任务或产品验收。
+          安装验证使用原有 build/plan/dry-run/apply/doctor/rollback，测试只在隔离副本运行，
+          不写成员认证和会话目录。
+          '''
+          for path,text in texts.items():
+              assert blob(text.encode())==identities[path][1],(path,blob(text.encode()))
+          for path,text in texts.items():
+              Path(path).write_text(text,encoding='utf-8')
+          subprocess.run(['git','diff','--check'],check=True)
+          out=Path(os.environ['RUNNER_TEMP'])/'doctor-repair'
+          out.mkdir()
+          (out/'identities.json').write_text(json.dumps(identities,indent=2)+'\n')
+          print('Applied 8 exact reviewed source changes; no workflow, live home or provider pin changed.')
+          PY
+      - name: Validate full doctor and retained source and installation regressions
+        env:
+          CODEX_OFFLINE_HERMETIC: '1'
+        run: |
+          python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
+          python -m tools.codex_assets doctor --scope repo
+          python -m tools.codex_assets doctor --scope governance
+          python -m unittest tests.test_doctor_execution_policy tests.test_governance tests.test_governance_summary tests.test_check_script tests.test_execution_policy tests.test_execution_policy_source_set tests.test_adk_daily_core_import tests.test_apply_backup_integrity 2>&1 | tee "$RUNNER_TEMP/doctor-repair/tests.log"
+      - name: Commit only verified source changes on this branch
+        run: |
+          git add -- docs/execution-policy.md manifests/eval_suites.json tests/test_check_script.py tests/test_governance.py tests/test_governance_summary.py tools/codex_assets/execution_policy_adapter.py tools/codex_assets/governance.py tools/codex_assets/validate.py
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(doctor): 统一安装前检查与 Execution Policy 来源校验'
+          git push origin HEAD:refs/heads/fix/doctor-execution-policy
+          git rev-parse HEAD > "$RUNNER_TEMP/doctor-repair/commit.txt"
+          git archive HEAD -o "$RUNNER_TEMP/doctor-repair/source.tar"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: doctor-repair-evidence
+          path: ${{ runner.temp }}/doctor-repair/*
+          if-no-files-found: warn
+          retention-days: 7
