@@ -44,7 +44,14 @@ class AdkSkillAuditTests(unittest.TestCase):
         self.write(self.manifest, json.dumps({"skills": [self.record] if records is None else records}))
 
     def git(self, *args: str) -> str:
-        result = subprocess.run(["git", "-C", str(self.provider), *args], text=True, capture_output=True, check=True, timeout=10)
+        # The fixture is deleted immediately after each test. Wait for Git's
+        # automatic maintenance instead of racing a detached writer in .git.
+        # Command-local settings do not change developer/global Git config.
+        result = subprocess.run(
+            ["git", "-c", "maintenance.autoDetach=false", "-c", "gc.autoDetach=false",
+             "-C", str(self.provider), *args],
+            text=True, capture_output=True, check=True, timeout=10,
+        )
         return result.stdout.strip()
 
     def candidate(self) -> str:
@@ -55,6 +62,15 @@ class AdkSkillAuditTests(unittest.TestCase):
         self.git("add", ".")
         self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture")
         return self.git("rev-parse", "HEAD")
+
+    def test_fixture_maintenance_is_foreground_and_not_persisted(self) -> None:
+        self.provider.mkdir(parents=True)
+        self.git("init", "-q")
+        for key in ("maintenance.autoDetach", "gc.autoDetach"):
+            with self.subTest(key=key):
+                self.assertEqual("false", self.git("config", "--get", key))
+                with self.assertRaises(subprocess.CalledProcessError):
+                    self.git("config", "--local", "--get", key)
 
     def test_exact_local_metadata_is_not_release_or_runtime_certification(self) -> None:
         report = audit(self.root)
