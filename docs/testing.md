@@ -3,6 +3,8 @@
 `Runtime Binding Contract` 与 `Profile Context Contract` 保留聚焦合同检查。
 `Full Regression` 在 Python 3.11/3.12 上安装声明依赖，发现全部 `test_*.py`，
 然后在精确源码的隔离副本中执行真实 `check.sh --pre-apply --offline-hermetic`。
+随后使用该计划执行原有 apply CLI、完整 post-apply check、零变更重复计划和 rollback CLI，
+核对原始文件/符号链接集合及认证/session/system测试文件未改变。
 任何测试 failure/error/skip/expected-failure 均不计为完整回归通过。
 
 ## 环境与依赖
@@ -40,6 +42,8 @@ bash scripts/check.sh --pre-apply --offline-hermetic --target /your/disposable/h
 工作流保留精确 checkout SHA、PR head（如适用）、源码快照摘要、解释器/包版本、
 全量测试数、原始日志和 shell gate 退出码。PR 的 merge-ref 与 head 分别记录。
 依赖安装失败、发现测试失败、shell gate 失败分别保留真实结果。
+`bwrap-capability.json` 保留宿主机能力实测；默认检查中的 warning 不变成沙箱资格。
+GitHub runner 的用户命名空间探测失败时，不调整 sysctl/AppArmor 或禁用沙箱来制造通过。
 
 通过完整回归只说明这一源码/依赖组合的自动化测试和隔离安装前检查通过，
 不提升剩余 Skill 来源缺项，不表示成员 live 已更新、真实飞书/模型可用、

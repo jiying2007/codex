@@ -128,6 +128,51 @@ jobs:
           tail -n 60 "$RUNNER_TEMP/full-regression-evidence/check-pre-apply.log"
           test "$rc" -eq 0
           test ! -e "$HOME/.codex/control/state/managed-files.json"
+          cp build/bwrap-capability.json "$RUNNER_TEMP/full-regression-evidence/bwrap-capability.json"
+      - name: Verify real apply, post-apply check, no-op and rollback
+        run: |
+          cd "$RUNNER_TEMP/full-regression-source"
+          python - <<'PY'
+          import json, os, shutil, subprocess, sys
+          from pathlib import Path
+          from tools.codex_assets.core import tree_fingerprint
+          out = Path(os.environ['RUNNER_TEMP']) / 'full-regression-evidence'
+          target = Path.home() / '.codex'
+          protected = {'auth.json': b'fixture-not-a-secret', 'sessions/keep': b'fixture-session',
+                       'skills/.system/keep': b'fixture-system'}
+          for relative, data in protected.items():
+              path = target / relative
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(data)
+          before = tree_fingerprint(target)
+          original_plan = out / 'reviewed-apply-plan.json'
+          shutil.copyfile('build/apply-plan.check.json', original_plan)
+          result = {'passed': False, 'scope': 'disposable-cli-lifecycle', 'commands': []}
+          def run(name, argv):
+              with (out / f'{name}.log').open('w') as log:
+                  completed = subprocess.run(argv, stdout=log, stderr=subprocess.STDOUT, timeout=300)
+              result['commands'].append({'name': name, 'argv': argv, 'exit_code': completed.returncode})
+              (out / 'lifecycle.json').write_text(json.dumps(result, indent=2) + '\n')
+              if completed.returncode:
+                  print((out / f'{name}.log').read_text()[-10000:])
+                  sys.exit(completed.returncode)
+          run('apply', ['bash', 'scripts/apply.sh', '--plan', str(original_plan), '--target', str(target)])
+          run('check-post-apply', ['bash', 'scripts/check.sh', '--no-build', '--offline-hermetic', '--target', str(target)])
+          noop_plan = out / 'noop-plan.json'
+          run('noop', ['bash', 'scripts/plan.sh', '--target', str(target), '--prune-stale', '--output', str(noop_plan)])
+          if json.loads(noop_plan.read_text())['content_changes'] != 0:
+              raise SystemExit('repeat installation is not a no-op')
+          run('rollback', ['bash', 'scripts/rollback.sh', '--plan', str(original_plan)])
+          if tree_fingerprint(target) != before:
+              raise SystemExit('rollback did not restore the original file/symlink set')
+          for relative, data in protected.items():
+              if (target / relative).read_bytes() != data:
+                  raise SystemExit('protected fixture changed')
+          result.update(passed=True, noop_content_changes=0, original_tree_restored=True,
+                        protected_files_unchanged=True, live_member_installation=False)
+          (out / 'lifecycle.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(json.dumps(result, sort_keys=True))
+          PY
       - name: Retain exact results, including failures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
