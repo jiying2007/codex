@@ -1,0 +1,183 @@
+name: Full Regression
+
+on:
+  pull_request:
+    paths:
+      - 'manifests/**'
+      - 'src/codex-home/**'
+      - 'tools/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'schemas/**'
+      - 'mcp/**'
+      - 'vendor/**'
+      - 'docs/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - '.github/workflows/full-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'manifests/**'
+      - 'src/codex-home/**'
+      - 'tools/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'schemas/**'
+      - 'mcp/**'
+      - 'vendor/**'
+      - 'docs/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - '.github/workflows/full-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    env:
+      CODEX_OFFLINE_HERMETIC: '1'
+      RTK_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install declared test SDK and shell dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2' -r mcp/requirements-feishu-codex-bot.txt
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends bubblewrap ripgrep
+          mkdir -p "$RUNNER_TEMP/rtk-bin"
+          curl --fail --silent --show-error --location --retry 2 \
+            https://github.com/rtk-ai/rtk/releases/download/v0.50.0/rtk-x86_64-unknown-linux-musl.tar.gz \
+            -o "$RUNNER_TEMP/rtk.tar.gz"
+          echo "bc2b8902b0d9c796c82ef45f16ae2307e17757afeca5ee156235a3dc7bda5f89  $RUNNER_TEMP/rtk.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/rtk.tar.gz" -C "$RUNNER_TEMP/rtk-bin" rtk
+          "$RUNNER_TEMP/rtk-bin/rtk" --version
+          echo "$RUNNER_TEMP/rtk-bin" >> "$GITHUB_PATH"
+      - name: Freeze exact source and disposable HOME
+        run: |
+          mkdir -p "$RUNNER_TEMP/full-regression-evidence" "$RUNNER_TEMP/full-regression-source" "$RUNNER_TEMP/full-regression-home"
+          git archive HEAD > "$RUNNER_TEMP/full-regression-evidence/source.tar"
+          tar -xf "$RUNNER_TEMP/full-regression-evidence/source.tar" -C "$RUNNER_TEMP/full-regression-source"
+          python - <<'PY'
+          import hashlib, importlib.metadata, json, os, platform, subprocess
+          from pathlib import Path
+          out = Path(os.environ['RUNNER_TEMP']) / 'full-regression-evidence'
+          event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          identity = {
+              'checkout_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+              'event': os.environ['GITHUB_EVENT_NAME'],
+              'event_head_commit': event.get('pull_request', {}).get('head', {}).get('sha'),
+              'source_archive_sha256': hashlib.sha256((out / 'source.tar').read_bytes()).hexdigest(),
+              'python': platform.python_version(),
+              'lark_oapi': importlib.metadata.version('lark-oapi'),
+              'pyyaml': importlib.metadata.version('PyYAML'),
+              'rtk': subprocess.check_output(['rtk', '--version'], text=True).strip(),
+              'live_member_installation': False, 'real_feishu_connection': False,
+          }
+          (out / 'identity.json').write_text(json.dumps(identity, indent=2) + '\n')
+          (out / 'pip-freeze.txt').write_text(subprocess.check_output(['python', '-m', 'pip', 'freeze'], text=True))
+          (out / 'system-packages.txt').write_text(subprocess.check_output(['dpkg-query', '-W', 'git', 'bubblewrap', 'ripgrep'], text=True))
+          print(json.dumps(identity, sort_keys=True))
+          PY
+          echo "HOME=$RUNNER_TEMP/full-regression-home" >> "$GITHUB_ENV"
+          echo "XDG_CONFIG_HOME=$RUNNER_TEMP/full-regression-home/.config" >> "$GITHUB_ENV"
+          echo "XDG_DATA_HOME=$RUNNER_TEMP/full-regression-home/.local/share" >> "$GITHUB_ENV"
+      - name: Run every discovered test without skips or credentials
+        run: |
+          cd "$RUNNER_TEMP/full-regression-source"
+          export PYTHONPATH="$PWD"
+          python - <<'PY'
+          import json, os, sys, unittest
+          from pathlib import Path
+          out = Path(os.environ['RUNNER_TEMP']) / 'full-regression-evidence'
+          suite = unittest.defaultTestLoader.discover('tests', pattern='test_*.py')
+          with (out / 'unittest.log').open('w') as log:
+              result = unittest.TextTestRunner(stream=log, verbosity=2).run(suite)
+          summary = {'tests': result.testsRun, 'failures': len(result.failures), 'errors': len(result.errors),
+                     'skipped': len(result.skipped), 'expected_failures': len(result.expectedFailures),
+                     'unexpected_successes': len(result.unexpectedSuccesses)}
+          passed = result.wasSuccessful() and result.testsRun > 0 and not result.skipped and not result.expectedFailures
+          summary['passed'] = passed
+          (out / 'unittest.json').write_text(json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, sort_keys=True))
+          if not passed:
+              print((out / 'unittest.log').read_text()[-20000:])
+          sys.exit(0 if passed else 1)
+          PY
+      - name: Run the real pre-apply shell gate in the isolated source
+        run: |
+          cd "$RUNNER_TEMP/full-regression-source"
+          set +e
+          bash scripts/check.sh --pre-apply --offline-hermetic --target "$HOME/.codex" > "$RUNNER_TEMP/full-regression-evidence/check-pre-apply.log" 2>&1
+          rc=$?
+          set -e
+          printf '%s\n' "$rc" > "$RUNNER_TEMP/full-regression-evidence/check-pre-apply.exit"
+          tail -n 60 "$RUNNER_TEMP/full-regression-evidence/check-pre-apply.log"
+          test "$rc" -eq 0
+          test ! -e "$HOME/.codex/control/state/managed-files.json"
+          cp build/bwrap-capability.json "$RUNNER_TEMP/full-regression-evidence/bwrap-capability.json"
+      - name: Verify real apply, post-apply check, no-op and rollback
+        run: |
+          cd "$RUNNER_TEMP/full-regression-source"
+          python - <<'PY'
+          import json, os, shutil, subprocess, sys
+          from pathlib import Path
+          from tools.codex_assets.core import tree_fingerprint
+          out = Path(os.environ['RUNNER_TEMP']) / 'full-regression-evidence'
+          target = Path.home() / '.codex'
+          protected = {'auth.json': b'fixture-not-a-secret', 'sessions/keep': b'fixture-session',
+                       'skills/.system/keep': b'fixture-system'}
+          for relative, data in protected.items():
+              path = target / relative
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(data)
+          before = tree_fingerprint(target)
+          original_plan = out / 'reviewed-apply-plan.json'
+          shutil.copyfile('build/apply-plan.check.json', original_plan)
+          result = {'passed': False, 'scope': 'disposable-cli-lifecycle', 'commands': []}
+          def run(name, argv):
+              with (out / f'{name}.log').open('w') as log:
+                  completed = subprocess.run(argv, stdout=log, stderr=subprocess.STDOUT, timeout=300)
+              result['commands'].append({'name': name, 'argv': argv, 'exit_code': completed.returncode})
+              (out / 'lifecycle.json').write_text(json.dumps(result, indent=2) + '\n')
+              if completed.returncode:
+                  print((out / f'{name}.log').read_text()[-10000:])
+                  sys.exit(completed.returncode)
+          run('apply', ['bash', 'scripts/apply.sh', '--plan', str(original_plan), '--target', str(target)])
+          run('check-post-apply', ['bash', 'scripts/check.sh', '--no-build', '--offline-hermetic', '--target', str(target)])
+          noop_plan = out / 'noop-plan.json'
+          run('noop', ['bash', 'scripts/plan.sh', '--target', str(target), '--prune-stale', '--output', str(noop_plan)])
+          if json.loads(noop_plan.read_text())['content_changes'] != 0:
+              raise SystemExit('repeat installation is not a no-op')
+          run('rollback', ['bash', 'scripts/rollback.sh', '--plan', str(original_plan)])
+          if tree_fingerprint(target) != before:
+              raise SystemExit('rollback did not restore the original file/symlink set')
+          for relative, data in protected.items():
+              if (target / relative).read_bytes() != data:
+                  raise SystemExit('protected fixture changed')
+          result.update(passed=True, noop_content_changes=0, original_tree_restored=True,
+                        protected_files_unchanged=True, live_member_installation=False)
+          (out / 'lifecycle.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(json.dumps(result, sort_keys=True))
+          PY
+      - name: Retain exact results, including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: full-regression-${{ matrix.python-version }}-${{ github.sha }}
+          path: ${{ runner.temp }}/full-regression-evidence/
+          if-no-files-found: warn
+          retention-days: 14
