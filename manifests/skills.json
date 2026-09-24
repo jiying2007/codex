@@ -186,8 +186,8 @@
       "name": "adk-code-review-loop",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.6.0",
-      "vendor_rel": "vendor/skills/adk-code-review-loop/1.6.0",
+      "version": "1.7.0",
+      "vendor_rel": "vendor/skills/adk-code-review-loop/1.7.0",
       "target_rel": "skills/adk-code-review-loop",
       "profiles": [
         "team-collab",
@@ -199,11 +199,14 @@
         "p0"
       ],
       "owner": "agent-dev-kit",
-      "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "276f49dcd4a43ffd4543ee43199fe6114042b55f",
+      "source_repo": "jiying2007/agent-dev-kit",
+      "source_ref": "7367ef84787de75bb751940b32c9e80009660e47",
       "source_path": "skills/adk-code-review-loop/SKILL.md",
-      "imported_at": "2026-09-10",
-      "review_status": "accepted"
+      "imported_at": "2026-09-24",
+      "review_status": "accepted",
+      "source_blob": "8b536410b3cb0e656e2d032f071022c37a43b00c",
+      "source_tree_sha256": "a9ae8c66af6b8bd1ad250d3dc208fe3082492feb682b028243d2ebf15818364a",
+      "source_release": "v7.0.31"
     },
     {
       "name": "adk-commit-pr-quality-gate",
@@ -744,8 +747,8 @@
       "name": "adk-runtime-router",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "2.0.0",
-      "vendor_rel": "vendor/skills/adk-runtime-router/2.0.0",
+      "version": "2.1.0",
+      "vendor_rel": "vendor/skills/adk-runtime-router/2.1.0",
       "target_rel": "skills/adk-runtime-router",
       "profiles": [
         "team-collab",
@@ -757,11 +760,14 @@
         "p0"
       ],
       "owner": "agent-dev-kit",
-      "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "63f62e0",
+      "source_repo": "jiying2007/agent-dev-kit",
+      "source_ref": "7367ef84787de75bb751940b32c9e80009660e47",
       "source_path": "skills/adk-runtime-router/SKILL.md",
-      "imported_at": "2026-08-31",
-      "review_status": "accepted"
+      "imported_at": "2026-09-24",
+      "review_status": "accepted",
+      "source_blob": "9ba36768b91eb551136604462105a5b836b47119",
+      "source_tree_sha256": "460073fcac9ec92763c20d32fde305862e2d6692d557c4d95900ca556d018cd3",
+      "source_release": "v7.0.31"
     },
     {
       "name": "adk-security-supply-chain",
@@ -990,8 +996,8 @@
       "name": "adk-verification-before-completion",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.6.0",
-      "vendor_rel": "vendor/skills/adk-verification-before-completion/1.6.0",
+      "version": "1.7.0",
+      "vendor_rel": "vendor/skills/adk-verification-before-completion/1.7.0",
       "target_rel": "skills/adk-verification-before-completion",
       "profiles": [
         "team-collab",
@@ -1003,11 +1009,14 @@
         "p0"
       ],
       "owner": "agent-dev-kit",
-      "source_repo": "llm_agent/agent-dev-kit",
-      "source_ref": "276f49dcd4a43ffd4543ee43199fe6114042b55f",
+      "source_repo": "jiying2007/agent-dev-kit",
+      "source_ref": "7367ef84787de75bb751940b32c9e80009660e47",
       "source_path": "skills/adk-verification-before-completion/SKILL.md",
-      "imported_at": "2026-09-10",
-      "review_status": "accepted"
+      "imported_at": "2026-09-24",
+      "review_status": "accepted",
+      "source_blob": "b5da2c7c73e817dbc38b160380c618ef51f7eac9",
+      "source_tree_sha256": "9b8a3333309f2af29ac52af82cedf81a64f33ed50c8dac119b08dba94eca87ab",
+      "source_release": "v7.0.31"
     },
     {
       "name": "adk-worktree-governance",
