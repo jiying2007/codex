@@ -65,6 +65,11 @@ class AgentRulesTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "undeclared profile"):
             VALIDATOR.validate_rules(self.root)
 
+    def test_unknown_descriptive_profile_is_rejected(self) -> None:
+        self.write_rules(self.original.replace("`default/team-collab`", "`nonexistent/team-collab`"))
+        with self.assertRaisesRegex(AssertionError, "undeclared profile"):
+            VALIDATOR.validate_rules(self.root)
+
     def test_default_profile_must_follow_manifest(self) -> None:
         path = self.root / "manifests/assets.json"
         assets = json.loads(path.read_text(encoding="utf-8"))
