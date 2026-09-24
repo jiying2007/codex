@@ -73,7 +73,9 @@ def _tree(root: Path) -> dict[str, dict[str, str]]:
     files: dict[str, dict[str, str]] = {}
     total = 0
     directories = 0
-    for directory, dirs, names in os.walk(root, followlinks=False):
+    def unreadable(error: OSError) -> None:
+        raise AuditError("skill_directory_unreadable") from error
+    for directory, dirs, names in os.walk(root, followlinks=False, onerror=unreadable):
         directories += 1
         if directories > MAX_FILES:
             raise AuditError("tree_budget_exceeded")
@@ -125,7 +127,7 @@ def _provider(root: Path, commit: str) -> dict[str, Any]:
     if tracked.get("manifest.json", {}).get("blob") != _blob(_bytes(root / "manifest.json", MAX_JSON)):
         raise AuditError("provider_manifest_not_exact")
     version = manifest.get("version")
-    if not isinstance(version, str) or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is None:
+    if not isinstance(version, str) or len(version) > 64 or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is None:
         raise AuditError("provider_version_invalid")
     return {"commit": commit, "version": version, "tracked": tracked}
 
@@ -136,6 +138,10 @@ def _candidate(root: Path, source: str, provider: dict[str, Any]) -> dict[str, d
         raise AuditError("provider_skill_source_path_invalid")
     directory = _path(root, str(PurePosixPath(source).parent))
     tree = _tree(directory)
+    prefix = f"{PurePosixPath(source).parent}/"
+    expected = {path[len(prefix):] for path in provider["tracked"] if path.startswith(prefix)}
+    if set(tree) != expected:
+        raise AuditError("provider_skill_tree_incomplete")
     for relative, identity in tree.items():
         tracked = provider["tracked"].get(f"{PurePosixPath(source).parent}/{relative}", {})
         if tracked.get("kind") != "blob" or any(tracked.get(k) != v for k, v in identity.items()):
@@ -148,6 +154,7 @@ def audit(root: Path, provider_root: Path | None = None, expected_commit: str = 
     manifest = _json(_path(root, "manifests/skills.json"))
     lock = _json(_path(root, "manifests/provider-locks/agent-dev-kit.json"))
     if (lock.get("schema") != "codex-provider-lock/v3" or lock.get("repository") != REPOSITORY
+            or not isinstance(lock.get("version"), str) or len(lock["version"]) > 64
             or not isinstance(lock.get("provider_commit"), str)
             or re.fullmatch(r"[0-9a-f]{40}", lock["provider_commit"]) is None):
         raise AuditError("provider_lock_identity_invalid")
