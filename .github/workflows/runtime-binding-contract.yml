@@ -28,6 +28,7 @@ on:
       - 'tests/test_session_bootstrap_independence.py'
       - 'tests/test_agent_rules.py'
       - 'tests/test_adk_skill_audit.py'
+      - 'tests/test_adk_daily_core_import.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
       - 'docs/session-bootstrap.md'
@@ -69,6 +70,7 @@ on:
       - 'tests/test_session_bootstrap_independence.py'
       - 'tests/test_agent_rules.py'
       - 'tests/test_adk_skill_audit.py'
+      - 'tests/test_adk_daily_core_import.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
       - 'docs/session-bootstrap.md'
@@ -140,7 +142,7 @@ jobs:
       - name: Validate thin Session Bootstrap and daily independence
         run: python -m unittest tests.test_session_bootstrap tests.test_session_bootstrap_independence
       - name: Validate read-only Skill source audit
-        run: python -m unittest tests.test_adk_skill_audit
+        run: python -m unittest tests.test_adk_skill_audit tests.test_adk_daily_core_import
       - name: Collect current Skill provenance gaps (not upgrade certification)
         run: |
           python - <<'PY'
