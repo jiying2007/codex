@@ -36,7 +36,9 @@ rtk python3 -m tools.codex_assets.adk_skill_audit \
 
 Runtime Binding Contract 保留既有所有门禁，新增 27 项审计回归与当前仓库诊断制品。诊断收集允许保留 needs-fix；这不是给升级门禁加豁免。CI 绿色只表示测试/收集过程成功，JSON 中的缺项不会变成 pass。
 
-仅在显式 workflow_dispatch 并设置 `audit_adk_candidate=true` 时，对照固定的 ADK 7.0.31 commit `7367ef84787de75bb751940b32c9e80009660e47`。普通 push/PR 不下载候选，不把跨仓网络检查加入日常必经链。候选比较只在 Python3.11 job 执行一次；两个 Python 版本都执行单元回归。报告绑定 consumer commit、manifest/lock digests 和 candidate commit，并作为 Actions artifact 留存。
+候选对比有两种显式维护入口：workflow_dispatch 设置 `audit_adk_candidate=true`；或由维护者为本仓分支的 PR 添加 `adk-candidate-audit` 标签。后者会在添加标签及后续 PR 更新时按新 commit 重新比较；fork PR 即使带标签也不走该入口。标签只是要求只读比较，不是资产采用、发布或权限批准。关闭维护 PR 或移除标签即结束该 PR 的后续候选比较。
+
+两种入口均只对照固定 ADK 7.0.31 commit `7367ef84787de75bb751940b32c9e80009660e47`。普通无标签 PR/push 不下载候选，不把跨仓网络检查加入日常必经链。候选比较只在 Python3.11 job 执行一次；两个 Python 版本都执行单元回归。报告绑定 consumer commit、manifest/lock digests 和 candidate commit，并作为 Actions artifact 留存。
 
 ```bash
 gh workflow run runtime-binding-contract.yml \
