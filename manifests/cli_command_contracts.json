@@ -106,7 +106,7 @@
       "review_required": true,
       "verification": [
         "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ]
     },
     {

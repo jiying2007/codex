@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import pathlib
 import re
-import hashlib
 from urllib.parse import urlparse
 from typing import Any
 
 from .core import Repo, active, matches_any
+from .execution_policy_adapter import ExecutionPolicyAdapterError, load_runtime_config
 
 
 def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
@@ -25,7 +25,7 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
     eval_suites = optional_manifest_items(repo, "eval_suites.json", "eval_suites")
     cli_command_contracts = optional_manifest_items(repo, "cli_command_contracts.json", "cli_command_contracts")
     guidance_promotions = optional_manifest_items(repo, "guidance_promotions.json", "guidance_promotions")
-    runtime_control = repo.manifest("runtime_control.json")
+    execution_policy = load_runtime_config(repo.root)
     prompt_experiments = optional_manifest_items(repo, "prompt_experiments.json", "prompt_experiments")
     trace_eval_contracts = optional_manifest_items(repo, "trace_eval_contracts.json", "trace_eval_contracts")
     context_state_contracts = optional_manifest_items(repo, "context_state_contracts.json", "context_state_contracts")
@@ -41,7 +41,7 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
     exec_rules = optional_manifest_items(repo, "exec_rules.json", "exec_rules")
     hook_contracts = optional_manifest_items(repo, "hook_contracts.json", "hook_contracts")
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "default_profile": repo.assets.get("default_profile", ""),
         "profiles": sorted(item.get("name", "") for item in profiles if item.get("name")),
         "skills": sorted(item.get("name", "") for item in skills if item.get("name")),
@@ -54,10 +54,10 @@ def governance_report(root: str | pathlib.Path) -> dict[str, Any]:
         "eval_suites": sorted(item.get("name", "") for item in eval_suites if item.get("name")),
         "cli_command_contracts": sorted(item.get("name", "") for item in cli_command_contracts if item.get("name")),
         "guidance_promotions": sorted(item.get("name", "") for item in guidance_promotions if item.get("name")),
-        "runtime_control": {
-            "schema_version": runtime_control.get("schema_version"),
-            "engine_version": (runtime_control.get("engine") or {}).get("version"),
-            "policy_schema": (runtime_control.get("policy") or {}).get("schema_version"),
+        "execution_policy": {
+            "schema_version": execution_policy["schema_version"],
+            "engine_version": execution_policy["engine"]["behavior_baseline"]["version"],
+            "policy_schema": execution_policy["policy"]["schema_version"],
         },
         "prompt_experiments": sorted(item.get("name", "") for item in prompt_experiments if item.get("name")),
         "trace_eval_contracts": sorted(item.get("name", "") for item in trace_eval_contracts if item.get("name")),
@@ -117,7 +117,6 @@ def governance_errors(repo: Repo) -> list[str]:
     eval_suites = optional_manifest_items(repo, "eval_suites.json", "eval_suites")
     cli_command_contracts = optional_manifest_items(repo, "cli_command_contracts.json", "cli_command_contracts")
     guidance_promotions = optional_manifest_items(repo, "guidance_promotions.json", "guidance_promotions")
-    runtime_control = repo.manifest("runtime_control.json")
     prompt_experiments = optional_manifest_items(repo, "prompt_experiments.json", "prompt_experiments")
     trace_eval_contracts = optional_manifest_items(repo, "trace_eval_contracts.json", "trace_eval_contracts")
     context_state_contracts = optional_manifest_items(repo, "context_state_contracts.json", "context_state_contracts")
@@ -165,7 +164,10 @@ def governance_errors(repo: Repo) -> list[str]:
     validate_eval_suites(eval_suites, profile_names, repo.root, errors)
     validate_cli_command_contracts(cli_command_contracts, profile_names, errors)
     validate_guidance_promotions(guidance_promotions, errors)
-    validate_runtime_control(runtime_control, repo.root, errors)
+    try:
+        load_runtime_config(repo.root)
+    except ExecutionPolicyAdapterError as exc:
+        errors.append(f"execution_policy.json: {exc}")
     validate_prompt_experiments(prompt_experiments, profile_names, eval_suite_names, errors)
     validate_trace_eval_contracts(trace_eval_contracts, profile_names, errors)
     validate_context_state_contracts(context_state_contracts, profile_names, errors)
@@ -837,41 +839,6 @@ def validate_guidance_promotions(items: list[dict[str, Any]], errors: list[str])
             errors.append(f"guidance_promotions:{name} secret_scan_required 必须为 true")
         if not str(item.get("rollback", "")).strip():
             errors.append(f"guidance_promotions:{name} rollback 不能为空")
-
-
-def validate_runtime_control(value: dict[str, Any], root: pathlib.Path, errors: list[str]) -> None:
-    if set(value) != {"schema_version", "engine", "sources", "policy"}:
-        errors.append("runtime_control.json 顶层字段必须唯一且完整")
-        return
-    if value.get("schema_version") != 1:
-        errors.append("runtime_control.json schema_version 必须为 1")
-    engine = value.get("engine")
-    if not isinstance(engine, dict) or set(engine) != {"package", "version", "wheel", "sha256"}:
-        errors.append("runtime_control.json engine 字段非法")
-        return
-    if engine.get("package") != "agent-dev-kit" or engine.get("version") != "4.0.0":
-        errors.append("runtime_control.json 必须固定 agent-dev-kit 4.0.0")
-    wheel_rel = str(engine.get("wheel", ""))
-    wheel = (root / wheel_rel).resolve()
-    if root not in wheel.parents or not wheel.is_file():
-        errors.append("runtime_control.json wheel 缺失或越界")
-    else:
-        digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
-        if digest != engine.get("sha256"):
-            errors.append("runtime_control.json wheel SHA-256 不匹配")
-    sources = value.get("sources")
-    if not isinstance(sources, dict) or set(sources) != {"state_db", "sessions_root", "journal_dir"}:
-        errors.append("runtime_control.json sources 字段非法")
-    policy = value.get("policy")
-    if not isinstance(policy, dict) or set(policy) != {
-        "schema_version", "token", "context", "progress", "gate_policy", "retention"
-    }:
-        errors.append("runtime_control.json policy 字段非法")
-    elif policy.get("schema_version") != "runtime_control.policy/v1":
-        errors.append("runtime_control.json policy schema 非法")
-    retention = policy.get("retention") if isinstance(policy, dict) else None
-    if not isinstance(retention, dict) or retention.get("raw_content_stored") is not False:
-        errors.append("runtime_control.json 必须禁止 raw content")
 
 
 def validate_prompt_experiments(

@@ -10,7 +10,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 class SessionBootstrapContractTests(unittest.TestCase):
     def test_formal_work_run_and_receipt_handoff_are_ratcheted(self) -> None:
         contract = json.loads((ROOT / "manifests/session_bootstrap.json").read_text(encoding="utf-8"))
-        self.assertEqual(contract["contract_version"], "1.2")
+        self.assertEqual(contract["contract_version"], "1.3")
+        self.assertEqual(contract["runtime_binding_contract_modes"], ["L2"])
+        for mode in ("L0", "L1", "L2"):
+            self.assertIs(contract["modes"][mode]["digital_worker_contract_required"], mode == "L2")
         self.assertIn("formal_work_run_identity_freeze", contract["owns"])
 
         formal = contract["modes"]["L2"]

@@ -12,7 +12,7 @@
         "plan updates",
         "tool command evidence",
         "governance report",
-        "runtime-control final decision"
+        "execution-policy final decision"
       ],
       "rubric": [
         {
@@ -37,7 +37,7 @@
         "worktree status checked",
         "targeted tests run",
         "source-to-live plan dry-run",
-        "runtime-control final gate"
+        "execution-policy final gate"
       ],
       "forbidden_events": [
         "claim completion without verification",
@@ -46,11 +46,11 @@
       ],
       "commands": [
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ],
       "artifacts": [
         "governance-report JSON",
-        "runtime-control final decision"
+        "execution-policy final decision"
       ],
       "promotion_gate": "trace eval contract must pass before expanding AGENTS or skill guidance"
     },
@@ -66,7 +66,7 @@
         "source URL list with retrieval dates",
         "manifest diff",
         "routing/governance eval output",
-        "runtime-control final decision"
+        "execution-policy final decision"
       ],
       "rubric": [
         {
@@ -92,7 +92,7 @@
         "official source URLs and retrieval dates recorded",
         "target manifest layer chosen before AGENTS expansion",
         "governance validation run",
-        "runtime-control final gate"
+        "execution-policy final gate"
       ],
       "forbidden_events": [
         "promote unofficial source as OpenAI guidance",
@@ -103,13 +103,13 @@
       "commands": [
         "rtk codex mcp list",
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ],
       "artifacts": [
         "official docs source URL list",
         "freshness gate metadata",
         "governance report",
-        "runtime-control final decision"
+        "execution-policy final decision"
       ],
       "promotion_gate": "official-docs-derived guidance must satisfy this trace contract before promotion to AGENTS or managed skill instructions"
     },
@@ -126,7 +126,7 @@
         "hook contract manifest",
         "governance validation output",
         "strict-config doctor output",
-        "runtime-control final decision"
+        "execution-policy final decision"
       ],
       "rubric": [
         {
@@ -157,7 +157,7 @@
         "hook contracts checked for unsupported enforcement claims",
         "governance validation run",
         "strict-config doctor run",
-        "runtime-control final gate"
+        "execution-policy final gate"
       ],
       "forbidden_events": [
         "enable danger-full-access by default",
@@ -170,13 +170,13 @@
         "rtk python3 -m unittest tests.test_governance",
         "rtk bash scripts/doctor.sh --scope governance",
         "rtk codex --strict-config doctor --summary --ascii",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ],
       "artifacts": [
         "permission profile report",
         "exec rules report",
         "hook contract report",
-        "runtime-control final decision"
+        "execution-policy final decision"
       ],
       "promotion_gate": "runtime boundary changes must pass this trace contract before changing AGENTS or live Codex config"
     }

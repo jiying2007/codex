@@ -47,3 +47,18 @@ python3 -m tools.codex_assets execution-policy goal start \
 ```
 
 Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/raw cwd。当前 journal 位于 `~/.codex/execution-policy/`。
+
+## 安装前检查与同源校验
+
+`doctor --scope repo`、`doctor --scope governance`、完整 governance report 与运行时
+共用 `execution_policy_adapter.load_runtime_config`，不再维护旧 wheel/v1 配置校验器。
+加载器只读取当前 manifest、provider lock 和两份固定 engine/contract 源文件；
+核对字段、策略下限、sources 结构、provider 身份和 Git blob 后才返回配置。
+它不访问 state database、session、journal 或 Digital Worker checkout。
+缺失/混入退役 manifest、错误来源、v1 策略、放宽 artifact gate 或保存 raw content 均失败。
+
+完整 `governance-report --json` 使用 schema_version=2 和 `execution_policy` 字段，
+不提供旧字段 alias；有界 count-only `--summary-json` 投影仍为 v1。
+仓库检查通过不代表 live 已更新，也不替代 Skill 来源补齐、真实任务或产品验收。
+安装验证使用原有 build/plan/dry-run/apply/doctor/rollback，测试只在隔离副本运行，
+不写成员认证和会话目录。

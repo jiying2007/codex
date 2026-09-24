@@ -71,7 +71,7 @@
         "diff",
         "test report",
         "failure or skipped-test note",
-        "runtime-control final decision"
+        "execution-policy final decision"
       ],
       "failure_modes": [
         "goal lacks executable validation",
@@ -88,7 +88,7 @@
         "只登记一个 MCP server，不改业务代码"
       ],
       "verification": [
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ]
     },
     {
@@ -131,7 +131,7 @@
         "只运行本地 check.sh 并汇报结果"
       ],
       "verification": [
-        "rtk bash scripts/runtime-control.sh snapshot"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" snapshot"
       ]
     },
     {
@@ -152,14 +152,14 @@
         "OpenAI Docs MCP is used first when available, with official-domain fallback recorded when unavailable",
         "source_urls and review metadata are recorded in official_docs_freshness_gates before long-term promotion",
         "guidance changes are represented as workflow, eval, prompt experiment or trace contracts before expanding AGENTS text",
-        "build, governance doctor, apply dry-run and runtime-control final decision support the completion claim"
+        "build, governance doctor, apply dry-run and execution-policy final decision support the completion claim"
       ],
       "review_artifacts": [
         "official source URL list",
         "freshness gate metadata",
         "manifest diff",
         "routing or governance eval output",
-        "runtime-control final decision"
+        "execution-policy final decision"
       ],
       "failure_modes": [
         "official docs MCP is disabled and fallback source is not restricted to OpenAI domains",
@@ -179,7 +179,7 @@
         "rtk codex mcp list",
         "rtk python3 -m unittest tests.test_agent_routing_eval",
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ]
     },
     {
@@ -230,7 +230,7 @@
         "rtk python3 -m unittest tests.test_governance",
         "rtk bash scripts/doctor.sh --scope governance",
         "rtk codex --strict-config doctor --summary --ascii",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ]
     },
     {
@@ -343,7 +343,7 @@
         "rtk python3 -m unittest tests.test_agent_routing_eval",
         "rtk bash scripts/check-routing-precedence.sh",
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ]
     },
     {
@@ -389,7 +389,7 @@
       ],
       "verification": [
         "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ]
     },
     {
@@ -451,7 +451,7 @@
         "rtk python3 -m unittest tests.test_agent_routing_eval",
         "rtk bash scripts/check-skills.sh",
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ]
     }
   ]

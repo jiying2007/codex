@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import pathlib
+import os
 import subprocess
+import sys
+import tempfile
 import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHECK = ROOT / "scripts" / "check.sh"
-RUNTIME_CONTROL = ROOT / "scripts" / "runtime-control.sh"
 
 
 class CheckScriptCliTest(unittest.TestCase):
     def run_check(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["rtk", "bash", str(CHECK), *args],
+            ["bash", str(CHECK), *args],
             cwd="/tmp",
             check=False,
             capture_output=True,
@@ -44,16 +46,17 @@ class CheckScriptCliTest(unittest.TestCase):
         self.assertEqual(2, result.returncode)
         self.assertIn("[FATAL] --plan 缺少路径参数", result.stderr)
 
-    def test_runtime_control_help_is_side_effect_free_from_non_repo_cwd(self) -> None:
-        result = subprocess.run(
-            ["rtk", "bash", str(RUNTIME_CONTROL), "--help"],
-            cwd="/tmp",
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+    def test_execution_policy_help_is_side_effect_free_from_non_repo_cwd(self) -> None:
+        with tempfile.TemporaryDirectory() as home:
+            result = subprocess.run(
+                [sys.executable, "-m", "tools.codex_assets", "execution-policy", "--help"],
+                cwd=home,
+                env={**os.environ, "HOME": home, "PYTHONPATH": str(ROOT)},
+                check=False, capture_output=True, text=True, timeout=15,
+            )
+            self.assertEqual([], list(pathlib.Path(home).iterdir()))
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn("codex-assets runtime-control", result.stdout)
+        self.assertIn("codex-assets execution-policy", result.stdout)
         self.assertNotIn("[DONE] build", result.stdout)
 
 

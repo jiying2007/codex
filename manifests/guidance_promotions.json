@@ -22,7 +22,7 @@
         "rtk bash scripts/doctor.sh --scope governance",
         "rtk bash scripts/check.sh"
       ],
-      "rollback": "remove the AGENTS rule, rebuild, apply and rerun runtime-control final gate"
+      "rollback": "remove the AGENTS rule, rebuild, apply and rerun execution-policy final gate"
     },
     {
       "name": "repeated-workflow-to-skill",
@@ -64,7 +64,7 @@
       ],
       "verification": [
         "rtk bash scripts/curate-memory.sh --dry-run",
-        "rtk bash scripts/runtime-control.sh gate --event final"
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
       ],
       "rollback": "mark the memory candidate rejected or superseded; do not directly edit ~/.codex/memories without approval"
     }

@@ -4,92 +4,36 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
     paths:
-      - 'manifests/integrations/**'
-      - 'manifests/provider-locks/**'
-      - 'manifests/agents.json'
-      - 'manifests/skills.json'
-      - 'manifests/assets.json'
-      - 'manifests/profiles.json'
-      - 'manifests/execution_policy.json'
-      - 'manifests/session_bootstrap.json'
-      - 'src/codex-home/vendor/agents/**'
-      - 'src/codex-home/vendor/skills/adk-*/**'
-      - 'src/codex-home/AGENTS.md'
-      - 'tools/codex_assets/validate.py'
-      - 'tools/codex_assets/core.py'
-      - 'tests/test_apply_prune.py'
-      - 'tests/test_apply_backup_integrity.py'
-      - 'tools/codex_assets/adk_skill_audit.py'
-      - 'tools/codex_assets/execution_policy_adapter.py'
-      - 'tools/codex_assets/execution_policy/**'
-      - 'tools/codex_assets/model.py'
-      - 'tools/codex_assets/privacy_ref.py'
-      - 'tools/codex_assets/session_bootstrap.py'
-      - 'tests/test_execution_policy.py'
-      - 'tests/test_execution_policy_source_set.py'
-      - 'tests/test_session_bootstrap.py'
-      - 'tests/test_session_bootstrap_independence.py'
-      - 'tests/test_agent_rules.py'
-      - 'tests/test_adk_skill_audit.py'
-      - 'tests/test_adk_daily_core_import.py'
+      - 'manifests/**'
+      - 'src/codex-home/**'
+      - 'tools/codex_assets/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'schemas/**'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
       - 'docs/session-bootstrap.md'
       - 'docs/small-team-delivery.md'
       - 'docs/adk-source-upgrade.md'
-      - 'scripts/validate-adk-agent-binding.py'
-      - 'scripts/validate-agent-rules.py'
-      - 'schemas/runtime-execution-receipt.schema.json'
-      - 'schemas/runtime-execution-receipt.v2.schema.json'
-      - 'scripts/knowledge-provider.sh'
-      - 'scripts/session-bootstrap.sh'
-      - 'scripts/validate-runtime-binding.py'
       - 'AGENTS.md'
+      - 'README.md'
       - '.github/workflows/runtime-binding-contract.yml'
   push:
     branches: [main]
     paths:
-      - 'manifests/integrations/**'
-      - 'manifests/provider-locks/**'
-      - 'manifests/agents.json'
-      - 'manifests/skills.json'
-      - 'manifests/assets.json'
-      - 'manifests/profiles.json'
-      - 'manifests/execution_policy.json'
-      - 'manifests/session_bootstrap.json'
-      - 'src/codex-home/vendor/agents/**'
-      - 'src/codex-home/vendor/skills/adk-*/**'
-      - 'src/codex-home/AGENTS.md'
-      - 'tools/codex_assets/validate.py'
-      - 'tools/codex_assets/core.py'
-      - 'tests/test_apply_prune.py'
-      - 'tests/test_apply_backup_integrity.py'
-      - 'tools/codex_assets/adk_skill_audit.py'
-      - 'tools/codex_assets/execution_policy_adapter.py'
-      - 'tools/codex_assets/execution_policy/**'
-      - 'tools/codex_assets/model.py'
-      - 'tools/codex_assets/privacy_ref.py'
-      - 'tools/codex_assets/session_bootstrap.py'
-      - 'tests/test_execution_policy.py'
-      - 'tests/test_execution_policy_source_set.py'
-      - 'tests/test_session_bootstrap.py'
-      - 'tests/test_session_bootstrap_independence.py'
-      - 'tests/test_agent_rules.py'
-      - 'tests/test_adk_skill_audit.py'
-      - 'tests/test_adk_daily_core_import.py'
+      - 'manifests/**'
+      - 'src/codex-home/**'
+      - 'tools/codex_assets/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'schemas/**'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
       - 'docs/session-bootstrap.md'
       - 'docs/small-team-delivery.md'
       - 'docs/adk-source-upgrade.md'
-      - 'scripts/validate-adk-agent-binding.py'
-      - 'scripts/validate-agent-rules.py'
-      - 'schemas/runtime-execution-receipt.schema.json'
-      - 'schemas/runtime-execution-receipt.v2.schema.json'
-      - 'scripts/knowledge-provider.sh'
-      - 'scripts/session-bootstrap.sh'
-      - 'scripts/validate-runtime-binding.py'
       - 'AGENTS.md'
+      - 'README.md'
       - '.github/workflows/runtime-binding-contract.yml'
   workflow_dispatch:
     inputs:
@@ -129,6 +73,13 @@ jobs:
           PY
       - name: Install validation dependency
         run: python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
+      - name: Validate full repository doctor and disposable lifecycle
+        env:
+          CODEX_OFFLINE_HERMETIC: '1'
+        run: |
+          python -m tools.codex_assets doctor --scope repo
+          python -m tools.codex_assets doctor --scope governance
+          python -m unittest tests.test_governance tests.test_governance_summary tests.test_check_script tests.test_doctor_execution_policy tests.test_operator_execution_policy tests.test_agent_routing_eval
       - name: Validate runtime binding contracts
         run: python scripts/validate-runtime-binding.py
       - name: Validate exact ADK agent binding
@@ -146,7 +97,7 @@ jobs:
       - name: Validate exact ADK 7.0.4 Execution Policy source set
         run: python -m unittest tests.test_execution_policy_source_set
       - name: Validate thin Session Bootstrap and daily independence
-        run: python -m unittest tests.test_session_bootstrap tests.test_session_bootstrap_independence
+        run: python -m unittest tests.test_session_bootstrap tests.test_session_bootstrap_independence tests.test_session_bootstrap_contract
       - name: Validate read-only Skill source audit
         run: python -m unittest tests.test_adk_skill_audit tests.test_adk_daily_core_import tests.test_apply_prune tests.test_apply_backup_integrity
       - name: Collect current Skill provenance gaps (not upgrade certification)

@@ -19,7 +19,7 @@ REQUIRED = {
     "workflows.json": ["schema_version", "workflows"],
     "project-templates.json": ["schema_version", "project_templates"],
     "overlays.json": ["schema_version", "overlays"],
-    "runtime_control.json": ["schema_version", "engine", "sources", "policy"],
+    "execution_policy.json": ["schema_version", "engine", "sources", "policy"],
 }
 
 
@@ -38,6 +38,9 @@ def validate_repo(root: str | pathlib.Path) -> list[str]:
             errors.append(f"缺少 manifest: {name}")
             continue
         data = read_json(path)
+        if not isinstance(data, dict):
+            errors.append(f"{name} 必须是 JSON object")
+            continue
         for field in fields:
             if field not in data:
                 errors.append(f"{name} 缺少字段: {field}")
