@@ -17,7 +17,6 @@ FORBIDDEN = (
     "runtime-control.sh",
     "execution-policy.sh",
     "Runtime Control",
-    "token-lean",
 )
 REQUIRED = (
     "~/codex/scripts/knowledge-provider.sh",
@@ -54,6 +53,9 @@ def validate_rules(root: Path) -> int:
     require(f"默认 adk-first、`{default}`" in text, "AGENTS default profile differs from manifest")
     for profile in re.findall(r"--profile\s+([a-z0-9-]+)", text):
         require(profile in names, f"AGENTS references an undeclared profile: {profile}")
+    for group in re.findall(r"`([^`]+)` 是 Codex Runtime Profile", text):
+        for profile in group.split("/"):
+            require(profile in names, f"AGENTS describes an undeclared profile: {profile}")
     return len(root_bytes)
 
 
