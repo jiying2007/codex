@@ -15,7 +15,13 @@ class BootstrapError(RuntimeError):
 
 
 def _read_json(path: pathlib.Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise BootstrapError(f"cannot read JSON object {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise BootstrapError(f"JSON object required: {path}")
+    return value
 
 
 def _git(path: pathlib.Path, *args: str) -> str | None:
@@ -339,12 +345,11 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
     binding_path = root / "manifests/integrations/digital-worker-runtime-binding.json"
     provider_lock_path = root / "manifests/provider-locks/agent-dev-kit.json"
     provider_adapter_path = root / "scripts/knowledge-provider.sh"
-    for path in (contract_path, binding_path, provider_lock_path, provider_adapter_path):
+    for path in (contract_path, provider_lock_path, provider_adapter_path):
         if not path.is_file():
             raise BootstrapError(f"required Runtime Binding asset missing: {path}")
 
     bootstrap_contract = _read_json(contract_path)
-    binding = _read_json(binding_path)
     provider_lock = _read_json(provider_lock_path)
     task_package = pathlib.Path(args.engineering_task_package).expanduser().resolve() if args.engineering_task_package else None
     mode = resolve_mode(
@@ -354,10 +359,28 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
         engineering_task_package=task_package,
     )
 
-    if binding.get("status") != "active" or binding.get("readiness") != "SOURCE_SET_BOUND":
-        raise BootstrapError("Codex Runtime Binding is not active/SOURCE_SET_BOUND")
     if provider_lock.get("delivery_mode") != "exact-source-set" or provider_lock.get("binding_status") != "source-set-bound":
         raise BootstrapError("ADK provider lock is not exact-source-set/source-set-bound")
+
+    # Daily runtime identity is a projection of the existing ADK lock, not a
+    # dependency on the optional Digital Worker integration or another SSOT.
+    binding = {
+        "runtime_target": bootstrap_contract["runtime_binding"],
+        "readiness": "SOURCE_SET_BOUND",
+        "source_binding": {
+            "provider_repository": provider_lock.get("repository"),
+            "release_version": provider_lock.get("version"),
+            "provider_commit": provider_lock.get("provider_commit"),
+            "asset_profile": provider_lock.get("asset_profile"),
+            "identity_mode": provider_lock.get("source_set", {}).get("identity"),
+        },
+    }
+    if mode == "L2":
+        if not binding_path.is_file():
+            raise BootstrapError(f"required formal Runtime Binding asset missing: {binding_path}")
+        binding = _read_json(binding_path)
+        if binding.get("status") != "active" or binding.get("readiness") != "SOURCE_SET_BOUND":
+            raise BootstrapError("Codex Runtime Binding is not active/SOURCE_SET_BOUND")
 
     runtime_profile = args.runtime_profile
     if runtime_profile not in {"minimal", "solo-dev", "default", "team-collab"}:
@@ -368,10 +391,13 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
     repo_head = _git(cwd, "rev-parse", "HEAD") if repo_root else None
     codex_commit = _git(root, "rev-parse", "HEAD")
 
-    digital_worker_root = _path_or_default(
-        args.digital_worker_root,
-        "DIGITAL_WORKER_ROOT",
-        pathlib.Path.home() / "digital-worker",
+    digital_worker_root = (
+        _path_or_default(
+            args.digital_worker_root,
+            "DIGITAL_WORKER_ROOT",
+            pathlib.Path.home() / "digital-worker",
+        )
+        if mode == "L2" else None
     )
     knowledge_root = _path_or_default(
         args.knowledge_root,
@@ -409,8 +435,6 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
         if not knowledge_root.is_dir():
             degraded.append("knowledge_provider_unavailable")
     elif mode == "L1":
-        if not digital_worker_root.is_dir():
-            blocked.append("digital_worker_root_unavailable")
         if not knowledge_root.is_dir():
             blocked.append("knowledge_provider_unavailable")
         knowledge = {
@@ -420,6 +444,7 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
             "adapter": str(provider_adapter_path),
         }
     else:
+        assert digital_worker_root is not None
         if task_package is None or not task_package.is_file():
             blocked.append("engineering_task_package_missing")
         if not digital_worker_root.is_dir():
@@ -555,8 +580,8 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
             "base_commit": args.base_commit,
         },
         "digital_worker": {
-            "root": str(digital_worker_root),
-            "required": mode in {"L1", "L2"},
+            "root": str(digital_worker_root) if digital_worker_root is not None else None,
+            "required": mode == "L2",
             "engineering_task_package": str(task_package) if task_package else None,
             "governance_identity": digital_worker_governance,
         },
@@ -573,7 +598,8 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
         "degraded_reasons": degraded,
         "claims": {
             "runtime_local_only": True,
-            "domain_verification_owned_by_digital_worker": True,
+            "domain_verification_owned_by_digital_worker": mode == "L2",
+            "project_acceptance_owned_by_project": True,
             "knowledge_lifecycle_owned_by_provider": True,
         },
     }
