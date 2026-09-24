@@ -6,6 +6,8 @@ ADK 最新 Release、Codex provider lock、每个 Skill 实际复制的来源是
 
 2026-09-24 的升级检查发现现有 Skill manifest 中仍有 `llm_agent/agent-dev-kit`、短 commit 和缺少 source_blob 的条目。禁止把这些字段直接重标为新版本；先读真正来源、比较完整 Skill support tree，再进行独立导入与回归。
 
+首次真实清点来自 Run 35975523298（PR #30 merge ref 4f7f4e40cb3725c99a9061175ddbdb399ad74cd6）：42 个 active ADK Skill，42 个非 canonical repository、42 个缺失/无效 source_blob、36 个非完整 commit，0 个 source_ref 匹配现有 provider lock commit。这些缺项相互重叠，说明来源记录待修复，不证明技能行为均错误。后续状态以新鲜 audit artifact 为准，不手工维护第二份动态状态表。
+
 ## 唯一实现入口
 
 ```bash
@@ -28,9 +30,11 @@ rtk python3 -m tools.codex_assets.adk_skill_audit \
   --summary-json
 ```
 
-候选必须是 exact HEAD 的干净 checkout；manifest 和 Skill 全目录的 blob/执行位必须匹配 Git tree。只按现有 source_path 对比，不猜测重命名、替代 Skill 或其它目录。记录新增、删除、内容/执行位变更、完整 tree digest 和需人工/语义复核标记。source_available 仅表示可读取的精确源码，不表示兼容、已采用或已安装。
+候选必须是 exact HEAD 的干净 checkout；manifest 和 Skill 全目录的 blob/执行位必须匹配 Git tree。还必须逐项比对 expected 文件集合，不能仅凭 git status 干净认定完整：skip-worktree/sparse checkout 可以隐藏缺失文件，core.fileMode=false 可以隐藏执行位变化。目录不可读时阻断，不能静默跳过。
 
-Runtime Binding Contract 保留既有所有门禁，新增 23 项审计回归与当前仓库诊断制品。诊断收集允许保留 needs-fix；这不是给升级门禁加豁免。CI 绿色只表示测试/收集过程成功，JSON 中的缺项不会变成 pass。
+只按现有 source_path 对比，不猜测重命名、替代 Skill 或其它目录。记录新增、删除、内容/执行位变更、完整 tree digest 和需人工/语义复核标记。source_available 仅表示可读取的精确源码，不表示兼容、已采用或已安装。
+
+Runtime Binding Contract 保留既有所有门禁，新增 27 项审计回归与当前仓库诊断制品。诊断收集允许保留 needs-fix；这不是给升级门禁加豁免。CI 绿色只表示测试/收集过程成功，JSON 中的缺项不会变成 pass。
 
 仅在显式 workflow_dispatch 并设置 `audit_adk_candidate=true` 时，对照固定的 ADK 7.0.31 commit `7367ef84787de75bb751940b32c9e80009660e47`。普通 push/PR 不下载候选，不把跨仓网络检查加入日常必经链。候选比较只在 Python3.11 job 执行一次；两个 Python 版本都执行单元回归。报告绑定 consumer commit、manifest/lock digests 和 candidate commit，并作为 Actions artifact 留存。
 
