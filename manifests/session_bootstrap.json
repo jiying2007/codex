@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "1.2",
+  "contract_version": "1.3",
   "status": "active",
   "role": "thin-session-bootstrap",
   "runtime_binding": "codex-cli",
@@ -33,13 +33,14 @@
       "default": true,
       "knowledge_mode": "current-provider",
       "digital_worker_run_required": false,
+      "digital_worker_contract_required": false,
       "formal_evidence_required": false
     },
     "L1": {
       "name": "governed-engineering",
       "default": false,
       "knowledge_mode": "current-provider",
-      "digital_worker_contract_required": true,
+      "digital_worker_contract_required": false,
       "formal_evidence_required": false
     },
     "L2": {
@@ -60,6 +61,7 @@
   },
   "provider_adapter": "scripts/knowledge-provider.sh",
   "runtime_binding_contract": "manifests/integrations/digital-worker-runtime-binding.json",
+  "runtime_binding_contract_modes": ["L2"],
   "asset_provider_lock": "manifests/provider-locks/agent-dev-kit.json",
   "output_contract": {
     "kind": "codex-session-bootstrap/v1",
@@ -85,6 +87,8 @@
     ]
   },
   "rules": {
+    "daily_modes_do_not_load_digital_worker_binding": true,
+    "project_acceptance_remains_external": true,
     "explicit_conflicts_fail_closed": true,
     "formal_mode_requires_exact_inputs": true,
     "formal_mode_requires_exact_digital_worker_governance_identity": true,

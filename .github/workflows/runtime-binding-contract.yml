@@ -19,8 +19,11 @@ on:
       - 'tests/test_execution_policy.py'
       - 'tests/test_execution_policy_source_set.py'
       - 'tests/test_session_bootstrap.py'
+      - 'tests/test_session_bootstrap_independence.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
+      - 'docs/session-bootstrap.md'
+      - 'docs/small-team-delivery.md'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
@@ -49,8 +52,11 @@ on:
       - 'tests/test_execution_policy.py'
       - 'tests/test_execution_policy_source_set.py'
       - 'tests/test_session_bootstrap.py'
+      - 'tests/test_session_bootstrap_independence.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
+      - 'docs/session-bootstrap.md'
+      - 'docs/small-team-delivery.md'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
@@ -103,8 +109,8 @@ jobs:
         run: python -m unittest tests.test_execution_policy
       - name: Validate exact ADK 7.0.4 Execution Policy source set
         run: python -m unittest tests.test_execution_policy_source_set
-      - name: Validate thin Session Bootstrap
-        run: python -m unittest tests.test_session_bootstrap
+      - name: Validate thin Session Bootstrap and daily independence
+        run: python -m unittest tests.test_session_bootstrap tests.test_session_bootstrap_independence
       - name: Validate JSON syntax
         run: |
           python -m json.tool manifests/integrations/digital-worker-runtime-binding.json >/dev/null
