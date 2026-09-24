@@ -201,6 +201,14 @@ def audit(root: Path, provider_root: Path | None = None, expected_commit: str = 
             current = _tree(_path(root, f"src/codex-home/{vendor}"))
             if source_blob is not None and source_blob != current["SKILL.md"]["blob"]:
                 gaps.append("local_skill_blob_mismatch")
+            # Exact-tree imports also bind references/scripts, not just SKILL.md.
+            # Legacy records without this field remain diagnosed by their other gaps.
+            if "source_tree_sha256" in item:
+                tree_digest = item["source_tree_sha256"]
+                if not isinstance(tree_digest, str) or re.fullmatch(r"[0-9a-f]{64}", tree_digest) is None:
+                    gaps.append("invalid_source_tree_sha256")
+                elif tree_digest != _digest(current):
+                    gaps.append("local_skill_tree_mismatch")
         except (AuditError, OSError) as exc:
             gaps.append(str(exc) if isinstance(exc, AuditError) else "local_skill_read_failed")
         row: dict[str, Any] = {"name": name, "gaps": gaps, "matches_provider_lock_commit": item.get("source_ref") == lock.get("provider_commit"), "local_tree_sha256": _digest(current) if current else None, "target": None}

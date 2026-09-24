@@ -48,8 +48,31 @@ gh workflow run runtime-binding-contract.yml \
 
 ## 实际升级仍需独立完成
 
+### 首批实际导入（2026-09-24）
+
+已从上述固定 7.0.31 源码导入 `adk-runtime-router` 2.1.0、
+`adk-code-review-loop` 1.7.0、`adk-verification-before-completion` 1.7.0。
+三个目录共 8 个文件，包含新增的 3 个 references 文档；旧版本目录退役，
+既有 profile/target/owner 不变，安装源 registry.csv 的对应版本同步更新。
+本批没有上游目录之外的附加文件；未把其他 Skill 的许可证或 Codex 适配元数据作为删除清单。
+
+每项来源在既有 skills manifest 绑定 canonical repository、完整 commit、
+`source_blob`、`source_release` 和 `source_tree_sha256`。后者表示该项完整、精确复制的
+目录摘要（包括路径、文件内容和执行位），不是第二份资源清单。
+已声明此字段的导入必须通过整个目录一致性检查，不能只验证 SKILL.md；
+旧资源没有该字段不代表其配套文件已经获得验证。
+
+`tests.test_adk_daily_core_import` 验证固定来源、完整目录、引用文件、路由发现、
+隔离目录中的 build/plan/dry-run/apply/no-op/rollback 与认证/session/system 文件保护。
+该测试使用现有安装实现，不建立新安装入口；安装测试是临时目录验证，
+不等于成员现场已更新或模型已执行过这些 Skill。一次性导入工作流不留在最终树。
+
+三项 Skill 的来源版本与 Agent/Execution Policy provider lock 分开表达：本批并未
+把仍锁定 7.0.4 的 Agent 和执行策略改标为 7.0.31。其余来源缺项继续如实报告，
+每个 Skill 的版本应从该项 manifest 读取，不能由全局 provider lock 推断。
+
 7.0.31 的 Execution Policy 已采用 contracts/decision/reducer 分工，不再存在旧 engine.py 源路径。后续升级必须迁移真正 consumer imports 与 exact blobs，不能为沿用旧代码而修改版本号、恢复 facade 或伪造 source identity。
 
 先处理来源和候选差异，再分批导入现有 active Skill 的完整支持目录，保留本地 profile/触发映射并重新验证；Agent、Execution Policy 与 provider lock 的升级必须保持各自真实身份一致。实际 apply、漂移检查、回退和成员任务验证继续走原流程。
 
-本次只读审计不升级 provider pin、不改已安装 Skill、不自动写成员 ~/.codex，不接触 Digital Worker 正式证据或 engineering-platform。默认小团队路径保持 CLI + ADK + 项目验收 + Knowledge Hub。
+审计命令本身不升级 provider pin、不改已安装 Skill、不自动写成员 ~/.codex，不接触 Digital Worker 正式证据或 engineering-platform。上述首批导入只修改仓库的资源源目录；默认小团队路径保持 CLI + ADK + 项目验收 + Knowledge Hub。

@@ -979,19 +979,22 @@ def apply_plan(plan: dict[str, Any], dry_run: bool) -> str:
     target = pathlib.Path(plan["target"]).expanduser()
     if not dry_run:
         target.mkdir(parents=True, exist_ok=True)
+    # Snapshot all original paths before any mutation. A stale directory can
+    # contain individually managed files; backing it up after child deletion
+    # would replace the complete backup with an empty directory.
+    for action in plan["actions"]:
+        if action["action"] in {"overwrite", "delete"}:
+            backup_existing(target / action["path"], pathlib.Path(action["backup"]), dry_run)
     for action in plan["actions"]:
         rel = action["path"]
         if action["action"] == "mkdir":
             if not dry_run:
                 (target / rel).mkdir(parents=True, exist_ok=True)
         elif action["action"] in {"copy", "overwrite"}:
-            if action["action"] == "overwrite":
-                backup_existing(target / rel, pathlib.Path(action["backup"]), dry_run)
             copy_one(build / rel, target / rel, dry_run)
         elif action["action"] == "delete":
             dest = target / rel
             if dest.exists() or dest.is_symlink():
-                backup_existing(dest, pathlib.Path(action["backup"]), dry_run)
                 if not dry_run:
                     remove_path(dest)
     return "applied"
