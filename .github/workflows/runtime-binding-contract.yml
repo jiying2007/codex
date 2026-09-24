@@ -6,13 +6,16 @@ on:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
+      - 'manifests/skills.json'
       - 'manifests/assets.json'
       - 'manifests/profiles.json'
       - 'manifests/execution_policy.json'
       - 'manifests/session_bootstrap.json'
       - 'src/codex-home/vendor/agents/**'
+      - 'src/codex-home/vendor/skills/adk-*/**'
       - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
+      - 'tools/codex_assets/adk_skill_audit.py'
       - 'tools/codex_assets/execution_policy_adapter.py'
       - 'tools/codex_assets/execution_policy/**'
       - 'tools/codex_assets/model.py'
@@ -23,10 +26,12 @@ on:
       - 'tests/test_session_bootstrap.py'
       - 'tests/test_session_bootstrap_independence.py'
       - 'tests/test_agent_rules.py'
+      - 'tests/test_adk_skill_audit.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
       - 'docs/session-bootstrap.md'
       - 'docs/small-team-delivery.md'
+      - 'docs/adk-source-upgrade.md'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
@@ -42,13 +47,16 @@ on:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
+      - 'manifests/skills.json'
       - 'manifests/assets.json'
       - 'manifests/profiles.json'
       - 'manifests/execution_policy.json'
       - 'manifests/session_bootstrap.json'
       - 'src/codex-home/vendor/agents/**'
+      - 'src/codex-home/vendor/skills/adk-*/**'
       - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
+      - 'tools/codex_assets/adk_skill_audit.py'
       - 'tools/codex_assets/execution_policy_adapter.py'
       - 'tools/codex_assets/execution_policy/**'
       - 'tools/codex_assets/model.py'
@@ -59,10 +67,12 @@ on:
       - 'tests/test_session_bootstrap.py'
       - 'tests/test_session_bootstrap_independence.py'
       - 'tests/test_agent_rules.py'
+      - 'tests/test_adk_skill_audit.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
       - 'docs/session-bootstrap.md'
       - 'docs/small-team-delivery.md'
+      - 'docs/adk-source-upgrade.md'
       - 'scripts/validate-adk-agent-binding.py'
       - 'scripts/validate-agent-rules.py'
       - 'schemas/runtime-execution-receipt.schema.json'
@@ -73,6 +83,11 @@ on:
       - 'AGENTS.md'
       - '.github/workflows/runtime-binding-contract.yml'
   workflow_dispatch:
+    inputs:
+      audit_adk_candidate:
+        description: Compare Skills against the exact pinned ADK 7.0.31 source (read-only)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -123,6 +138,55 @@ jobs:
         run: python -m unittest tests.test_execution_policy_source_set
       - name: Validate thin Session Bootstrap and daily independence
         run: python -m unittest tests.test_session_bootstrap tests.test_session_bootstrap_independence
+      - name: Validate read-only Skill source audit
+        run: python -m unittest tests.test_adk_skill_audit
+      - name: Collect current Skill provenance gaps (not upgrade certification)
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          from tools.codex_assets.adk_skill_audit import audit, summary
+          report = audit(Path.cwd())
+          report['consumer_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          directory = Path(os.environ['RUNNER_TEMP']) / 'adk-skill-audit'
+          directory.mkdir(parents=True, exist_ok=True)
+          (directory / 'current.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(summary(report), ensure_ascii=False, sort_keys=True))
+          print('Collection succeeded; needs-fix remains an unresolved upgrade finding, not PASS.')
+          PY
+      - name: Checkout exact candidate only for explicit maintenance audit
+        if: github.event_name == 'workflow_dispatch' && inputs.audit_adk_candidate && matrix.python-version == '3.11'
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          repository: jiying2007/agent-dev-kit
+          ref: 7367ef84787de75bb751940b32c9e80009660e47
+          path: .adk-upgrade-source
+          persist-credentials: false
+      - name: Compare exact candidate Skill trees without installing
+        if: github.event_name == 'workflow_dispatch' && inputs.audit_adk_candidate && matrix.python-version == '3.11'
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          from tools.codex_assets.adk_skill_audit import audit, summary
+          report = audit(Path.cwd(), Path('.adk-upgrade-source'), '7367ef84787de75bb751940b32c9e80009660e47')
+          report['consumer_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          directory = Path(os.environ['RUNNER_TEMP']) / 'adk-skill-audit'
+          (directory / 'candidate.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(summary(report), ensure_ascii=False, sort_keys=True))
+          for item in report['skills']:
+              target = item['target'] or {}
+              print(json.dumps({'name': item['name'], 'target_status': target.get('status', 'blocked'), 'reason': target.get('reason'), 'added': len(target.get('added', [])), 'removed': len(target.get('removed', [])), 'changed': len(target.get('changed', []))}, sort_keys=True))
+          print('Exact source comparison only; semantic acceptance, release/import/apply and live validation are not performed.')
+          PY
+      - name: Retain bounded source audit evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: adk-skill-audit-${{ matrix.python-version }}-${{ github.sha }}
+          path: ${{ runner.temp }}/adk-skill-audit/*.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Validate JSON syntax
         run: |
           python -m json.tool manifests/integrations/digital-worker-runtime-binding.json >/dev/null
