@@ -445,6 +445,27 @@ def live_drift(build: str | pathlib.Path, target: str | pathlib.Path, ignored: l
     }
 
 
+def require_no_unplanned_assets(plan: dict[str, Any]) -> None:
+    """Detect leftover assets against the next build, not an incomplete ledger.
+
+    Unknown/manual assets are not authorized for deletion. Previously reviewed
+    ancestor deletions may already cover an asset. Repeat the scan at apply time
+    to catch assets that arrived after planning, without changing plan schema.
+    """
+    deletions = [pathlib.PurePosixPath(action["path"])
+                 for action in plan.get("actions", [])
+                 if action.get("action") == "delete"]
+    leftovers = [rel for rel in unmanaged_live_assets(plan["build"], plan["target"])
+                 if not any(pathlib.PurePosixPath(rel).is_relative_to(parent)
+                            for parent in deletions)]
+    if leftovers:
+        sample = "\n".join(leftovers[:20])
+        fail(f"unplanned live assets={len(leftovers)}; installation blocked before writes. "
+             "Inventory and preserve these assets outside the runtime before retrying; "
+             "--overwrite/--prune-stale cannot authorize unknown assets. "
+             f"See docs/member-rollout.md.\n{sample}")
+
+
 def copy_entry(src: pathlib.Path, dst: pathlib.Path, rel: pathlib.Path, protected: list[str], skip_source: list[str]) -> None:
     if matches_any(rel, protected) or matches_any(rel, skip_source):
         return
@@ -764,6 +785,7 @@ def plan_apply(
 
     content_changes = summary["copy"] + summary["overwrite"] + summary["delete"]
     validate_install_layout({"target": str(target_path), "actions": actions})
+    require_no_unplanned_assets({"build": str(build_path), "target": str(target_path), "actions": actions})
     target_preconditions = target_precondition_rows(target_path, actions)
     return {
         "schema_version": 3,
@@ -969,6 +991,7 @@ def validate_apply_plan(
         fail("apply plan 缺少 target_receipt，请重新生成 plan")
     if not isinstance(target_receipt.get("keep_paths"), list):
         fail("apply plan target_receipt 缺少 keep_paths，请重新生成 plan")
+    require_no_unplanned_assets(plan)
     if plan.get("content_noop") and target_directories_ready(plan) and target_keeps_match_receipt(plan):
         return "already-applied"
     current_rows = target_precondition_rows(target, plan.get("actions", []))
