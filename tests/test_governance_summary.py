@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import pathlib
 import subprocess
+import sys
 import unittest
 
 from tools.codex_assets.core import Repo
@@ -19,8 +20,7 @@ class GovernanceSummaryTest(unittest.TestCase):
     def test_summary_json_is_bounded_and_count_only(self) -> None:
         result = subprocess.run(
             [
-                "rtk",
-                "python3",
+                sys.executable,
                 "-m",
                 "tools.codex_assets",
                 "governance-report",

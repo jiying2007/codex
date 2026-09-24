@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import hashlib
 import pathlib
 import shutil
 import tempfile
@@ -145,34 +144,17 @@ def make_repo(test_case: unittest.TestCase) -> pathlib.Path:
             ],
         },
     )
-    wheel = root / "vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl"
-    wheel.parent.mkdir(parents=True, exist_ok=True)
-    wheel.write_bytes(b"fixture-wheel")
-    write_json(
-        root / "manifests/runtime_control.json",
-        {
-            "schema_version": 1,
-            "engine": {
-                "package": "agent-dev-kit",
-                "version": "4.0.0",
-                "wheel": "vendor/wheels/agent_dev_kit-4.0.0-py3-none-any.whl",
-                "sha256": hashlib.sha256(b"fixture-wheel").hexdigest(),
-            },
-            "sources": {
-                "state_db": "~/.codex/state_5.sqlite",
-                "sessions_root": "~/.codex/sessions",
-                "journal_dir": "~/.codex/runtime-control",
-            },
-            "policy": {
-                "schema_version": "runtime_control.policy/v1",
-                "token": {"checkpoint_ratio": 0.7, "compact_ratio": 0.9, "stop_ratio": 1.0},
-                "context": {"compact_ratio": 0.5},
-                "progress": {"staleness_seconds": 900, "retry_limit": 2, "no_progress_limit": 3},
-                "gate_policy": {"steady": [], "final": ["repo", "build"], "commit": ["repo", "build", "review"], "apply": ["repo", "build", "plan", "dry-run"], "release": ["repo", "build", "live", "review"]},
-                "retention": {"journal_days": 14, "raw_content_stored": False},
-            },
-        },
-    )
+    # Reuse the real fixed source contract; do not create a legacy wheel fixture.
+    repository = pathlib.Path(__file__).resolve().parents[1]
+    for relative in (
+        "manifests/execution_policy.json",
+        "manifests/provider-locks/agent-dev-kit.json",
+        "tools/codex_assets/execution_policy/engine.py",
+        "tools/codex_assets/execution_policy/contracts.py",
+    ):
+        destination = root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(repository / relative, destination)
     return root
 
 
@@ -927,7 +909,9 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertEqual(["routing-eval"], report["eval_suites"])
         self.assertEqual(["review-command"], report["cli_command_contracts"])
         self.assertEqual(["docs-to-agents"], report["guidance_promotions"])
-        self.assertEqual("4.0.0", report["runtime_control"]["engine_version"])
+        self.assertEqual(2, report["schema_version"])
+        self.assertNotIn("runtime_control", report)
+        self.assertEqual("7.0.4", report["execution_policy"]["engine_version"])
         self.assertEqual("routing", report["eval_suite_links"]["routing-eval"]["kind"])
         self.assertEqual("/review", report["cli_command_contract_links"]["review-command"]["command"])
         self.assertEqual("agents", report["guidance_promotion_links"]["docs-to-agents"]["destination"])
@@ -968,14 +952,13 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertIn("guidance_promotions:docs-to-agents review_required 必须为 true", errors)
         self.assertIn("guidance_promotions:docs-to-agents secret_scan_required 必须为 true", errors)
 
-    def test_runtime_control_requires_valid_wheel_hash(self) -> None:
+    def test_execution_policy_requires_exact_source_blob(self) -> None:
         root = make_repo(self)
-        manifest = json.loads((root / "manifests/runtime_control.json").read_text())
-        manifest["engine"]["sha256"] = "0" * 64
-        write_json(root / "manifests/runtime_control.json", manifest)
+        source = root / "tools/codex_assets/execution_policy/engine.py"
+        source.write_bytes(source.read_bytes() + b"\n# source drift\n")
 
         errors = validate_repo(root)
-        self.assertIn("runtime_control.json wheel SHA-256 不匹配", errors)
+        self.assertIn("execution_policy.json: Execution Policy source blob drift: engine.py", errors)
 
     def test_automation_requires_run_lifecycle(self) -> None:
         root = make_repo(self)

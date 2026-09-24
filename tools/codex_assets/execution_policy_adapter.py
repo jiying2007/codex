@@ -52,6 +52,11 @@ def _sha256_text(value: str) -> str:
 
 
 def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
+    # One read-only contract for runtime, doctor and governance. No state/session
+    # reads, journal creation, or Digital Worker checkout is needed here.
+    retired = root / "manifests/runtime_control.json"
+    if retired.exists() or retired.is_symlink():
+        raise ExecutionPolicyAdapterError("retired Execution Policy manifest must be removed")
     path = Path(config_path).expanduser().resolve() if config_path else root / "manifests/execution_policy.json"
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -73,6 +78,35 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
         raise ExecutionPolicyAdapterError("Execution Policy contract drift")
     if engine.get("behavior_baseline") != ENGINE_BASELINE:
         raise ExecutionPolicyAdapterError("Execution Policy behavior baseline drift")
+    sources = value.get("sources")
+    if (not isinstance(sources, dict)
+            or set(sources) != {"state_db", "sessions_root", "journal_dir"}
+            or any(not isinstance(item, str) or any(ord(char) < 32 for char in item)
+                   for item in sources.values())):
+        raise ExecutionPolicyAdapterError("Execution Policy sources are invalid")
+    try:
+        provider = json.loads((root / "manifests/provider-locks/agent-dev-kit.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ExecutionPolicyAdapterError("Execution Policy provider lock is unavailable") from exc
+    if (not isinstance(provider, dict)
+            or provider.get("schema") != "codex-provider-lock/v3"
+            or provider.get("repository") != ENGINE_BASELINE["repository"]
+            or provider.get("version") != ENGINE_BASELINE["version"]
+            or provider.get("provider_commit") != ENGINE_BASELINE["commit"]
+            or provider.get("delivery_mode") != "exact-source-set"
+            or provider.get("binding_status") != "source-set-bound"):
+        raise ExecutionPolicyAdapterError("Execution Policy provider identity drift")
+    for filename, key in (("engine.py", "engine_blob"), ("contracts.py", "support_blob")):
+        source = root / "tools/codex_assets/execution_policy" / filename
+        if source.is_symlink():
+            raise ExecutionPolicyAdapterError("Execution Policy source must be a regular file")
+        try:
+            data = source.read_bytes()
+        except OSError as exc:
+            raise ExecutionPolicyAdapterError("Execution Policy source is unavailable") from exc
+        actual_blob = hashlib.sha1(f"blob {len(data)}\0".encode("ascii") + data).hexdigest()
+        if actual_blob != ENGINE_BASELINE[key]:
+            raise ExecutionPolicyAdapterError(f"Execution Policy source blob drift: {filename}")
     try:
         value["policy"] = validate_policy(value["policy"])
     except ExecutionPolicyError as exc:

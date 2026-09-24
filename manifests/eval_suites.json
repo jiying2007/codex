@@ -76,20 +76,21 @@
         "team-collab"
       ],
       "kind": "completion",
-      "owner": "runtime-control",
-      "cases_path": "scripts/runtime-control.sh",
-      "success_metric": "runtime-control final gate and check.sh complete with explicit evidence",
+      "owner": "execution-policy",
+      "cases_path": "tests/test_execution_policy.py",
+      "success_metric": "Execution Policy v2 final gate accepts attested completed goals and rejects incomplete or missing goals; delivery also needs check.sh evidence",
       "min_pass_rate": 1.0,
       "negative_cases_required": true,
       "commands": [
-        "rtk bash scripts/runtime-control.sh gate --event final",
+        "rtk python3 -m unittest tests.test_execution_policy tests.test_execution_policy_source_set",
+        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final",
         "rtk bash scripts/check.sh"
       ],
       "artifacts": [
-        "runtime_control.decision/v1",
+        "runtime_control.decision/v2",
         "check command output summary"
       ],
-      "promotion_gate": "delivery claims must be backed by runtime-control final gate plus check.sh evidence"
+      "promotion_gate": "delivery claims require the current thread Execution Policy final gate plus check.sh evidence; fixture success is not live qualification"
     },
     {
       "name": "wechat-account-research-eval",
