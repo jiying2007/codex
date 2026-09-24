@@ -1,0 +1,185 @@
+--- a/tools/codex_assets/adk_skill_audit.py
++++ b/tools/codex_assets/adk_skill_audit.py
+@@ -96,6 +96,41 @@
+     if "SKILL.md" not in files:
+         raise AuditError("skill_entrypoint_missing")
+     return files
++
++
++def _source_tree(item: dict[str, Any], installed: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
++    """Project reviewed distribution metadata back to the exact upstream tree.
++
++    Only non-executable packaging metadata may differ. SKILL.md, references and
++    scripts can never be excluded or substituted by this declaration. Original
++    metadata identities are verified against the pinned provider by import tests;
++    this local check alone is not proof of upstream ownership.
++    """
++    metadata = item.get("distribution_metadata", {})
++    if not isinstance(metadata, dict) or set(metadata) - {"README.md", "LICENSE", "agents/openai.yaml"}:
++        raise AuditError("distribution_metadata_invalid")
++    source = dict(installed)
++    for path, binding in metadata.items():
++        if not isinstance(binding, dict) or set(binding) != {"source", "installed"}:
++            raise AuditError("distribution_metadata_invalid")
++        original, actual = binding["source"], binding["installed"]
++        for identity in (actual, original) if original is not None else (actual,):
++            if (not isinstance(identity, dict) or set(identity) != {"blob", "mode"}
++                    or identity.get("mode") != "100644"
++                    or not isinstance(identity.get("blob"), str)
++                    or re.fullmatch(r"[0-9a-f]{40}", identity["blob"]) is None):
++                raise AuditError("distribution_metadata_invalid")
++        if installed.get(path) != actual:
++            raise AuditError("distribution_metadata_mismatch")
++        if original is None:
++            del source[path]
++        else:
++            # The only reviewed source transformation is flat display metadata
++            # to the native Codex interface object. Never replace upstream prose.
++            if path != "agents/openai.yaml":
++                raise AuditError("distribution_source_override_forbidden")
++            source[path] = original
++    return source
+ 
+ 
+ def _git(root: Path, *args: str) -> str:
+@@ -190,6 +225,7 @@
+         if not isinstance(source_blob, str) or re.fullmatch(r"[0-9a-f]{40}", source_blob) is None:
+             gaps.append("missing_or_invalid_source_blob")
+         current = None
++        source_tree = None
+         source = None
+         try:
+             source = _ref(item.get("source_path"))
+@@ -199,6 +235,7 @@
+             if not vendor.startswith(f"vendor/skills/{name}/") or len(PurePosixPath(vendor).parts) != 4:
+                 raise AuditError("skill_vendor_path_invalid")
+             current = _tree(_path(root, f"src/codex-home/{vendor}"))
++            source_tree = _source_tree(item, current)
+             if source_blob is not None and source_blob != current["SKILL.md"]["blob"]:
+                 gaps.append("local_skill_blob_mismatch")
+             # Exact-tree imports also bind references/scripts, not just SKILL.md.
+@@ -207,15 +244,20 @@
+                 tree_digest = item["source_tree_sha256"]
+                 if not isinstance(tree_digest, str) or re.fullmatch(r"[0-9a-f]{64}", tree_digest) is None:
+                     gaps.append("invalid_source_tree_sha256")
+-                elif tree_digest != _digest(current):
++                elif tree_digest != _digest(source_tree):
+                     gaps.append("local_skill_tree_mismatch")
++            if item.get("distribution_metadata") and "source_tree_sha256" not in item:
++                gaps.append("distribution_source_tree_required")
+         except (AuditError, OSError) as exc:
+             gaps.append(str(exc) if isinstance(exc, AuditError) else "local_skill_read_failed")
+         row: dict[str, Any] = {"name": name, "gaps": gaps, "matches_provider_lock_commit": item.get("source_ref") == lock.get("provider_commit"), "local_tree_sha256": _digest(current) if current else None, "target": None}
++        if source_tree is not None and item.get("distribution_metadata"):
++            row["distribution_metadata_paths"] = sorted(item["distribution_metadata"])
++            row["upstream_tree_sha256"] = _digest(source_tree) if source_tree else None
+         if provider is not None and source is not None:
+             try:
+                 target = _candidate(provider_root.resolve(), source, provider)
+-                baseline = current or {}
++                baseline = source_tree or current or {}
+                 row["target"] = {
+                     "status": "source_available",
+                     "entrypoint_blob": target["SKILL.md"]["blob"],
+--- a/tests/test_adk_daily_core_import.py
++++ b/tests/test_adk_daily_core_import.py
+@@ -10,7 +10,7 @@
+ import tempfile
+ import unittest
+ 
+-from tools.codex_assets.adk_skill_audit import _digest, _tree, audit
++from tools.codex_assets.adk_skill_audit import _digest, _source_tree, _tree, audit
+ from tools.codex_assets.core import Repo, apply_plan, build_repo, diff_build_live, plan_apply, rollback_plan, validate_apply_plan
+ from tools.codex_assets.skill_catalog import search_skills
+ from tests import test_adk_skill_audit as audit_fixtures
+@@ -83,7 +83,7 @@
+                 self.assertEqual(record["source_path"], f"skills/{name}/SKILL.md")
+                 self.assertEqual(record["source_blob"], blob)
+                 self.assertEqual(record["source_tree_sha256"], digest)
+-                tree = _tree(ROOT / "src/codex-home" / record["vendor_rel"])
++                tree = _source_tree(record, _tree(ROOT / "src/codex-home" / record["vendor_rel"]))
+                 self.assertEqual(len(tree), count)
+                 self.assertEqual(tree["SKILL.md"]["blob"], blob)
+                 self.assertEqual(_digest(tree), digest)
+@@ -151,7 +151,7 @@
+                 for name, (_, _, digest, _, _) in EXPECTED.items():
+                     installed = target / self.records[name]["target_rel"]
+                     self.assertTrue(installed.is_symlink())
+-                    self.assertEqual(_digest(_tree(installed.resolve())), digest)
++                    self.assertEqual(_digest(_source_tree(self.records[name], _tree(installed.resolve()))), digest)
+                 again = plan_apply(repo, build, target, base / "backup-noop", overwrite=False, prune_stale=True)
+                 self.assertEqual(again["content_changes"], 0)
+                 plan_path = base / "plan.json"
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -7,6 +7,7 @@
+ - Digital Worker 不是日常前置依赖；L0/L1 直接使用 CLI + ADK，任务/测试/审查由项目验收；L2 显式选择后仍严格阻断缺项。
+ - 小任务直接实现验证；非平凡任务先冻结目标、边界、风险、验收与阻塞；长任务使用 `adk-planning-execution-loop`。
+ - 每场景仅一个 primary skill；需求、拆解、调试、review、完成验证使用对应 `adk-*`，收尾用 `session-wrap`。
++- 上游 Skill 的命令/路径仅对其源仓有效；跨项目先核实入口，不复制其发布规则或知识目录。
+ - 可报告的实质产出需要持久化时，只允许通过 `rtk bash ~/codex/scripts/knowledge-provider.sh ...` 访问 Knowledge Provider；仅 Provider 明确返回成功语义才能声明已记录。不得依赖 Hub 内部目录、临时 receipt、缓存或实现脚本作为跨仓契约，也不得从 Git、路径、memory 或聊天身份推断主体。
+ - catalog 未命中时运行 `rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --profile default --limit 3 --summary-json`；只加载选中项完整 `SKILL.md`，零命中可直接执行。
+ 
+--- a/src/codex-home/AGENTS.md
++++ b/src/codex-home/AGENTS.md
+@@ -7,6 +7,7 @@
+ - Digital Worker 不是日常前置依赖；L0/L1 直接使用 CLI + ADK，任务/测试/审查由项目验收；L2 显式选择后仍严格阻断缺项。
+ - 小任务直接实现验证；非平凡任务先冻结目标、边界、风险、验收与阻塞；长任务使用 `adk-planning-execution-loop`。
+ - 每场景仅一个 primary skill；需求、拆解、调试、review、完成验证使用对应 `adk-*`，收尾用 `session-wrap`。
++- 上游 Skill 的命令/路径仅对其源仓有效；跨项目先核实入口，不复制其发布规则或知识目录。
+ - 可报告的实质产出需要持久化时，只允许通过 `rtk bash ~/codex/scripts/knowledge-provider.sh ...` 访问 Knowledge Provider；仅 Provider 明确返回成功语义才能声明已记录。不得依赖 Hub 内部目录、临时 receipt、缓存或实现脚本作为跨仓契约，也不得从 Git、路径、memory 或聊天身份推断主体。
+ - catalog 未命中时运行 `rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --profile default --limit 3 --summary-json`；只加载选中项完整 `SKILL.md`，零命中可直接执行。
+ 
+--- a/docs/adk-source-upgrade.md
++++ b/docs/adk-source-upgrade.md
+@@ -59,7 +59,7 @@
+ 每项来源在既有 skills manifest 绑定 canonical repository、完整 commit、
+ `source_blob`、`source_release` 和 `source_tree_sha256`。后者表示该项完整、精确复制的
+ 目录摘要（包括路径、文件内容和执行位），不是第二份资源清单。
+-已声明此字段的导入必须通过整个目录一致性检查，不能只验证 SKILL.md；
++已声明此字段的导入必须通过整个上游目录一致性检查，不能只验证 SKILL.md；
+ 旧资源没有该字段不代表其配套文件已经获得验证。
+ 
+ `tests.test_adk_daily_core_import` 验证固定来源、完整目录、引用文件、路由发现、
+@@ -71,6 +71,41 @@
+ 把仍锁定 7.0.4 的 Agent 和执行策略改标为 7.0.31。其余来源缺项继续如实报告，
+ 每个 Skill 的版本应从该项 manifest 读取，不能由全局 provider lock 推断。
+ 
++### 剩余来源与分发元数据闭合（2026-09-24）
++
++同一固定候选的剩余 39 项已完成真实来源迁移，42 项启用的 ADK Skill 共绑定
++95 个上游文件；其中 8 项推进了 Skill 版本。`adk-cross-team-handoff` 经上游源码
++核验由 `optional-skills` 移入 `skills`，仍是同名 Skill，保留原有仅 team-collab
++启用的范围，不推断替代项、不扩展默认 profile。
++
++全部 42 项安装目录包含 README、LICENSE 和符合现有 Codex 校验器的
++`agents/openai.yaml`。上游已有正文、scripts、references 逐字节与执行位保留；
++没有 LICENSE 的目录附带同一 provider commit 的根 LICENSE，历史分发 notice
++不同于该许可证时原文一并保留，不将 notice 静默丢弃。
++
++既有 manifest 的 `distribution_metadata` 明确记录包装文件的 `source` 与
++`installed` blob/mode。`source: null` 表示消费方补充的元数据，绝不宣称是上游文件；
++上游平铺的展示字段只在 `agents/openai.yaml` 转成现有 Codex `interface` 结构，
++同时保存原始源码身份。README/LICENSE 不允许覆盖上游正文；SKILL.md、scripts
++和 references 绝不允许被这个字段排除、替换或改标。可执行包装文件也被拒绝。
++
++`source_tree_sha256` 对应原始上游树；`local_tree_sha256` 对应实际分发目录。
++已有 audit 同时验证已声明的元数据实际内容和上游树摘要，不新增审计服务或安装器。
++固定测试向量来自独立读取的上游 Git tree，逐项校验全部 42 项来源、完整支持文件、
++元数据语义、许可证保留、版本与 profile/target，不能靠本地重新计算一个摘要就通过。
++第一批三项原有源码 digest 与行为约束不变，其目录新增元数据后改用上述显式投影核验。
++
++主线 CI 不再仅收集 Skill 来源缺项：本批完成后，任何 active ADK 来源缺项重新出现
++都会使原有 Runtime Binding 检查失败。外部 provider 对比仍仅在显式维护时启用，
++不把网络读取加到普通日常开发。
++
++Skill 中 ADK 源仓的发布工作流、脚本或知识路径不自动适用于消费项目。项目的真实
++入口、验收、发布与 Knowledge Provider Adapter 优先；入口不可用时必须明确报告，
++不能复制源仓的 CI 名称、建立新的台账或伪造其执行结果。
++
++本批只完成源码/分发资产与自动化验证，不更新成员 live，不认证真实模型行为，
++Agent/Execution Policy 仍按其独立 7.0.4 来源锁定；不能宣称整个 runtime 已升级。
++
+ 7.0.31 的 Execution Policy 已采用 contracts/decision/reducer 分工，不再存在旧 engine.py 源路径。后续升级必须迁移真正 consumer imports 与 exact blobs，不能为沿用旧代码而修改版本号、恢复 facade 或伪造 source identity。
+ 
+ 先处理来源和候选差异，再分批导入现有 active Skill 的完整支持目录，保留本地 profile/触发映射并重新验证；Agent、Execution Policy 与 provider lock 的升级必须保持各自真实身份一致。实际 apply、漂移检查、回退和成员任务验证继续走原流程。
