@@ -1,0 +1,74 @@
+--- a/tools/codex_assets/core.py
++++ b/tools/codex_assets/core.py
+@@ -445,6 +445,27 @@
+     }
+ 
+ 
++def require_no_unplanned_assets(plan: dict[str, Any]) -> None:
++    """Detect leftover assets against the next build, not an incomplete ledger.
++
++    Unknown/manual assets are not authorized for deletion. Previously reviewed
++    ancestor deletions may already cover an asset. Repeat the scan at apply time
++    to catch assets that arrived after planning, without changing plan schema.
++    """
++    deletions = [pathlib.PurePosixPath(action["path"])
++                 for action in plan.get("actions", [])
++                 if action.get("action") == "delete"]
++    leftovers = [rel for rel in unmanaged_live_assets(plan["build"], plan["target"])
++                 if not any(pathlib.PurePosixPath(rel).is_relative_to(parent)
++                            for parent in deletions)]
++    if leftovers:
++        sample = "\n".join(leftovers[:20])
++        fail(f"unplanned live assets={len(leftovers)}; installation blocked before writes. "
++             "Inventory and preserve these assets outside the runtime before retrying; "
++             "--overwrite/--prune-stale cannot authorize unknown assets. "
++             f"See docs/member-rollout.md.\n{sample}")
++
++
+ def copy_entry(src: pathlib.Path, dst: pathlib.Path, rel: pathlib.Path, protected: list[str], skip_source: list[str]) -> None:
+     if matches_any(rel, protected) or matches_any(rel, skip_source):
+         return
+@@ -764,6 +785,7 @@
+ 
+     content_changes = summary["copy"] + summary["overwrite"] + summary["delete"]
+     validate_install_layout({"target": str(target_path), "actions": actions})
++    require_no_unplanned_assets({"build": str(build_path), "target": str(target_path), "actions": actions})
+     target_preconditions = target_precondition_rows(target_path, actions)
+     return {
+         "schema_version": 3,
+@@ -969,6 +991,7 @@
+         fail("apply plan 缺少 target_receipt，请重新生成 plan")
+     if not isinstance(target_receipt.get("keep_paths"), list):
+         fail("apply plan target_receipt 缺少 keep_paths，请重新生成 plan")
++    require_no_unplanned_assets(plan)
+     if plan.get("content_noop") and target_directories_ready(plan) and target_keeps_match_receipt(plan):
+         return "already-applied"
+     current_rows = target_precondition_rows(target, plan.get("actions", []))
+--- a/docs/member-rollout.md
++++ b/docs/member-rollout.md
+@@ -169,6 +169,25 @@
+ 
+ ## 回退与停止
+ 
++### 历史未受管资产不是安装失败后的自动删除授权
++
++`--prune-stale` 只处理旧 managed state 已记录的路径及显式退役路径，不代表自动清空
++运行目录。旧版导入或手工安装可能留下没有记录的入口和旧版本目录。现在 plan/apply
++都会对照下一版 build 扫描这些资产；未被现有删除动作覆盖时，必须在写入前停止。
++不把未知路径写入新清单假装已管理，不使用 `--overwrite` 或扩大忽略规则制造通过。
++
++已经出现 `plan_state=applied dry_run=0` 后又被 doctor 报未管理资产时，安装动作已完成，
++但整个目录尚未验收。不要重跑同一批写操作、重新构建、覆盖原计划或立刻回滚。
++先保存原计划与备份，检查 build/live 差异和实际未受管清单。不能仅凭名字推断这些
++目录都是可删除的历史文件；它们可能包含成员自定义内容。
++
++可接受的恢复方式是明确审阅清单后，将**仅这份清单**完整隔离到 `~/.codex` 之外，
++记录原路径、目标路径和文件/链接身份，保留原始内容，不跟随链接、不删除。
++必须排除当前 build/managed 路径、受保护内容及活动入口依赖；目录形态或清单变化时停止。
++保持单次维护窗口；中断按隔离记录恢复，不覆盖恢复目的地已存在的新文件。
++隔离后重新运行 doctor/diff/drift 和重复计划；零变更不单独证明不存在未受管资产。
++待真实任务确认不再依赖隔离内容后，再另行决定归档或处置，不自动清除隔离区。
++
+ 仅撤销仍处于本轮安装维护窗口的计划：先停止会话/同步，确认应用后没有需保留的人工
+ 修改，再预览和执行原计划回滚。现有 rollback 不是合并工具；有安装后改动时停止，
+ 先在本机保存和核对差异，不能直接覆盖成员的新工作。
