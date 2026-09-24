@@ -98,6 +98,41 @@ def _tree(root: Path) -> dict[str, dict[str, str]]:
     return files
 
 
+def _source_tree(item: dict[str, Any], installed: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
+    """Project reviewed distribution metadata back to the exact upstream tree.
+
+    Only non-executable packaging metadata may differ. SKILL.md, references and
+    scripts can never be excluded or substituted by this declaration. Original
+    metadata identities are verified against the pinned provider by import tests;
+    this local check alone is not proof of upstream ownership.
+    """
+    metadata = item.get("distribution_metadata", {})
+    if not isinstance(metadata, dict) or set(metadata) - {"README.md", "LICENSE", "agents/openai.yaml"}:
+        raise AuditError("distribution_metadata_invalid")
+    source = dict(installed)
+    for path, binding in metadata.items():
+        if not isinstance(binding, dict) or set(binding) != {"source", "installed"}:
+            raise AuditError("distribution_metadata_invalid")
+        original, actual = binding["source"], binding["installed"]
+        for identity in (actual, original) if original is not None else (actual,):
+            if (not isinstance(identity, dict) or set(identity) != {"blob", "mode"}
+                    or identity.get("mode") != "100644"
+                    or not isinstance(identity.get("blob"), str)
+                    or re.fullmatch(r"[0-9a-f]{40}", identity["blob"]) is None):
+                raise AuditError("distribution_metadata_invalid")
+        if installed.get(path) != actual:
+            raise AuditError("distribution_metadata_mismatch")
+        if original is None:
+            del source[path]
+        else:
+            # The only reviewed source transformation is flat display metadata
+            # to the native Codex interface object. Never replace upstream prose.
+            if path != "agents/openai.yaml":
+                raise AuditError("distribution_source_override_forbidden")
+            source[path] = original
+    return source
+
+
 def _git(root: Path, *args: str) -> str:
     result = subprocess.run(
         ["git", "-C", str(root), *args], capture_output=True, timeout=20,
@@ -190,6 +225,7 @@ def audit(root: Path, provider_root: Path | None = None, expected_commit: str = 
         if not isinstance(source_blob, str) or re.fullmatch(r"[0-9a-f]{40}", source_blob) is None:
             gaps.append("missing_or_invalid_source_blob")
         current = None
+        source_tree = None
         source = None
         try:
             source = _ref(item.get("source_path"))
@@ -199,6 +235,7 @@ def audit(root: Path, provider_root: Path | None = None, expected_commit: str = 
             if not vendor.startswith(f"vendor/skills/{name}/") or len(PurePosixPath(vendor).parts) != 4:
                 raise AuditError("skill_vendor_path_invalid")
             current = _tree(_path(root, f"src/codex-home/{vendor}"))
+            source_tree = _source_tree(item, current)
             if source_blob is not None and source_blob != current["SKILL.md"]["blob"]:
                 gaps.append("local_skill_blob_mismatch")
             # Exact-tree imports also bind references/scripts, not just SKILL.md.
@@ -207,15 +244,20 @@ def audit(root: Path, provider_root: Path | None = None, expected_commit: str = 
                 tree_digest = item["source_tree_sha256"]
                 if not isinstance(tree_digest, str) or re.fullmatch(r"[0-9a-f]{64}", tree_digest) is None:
                     gaps.append("invalid_source_tree_sha256")
-                elif tree_digest != _digest(current):
+                elif tree_digest != _digest(source_tree):
                     gaps.append("local_skill_tree_mismatch")
+            if item.get("distribution_metadata") and "source_tree_sha256" not in item:
+                gaps.append("distribution_source_tree_required")
         except (AuditError, OSError) as exc:
             gaps.append(str(exc) if isinstance(exc, AuditError) else "local_skill_read_failed")
         row: dict[str, Any] = {"name": name, "gaps": gaps, "matches_provider_lock_commit": item.get("source_ref") == lock.get("provider_commit"), "local_tree_sha256": _digest(current) if current else None, "target": None}
+        if source_tree is not None and item.get("distribution_metadata"):
+            row["distribution_metadata_paths"] = sorted(item["distribution_metadata"])
+            row["upstream_tree_sha256"] = _digest(source_tree) if source_tree else None
         if provider is not None and source is not None:
             try:
                 target = _candidate(provider_root.resolve(), source, provider)
-                baseline = current or {}
+                baseline = source_tree or current or {}
                 row["target"] = {
                     "status": "source_available",
                     "entrypoint_blob": target["SKILL.md"]["blob"],

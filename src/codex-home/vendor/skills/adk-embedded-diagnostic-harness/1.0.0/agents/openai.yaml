@@ -1,3 +1,4 @@
 interface:
   display_name: ADK Embedded Diagnostic Harness
-  short_description: Govern embedded diagnostic CLI suites, expected return semantics, and HIL/SIL evidence.
+  short_description: Govern embedded diagnostic CLI suites, expected return semantics,
+    and HIL/SIL evidence.

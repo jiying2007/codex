@@ -59,7 +59,7 @@ gh workflow run runtime-binding-contract.yml \
 每项来源在既有 skills manifest 绑定 canonical repository、完整 commit、
 `source_blob`、`source_release` 和 `source_tree_sha256`。后者表示该项完整、精确复制的
 目录摘要（包括路径、文件内容和执行位），不是第二份资源清单。
-已声明此字段的导入必须通过整个目录一致性检查，不能只验证 SKILL.md；
+已声明此字段的导入必须通过整个上游目录一致性检查，不能只验证 SKILL.md；
 旧资源没有该字段不代表其配套文件已经获得验证。
 
 `tests.test_adk_daily_core_import` 验证固定来源、完整目录、引用文件、路由发现、
@@ -70,6 +70,41 @@ gh workflow run runtime-binding-contract.yml \
 三项 Skill 的来源版本与 Agent/Execution Policy provider lock 分开表达：本批并未
 把仍锁定 7.0.4 的 Agent 和执行策略改标为 7.0.31。其余来源缺项继续如实报告，
 每个 Skill 的版本应从该项 manifest 读取，不能由全局 provider lock 推断。
+
+### 剩余来源与分发元数据闭合（2026-09-24）
+
+同一固定候选的剩余 39 项已完成真实来源迁移，42 项启用的 ADK Skill 共绑定
+95 个上游文件；其中 8 项推进了 Skill 版本。`adk-cross-team-handoff` 经上游源码
+核验由 `optional-skills` 移入 `skills`，仍是同名 Skill，保留原有仅 team-collab
+启用的范围，不推断替代项、不扩展默认 profile。
+
+全部 42 项安装目录包含 README、LICENSE 和符合现有 Codex 校验器的
+`agents/openai.yaml`。上游已有正文、scripts、references 逐字节与执行位保留；
+没有 LICENSE 的目录附带同一 provider commit 的根 LICENSE，历史分发 notice
+不同于该许可证时原文一并保留，不将 notice 静默丢弃。
+
+既有 manifest 的 `distribution_metadata` 明确记录包装文件的 `source` 与
+`installed` blob/mode。`source: null` 表示消费方补充的元数据，绝不宣称是上游文件；
+上游平铺的展示字段只在 `agents/openai.yaml` 转成现有 Codex `interface` 结构，
+同时保存原始源码身份。README/LICENSE 不允许覆盖上游正文；SKILL.md、scripts
+和 references 绝不允许被这个字段排除、替换或改标。可执行包装文件也被拒绝。
+
+`source_tree_sha256` 对应原始上游树；`local_tree_sha256` 对应实际分发目录。
+已有 audit 同时验证已声明的元数据实际内容和上游树摘要，不新增审计服务或安装器。
+固定测试向量来自独立读取的上游 Git tree，逐项校验全部 42 项来源、完整支持文件、
+元数据语义、许可证保留、版本与 profile/target，不能靠本地重新计算一个摘要就通过。
+第一批三项原有源码 digest 与行为约束不变，其目录新增元数据后改用上述显式投影核验。
+
+主线 CI 不再仅收集 Skill 来源缺项：本批完成后，任何 active ADK 来源缺项重新出现
+都会使原有 Runtime Binding 检查失败。外部 provider 对比仍仅在显式维护时启用，
+不把网络读取加到普通日常开发。
+
+Skill 中 ADK 源仓的发布工作流、脚本或知识路径不自动适用于消费项目。项目的真实
+入口、验收、发布与 Knowledge Provider Adapter 优先；入口不可用时必须明确报告，
+不能复制源仓的 CI 名称、建立新的台账或伪造其执行结果。
+
+本批只完成源码/分发资产与自动化验证，不更新成员 live，不认证真实模型行为，
+Agent/Execution Policy 仍按其独立 7.0.4 来源锁定；不能宣称整个 runtime 已升级。
 
 7.0.31 的 Execution Policy 已采用 contracts/decision/reducer 分工，不再存在旧 engine.py 源路径。后续升级必须迁移真正 consumer imports 与 exact blobs，不能为沿用旧代码而修改版本号、恢复 facade 或伪造 source identity。
 

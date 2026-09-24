@@ -1,0 +1,952 @@
+{
+  "license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+  "provider_commit": "7367ef84787de75bb751940b32c9e80009660e47",
+  "provider_repository": "jiying2007/agent-dev-kit",
+  "release": "v7.0.31",
+  "skills": {
+    "adk-adr-writer": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-adr-writer/SKILL.md",
+      "target_rel": "skills/adk-adr-writer",
+      "tree": {
+        "SKILL.md": {
+          "blob": "e3dade6eac7e8cea21ad5322e2bd95a811c826ee",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.0"
+    },
+    "adk-after-action-review": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-after-action-review/SKILL.md",
+      "target_rel": "skills/adk-after-action-review",
+      "tree": {
+        "SKILL.md": {
+          "blob": "dcddcd8d8e99a67a857fe7bb572738e29897d550",
+          "mode": "100644"
+        }
+      },
+      "version": "1.2.0"
+    },
+    "adk-archive-governance": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "display_name": "ADK Archive Governance",
+        "short_description": "Govern docs/archive metadata, registries, hashes, superseded records, and archive checks."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-archive-governance/SKILL.md",
+      "target_rel": "skills/adk-archive-governance",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "777dc00b02aa03d642041fb71a3e54a66ab94333",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "98787cf762c5bcf263c4b61df12060bf43451aaf",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "0211425de89d7dda9e9d319f1e8bebc69f66ab6a",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-artifact-gating": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-artifact-gating/SKILL.md",
+      "target_rel": "skills/adk-artifact-gating",
+      "tree": {
+        "SKILL.md": {
+          "blob": "d992c1892cab195b0fcf07142e8f47bf374c64a3",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "15fbd57f2da19b98b07e522e3d20e4fd0d445387",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-branch-closeout": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-branch-closeout/SKILL.md",
+      "target_rel": "skills/adk-branch-closeout",
+      "tree": {
+        "SKILL.md": {
+          "blob": "0cef8563f2617bab4857b987a853d8590ae7aab2",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.1"
+    },
+    "adk-chinese-code-review": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-chinese-code-review/SKILL.md",
+      "target_rel": "skills/adk-chinese-code-review",
+      "tree": {
+        "SKILL.md": {
+          "blob": "c0826a0290a0d6b7af792e04a3ac2f913e2d18a9",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "02efa58601bf0be3bf7235e03e89222e8976b3ec",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.0"
+    },
+    "adk-chinese-commit-conventions": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-chinese-commit-conventions/SKILL.md",
+      "target_rel": "skills/adk-chinese-commit-conventions",
+      "tree": {
+        "SKILL.md": {
+          "blob": "e6009f6b6c842b278e411bc8428981ec92d2f7da",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "e91cbd87aa3025a8d25daa21994e59688df7e270",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.0"
+    },
+    "adk-code-review-loop": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-code-review-loop/SKILL.md",
+      "target_rel": "skills/adk-code-review-loop",
+      "tree": {
+        "SKILL.md": {
+          "blob": "8b536410b3cb0e656e2d032f071022c37a43b00c",
+          "mode": "100644"
+        },
+        "references/review-evidence-template.md": {
+          "blob": "8e967e954e54812fff462a370dbe91d4d36bcf06",
+          "mode": "100644"
+        },
+        "references/review-feedback-fixtures.md": {
+          "blob": "56783fc554b15a2c51f0aa749aabe320efcad15d",
+          "mode": "100644"
+        },
+        "references/review-governance-details.md": {
+          "blob": "59edfd9c7c10fd30187e90abbc147cea647c174a",
+          "mode": "100644"
+        }
+      },
+      "version": "1.7.0"
+    },
+    "adk-commit-pr-quality-gate": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-commit-pr-quality-gate/SKILL.md",
+      "target_rel": "skills/adk-commit-pr-quality-gate",
+      "tree": {
+        "SKILL.md": {
+          "blob": "15399ff2ab7f593d0a757a4700a76088f66973b6",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.0"
+    },
+    "adk-component-api-stability": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-component-api-stability/SKILL.md",
+      "target_rel": "skills/adk-component-api-stability",
+      "tree": {
+        "SKILL.md": {
+          "blob": "02adb7cb2350f5f3e6c259e5372fe0232f5aedb9",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-context-compress-handoff": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "display_name": "ADK Context Compress Handoff",
+        "short_description": "Produce recoverable context handoff summaries with evidence, excluded context, and next actions."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-context-compress-handoff/SKILL.md",
+      "target_rel": "skills/adk-context-compress-handoff",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "d1bf34ae8e15fa825bf64a85853bb639b61df22d",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "c3136705c7feef1edd6ff304ae9a02d04a6919ce",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "2472cc78e0204db698f64d6e674172d45ec0ede0",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-context-engineering": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-context-engineering/SKILL.md",
+      "target_rel": "skills/adk-context-engineering",
+      "tree": {
+        "SKILL.md": {
+          "blob": "d7c70d35ad069094a4e5cb12a11dde6b5145358a",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.0"
+    },
+    "adk-cross-team-handoff": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-cross-team-handoff/SKILL.md",
+      "target_rel": "skills/adk-cross-team-handoff",
+      "tree": {
+        "SKILL.md": {
+          "blob": "55460b09e8c6b7e1b4cded7bd854da6cb46a4bdf",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-driver-bringup-checklist": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-driver-bringup-checklist/SKILL.md",
+      "target_rel": "skills/adk-driver-bringup-checklist",
+      "tree": {
+        "SKILL.md": {
+          "blob": "02e0c4c172e4012758175988f3187d051dfadcc0",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.0"
+    },
+    "adk-driver-implementation": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-driver-implementation/SKILL.md",
+      "target_rel": "skills/adk-driver-implementation",
+      "tree": {
+        "SKILL.md": {
+          "blob": "f98b555effa8abcc455fa973bb0526c88387dc8c",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.0"
+    },
+    "adk-embedded-debug-transport": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "display_name": "ADK Embedded Debug Transport",
+        "short_description": "Govern embedded debug access channels, command risk, evidence capture, and rollback boundaries."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-debug-transport/SKILL.md",
+      "target_rel": "skills/adk-embedded-debug-transport",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "c975880282efd85f55780b4c423efcedcdf58edf",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "f7d63a52f247656602e22fd1eb0dce5a83e9fb8d",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "197a8b3a0e010c718a9159916d7dccdf195b6c28",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-embedded-diagnostic-harness": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "display_name": "ADK Embedded Diagnostic Harness",
+        "short_description": "Govern embedded diagnostic CLI suites, expected return semantics, and HIL/SIL evidence."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-diagnostic-harness/SKILL.md",
+      "target_rel": "skills/adk-embedded-diagnostic-harness",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "6005feb11ddfc27c5db48f421e1e3e6986c0d04d",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "f49dac87878aa7dbac8af13aa266107a9492d31b",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "e621dc73a881bb546e5e5ebbd512b34ef9f05e72",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-embedded-release-orchestration": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "display_name": "ADK Embedded Release Orchestration",
+        "short_description": "Orchestrate embedded firmware release bundles, gates, evidence, and non-overwrite publishing."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-release-orchestration/SKILL.md",
+      "target_rel": "skills/adk-embedded-release-orchestration",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "f093c89f695ebc73ecb8895680aab8bfd6ea0804",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "c9b35ce68147ee4801a6e513602810f00fb6a994",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "a1df2a87d3021f4c13c00d3ff924e213dea8b336",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.0"
+    },
+    "adk-embedded-remote-debug-log-triage": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK Embedded Remote Debug Log Triage",
+          "short_description": "Triage reachability, device logs, artifact gates, HIL stages, and recovery with read-only-first safety."
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-remote-debug-log-triage/SKILL.md",
+      "target_rel": "skills/adk-embedded-remote-debug-log-triage",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "b8ad51e75a696100dfc4381cba5db3c50b1fd7a4",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "01935627531bd0e2f38e1d96eb67a8c78e9bccc9",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "d50dba172a3732c982867bb1205024b2c193c2f2",
+          "mode": "100644"
+        },
+        "references/remote-adb-hil-contract.md": {
+          "blob": "6b573675b3a48548fdbda7649397c0304af69d43",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.0"
+    },
+    "adk-engineering-growth-review": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "display_name": "ADK Engineering Growth Review",
+        "short_description": "Review local engineering history and produce evidence-backed growth recommendations."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-engineering-growth-review/SKILL.md",
+      "target_rel": "skills/adk-engineering-growth-review",
+      "tree": {
+        "LICENSE": {
+          "blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "2b3a2e09c760a59c9805df49b9ff1a7b2bf969bc",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "d6a2dd302b66b0f0be6f87260cc508015e1f185b",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "875057fd223e06a5cc4db8ddcae5f68c1e6f2469",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-interface-contract-design": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-interface-contract-design/SKILL.md",
+      "target_rel": "skills/adk-interface-contract-design",
+      "tree": {
+        "SKILL.md": {
+          "blob": "bf2710ca24f677b3be2c169a0263abde8feaaffc",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "a9296f11c9f805d28a246dccf6324baef4422c15",
+          "mode": "100644"
+        },
+        "references/lifecycle-operation-contract.md": {
+          "blob": "dac285c357b87bda2cc468d64fc38d931330aa51",
+          "mode": "100644"
+        }
+      },
+      "version": "1.3.0"
+    },
+    "adk-knowledge-archive": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "display_name": "ADK Knowledge Archive",
+        "short_description": "Create sanitized, reusable archive candidates with provenance and governance handoff."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-knowledge-archive/SKILL.md",
+      "target_rel": "skills/adk-knowledge-archive",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "de534394e4358dc6812dd3ac3a3d40410648d6c6",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "71058049084daaebce81b24a95fbdc456004cdc2",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "0e15acd513185547b1306e1d219439171f1b7d0d",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-lightweight-planning": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "display_name": "ADK Plan Lite",
+        "short_description": "Create a concise read-only implementation plan for coding tasks."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-lightweight-planning/SKILL.md",
+      "target_rel": "skills/adk-lightweight-planning",
+      "tree": {
+        "LICENSE": {
+          "blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "411c8973c5fb8f81a24cdf9b11604b40a399eec7",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "5129f4959d40e2ac6d6772196bc472c8f68f8621",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "e97677ad4f91017179e4195e9247513563a3cf4e",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-memory-curator": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "display_name": "ADK Memory Curator",
+        "short_description": "Audit durable memory sources and produce evidence-backed memory candidates without silent writes."
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-memory-curator/SKILL.md",
+      "target_rel": "skills/adk-memory-curator",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "a90db02f1be4fa9f456e24f4a931cdad259a6903",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "64b5e4c636b2f15ce0598b9ec3dfa9fbdb9b0c78",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "eee72aaefb3eeea4df80d2bf6d4855a77b80d7be",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-offline-core-dump-triage": {
+      "installed_license_blob": "7623a54f553866c55b1187a9c3777c5e31fc0afe",
+      "openai_source": null,
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-offline-core-dump-triage/SKILL.md",
+      "target_rel": "skills/adk-offline-core-dump-triage",
+      "tree": {
+        "SKILL.md": {
+          "blob": "ac9071cc37f7bac75a8cf6d0c01c69e2acc13159",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-parallel-agent-governance": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-parallel-agent-governance/SKILL.md",
+      "target_rel": "skills/adk-parallel-agent-governance",
+      "tree": {
+        "SKILL.md": {
+          "blob": "d6f6e4499609c77660757bbc352aadbce8b15fe9",
+          "mode": "100644"
+        },
+        "references/parallel-worktree-task-package.md": {
+          "blob": "bde4c96c974fdac56a09b50dd945e153081b6b4d",
+          "mode": "100644"
+        },
+        "references/subagent-review-checklist.md": {
+          "blob": "e55eaf650d6f4690d92c8e6089d59d32f7a799f3",
+          "mode": "100644"
+        }
+      },
+      "version": "1.4.1"
+    },
+    "adk-planning-execution-loop": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-planning-execution-loop/SKILL.md",
+      "target_rel": "skills/adk-planning-execution-loop",
+      "tree": {
+        "SKILL.md": {
+          "blob": "e12c4039704e0c2a41cdc83b59a029652ffb7405",
+          "mode": "100644"
+        },
+        "references/long-task-recovery.md": {
+          "blob": "bcf7ef35885acfe2d05a4ef8307b3bc6053fe106",
+          "mode": "100644"
+        }
+      },
+      "version": "1.3.0"
+    },
+    "adk-release-versioning": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-release-versioning/SKILL.md",
+      "target_rel": "skills/adk-release-versioning",
+      "tree": {
+        "SKILL.md": {
+          "blob": "be04ff99038bd306de62e54fc16d63cbe5f03280",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "c324dab2523c03e1e31e063fdafc66ebe294ca6b",
+          "mode": "100644"
+        }
+      },
+      "version": "1.4.0"
+    },
+    "adk-repo-drift-remediation": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK Repo Drift Remediation",
+          "short_description": "Map and remediate repository drift, stale artifacts, unclear boundaries, and quality gaps."
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-repo-drift-remediation/SKILL.md",
+      "target_rel": "skills/adk-repo-drift-remediation",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "bbb9ffc101cd6ac54317dac5183bd3ee015d85ea",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "3a9a886fe04003e9ea79040be5fae211a7fa7080",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "697f5074deb1d789d265e0de0416e504fdf9fac9",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.1"
+    },
+    "adk-requirements-triage": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-requirements-triage/SKILL.md",
+      "target_rel": "skills/adk-requirements-triage",
+      "tree": {
+        "SKILL.md": {
+          "blob": "7e761503b0973e4ebaa02691be0eadc391ab81d9",
+          "mode": "100644"
+        },
+        "references/embedded-discovery-brief.md": {
+          "blob": "b3983557b95917a1093ffa0d64ffebc2e5fd332b",
+          "mode": "100644"
+        },
+        "references/exploratory-requirements-brief.md": {
+          "blob": "679a14d20389cd5319df43ff1faf58b99f768d45",
+          "mode": "100644"
+        }
+      },
+      "version": "1.3.0"
+    },
+    "adk-runtime-router": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-runtime-router/SKILL.md",
+      "target_rel": "skills/adk-runtime-router",
+      "tree": {
+        "SKILL.md": {
+          "blob": "9ba36768b91eb551136604462105a5b836b47119",
+          "mode": "100644"
+        },
+        "references/runtime-routing-details.md": {
+          "blob": "e59e6f7ec5c6d388345e92d84347a8eca9a38787",
+          "mode": "100644"
+        }
+      },
+      "version": "2.1.0"
+    },
+    "adk-security-supply-chain": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-security-supply-chain/SKILL.md",
+      "target_rel": "skills/adk-security-supply-chain",
+      "tree": {
+        "SKILL.md": {
+          "blob": "4395150b23bca8afba41d8d36fbd0cd2deaa8a31",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.0"
+    },
+    "adk-skill-composition-governance": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-skill-composition-governance/SKILL.md",
+      "target_rel": "skills/adk-skill-composition-governance",
+      "tree": {
+        "SKILL.md": {
+          "blob": "367e564ad019b610e226848a715b2c6d162f2908",
+          "mode": "100644"
+        },
+        "references/adk-skill-lifecycle.md": {
+          "blob": "610c103b163942dc09fbaee2e5fecdb79c6f1322",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.1"
+    },
+    "adk-static-analysis-c-cpp": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-static-analysis-c-cpp/SKILL.md",
+      "target_rel": "skills/adk-static-analysis-c-cpp",
+      "tree": {
+        "SKILL.md": {
+          "blob": "8a659986e982228dec7c1a8c9439e6604771d0c9",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-structured-requirements-questioning": {
+      "installed_license_blob": "71d274570517f7ae711a6b7393d4862a3b3dc028",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-structured-requirements-questioning/SKILL.md",
+      "target_rel": "skills/adk-structured-requirements-questioning",
+      "tree": {
+        "SKILL.md": {
+          "blob": "81e5289b029c68de2d4fff91dc1d27ff1e0b9ff5",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.0"
+    },
+    "adk-systematic-debugging": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-systematic-debugging/SKILL.md",
+      "target_rel": "skills/adk-systematic-debugging",
+      "tree": {
+        "SKILL.md": {
+          "blob": "d13c705ebe59b311c36c7fc5385a6b2b2a47e871",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.0"
+    },
+    "adk-task-breakdown": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-task-breakdown/SKILL.md",
+      "target_rel": "skills/adk-task-breakdown",
+      "tree": {
+        "SKILL.md": {
+          "blob": "035ba3555d4172a3bb37770efc33f26dad05e215",
+          "mode": "100644"
+        }
+      },
+      "version": "1.4.0"
+    },
+    "adk-test-strategy": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-test-strategy/SKILL.md",
+      "target_rel": "skills/adk-test-strategy",
+      "tree": {
+        "SKILL.md": {
+          "blob": "17a91f94dfac4dd84ab2c81765899628a0ffd3ef",
+          "mode": "100644"
+        }
+      },
+      "version": "2.1.0"
+    },
+    "adk-token-context-governance": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-token-context-governance/SKILL.md",
+      "target_rel": "skills/adk-token-context-governance",
+      "tree": {
+        "SKILL.md": {
+          "blob": "7f0ded6407979f368db2deb810c5c34b924dceda",
+          "mode": "100644"
+        }
+      },
+      "version": "1.3.0"
+    },
+    "adk-unit-test-embedded": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-unit-test-embedded/SKILL.md",
+      "target_rel": "skills/adk-unit-test-embedded",
+      "tree": {
+        "SKILL.md": {
+          "blob": "26b57b8d30fce475ec54b9663b6730bf17d8227c",
+          "mode": "100644"
+        },
+        "references/embedded-tdd-matrix.md": {
+          "blob": "8e7ec1dd29383a503114e879cca3e55bde434cc3",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.0"
+    },
+    "adk-verification-before-completion": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-verification-before-completion/SKILL.md",
+      "target_rel": "skills/adk-verification-before-completion",
+      "tree": {
+        "SKILL.md": {
+          "blob": "b5da2c7c73e817dbc38b160380c618ef51f7eac9",
+          "mode": "100644"
+        },
+        "references/verification-governance-details.md": {
+          "blob": "375628edd1f7c083bac34faa0f7afb2d2c5bd1f4",
+          "mode": "100644"
+        }
+      },
+      "version": "1.7.0"
+    },
+    "adk-worktree-governance": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": null,
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-worktree-governance/SKILL.md",
+      "target_rel": "skills/adk-worktree-governance",
+      "tree": {
+        "SKILL.md": {
+          "blob": "89b37f987261acecc27ddd618adbb369378ed848",
+          "mode": "100644"
+        },
+        "references/parallel-worktree-task-package.md": {
+          "blob": "bde4c96c974fdac56a09b50dd945e153081b6b4d",
+          "mode": "100644"
+        }
+      },
+      "version": "1.2.1"
+    }
+  }
+}

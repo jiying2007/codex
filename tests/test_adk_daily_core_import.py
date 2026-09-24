@@ -10,7 +10,7 @@ import shutil
 import tempfile
 import unittest
 
-from tools.codex_assets.adk_skill_audit import _digest, _tree, audit
+from tools.codex_assets.adk_skill_audit import _digest, _source_tree, _tree, audit
 from tools.codex_assets.core import Repo, apply_plan, build_repo, diff_build_live, plan_apply, rollback_plan, validate_apply_plan
 from tools.codex_assets.skill_catalog import search_skills
 from tests import test_adk_skill_audit as audit_fixtures
@@ -83,7 +83,7 @@ class DailyCoreImportTests(unittest.TestCase):
                 self.assertEqual(record["source_path"], f"skills/{name}/SKILL.md")
                 self.assertEqual(record["source_blob"], blob)
                 self.assertEqual(record["source_tree_sha256"], digest)
-                tree = _tree(ROOT / "src/codex-home" / record["vendor_rel"])
+                tree = _source_tree(record, _tree(ROOT / "src/codex-home" / record["vendor_rel"]))
                 self.assertEqual(len(tree), count)
                 self.assertEqual(tree["SKILL.md"]["blob"], blob)
                 self.assertEqual(_digest(tree), digest)
@@ -151,7 +151,7 @@ class DailyCoreImportTests(unittest.TestCase):
                 for name, (_, _, digest, _, _) in EXPECTED.items():
                     installed = target / self.records[name]["target_rel"]
                     self.assertTrue(installed.is_symlink())
-                    self.assertEqual(_digest(_tree(installed.resolve())), digest)
+                    self.assertEqual(_digest(_source_tree(self.records[name], _tree(installed.resolve()))), digest)
                 again = plan_apply(repo, build, target, base / "backup-noop", overwrite=False, prune_stale=True)
                 self.assertEqual(again["content_changes"], 0)
                 plan_path = base / "plan.json"

@@ -1,6 +1,6 @@
 ---
 name: adk-cross-team-handoff
-description: 跨团队交接时统一目标、边界和验收责任
+description: 跨团队交接时统一目标、边界和验收责任；由 team-core 默认启用
 version: 1.0.0
 last_updated: 2026-05-06
 triggers:

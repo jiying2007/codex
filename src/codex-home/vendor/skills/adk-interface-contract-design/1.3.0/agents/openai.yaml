@@ -1,0 +1,4 @@
+interface:
+  display_name: adk-interface-contract-design
+  short_description: 定义模块、API、消息和受控生命周期操作的接口契约
+  default_prompt: Use $adk-interface-contract-design for its documented workflow.

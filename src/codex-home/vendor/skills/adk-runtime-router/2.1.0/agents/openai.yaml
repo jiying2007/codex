@@ -1,0 +1,4 @@
+interface:
+  display_name: adk-runtime-router
+  short_description: ADK 原生运行时技能路由入口，统一判定 primary、supporting、内部降级与跳过条件
+  default_prompt: Use $adk-runtime-router for its documented workflow.

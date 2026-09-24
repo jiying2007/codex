@@ -1,8 +1,10 @@
 # adk-after-action-review
 
-Imported ADK skill metadata wrapper.
+Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-- Version: `1.2.0`
-- Source: `llm_agent/agent-dev-kit/083dc95`
+- Skill version: `1.2.0`
+- Provider: `jiying2007/agent-dev-kit`
+- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
 - Source path: `skills/adk-after-action-review/SKILL.md`
-- Description: 任务复盘与经验记忆候选治理，提取 lessons、风险分级和写入路由
+
+Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.
