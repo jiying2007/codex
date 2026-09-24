@@ -6,6 +6,8 @@ on:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
+      - 'manifests/assets.json'
+      - 'manifests/profiles.json'
       - 'manifests/execution_policy.json'
       - 'manifests/session_bootstrap.json'
       - 'src/codex-home/vendor/agents/**'
@@ -20,6 +22,7 @@ on:
       - 'tests/test_execution_policy_source_set.py'
       - 'tests/test_session_bootstrap.py'
       - 'tests/test_session_bootstrap_independence.py'
+      - 'tests/test_agent_rules.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
       - 'docs/session-bootstrap.md'
@@ -39,6 +42,8 @@ on:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
       - 'manifests/agents.json'
+      - 'manifests/assets.json'
+      - 'manifests/profiles.json'
       - 'manifests/execution_policy.json'
       - 'manifests/session_bootstrap.json'
       - 'src/codex-home/vendor/agents/**'
@@ -53,6 +58,7 @@ on:
       - 'tests/test_execution_policy_source_set.py'
       - 'tests/test_session_bootstrap.py'
       - 'tests/test_session_bootstrap_independence.py'
+      - 'tests/test_agent_rules.py'
       - 'vendor/wheels/**'
       - 'docs/execution-policy.md'
       - 'docs/session-bootstrap.md'
@@ -103,8 +109,14 @@ jobs:
         run: python scripts/validate-runtime-binding.py
       - name: Validate exact ADK agent binding
         run: python scripts/validate-adk-agent-binding.py
-      - name: Validate AGENTS terminal rules
-        run: python scripts/validate-agent-rules.py
+      - name: Validate installed AGENTS rules and negative regressions
+        run: |
+          python scripts/validate-agent-rules.py
+          python -m unittest tests.test_agent_rules
+      - name: Validate canonical Execution Policy CLI from external cwd
+        run: |
+          cd "$RUNNER_TEMP"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.codex_assets execution-policy --root "$GITHUB_WORKSPACE" --thread-id ci-command-contract gate --help
       - name: Validate Codex Execution Policy adapter
         run: python -m unittest tests.test_execution_policy
       - name: Validate exact ADK 7.0.4 Execution Policy source set
