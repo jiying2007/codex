@@ -218,6 +218,36 @@ class AdkSkillAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(AuditError, "provider_root"):
             audit(self.root, expected_commit="a" * 40)
 
+    def test_skip_worktree_cannot_hide_missing_target_support_file(self) -> None:
+        commit = self.candidate()
+        relative = "skills/adk-example/references/example.md"
+        self.git("update-index", "--skip-worktree", relative)
+        (self.provider / relative).unlink()
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        target = audit(self.root, self.provider, commit)["skills"][0]["target"]
+        self.assertEqual(target, {"status": "blocked", "reason": "provider_skill_tree_incomplete"})
+
+    def test_ignored_filemode_change_is_still_rejected_against_git_tree(self) -> None:
+        commit = self.candidate()
+        self.git("config", "core.fileMode", "false")
+        (self.provider / "skills/adk-example/references/example.md").chmod(0o755)
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        target = audit(self.root, self.provider, commit)["skills"][0]["target"]
+        self.assertEqual(target["status"], "blocked")
+
+    def test_unreadable_support_directory_is_not_silently_skipped(self) -> None:
+        def unreadable_walk(*args, **kwargs):
+            kwargs["onerror"](PermissionError("fixture"))
+        with patch("tools.codex_assets.adk_skill_audit.os.walk", side_effect=unreadable_walk):
+            self.assertIn("skill_directory_unreadable", audit(self.root)["gap_counts"])
+
+    def test_unbounded_lock_version_cannot_expand_summary(self) -> None:
+        value = json.loads(self.lock.read_text())
+        value["version"] = "x" * 1000
+        self.lock.write_text(json.dumps(value))
+        with self.assertRaisesRegex(AuditError, "lock_identity"):
+            audit(self.root)
+
 
 if __name__ == "__main__":
     unittest.main()
