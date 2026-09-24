@@ -8,8 +8,56 @@
 ## 开始前
 
 在本机终端执行，停止正在修改同一资源目录的安装、同步和 Codex 会话；新资源不在
-旧会话中热替换。需要 Git、Python、PyYAML 和现有脚本使用的 RTK。
+旧会话中热替换。需要 Git、**Python >=3.11**、PyYAML 和现有脚本使用的 RTK。
+持续回归覆盖Python3.11/3.12。ADK7.0.31原始源码要求>=3.11，`datetime.UTC`也是
+3.11新增；不能用Python3.10、修改vendor源码或安装同名datetime包绕过要求。
 不自动升级 Codex CLI、模型或系统软件，不调整内核、AppArmor 或沙箱权限。
+
+### 0. 在更新源仓之前确认解释器
+
+`python3 -c 'import yaml'`仅验证PyYAML，不验证解释器版本。现有shell入口调用PATH
+中的`python3`；每次新终端先激活正确venv。仅安装另一个Python、设置shell alias或
+仅设置`PYTHON`变量不会自动修复这些入口。用3.10创建venv仍是3.10。
+
+以下子shell仅准备源仓外的独立环境，不修改系统Python、资源源仓或`~/.codex`。
+选取已安装且CI覆盖的3.11/3.12；不存在就停止，先通过机器认可的软件来源安装独立
+解释器和venv支持。不会自动增加PPA、sudo安装软件或删除已有环境。
+
+```bash
+(
+  set -euo pipefail
+  PY=""
+  for candidate in python3.12 python3.11 python3; do
+    candidate_path="$(command -v "$candidate" 2>/dev/null)" || continue
+    if "$candidate_path" -c 'import sys; sys.exit(0 if sys.version_info[:2] in ((3,11),(3,12)) else 1)' 2>/dev/null; then
+      PY="$candidate_path"
+      break
+    fi
+  done
+  test -n "$PY" || { echo 'STOP: install independent Python 3.11/3.12 with venv support; keep system Python unchanged.'; exit 1; }
+  VENV="$HOME/.venvs/codex-assets"
+  if [ ! -e "$VENV" ]; then
+    "$PY" -m venv "$VENV"
+  fi
+  test -f "$VENV/pyvenv.cfg"
+  "$VENV/bin/python3" -c 'import sys; assert sys.prefix != sys.base_prefix; assert sys.version_info[:2] in ((3,11),(3,12)), sys.version'
+  "$VENV/bin/python3" -m pip install --disable-pip-version-check 'PyYAML==6.0.2'
+  printf 'ENV_READY=%s\n' "$VENV"
+)
+```
+
+只有上面成功输出`ENV_READY`才继续；已有venv版本错误时保留它并换用新的明确目录，
+不要直接覆盖。准备子shell不会改变当前终端PATH，必须在当前终端显式激活：
+
+```bash
+. "$HOME/.venvs/codex-assets/bin/activate"
+hash -r
+python3 -c 'import sys,yaml; from datetime import UTC; assert sys.version_info >= (3,11); print("PYTHON="+sys.executable); print(sys.version); print("PYYAML="+yaml.__version__)'
+rtk python3 -c 'import sys,yaml; from datetime import UTC; assert sys.prefix != sys.base_prefix; print("RTK_PYTHON="+sys.executable)'
+```
+
+两次解释器输出均应属于上述venv；任何一步失败都停止，不继续预览。只在venv内安装
+PyYAML，不为仅使用vendored策略引入完整ADK其它依赖，不用sudo/pip全局安装。
 
 维护者提供已通过三条主线 CI 的完整 Codex **源码 SHA**；ADK 版本号不是这个 SHA。
 在当前 shell 设置 `CODEX_ASSET_SOURCE_SHA`。以下步骤拒绝脏工作区和非快进更新，
@@ -18,6 +66,7 @@
 
 ```bash
 set -euo pipefail
+python3 -c 'import sys; assert sys.version_info >= (3,11), sys.version; import yaml; from datetime import UTC'
 : "${CODEX_ASSET_SOURCE_SHA:?set the reviewed full Codex source SHA}"
 [[ "$CODEX_ASSET_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
 ROOT="$HOME/codex"
