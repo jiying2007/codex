@@ -1,8 +1,10 @@
 # adk-unit-test-embedded
 
-Imported ADK skill metadata wrapper.
+Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-- Version: `1.1.0`
-- Source: `llm_agent/agent-dev-kit/12bfeaf1f85b297628b57ac15d12eedc849e3919`
+- Skill version: `1.1.0`
+- Provider: `jiying2007/agent-dev-kit`
+- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
 - Source path: `skills/adk-unit-test-embedded/SKILL.md`
-- Description: 嵌入式单元测试策略与样例
+
+Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.

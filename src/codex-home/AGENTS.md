@@ -7,6 +7,7 @@
 - Digital Worker 不是日常前置依赖；L0/L1 直接使用 CLI + ADK，任务/测试/审查由项目验收；L2 显式选择后仍严格阻断缺项。
 - 小任务直接实现验证；非平凡任务先冻结目标、边界、风险、验收与阻塞；长任务使用 `adk-planning-execution-loop`。
 - 每场景仅一个 primary skill；需求、拆解、调试、review、完成验证使用对应 `adk-*`，收尾用 `session-wrap`。
+- 上游 Skill 的命令/路径仅对其源仓有效；跨项目先核实入口，不复制其发布规则或知识目录。
 - 可报告的实质产出需要持久化时，只允许通过 `rtk bash ~/codex/scripts/knowledge-provider.sh ...` 访问 Knowledge Provider；仅 Provider 明确返回成功语义才能声明已记录。不得依赖 Hub 内部目录、临时 receipt、缓存或实现脚本作为跨仓契约，也不得从 Git、路径、memory 或聊天身份推断主体。
 - catalog 未命中时运行 `rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --profile default --limit 3 --summary-json`；只加载选中项完整 `SKILL.md`，零命中可直接执行。
 

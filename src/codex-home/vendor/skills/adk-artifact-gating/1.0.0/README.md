@@ -1,7 +1,10 @@
 # adk-artifact-gating
 
-跨仓库 Artifact 门禁协议——统一标签、状态机与交接规范
+Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-- Version: 1.0.0
-- Source: llm_agent/agent-dev-kit/skills/adk-artifact-gating/SKILL.md
-- Target: ~/codex vendor skill handoff
+- Skill version: `1.0.0`
+- Provider: `jiying2007/agent-dev-kit`
+- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
+- Source path: `skills/adk-artifact-gating/SKILL.md`
+
+Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.

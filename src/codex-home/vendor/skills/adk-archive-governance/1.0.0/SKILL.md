@@ -1,6 +1,6 @@
 ---
 name: adk-archive-governance
-description: ~/knowledge-hub/domains/codex/archive/codex-archive 归档治理，覆盖 meta、topic registry、文件名、hash、superseded、敏感材料和归档门禁修复
+description: docs/archive 归档治理，覆盖 meta、topic registry、文件名、hash、superseded、敏感材料和归档门禁修复
 version: 1.0.0
 last_updated: 2026-05-31
 triggers:
@@ -28,7 +28,7 @@ constraints:
 # adk-archive-governance
 
 ## Goal
-- 治理 `~/knowledge-hub/domains/codex/archive/codex-archive` 的可检索性、可审计性和安全边界。
+- 治理 `docs/archive` 的可检索性、可审计性和安全边界。
 - 修复缺 meta、topic 未登记、hash 漂移、命名不合规、重复 superseded 和敏感材料风险。
 
 ## Prerequisites
@@ -47,7 +47,7 @@ constraints:
 
 ## Commands
 ```bash
-rtk rg -n "archive|meta|topic|registry|content_sha256" ~/knowledge-hub/domains/codex/archive/codex-archive scripts
+rtk rg -n "archive|meta|topic|registry|content_sha256" docs/archive scripts
 rtk bash scripts/archive-check.sh
 rtk bash scripts/archive-search.sh "<query>" --json
 ```

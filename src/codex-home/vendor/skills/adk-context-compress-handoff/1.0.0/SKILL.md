@@ -39,11 +39,12 @@ constraints:
 ## Workflow
 1. 确认最新目标：记录 latest goal，列出 invalidated goals。
 2. 分层压缩：stable、dynamic、evidence、excluded 分开写。
-3. 证据索引：命令、路径、结果摘要和回退条件必须可追溯。
-4. 风险与阻塞：列出 unresolved blockers、residual risks、manual approval points。
-5. 下一步：给出最多 3 个优先动作和第一条建议命令。
-6. 记忆边界：长期规则只输出 candidate，不直接写 memory 或 AGENTS。
-7. 恢复提示：生成新会话可直接粘贴的 resume prompt。
+3. 连续性证明：记录 active plan、findings、progress、attestation 和 excluded context，可用 `templates/context/continuity-attestation.md`。
+4. 证据索引：命令、路径、结果摘要和回退条件必须可追溯。
+5. 风险与阻塞：列出 unresolved blockers、residual risks、manual approval points。
+6. 下一步：给出最多 3 个优先动作和第一条建议命令。
+7. 记忆边界：长期规则只输出 candidate，不直接写 memory 或 AGENTS。
+8. 恢复提示：生成新会话可直接粘贴的 resume prompt。
 
 ## Evidence Template
 ```md
@@ -52,6 +53,7 @@ constraints:
 - Stable Context:
 - Dynamic Context:
 - Evidence:
+- Continuity Attestation:
 - Excluded Context:
 - Open Blockers:
 - Next Actions:

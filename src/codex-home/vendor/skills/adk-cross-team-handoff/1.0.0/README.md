@@ -1,7 +1,10 @@
 # adk-cross-team-handoff
 
-跨团队交接时统一目标、边界和验收责任
+Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-- Version: 1.0.0
-- Source: llm_agent/agent-dev-kit/optional-skills/adk-cross-team-handoff/SKILL.md
-- Target: ~/codex vendor skill handoff
+- Skill version: `1.0.0`
+- Provider: `jiying2007/agent-dev-kit`
+- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
+- Source path: `skills/adk-cross-team-handoff/SKILL.md`
+
+Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.

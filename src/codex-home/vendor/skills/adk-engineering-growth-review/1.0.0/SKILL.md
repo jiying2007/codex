@@ -25,6 +25,7 @@ constraints:
   - 允许本地宽读；默认不固定 24-48 小时时间窗，不限制单一项目
   - 默认本地 report-only，不自动外发 Slack、邮件或外部服务
   - 不静默写入 ~/.codex/memories；长期记忆只输出候选和人工确认项
+  - 改进建议进入执行层前必须先形成 trace-feedback-eval-handoff 候选
   - 联网查学习资源或外部发送必须由用户显式授权
 ---
 
@@ -49,8 +50,8 @@ constraints:
 |---|---|
 | 读取 `$CODEX_HOME/history.jsonl` 或 `~/.codex/history.jsonl` | 允许，只读，可全量或按用户指定范围 |
 | 读取 `~/.codex/memories` | 允许，只读；输出必须区分既有记忆和新候选 |
-| 读取 Knowledge Hub 中的 Codex archive 归位目录、`~/codex/reports/` | 允许，只读 |
-| 读取当前项目 `reports/`、`~/knowledge-hub/domains/codex/archive/codex-archive/`、session wrap、research note | 允许，只读 |
+| 读取 `~/codex/docs/archive/`、`~/codex/reports/` | 允许，只读 |
+| 读取当前项目 `reports/`、`docs/archive/`、session wrap、research note | 允许，只读 |
 | 读取本地多个 repo 的 `git log`、commit summary、dirty 状态 | 允许，只读 |
 | 读取原始聊天、粘贴内容或历史片段 | 允许用于分析，但报告中必须摘要化和脱敏 |
 | 写本地报告或 archive note | 仅在用户要求产出文件时允许 |
@@ -73,7 +74,7 @@ constraints:
 6. 趋势判断：区分一次性噪音、短期反复、长期趋势和高影响改进项。
 7. 成长建议：给出 3-5 个优先级排序的改进领域，每项绑定证据和具体训练动作。
 8. 学习计划：输出 1 周、2-4 周或用户指定周期的训练计划；不依赖外部资源也必须可执行。
-9. 候选沉淀：若发现稳定偏好或重复风险，只输出 memory/archive 候选，不静默写入。
+9. 候选沉淀：若发现稳定偏好或重复风险，只输出 memory/archive 候选；若建议改 prompt/skill/workflow，输出 trace-feedback-eval-handoff 候选。
 10. 可选增强：用户显式要求时，再进入联网资源检索或外部发送流程。
 
 ## Report Template
@@ -119,6 +120,7 @@ constraints:
 - 每个改进建议必须绑定至少一个本地证据来源或明确标记为低置信度。
 - 必须区分“长期趋势”和“短期噪音”。
 - 必须说明隐私处理：是否读取原始历史、是否脱敏、是否包含敏感内容。
+- 执行层改进建议必须绑定 eval candidate、validation signal 和 human approval 状态。
 - 默认不得调用外部网络、Slack、邮件、发布、提交或写长期记忆。
 - 若用户要求全量历史扫描，必须说明性能成本和摘要策略，不得把完整聊天原文复制进报告。
 

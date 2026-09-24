@@ -1,5 +1,10 @@
 # adk-offline-core-dump-triage
 
-Imported from `llm_agent/agent-dev-kit/skills/adk-offline-core-dump-triage/SKILL.md`.
+Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-Use this skill for embedded Linux offline core dump evidence, symbol matching, GDB/toolchain trust checks, and conservative crash triage.
+- Skill version: `1.0.0`
+- Provider: `jiying2007/agent-dev-kit`
+- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
+- Source path: `skills/adk-offline-core-dump-triage/SKILL.md`
+
+Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.

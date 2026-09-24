@@ -1,10 +1,10 @@
 # adk-structured-requirements-questioning
 
-ADK vendor skill for using structured questions to clarify ambiguous requirements before implementation.
+Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-## Provenance
+- Skill version: `1.0.0`
+- Provider: `jiying2007/agent-dev-kit`
+- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
+- Source path: `skills/adk-structured-requirements-questioning/SKILL.md`
 
-- Owner: agent-dev-kit
-- Source repo: llm_agent/agent-dev-kit
-- Source path: skills/adk-structured-requirements-questioning/SKILL.md
-- Review status: accepted
+Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.

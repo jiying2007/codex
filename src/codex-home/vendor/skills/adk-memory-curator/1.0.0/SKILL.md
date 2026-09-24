@@ -42,7 +42,9 @@ constraints:
 4. 冲突检查：标记 stale、duplicate、supersedes、conflicts_with。
 5. 生成候选：每条含 scope、risk、confidence、evidence、last_verified、write_route。
 6. 人工门禁：高风险候选必须 requires_user_confirmation。
-7. 输出报告：只给建议和候选，不直接写 memory。
+7. 维护报告：输出 `promotion_candidates`、`stale_active`、`duplicate_groups`、`contradictions`、`missing_evidence`、`suggested_docs`、`archive_only_items`、`drop_or_review_items`。
+8. 失败回放：failure replay 只能生成 incident candidate；必须经过证据、冲突和 owner review 后才可 promotion。
+9. 输出报告：只给建议和候选，不直接写 memory。
 
 ## Commands
 ```bash
@@ -55,10 +57,15 @@ rtk rg -n "api[_-]?key|token|secret|password|PRIVATE KEY" <candidate-path>
 - Source Scope:
 - Source Counts:
 - High Signal Findings:
-- Duplicate/Stale Findings:
+- promotion_candidates:
+- stale_active:
+- duplicate_groups:
+- contradictions:
+- missing_evidence:
+- suggested_docs:
 - Memory Candidates:
-  | Scope | Candidate | Evidence | Risk | Confidence | Write Route |
-  |---|---|---|---|---|---|
+  | Scope | Candidate | Evidence | Raw Evidence | Risk | Confidence | Write Route | contradiction_status |
+  |---|---|---|---|---|---|---|---|
 - Archive-only Items:
 - Drop/Review Items:
 - Gate Result: pass / needs-fix
@@ -66,5 +73,8 @@ rtk rg -n "api[_-]?key|token|secret|password|PRIVATE KEY" <candidate-path>
 
 ## Quality Gate
 - 候选必须说明“下次同类任务为何会用到”。
+- active memory 候选必须至少包含一个 evidence/raw_evidence path；缺证据只能进入 `missing_evidence`。
+- `contradictions` 命中时必须进入 `conflict_review`，不得直接晋升。
+- failure replay 产生的结论先作为 incident candidate，不能直接写长期 memory。
 - 不得保存完整聊天记录、密钥、隐私原文或一次性噪声。
 - 写入长期 memory 前必须有人工确认和回滚路径。

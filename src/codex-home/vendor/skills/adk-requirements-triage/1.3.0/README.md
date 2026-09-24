@@ -1,8 +1,10 @@
 # adk-requirements-triage
 
-Imported ADK skill metadata wrapper.
+Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-- Version: `1.3.0`
-- Source: `llm_agent/agent-dev-kit/083dc95`
+- Skill version: `1.3.0`
+- Provider: `jiying2007/agent-dev-kit`
+- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
 - Source path: `skills/adk-requirements-triage/SKILL.md`
-- Description: 将需求转为可实现、可验证的工程条目
+
+Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.

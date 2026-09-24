@@ -43,6 +43,13 @@ constraints:
 - 收敛远程设备发现、只读取证、失联恢复和日志/core 线索。
 - 先判定最小失败层，再把 artifact、mutation、diag、stress、core 或修复交给对应 primary skill。
 
+## Prerequisites
+
+- 已记录目标设备、硬件/固件/镜像或制品身份，以及可复现的问题现象；未知字段显式标为 `unknown`。
+- 已明确 SSH、ADB、串口、GDB remote、调试探针或人工转储中的可用通道，并确认端点和凭证不进入长期资产。
+- 已确认本轮授权等级。默认只读；任何 state-changing 或 destructive 动作均需独立授权、回滚锚点和 postcondition。
+- 已定义 timeout、最多 3 次的重试预算、失联恢复手段和停止条件；缺少恢复手段时不得进入 mutation/HIL。
+
 ## Primary Boundary
 
 本 skill 只对 `DISCOVER`、`READONLY_PREFLIGHT`、`UNREACHABLE` 和远程证据解释负责。阶段切换时更换 primary：
@@ -99,6 +106,15 @@ connectivity loss -> UNREACHABLE -> stop writes/retries
 - HIL 必须逐级扩大，有 mutator 隔离、停止条件和最终健康恢复。
 - 缺 core/symbol/BuildID 匹配时，不给源码级崩溃根因。
 - 发布/现场结论说明 residual risk 和仍缺的真实设备证据。
+
+## Evidence Template
+
+- target：脱敏设备/board 引用、硬件/固件/镜像/commit 身份。
+- authorization：`read-only | state-changing-approved | destructive-out-of-scope`。
+- health_layers：route/network hint、transport、remote shell、app/diag 的 timeout、elapsed、结果与证据引用。
+- timeline：boot_id、uptime、PID、artifact identity、关键日志窗口，以及事实/推断/confounded 标记。
+- control：retry budget、circuit breaker、mutation/HIL gate、stop condition、rollback anchor。
+- outcome：gate result、restore/postcondition、raw evidence path+SHA256、residual risk 和下一 primary skill。
 
 ## Detailed Contract
 

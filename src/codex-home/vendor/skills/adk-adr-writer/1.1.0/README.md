@@ -1,8 +1,10 @@
 # adk-adr-writer
 
-Imported ADK skill metadata wrapper.
+Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-- Version: `1.1.0`
-- Source: `llm_agent/agent-dev-kit/083dc95`
+- Skill version: `1.1.0`
+- Provider: `jiying2007/agent-dev-kit`
+- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
 - Source path: `skills/adk-adr-writer/SKILL.md`
-- Description: 产出 Architecture Decision Record 并固化技术决策
+
+Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.

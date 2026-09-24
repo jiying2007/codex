@@ -1,0 +1,4 @@
+interface:
+  display_name: adk-planning-execution-loop
+  short_description: 长任务计划审查、分阶段执行、恢复与收口闭环
+  default_prompt: Use $adk-planning-execution-loop for its documented workflow.
