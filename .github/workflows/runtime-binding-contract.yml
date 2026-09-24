@@ -16,6 +16,9 @@ on:
       - 'src/codex-home/vendor/skills/adk-*/**'
       - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
+      - 'tools/codex_assets/core.py'
+      - 'tests/test_apply_prune.py'
+      - 'tests/test_apply_backup_integrity.py'
       - 'tools/codex_assets/adk_skill_audit.py'
       - 'tools/codex_assets/execution_policy_adapter.py'
       - 'tools/codex_assets/execution_policy/**'
@@ -58,6 +61,9 @@ on:
       - 'src/codex-home/vendor/skills/adk-*/**'
       - 'src/codex-home/AGENTS.md'
       - 'tools/codex_assets/validate.py'
+      - 'tools/codex_assets/core.py'
+      - 'tests/test_apply_prune.py'
+      - 'tests/test_apply_backup_integrity.py'
       - 'tools/codex_assets/adk_skill_audit.py'
       - 'tools/codex_assets/execution_policy_adapter.py'
       - 'tools/codex_assets/execution_policy/**'
@@ -142,7 +148,7 @@ jobs:
       - name: Validate thin Session Bootstrap and daily independence
         run: python -m unittest tests.test_session_bootstrap tests.test_session_bootstrap_independence
       - name: Validate read-only Skill source audit
-        run: python -m unittest tests.test_adk_skill_audit tests.test_adk_daily_core_import
+        run: python -m unittest tests.test_adk_skill_audit tests.test_adk_daily_core_import tests.test_apply_prune tests.test_apply_backup_integrity
       - name: Collect current Skill provenance gaps (not upgrade certification)
         run: |
           python - <<'PY'
