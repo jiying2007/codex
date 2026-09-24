@@ -1,9 +1,11 @@
 # Execution Policy
 
-Codex 的唯一任务执行策略面绑定 ADK 7.0.4 canonical Execution Policy v2。
+Codex 的唯一任务执行策略面绑定 ADK 7.0.31 canonical Execution Policy v2。
 
 - 配置：`manifests/execution_policy.json`
-- exact engine：`tools/codex_assets/execution_policy/engine.py`
+- exact decision：`tools/codex_assets/execution_policy/decision.py`
+- exact reducer：`tools/codex_assets/execution_policy/reducer.py`
+- exact public namespace：`tools/codex_assets/execution_policy/__init__.py`
 - exact contracts：`tools/codex_assets/execution_policy/contracts.py`
 - Codex host adapter：`tools/codex_assets/execution_policy_adapter.py`
 - CLI：`python3 -m tools.codex_assets execution-policy`
@@ -52,7 +54,7 @@ Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/ra
 
 `doctor --scope repo`、`doctor --scope governance`、完整 governance report 与运行时
 共用 `execution_policy_adapter.load_runtime_config`，不再维护旧 wheel/v1 配置校验器。
-加载器只读取当前 manifest、provider lock 和两份固定 engine/contract 源文件；
+加载器只读取当前 manifest、provider lock 和四份固定 package/contracts/decision/reducer 源文件；
 核对字段、策略下限、sources 结构、provider 身份和 Git blob 后才返回配置。
 它不访问 state database、session、journal 或 Digital Worker checkout。
 缺失/混入退役 manifest、错误来源、v1 策略、放宽 artifact gate 或保存 raw content 均失败。
@@ -62,3 +64,16 @@ Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/ra
 仓库检查通过不代表 live 已更新，也不替代 Skill 来源补齐、真实任务或产品验收。
 安装验证使用原有 build/plan/dry-run/apply/doctor/rollback，测试只在隔离副本运行，
 不写成员认证和会话目录。
+
+## 7.0.31 来源迁移
+
+manifest schema 由 3 升至 4：`engine.module` 指向 canonical package，
+`behavior_baseline.source_blobs` 精确记录四份上游源文件；旧 engine.py 物理退役，
+不提供 alias/facade，也不静默接受旧自定义配置。自定义 config 需按当前 manifest
+结构迁移并重新验证，不能只改变版本数字。
+
+本次四份上游文件逐字节复制，9 个 Agent 在该来源中正文与旧版相同但来源归属已
+重新核验。既有 host-owned ManifestError/privacy adapter 保持不变，不冒充上游源码。
+Policy v2、event/state v1、decision v2、intake v1 及日志位置不变；已有日志不重写。
+基线生成的 19 个合成回放样本验证状态/决策指纹与失败语义，不能代替真实任务资格。
+来源完整不等于成员已升级、权限已批准或运行时/产品已通过资格认证。

@@ -1,14 +1,14 @@
 {
   "schema": "codex-provider-lock/v3",
   "repository": "jiying2007/agent-dev-kit",
-  "version": "7.0.4",
-  "release_tag": "v7.0.4",
-  "provider_commit": "1d6c28e89eb98a4af5ac978707730783f0c84437",
-  "provider_tree": "c5b8fa7b11a81597ac2c7cd6fb44d7abf9605137",
-  "manifest_blob": "a5e5963545318c4a4498cda0d49d10f08c5f6412",
+  "version": "7.0.31",
+  "release_tag": "v7.0.31",
+  "provider_commit": "7367ef84787de75bb751940b32c9e80009660e47",
+  "provider_tree": "46fd5d2b99aa7fef7fb35c2c6624fd8790139506",
+  "manifest_blob": "b50c24c47ac467ae6cfd1fa49e722844d77500cf",
   "release_artifact": {
-    "name": "agent-dev-kit-7.0.4.tar.gz",
-    "sha256": "497e44ec83d2506c8721019aeca979965127b481203f33387806c51c0d1aff68"
+    "name": "agent-dev-kit-7.0.31.tar.gz",
+    "sha256": "6326e9009d97660147a43b96802eae2bb5b7cf9c4555c451e4054f6fa278b5d9"
   },
   "asset_profile": "embedded-fullstack",
   "delivery_mode": "exact-source-set",

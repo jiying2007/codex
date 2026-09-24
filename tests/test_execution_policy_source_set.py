@@ -5,17 +5,20 @@ import json
 import pathlib
 import unittest
 
-from tools.codex_assets.execution_policy.engine import (
+from tools.codex_assets.execution_policy.contracts import (
     POLICY_SCHEMA_V2,
     goal_intake_attestation_sha256,
-    reduce_events,
     validate_policy,
 )
+from tools.codex_assets.execution_policy.reducer import reduce_events
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-ENGINE_BLOB = "05dd80065ec4c58c342e48ff12d4cd53d3897740"
-CONTRACTS_BLOB = "626af591141b2dda6302edbe4363637435066628"
-
+SOURCE_BLOBS = {
+    "__init__.py": "10d3b1e71e2a91bdf30b7cf15215adcbec2b800e",
+    "contracts.py": "626af591141b2dda6302edbe4363637435066628",
+    "decision.py": "b786e05d2e4615cb23d36e9d4ea2ba9582686ac9",
+    "reducer.py": "e9bfb216239ddc1bc7ce45be4f21b408105d4d3c"
+}
 
 def git_blob_sha(path: pathlib.Path) -> str:
     data = path.read_bytes()
@@ -23,18 +26,18 @@ def git_blob_sha(path: pathlib.Path) -> str:
 
 
 class ExecutionPolicySourceSetTest(unittest.TestCase):
-    def test_vendored_execution_policy_matches_adk_704(self) -> None:
-        engine = ROOT / "tools/codex_assets/execution_policy/engine.py"
-        contracts = ROOT / "tools/codex_assets/execution_policy/contracts.py"
-        self.assertEqual(ENGINE_BLOB, git_blob_sha(engine))
-        self.assertEqual(CONTRACTS_BLOB, git_blob_sha(contracts))
+    def test_vendored_execution_policy_matches_adk_7031(self) -> None:
+        directory = ROOT / "tools/codex_assets/execution_policy"
+        self.assertEqual(set(SOURCE_BLOBS), {p.name for p in directory.glob("*.py")})
+        for filename, expected in SOURCE_BLOBS.items():
+            self.assertEqual(expected, git_blob_sha(directory / filename))
         provider = json.loads((ROOT / "manifests/provider-locks/agent-dev-kit.json").read_text())
-        self.assertEqual("7.0.4", provider["version"])
-        self.assertEqual("1d6c28e89eb98a4af5ac978707730783f0c84437", provider["provider_commit"])
+        self.assertEqual("7.0.31", provider["version"])
+        self.assertEqual("7367ef84787de75bb751940b32c9e80009660e47", provider["provider_commit"])
 
     def test_policy_manifest_is_v2_only(self) -> None:
         manifest = json.loads((ROOT / "manifests/execution_policy.json").read_text())
-        self.assertEqual(3, manifest["schema_version"])
+        self.assertEqual(4, manifest["schema_version"])
         self.assertEqual(POLICY_SCHEMA_V2, manifest["policy"]["schema_version"])
         self.assertEqual(POLICY_SCHEMA_V2, validate_policy(manifest["policy"])["schema_version"])
         serialized = json.dumps(manifest, sort_keys=True)

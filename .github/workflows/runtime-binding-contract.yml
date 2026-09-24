@@ -94,8 +94,8 @@ jobs:
           PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.codex_assets execution-policy --root "$GITHUB_WORKSPACE" --thread-id ci-command-contract gate --help
       - name: Validate Codex Execution Policy adapter
         run: python -m unittest tests.test_execution_policy
-      - name: Validate exact ADK 7.0.4 Execution Policy source set
-        run: python -m unittest tests.test_execution_policy_source_set
+      - name: Validate exact ADK 7.0.31 Execution Policy source set and replay
+        run: python -m unittest tests.test_execution_policy_source_set tests.test_execution_policy_migration
       - name: Validate thin Session Bootstrap and daily independence
         run: python -m unittest tests.test_session_bootstrap tests.test_session_bootstrap_independence tests.test_session_bootstrap_contract
       - name: Validate Skill source and distribution identities

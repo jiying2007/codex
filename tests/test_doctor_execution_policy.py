@@ -109,7 +109,7 @@ class DoctorPolicyContractTests(unittest.TestCase):
         self.assert_rejected()
 
     def test_each_source_blob_drift_or_absence_fails(self) -> None:
-        for filename in ("engine.py", "contracts.py"):
+        for filename in ("__init__.py", "contracts.py", "decision.py", "reducer.py"):
             path = self.root / "tools/codex_assets/execution_policy" / filename
             original = path.read_bytes()
             with self.subTest(filename=filename):

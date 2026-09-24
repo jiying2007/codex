@@ -336,7 +336,7 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 任务、Token、上下文、进度、checkpoint、证据和阶段门禁统一由 **Execution Policy v2** 管理：
 
 - 唯一配置：`manifests/execution_policy.json`。
-- Canonical engine：`tools/codex_assets/execution_policy/engine.py`，行为基线绑定 ADK 7.0.4 exact source identity。
+- Canonical policy：`tools/codex_assets/execution_policy/` 的 contracts / decision / reducer，绑定 ADK 7.0.31 exact source identity。
 - Codex host adapter：`tools/codex_assets/execution_policy_adapter.py`。
 - 唯一 CLI：`python3 -m tools.codex_assets execution-policy`；不提供额外 shell wrapper。
 - Journal：`~/.codex/execution-policy/`；只保存结构化事件与哈希，不保存 prompt/messages/raw cwd。

@@ -147,8 +147,8 @@ class CompleteAdkImportTests(unittest.TestCase):
         report = audit(ROOT)
         self.assertEqual({}, report["gap_counts"])
         self.assertEqual("consistent", report["status"])
-        self.assertEqual("7.0.4", report["provider_lock_version"])
-        self.assertEqual(0, report["skills_matching_provider_lock_commit"])
+        self.assertEqual("7.0.31", report["provider_lock_version"])
+        self.assertEqual(42, report["skills_matching_provider_lock_commit"])
         self.assertFalse(report["claims"]["runtime_qualified"])
 
     def test_moved_handoff_is_the_same_named_skill_not_a_guessed_replacement(self) -> None:

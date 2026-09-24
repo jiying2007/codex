@@ -16,22 +16,26 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
 from .core import CodexAssetError
-from .execution_policy.engine import (
+from .execution_policy.contracts import (
     ExecutionPolicyError,
-    evaluate,
     goal_intake_attestation_sha256,
-    reduce_events,
     validate_policy,
 )
+from .execution_policy.decision import evaluate
+from .execution_policy.reducer import reduce_events
 
 
 UTC = timezone.utc
 ENGINE_BASELINE = {
     "repository": "jiying2007/agent-dev-kit",
-    "version": "7.0.4",
-    "commit": "1d6c28e89eb98a4af5ac978707730783f0c84437",
-    "engine_blob": "05dd80065ec4c58c342e48ff12d4cd53d3897740",
-    "support_blob": "626af591141b2dda6302edbe4363637435066628",
+    "version": "7.0.31",
+    "commit": "7367ef84787de75bb751940b32c9e80009660e47",
+    "source_blobs": {
+        "__init__.py": "10d3b1e71e2a91bdf30b7cf15215adcbec2b800e",
+        "contracts.py": "626af591141b2dda6302edbe4363637435066628",
+        "decision.py": "b786e05d2e4615cb23d36e9d4ea2ba9582686ac9",
+        "reducer.py": "e9bfb216239ddc1bc7ce45be4f21b408105d4d3c"
+    }
 }
 
 
@@ -64,7 +68,7 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
         raise ExecutionPolicyAdapterError("unable to read Execution Policy manifest") from exc
     if not isinstance(value, dict) or set(value) != {"schema_version", "engine", "sources", "policy"}:
         raise ExecutionPolicyAdapterError("Execution Policy manifest fields are invalid")
-    if value.get("schema_version") != 3:
+    if value.get("schema_version") != 4:
         raise ExecutionPolicyAdapterError("unsupported Execution Policy manifest schema")
     engine = value.get("engine")
     expected_engine_fields = {"kind", "module", "contract", "behavior_baseline"}
@@ -72,7 +76,7 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
         raise ExecutionPolicyAdapterError("Execution Policy engine declaration is invalid")
     if engine.get("kind") != "codex-native":
         raise ExecutionPolicyAdapterError("Execution Policy engine must be codex-native")
-    if engine.get("module") != "tools.codex_assets.execution_policy.engine":
+    if engine.get("module") != "tools.codex_assets.execution_policy":
         raise ExecutionPolicyAdapterError("Execution Policy native module drift")
     if engine.get("contract") != "runtime_control.policy/v2":
         raise ExecutionPolicyAdapterError("Execution Policy contract drift")
@@ -96,7 +100,10 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
             or provider.get("delivery_mode") != "exact-source-set"
             or provider.get("binding_status") != "source-set-bound"):
         raise ExecutionPolicyAdapterError("Execution Policy provider identity drift")
-    for filename, key in (("engine.py", "engine_blob"), ("contracts.py", "support_blob")):
+    retired_engine = root / "tools/codex_assets/execution_policy/engine.py"
+    if retired_engine.exists() or retired_engine.is_symlink():
+        raise ExecutionPolicyAdapterError("retired Execution Policy module must be removed")
+    for filename, expected_blob in ENGINE_BASELINE["source_blobs"].items():
         source = root / "tools/codex_assets/execution_policy" / filename
         if source.is_symlink():
             raise ExecutionPolicyAdapterError("Execution Policy source must be a regular file")
@@ -105,7 +112,7 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
         except OSError as exc:
             raise ExecutionPolicyAdapterError("Execution Policy source is unavailable") from exc
         actual_blob = hashlib.sha1(f"blob {len(data)}\0".encode("ascii") + data).hexdigest()
-        if actual_blob != ENGINE_BASELINE[key]:
+        if actual_blob != expected_blob:
             raise ExecutionPolicyAdapterError(f"Execution Policy source blob drift: {filename}")
     try:
         value["policy"] = validate_policy(value["policy"])
