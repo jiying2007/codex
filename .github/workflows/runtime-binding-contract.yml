@@ -2,6 +2,7 @@ name: Runtime Binding Contract
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'manifests/integrations/**'
       - 'manifests/provider-locks/**'
@@ -155,7 +156,12 @@ jobs:
           print('Collection succeeded; needs-fix remains an unresolved upgrade finding, not PASS.')
           PY
       - name: Checkout exact candidate only for explicit maintenance audit
-        if: github.event_name == 'workflow_dispatch' && inputs.audit_adk_candidate && matrix.python-version == '3.11'
+        if: >-
+          matrix.python-version == '3.11' &&
+          ((github.event_name == 'workflow_dispatch' && inputs.audit_adk_candidate) ||
+           (github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            contains(github.event.pull_request.labels.*.name, 'adk-candidate-audit')))
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           repository: jiying2007/agent-dev-kit
@@ -163,7 +169,12 @@ jobs:
           path: .adk-upgrade-source
           persist-credentials: false
       - name: Compare exact candidate Skill trees without installing
-        if: github.event_name == 'workflow_dispatch' && inputs.audit_adk_candidate && matrix.python-version == '3.11'
+        if: >-
+          matrix.python-version == '3.11' &&
+          ((github.event_name == 'workflow_dispatch' && inputs.audit_adk_candidate) ||
+           (github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            contains(github.event.pull_request.labels.*.name, 'adk-candidate-audit')))
         run: |
           python - <<'PY'
           import json, os, subprocess
