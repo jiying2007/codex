@@ -11,6 +11,7 @@
 
 - Python 3.11/3.12、Git、Bash。
 - PyYAML 6.0.2，与现有合同 CI 一致。
+- `websockets==13.1`，供公开知识归档的渲染读取测试导入；Python 3.11/3.12 均受该版本支持。
 - 飞书 SDK 复用 `mcp/requirements-feishu-codex-bot.txt` 的 `lark-oapi==1.7.1`，
   不复制版本定义、不用假模块替代 SDK，也不连接真实飞书。
 - 完整 shell gate 使用真实 RTK 0.50.0；CI 固定官方 Linux x86_64 musl 发行包的
@@ -27,7 +28,7 @@ RTK 仍是现有 `check.sh` 的真实依赖，两个 Git fixture 也使用它；
 先在隔离虚拟环境安装声明的 Python 依赖，并确认上述 shell 工具可用：
 
 ```bash
-python -m pip install 'PyYAML==6.0.2' -r mcp/requirements-feishu-codex-bot.txt
+python -m pip install 'PyYAML==6.0.2' 'websockets==13.1' -r mcp/requirements-feishu-codex-bot.txt
 CODEX_OFFLINE_HERMETIC=1 python -m unittest discover -s tests -p 'test_*.py'
 bash scripts/check.sh --pre-apply --offline-hermetic --target /your/disposable/home/.codex
 ```

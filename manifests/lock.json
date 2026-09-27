@@ -1,77 +1,77 @@
 {
   "schema_version": 2,
   "profile": "default",
-  "managed_count": 679,
+  "managed_count": 696,
   "items": [
     {
       "kind": "skill",
       "name": "adk-code-review-loop",
-      "version": "1.6.0",
-      "source": "vendor/skills/adk-code-review-loop/1.6.0",
-      "sha256": "0d5f86d0449b459d0a9025601d5a3f14134c94d06d5f40482fa26fa3e52cc644"
+      "version": "1.7.0",
+      "source": "vendor/skills/adk-code-review-loop/1.7.0",
+      "sha256": "5cb83f145864e5003c5474cc5a1b792fa88a555a884554d7dd362460a49999d7"
     },
     {
       "kind": "skill",
       "name": "adk-context-compress-handoff",
       "version": "1.0.0",
       "source": "vendor/skills/adk-context-compress-handoff/1.0.0",
-      "sha256": "85734a8ccfebedd84a49319a9c300dbf81b13be2d15df4ae000edacf5ff9a9a3"
+      "sha256": "287ab4bf859472c14aa75883a0d8b11bbcec19df5d19279545e07d40783943aa"
     },
     {
       "kind": "skill",
       "name": "adk-knowledge-archive",
       "version": "1.0.0",
       "source": "vendor/skills/adk-knowledge-archive/1.0.0",
-      "sha256": "63713e07d2bf8b5e918d7026c333a3b4c44b27823ece1e533fe0bb90f03b3e9e"
+      "sha256": "82cb24b6f5940507c3c98eea97afc2f06607412b6776e2b71c7fd93e649cd9f9"
     },
     {
       "kind": "skill",
       "name": "adk-planning-execution-loop",
       "version": "1.3.0",
       "source": "vendor/skills/adk-planning-execution-loop/1.3.0",
-      "sha256": "ae38c8ae621b4b452688abc0f939b3ed3367b30b4c95cc0bc7cdf6a666112493"
+      "sha256": "ce39939f13002d0adafab65946f03ff9fac6f55b615ad7ffd7fb22f9e9ce35be"
     },
     {
       "kind": "skill",
       "name": "adk-requirements-triage",
       "version": "1.3.0",
       "source": "vendor/skills/adk-requirements-triage/1.3.0",
-      "sha256": "90f6516e55a10181599572333b8008ed23d4455a09488d3e9860098427cfe73c"
+      "sha256": "3c021a7632cbd3f9d3357f6f3a7152e7ceea4b3062157c509925df8921bda591"
     },
     {
       "kind": "skill",
       "name": "adk-runtime-router",
-      "version": "2.0.0",
-      "source": "vendor/skills/adk-runtime-router/2.0.0",
-      "sha256": "755e3eb166a30db977b93c5c528fac026f23d501b40284ae2a3a78eceb32f6ae"
+      "version": "2.1.0",
+      "source": "vendor/skills/adk-runtime-router/2.1.0",
+      "sha256": "0e02ba9f31ee5077b5d13aac836d76f08ac0892db39ae9c2240cf743cab39a41"
     },
     {
       "kind": "skill",
       "name": "adk-systematic-debugging",
       "version": "1.1.0",
       "source": "vendor/skills/adk-systematic-debugging/1.1.0",
-      "sha256": "7c9c3fc1a6e358c046a61e0cbdbedecdfbb24b3834d6df477cfe7ae73551932b"
+      "sha256": "f17ac38106335c885740d533b3a0965f5d83eef50a6bc3af65e9764ee652ee19"
     },
     {
       "kind": "skill",
       "name": "adk-task-breakdown",
       "version": "1.4.0",
       "source": "vendor/skills/adk-task-breakdown/1.4.0",
-      "sha256": "716246b1554907ba68612ae53f08b208b424f23f482092e1bcfc58f236fb21b2"
+      "sha256": "d2c84933292da924c62349e752c9489d86232a91dba16831690a77aba85045e2"
     },
     {
       "kind": "skill",
       "name": "adk-token-context-governance",
-      "version": "1.2.0",
-      "source": "vendor/skills/adk-token-context-governance/1.2.0",
-      "sha256": "bdf299060893c99cb85e141a76bed7964833b0c537190c8a16dc24b11523995c"
+      "version": "1.3.0",
+      "source": "vendor/skills/adk-token-context-governance/1.3.0",
+      "sha256": "e0d5b7d700b694cf8c7f390ce130e44d113cffc873e57628f829b5cbdf9da162"
     },
     {
       "kind": "skill",
       "name": "adk-verification-before-completion",
-      "version": "1.6.0",
-      "source": "vendor/skills/adk-verification-before-completion/1.6.0",
-      "sha256": "fed8b211e324f54e8af53efbd78772de60ea3712a4b4c8332b2ebce687fe2898"
+      "version": "1.7.0",
+      "source": "vendor/skills/adk-verification-before-completion/1.7.0",
+      "sha256": "a0f923ed8fdbf204d8262047c502826d338d65427ec48b473070eb38f891cdf4"
     },
     {
       "kind": "skill",
