@@ -140,7 +140,7 @@ class DisposableDoctorLifecycleTests(unittest.TestCase):
                 base = Path(tmp)
                 root = base / "source"
                 shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(
-                    ".git", "build", "__pycache__", ".adk-upgrade-source"))
+                    ".git", "build", ".backups", "__pycache__", ".adk-upgrade-source"))
                 home = base / "home"
                 target = home / ".codex"
                 protected = {"auth.json": b"test-credential-placeholder", "sessions/keep": b"test-session", "skills/.system/keep": b"test-system"}

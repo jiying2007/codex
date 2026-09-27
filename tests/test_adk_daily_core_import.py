@@ -134,7 +134,7 @@ class DailyCoreImportTests(unittest.TestCase):
                 base = Path(tmp)
                 repo = base / "source"
                 # build_repo updates its derived lock: only a disposable source copy is writable.
-                shutil.copytree(ROOT, repo, ignore=shutil.ignore_patterns(".git", "build", "__pycache__", ".adk-upgrade-source"))
+                shutil.copytree(ROOT, repo, ignore=shutil.ignore_patterns(".git", "build", ".backups", "__pycache__", ".adk-upgrade-source"))
                 target = base / "home/.codex"
                 protected = {"auth.json": b"fixture-not-a-secret", "sessions/keep": b"private fixture", "skills/.system/keep": b"system fixture"}
                 for path, data in protected.items():

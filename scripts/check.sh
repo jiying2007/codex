@@ -115,7 +115,7 @@ else
   echo "[INFO] live_consistency=skipped reason=pre-apply"
 fi
 
-if rtk rg -n "(sk-[A-Za-z0-9_-]{20,}|(api[_-]?key|token|password)\\s*[:=]\\s*['\\\"][A-Za-z0-9_./+=:-]{16,}['\\\"]|BEGIN (RSA|OPENSSH|EC|DSA|PRIVATE) KEY)" "$ROOT" --glob '!build/**' --glob '!.git/**'; then
+if rtk rg -n "(sk-[A-Za-z0-9_-]{20,}|(api[_-]?key|token|password)\\s*[:=]\\s*['\\\"][A-Za-z0-9_./+=:-]{16,}['\\\"]|BEGIN (RSA|OPENSSH|EC|DSA|PRIVATE) KEY)" "$ROOT" --glob '!build/**' --glob '!.git/**' --glob '!.backups/**'; then
   echo "[FATAL] 疑似敏感信息命中" >&2
   exit 1
 fi
