@@ -16,12 +16,12 @@ from tools.codex_assets.skill_catalog import search_skills
 from tests import test_adk_skill_audit as audit_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_COMMIT = "7367ef84787de75bb751940b32c9e80009660e47"
-# Reviewed upstream identities from the #30 exact-source candidate, not local rehashes.
+SOURCE_COMMIT = "35b5fb31810c654a295c25b89e04435d6a32f57c"
+# Reviewed upstream identities from the v7.12.4 exact Git tree, not local rehashes.
 EXPECTED = {
     "adk-runtime-router": ("2.1.0", "9ba36768b91eb551136604462105a5b836b47119", "460073fcac9ec92763c20d32fde305862e2d6692d557c4d95900ca556d018cd3", 2, "技能路由"),
     "adk-code-review-loop": ("1.7.0", "8b536410b3cb0e656e2d032f071022c37a43b00c", "a9ae8c66af6b8bd1ad250d3dc208fe3082492feb682b028243d2ebf15818364a", 4, "独立代码审查"),
-    "adk-verification-before-completion": ("1.7.0", "b5da2c7c73e817dbc38b160380c618ef51f7eac9", "9b8a3333309f2af29ac52af82cedf81a64f33ed50c8dac119b08dba94eca87ab", 2, "准备完成"),
+    "adk-verification-before-completion": ("1.7.1", "0eb1fc97c1bfa108271a62a64020daf8ee4835a1", "bfb0659c01d9dbe87eed26c81107fb807e6dce1cc5de3fffa4aa5cc428bdfbfb", 2, "准备完成"),
 }
 
 
@@ -79,7 +79,7 @@ class DailyCoreImportTests(unittest.TestCase):
                 self.assertEqual(record["version"], version)
                 self.assertEqual(record["source_repo"], "jiying2007/agent-dev-kit")
                 self.assertEqual(record["source_ref"], SOURCE_COMMIT)
-                self.assertEqual(record["source_release"], "v7.0.31")
+                self.assertEqual(record["source_release"], "v7.12.4")
                 self.assertEqual(record["source_path"], f"skills/{name}/SKILL.md")
                 self.assertEqual(record["source_blob"], blob)
                 self.assertEqual(record["source_tree_sha256"], digest)

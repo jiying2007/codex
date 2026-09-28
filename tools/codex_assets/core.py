@@ -456,7 +456,8 @@ def require_no_unplanned_assets(plan: dict[str, Any]) -> None:
                  for action in plan.get("actions", [])
                  if action.get("action") == "delete"]
     leftovers = [rel for rel in unmanaged_live_assets(plan["build"], plan["target"])
-                 if not any(pathlib.PurePosixPath(rel).is_relative_to(parent)
+                 if not any(pathlib.PurePosixPath(rel) == parent
+                            or parent in pathlib.PurePosixPath(rel).parents
                             for parent in deletions)]
     if leftovers:
         sample = "\n".join(leftovers[:20])

@@ -1,7 +1,7 @@
 # 完整回归与隔离安装验证
 
 `Runtime Binding Contract` 与 `Profile Context Contract` 保留聚焦合同检查。
-`Full Regression` 在 Python 3.11/3.12 上安装声明依赖，发现全部 `test_*.py`，
+`Full Regression` 在 Python 3.8/3.11/3.12 上安装声明依赖，发现全部 `test_*.py`，
 然后在精确源码的隔离副本中执行真实 `check.sh --pre-apply --offline-hermetic`。
 随后使用该计划执行原有 apply CLI、完整 post-apply check、零变更重复计划和 rollback CLI，
 核对原始文件/符号链接集合及认证/session/system测试文件未改变。
@@ -9,9 +9,9 @@
 
 ## 环境与依赖
 
-- Python 3.11/3.12、Git、Bash。
+- Python 3.8/3.11/3.12、Git、Bash。
 - PyYAML 6.0.2，与现有合同 CI 一致。
-- `websockets==13.1`，供公开知识归档的渲染读取测试导入；Python 3.11/3.12 均受该版本支持。
+- `websockets==13.1`，供公开知识归档的渲染读取测试导入；三个 CI 解释器版本均安装该版本。
 - 飞书 SDK 复用 `mcp/requirements-feishu-codex-bot.txt` 的 `lark-oapi==1.7.1`，
   不复制版本定义、不用假模块替代 SDK，也不连接真实飞书。
 - 完整 shell gate 使用真实 RTK 0.50.0；CI 固定官方 Linux x86_64 musl 发行包的

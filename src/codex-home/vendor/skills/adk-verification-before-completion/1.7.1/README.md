@@ -1,10 +1,10 @@
-# adk-test-strategy
+# adk-verification-before-completion
 
 Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-- Skill version: `2.1.0`
+- Skill version: `1.7.1`
 - Provider: `jiying2007/agent-dev-kit`
-- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
-- Source path: `skills/adk-test-strategy/SKILL.md`
+- Source commit: `35b5fb31810c654a295c25b89e04435d6a32f57c`
+- Source path: `skills/adk-verification-before-completion/SKILL.md`
 
 Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.
