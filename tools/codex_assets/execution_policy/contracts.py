@@ -7,7 +7,7 @@ import json
 import math
 import re
 from collections.abc import Mapping
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from ..model import ManifestError
@@ -60,7 +60,7 @@ READONLY_IMPLEMENTATION_ARTIFACTS = {"repo", "build", "plan", "dry-run", "live"}
 SENSITIVE_FIELDS = {"prompt", "messages", "content", "text", "raw_input", "raw_output", "objective"}
 IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
-UTC = UTC
+UTC = timezone.utc
 
 
 class ExecutionPolicyError(ValueError):
@@ -82,7 +82,7 @@ def _integer(value: Any, field: str, *, positive: bool = False) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
         label = "positive" if positive else "non-negative"
         raise ExecutionPolicyError(f"{field} must be a {label} integer")
-    return value
+    return int(value)
 
 
 def _number(value: Any, field: str) -> float:

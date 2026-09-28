@@ -1,10 +1,10 @@
-# adk-interface-contract-design
+# adk-planning-execution-loop
 
 Codex distribution metadata; Skill content and support files remain upstream-owned.
 
-- Skill version: `1.3.0`
+- Skill version: `1.3.1`
 - Provider: `jiying2007/agent-dev-kit`
-- Source commit: `7367ef84787de75bb751940b32c9e80009660e47`
-- Source path: `skills/adk-interface-contract-design/SKILL.md`
+- Source commit: `35b5fb31810c654a295c25b89e04435d6a32f57c`
+- Source path: `skills/adk-planning-execution-loop/SKILL.md`
 
 Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.

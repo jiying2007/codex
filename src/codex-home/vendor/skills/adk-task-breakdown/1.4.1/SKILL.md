@@ -1,8 +1,8 @@
 ---
 name: adk-task-breakdown
 description: 将需求拆解为可并行执行的任务包
-version: 1.4.0
-last_updated: 2026-07-19
+version: 1.4.1
+last_updated: 2026-09-27
 triggers:
   - "拆解任务"
   - "任务拆分"
@@ -61,6 +61,7 @@ constraints:
    rg -n "call|invoke|dispatch|emit|publish" <target_path> | head -20
    ```
    依赖图格式：`T1 → T2 → T3`（箭头表示"被依赖"）
+   每次派发前计算就绪任务集合：前置任务已有验收证据、共享写冲突已解除，且 implementation 权限满足 v2 契约；完成一个任务后重新计算，阻塞项不得进入就绪集合。
 5. **生成任务包**：decision/research/prototype 固定 `implementation_permission=forbidden`；只有已批准 implementation 可为 `approved`，并给出 owner、依赖、验证、阻塞和 handoff。
 6. **右尺寸校准**：任务必须足够小以支持独立测试和 review；setup/config/docs 应并入真正消费它们的任务，避免独立“准备任务”丢失验收上下文。
 7. **估时与排期**：用三点估时法计算每个任务工时，标注关键路径。
@@ -97,6 +98,7 @@ cloc <target_path> 2>/dev/null || echo "cloc not installed"
   | T1 | ... | ... | 无 | consumes/produces | 2h | ... |
   | T2 | ... | ... | T1 | consumes/produces | 4h | ... |
 - 关键路径: T1 → T2 → T4（总工期 Xh）
+- Ready Frontier: 当前可执行任务 ID / 未就绪任务与阻塞原因 / 上次重新计算检查点
 - 估时方法: 三点估时 / 类比 / T-shirt
 - Work Mode (diagnosis/repro/planning/execution):
 - Structured Output Schema: adk-task-package-schema-v2 / strict_schema_decision / refusal_handling
@@ -127,6 +129,7 @@ cloc <target_path> 2>/dev/null || echo "cloc not installed"
 - 必须给出当前推进模式与收敛条件，避免持续空转分析。
 - 任务粒度必须在 0.5h-8h 范围内。
 - 依赖图必须无环。
+- 就绪集合必须与依赖图、验收证据和共享写独占约束一致；不得仅凭任务被列入计划就派发。
 
 ## 合理化借口拦截
 

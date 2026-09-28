@@ -55,6 +55,14 @@
 ### Evidence freshness and replay
 关键命令必须可追溯；过期证据不能复用。Evidence Index 至少保留一条负结果或被证伪路径，避免只收集支持结论的样本。中高风险任务应可回放；不可回放必须写明原因和替代证据。
 
+### Completion Guard 静态覆盖审计
+
+ADK 源仓可用 `rtk python3 -m agent_dev_kit.completion_coverage --input <completion-coverage.json> --summary-json` 对 `required_checks` 与命令观察项作封闭字段、同源快照、退出码和新鲜度核对。输入示例见 `tests/fixtures/completion_coverage_valid.json`。缺失、必需项跳过、任意失败或过期均返回 `needs-fix`；畸形输入返回 `invalid`。`status=pass` 只表示自报数据结构和集合覆盖，`completion_allowed=false` 始终成立；实际命令、证据 ref、verifier 身份和目标环境仍由独立验证者与目标项目门禁核对。
+
+### 需求差异与实际检查范围
+
+验证变更时先将每条需求标为新增、修改、删除或重命名，并绑定原需求身份、当前预期行为及检查结果。删除项应验证旧行为确已消失，不要求重新实现已删除需求；重命名项应追溯旧行为而非只看新名称。未执行或缺环境的检查记录 `skipped` 与原因，不能计入通过数；报告须列出实际运行的检查和未检查范围。
+
 ### Lifecycle and review convergence
 受控生命周期操作必须有契约、owner 结论、终止路径和所需真实环境边界。生命周期变更必须有适用的 whole-lifecycle review。出现 `design-change`、新增 blocker/major finding class、或超过自审轮次预算时必须 replan。
 

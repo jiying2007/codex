@@ -1,8 +1,8 @@
 ---
 name: adk-test-strategy
 description: 平台中立的软件测试策略与 TDD 分级，按行为、风险和现有测试入口生成可复跑的验证矩阵与证据
-version: 2.1.0
-last_updated: 2026-09-10
+version: 2.1.2
+last_updated: 2026-09-28
 triggers:
   - "测试策略"
   - "TDD"
@@ -55,6 +55,8 @@ constraints:
 2. **选择测试级别**：按风险和影响面选择 Level 0/1/2，并说明理由。
 3. **发现现有入口**：读取仓库文档、脚本和测试目录，优先使用已有命令。
 4. **设计测试矩阵**：覆盖 happy path、边界、错误路径、回归样例、真实世界边界、集成环境缺口、安全边界和无法模拟的运行条件。
+   - Agent 编排可用脚本化模型或模拟工具确定性验证路由、调用顺序、handoff 与 guardrail 分支；真实 provider、网络、sandbox 和外部写入仍需对应集成或现场证据，不能由模拟用例推断。
+   - 对照 Agent/prompt 版本时固定同一有序任务集、grader 合同和模型/运行时身份，并列出逐例退化；聚合分数改善不能掩盖已通过用例变失败。报告身份须另核来源，不能仅凭自报摘要授予发布资格。
 5. **验证资源矩阵**：并行执行前列出每项验证的输出目录、二进制/缓存、端口/设备与写入资源；只有全部写入资源隔离才可并行，共享 build directory、测试二进制或中间产物必须串行。
 6. **TDD 红灯检查**：Level 2 必须先写失败测试并记录失败原因。
 7. **最小实现验证**：只实现让测试通过的必要代码，避免顺手扩张范围。
@@ -70,6 +72,7 @@ constraints:
 - Test Matrix:
   | Case | Type | Command | Expected |
   |---|---|---|---|
+- Evidence Layer: deterministic orchestration | provider integration | runtime/field + unverified boundary
 - Validation Resource Matrix:
   | Validation | Output directory | Binary/cache/device | Parallel decision |
   |---|---|---|---|
@@ -111,6 +114,7 @@ ctest --output-on-failure
 - 共享逻辑改动必须说明回归范围。
 - 声称并行的验证必须有 Validation Resource Matrix；共享输出目录、二进制、缓存、端口或设备时必须串行。
 - 不得只用覆盖率数字替代测试结论；必须说明现实环境、集成、安全或硬件条件中仍未验证的部分。
+- 确定性模拟通过只证明本地编排行为；未经真实 provider/目标系统观察，不得宣称 native runtime 或外部副作用已验证。
 - 所有完成结论必须交给 `adk-verification-before-completion` 复核。
 
 ## 合理化借口拦截

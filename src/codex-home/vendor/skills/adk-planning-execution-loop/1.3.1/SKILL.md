@@ -1,8 +1,8 @@
 ---
 name: adk-planning-execution-loop
 description: 长任务计划审查、分阶段执行、恢复与收口闭环
-version: 1.3.0
-last_updated: 2026-09-10
+version: 1.3.1
+last_updated: 2026-09-27
 triggers:
   - "执行计划"
   - "多阶段任务"
@@ -42,7 +42,9 @@ constraints:
 3. 状态外化：建立或更新 `PROJECT/REQUIREMENTS/STATE/PLAN/SUMMARY` 等同类 planning 工件。
 4. 连续性证明：长任务必须记录 active plan、findings、progress、attestation 和 excluded context。
 5. 执行检查点：每完成一个阶段，更新状态、证据和风险。
+   - 同一逻辑目标的相关小改按里程碑连续推进：及时跑定向验证，完整回归和整批审查集中在里程碑末；共享契约、权限或发布边界变化立即升级对应门禁，不为每个小点重复 PR/合并。
 6. 恢复记录：维护 `session-state`、`next-actions`、`risk-ledger`、`resume-prompt`。
+   - 暂停恢复或重试可能重跑已进入的步骤；对外部写入先核操作标识、实际生效回执和目标状态，未知结果先对账，不盲目重试。
 7. 偏离处理：发现计划错误、共享契约冲突、验证失败或 research/prototype 请求实现权限时，暂停并回到计划审查；`design-change` 或连续两轮新 blocker/major finding class 必须 replan。
 8. 目标闭环检查：核对原始目标、当前声明、证据、剩余未闭环项和停止条件。
 9. 计划完整性检查：无 phase heading 不得报告 `0/0 complete`；混合状态格式按字段核对；stop gate 只有 explicit opt-in、in_progress 和 ledger progress 同时满足才可阻断。

@@ -1,8 +1,8 @@
 ---
 name: adk-interface-contract-design
 description: 定义模块、API、消息和受控生命周期操作的接口契约
-version: 1.3.0
-last_updated: 2026-09-10
+version: 1.3.2
+last_updated: 2026-09-27
 triggers:
   - "设计接口"
   - "API设计"
@@ -18,6 +18,7 @@ constraints:
   - 必须明确输入、输出、错误码
   - 机器消费接口必须声明 strict schema、additionalProperties=false 和 refusal handling
   - 受控生命周期操作必须明确唯一 owner、状态事件和终止语义
+  - 有外部副作用的工具调用和 handoff 必须在执行前完成授权，并定义恢复重放语义
 ---
 
 # adk-interface-contract-design
@@ -84,8 +85,9 @@ constraints:
    #define IFACE_RETRY_DELAY_MS 100
    ```
 5. **受控生命周期契约（条件性）**：若操作跨越状态或独占资源，冻结 owner、状态、事件、资源、终止和 invariant；其中必须覆盖可见性、取消、超时、恢复、迟到完成与 generation/op-id 隔离。详见 [生命周期操作契约](references/lifecycle-operation-contract.md)。
-6. **结构化输出契约**：API、消息、工具或 handoff schema 必须记录 required fields、enum、additionalProperties=false、refusal handling 和 parse-failure 处理。
-7. **生成契约用例**：正常、边界、异常三类样例。
+6. **工具与 handoff 副作用边界（条件性）**：按调用参数和目标身份在写入前授权；拒绝、未知结果和重放按 [工具与 handoff 副作用契约](references/tool-effect-contract.md) 处理。
+7. **结构化输出契约**：API、消息、工具或 handoff schema 必须记录 required fields、enum、additionalProperties=false、refusal handling 和 parse-failure 处理。
+8. **生成契约用例**：正常、边界、异常三类样例。
    ```bash
    # 编译契约测试
 
@@ -99,6 +101,7 @@ constraints:
 - 嵌入式接口必须验证结构体大小与对齐（`pahole` 或 `sizeof` 断言）。
 - 错误码必须覆盖所有可恢复与不可恢复场景。
 - 受控生命周期操作必须给出 owner × state × event × resource × termination × invariant 矩阵，并明确 generation/op-id、幂等、重试预算与 callback/cleanup 并发边界；缺失时不得进入实现或给出设计通过结论。
+- 有副作用的工具或 handoff 必须有授权点、目标绑定、拒绝和重放对账路径；审批不等于生效。
 
 ---
 

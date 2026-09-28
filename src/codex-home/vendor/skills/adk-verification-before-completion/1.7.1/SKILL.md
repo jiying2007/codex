@@ -1,8 +1,8 @@
 ---
 name: adk-verification-before-completion
 description: 完成前验证门禁，确保交付声明与证据一致
-version: 1.7.0
-last_updated: 2026-09-14
+version: 1.7.1
+last_updated: 2026-09-28
 triggers:
   - "准备完成"
   - "准备提交"
@@ -42,6 +42,7 @@ constraints:
 9. **兼容性与长任务完整性**：显式判断 breaking change、迁移/回退；长任务核 retry budget、heartbeat、staleness threshold、plan completeness、attestation readback、失败路径、已排除方案和 open items。
 10. **Codify Decision**：使用 `templates/governance/codify-decision.md` 记录复用价值、后续摩擦下降、owner review、rollback 与 verification evidence；不满足推广条件则写 `do_not_promote_reason`。
 11. **Completion Guard Payload**：中高风险任务对 build/lint/test/smoke/security/release 中适用项记录 status、exit_code、command、evidence_path、verified_at、verifier；缺失/失败/过期不得进入完成态。
+    可用 `agent_dev_kit.completion_coverage` 核静态覆盖；其 pass 不认证证据或授予完成权限，仍需独立 verifier。
 12. **反向核验并输出**：逐项证明“结论被证据支持”，输出 `pass` 或 `needs-fix`，列出未闭环项、下一步和责任人。
 
 详细适用性矩阵、原 25-step 解释、门禁细则与合理化借口拦截见 `references/verification-governance-details.md`。入口只保留每次完成前验证都需要的决策面和机器证据字段。
