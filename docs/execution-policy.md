@@ -54,6 +54,28 @@ python3 -m tools.codex_assets execution-policy goal start \
 
 Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/raw cwd。当前 journal 位于 `~/.codex/execution-policy/`。
 
+## 日常任务自动 intake
+
+非平凡任务在实施前使用幂等入口，避免只在结束时才发现缺 intake：
+
+```bash
+(cd ~/codex && rtk python3 -m tools.codex_assets execution-policy \
+  --thread-id "${CODEX_THREAD_ID:?current thread id required}" ensure \
+  --request-file /tmp/task-request.md --task-mode implementation \
+  --success-criterion repo-and-tests --required-evidence repo-and-tests \
+  --open-items 1)
+```
+
+临时文件保存本次真实用户请求，不进入知识库或 journal；ensure 读取一次并计算 request 摘要，结合实际 runtime/project AGENTS 文件摘要、显式任务模式与验收项产生本地 `codex-project-routing/v1` 决策。authority/source 使用真实本地 adapter 身份，不冒充人审或 Digital Worker。它不获得 managed readonly authority 的特权，也不降低 canonical artifact gate。
+
+`--dry-run` 不创建 journal；首次执行返回 `REGISTERED`，相同请求和路由重试返回 `ALREADY_REGISTERED`。已有目标与请求或路由不符时退出 2，保留原 journal，必须显式 replan 或开始新的逻辑任务。ensure 不自动补造 evidence，不自动 complete，也不代表 final gate 通过。有效 intake 只是前置条件；目标、验收证据、工件与 checkpoint 仍由实际执行登记。
+
+本入口是 Agent 自动执行约定，不是 app-server 的隐式启动 hook；只有执行它后才会产生任务记录。
+
+回执将现存状态和本次写入分开表示：已登记任务的 dry-run 返回 `persisted=true`、`read_only=true`、`write_performed=false`；新任务 dry-run 返回 `persisted=false`，不创建 journal。
+
+长任务应按真实上下文量与预计轮数显式传入 `--token-budget`；默认 300000 仅是初始预算，累计输入计量包含重复加载的上下文。steady/apply 出现 stop 时先停止实施并 replan，不能用终态 final 通过推导未超预算。证据、任务预算和产品验收分别报告。
+
 ## 安装前检查与同源校验
 
 `doctor --scope repo`、`doctor --scope governance`、完整 governance report 与运行时

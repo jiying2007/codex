@@ -401,6 +401,10 @@ def _append_action(args: argparse.Namespace, kind: str, payload: Mapping[str, An
 
 
 def run(args: argparse.Namespace) -> int:
+    if args.runtime_action == "ensure":
+        from .execution_policy_intake import ensure
+
+        return ensure(args)
     root, config, _, thread, journal = _active_context(args)
     action = args.runtime_action
 
@@ -430,6 +434,7 @@ def run(args: argparse.Namespace) -> int:
                     "intake": _goal_intake(args, now),
                 },
             }
+            _engine_state([started])
             _write_new_journal(journal, started)
         elif args.goal_action == "update":
             payload = {
@@ -507,6 +512,10 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--codex-home", default="~/.codex")
     parser.add_argument("--thread-id", default=os.environ.get("CODEX_THREAD_ID", ""))
     sub = parser.add_subparsers(dest="runtime_action", required=True)
+
+    from .execution_policy_intake import configure as configure_intake
+
+    configure_intake(sub.add_parser("ensure", help="Register the actual request and local routing once per thread goal"))
 
     goal = sub.add_parser("goal")
     goal_sub = goal.add_subparsers(dest="goal_action", required=True)
