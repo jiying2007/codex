@@ -106,6 +106,36 @@ def _promotion(evidence_path: Path, provider: dict[str, Any], artifact_sha256: s
         raise ImportError("signed promotion does not bind the exact ADK source and artifact")
 
 
+def _local_readme_identities(root: Path, manifest: dict[str, Any],
+                             expected: dict[str, dict[str, str]] | None = None) -> dict[str, dict[str, str]]:
+    """Validate consumer text against managed identities, never its own claims."""
+    identities = {}
+    for item in manifest["skills"]:
+        if item.get("enabled") is not True or item.get("owner") != "agent-dev-kit":
+            continue
+        binding = item.get("distribution_metadata", {}).get("README.md")
+        if not isinstance(binding, dict) or binding.get("source", "upstream") is not None:
+            continue
+        identity = {"version": item["version"], "source_ref": item["source_ref"]}
+        if expected is not None:
+            if item["name"] not in expected:
+                raise ImportError(f"local README identity was not captured: {item['name']}")
+            identity = expected[item["name"]]
+        if (not isinstance(identity.get("version"), str)
+                or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", identity["version"])
+                or not isinstance(identity.get("source_ref"), str)
+                or not re.fullmatch(r"[0-9a-f]{40}", identity["source_ref"])):
+            raise ImportError(f"local README managed identity is invalid: {item['name']}")
+        directory = root / "src/codex-home" / item["vendor_rel"]
+        _source_tree(item, _tree(directory))
+        text = (directory / "README.md").read_text(encoding="utf-8")
+        if (re.findall(r"(?m)^- Skill version:.*$", text) != [f"- Skill version: `{identity['version']}`"]
+                or re.findall(r"(?m)^- Source commit:.*$", text) != [f"- Source commit: `{identity['source_ref']}`"]):
+            raise ImportError(f"local README provenance needs manual review: {item['name']}")
+        identities[item["name"]] = dict(identity)
+    return identities
+
+
 def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
          attestation_path: Path, trusted_root: Path, artifact_sha256: str) -> dict[str, Any]:
     root = root.resolve()
@@ -135,6 +165,7 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
     if report["status"] != "consistent" or report["candidate"]["blocked_skills"]:
         raise ImportError("ADK source audit is not consistent")
     skills = _json(root / "manifests/skills.json")
+    _local_readme_identities(root, skills)
     by_name = {item["name"]: item for item in skills["skills"]}
     changes = []
     for row in report["skills"]:
@@ -158,7 +189,8 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
         if new_version != old_version and new_dir.exists():
             raise ImportError(f"new Skill version directory already exists: {new_rel}")
         changes.append({
-            "name": row["name"], "old_version": old_version, "new_version": new_version,
+            "name": row["name"], "old_version": old_version, "old_source_ref": item["source_ref"],
+            "new_version": new_version,
             "source": source.as_posix(), "old_rel": item["vendor_rel"],
             "new_rel": new_rel, "tree": target["tree_sha256"],
             "blob": target["entrypoint_blob"],
@@ -200,6 +232,13 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
     skills_path = root / "manifests/skills.json"
     skills = _json(skills_path)
     by_name = {item["name"]: item for item in skills["skills"]}
+    old_identities = _local_readme_identities(root, skills)
+    for change in result["skills"]:
+        item = by_name[change["name"]]
+        if (item["version"] != change["old_version"]
+                or item["source_ref"] != change["old_source_ref"]
+                or item["vendor_rel"] != change["old_rel"]):
+            raise ImportError(f"managed Skill identity changed since plan: {item['name']}")
     for change in result["skills"]:
         item = by_name[change["name"]]
         old_dir = root / "src/codex-home" / change["old_rel"]
@@ -295,33 +334,39 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         "sha256": result["artifact_sha256"],
     }
     _write_json(lock_path, lock)
-    refresh_local_readmes(root, provider_root, commit)
+    refresh_local_readmes(root, provider_root, commit, old_identities=old_identities)
 
 
-def refresh_local_readmes(root: Path, provider_root: Path, commit: str) -> int:
+def refresh_local_readmes(root: Path, provider_root: Path, commit: str, *,
+                          old_identities: dict[str, dict[str, str]] | None = None) -> int:
     """Refresh consumer-only provenance text while preserving upstream files."""
     root = root.resolve()
     provider_root = provider_root.resolve()
     provider = _provider(provider_root, commit)
-    historical = _json(root / "tests/fixtures/adk-skill-sources-7.0.31.json")
-    old_commit = historical["provider_commit"]
     manifest_path = root / "manifests/skills.json"
     manifest = _json(manifest_path)
-    changed = 0
+    identities = _local_readme_identities(root, manifest, old_identities)
+    pending = []
+    # Validate the entire README set and upstream projections before any write.
     for item in manifest["skills"]:
-        if item.get("enabled") is not True or item.get("owner") != "agent-dev-kit":
+        if item["name"] not in identities:
             continue
-        binding = item.get("distribution_metadata", {}).get("README.md")
-        if not isinstance(binding, dict) or binding.get("source", "upstream") is not None:
-            continue
+        if item["source_ref"] != commit:
+            raise ImportError(f"README target commit differs from managed identity: {item['name']}")
         directory = root / "src/codex-home" / item["vendor_rel"]
+        upstream = _candidate(provider_root, item["source_path"], provider)
+        if _source_tree(item, _tree(directory)) != upstream:
+            raise ImportError(f"README refresh changed upstream projection: {item['name']}")
+        pending.append((item, directory, upstream))
+    changed = 0
+    for item, directory, upstream in pending:
+        binding = item["distribution_metadata"]["README.md"]
         readme = directory / "README.md"
         text = readme.read_text(encoding="utf-8")
-        old_version = historical["skills"][item["name"]]["version"]
+        old_version = identities[item["name"]]["version"]
+        old_commit = identities[item["name"]]["source_ref"]
         old_version_line = f"- Skill version: `{old_version}`"
         old_commit_line = f"- Source commit: `{old_commit}`"
-        if text.count(old_version_line) != 1 or text.count(old_commit_line) != 1:
-            raise ImportError(f"local README provenance needs manual review: {item['name']}")
         updated = text.replace(old_version_line, f"- Skill version: `{item['version']}`")
         updated = updated.replace(old_commit_line, f"- Source commit: `{commit}`")
         readme.write_text(updated, encoding="utf-8")
@@ -329,7 +374,6 @@ def refresh_local_readmes(root: Path, provider_root: Path, commit: str) -> int:
         binding["installed"] = installed["README.md"]
         if "local_tree_sha256" in item:
             item["local_tree_sha256"] = _digest(installed)
-        upstream = _candidate(provider_root, item["source_path"], provider)
         if _source_tree(item, installed) != upstream:
             raise ImportError(f"README refresh changed upstream projection: {item['name']}")
         changed += 1
