@@ -913,7 +913,7 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertEqual(["docs-to-agents"], report["guidance_promotions"])
         self.assertEqual(2, report["schema_version"])
         self.assertNotIn("runtime_control", report)
-        self.assertEqual("7.12.4", report["execution_policy"]["engine_version"])
+        self.assertEqual("7.14.1", report["execution_policy"]["engine_version"])
         self.assertEqual("routing", report["eval_suite_links"]["routing-eval"]["kind"])
         self.assertEqual("/review", report["cli_command_contract_links"]["review-command"]["command"])
         self.assertEqual("agents", report["guidance_promotion_links"]["docs-to-agents"]["destination"])
