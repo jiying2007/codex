@@ -16,7 +16,7 @@ from tools.codex_assets.core import Repo, parse_frontmatter
 from tools.codex_assets.skill_catalog import search_skills
 
 ROOT = Path(__file__).resolve().parents[1]
-COMMIT = "19dafa7c61355c04c08e87adcf3eae6946020f92"
+COMMIT = "e9fab289f98961922342fa32a4f629067a5a9e21"
 
 
 class DistributionMetadataTests(unittest.TestCase):
@@ -102,7 +102,7 @@ class CompleteAdkImportTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         # Static evidence captured from the exact provider Git tree, not a lock
         # generated from the currently installed consumer files during testing.
-        cls.golden = json.loads((ROOT / "tests/fixtures/adk-skill-sources-7.14.1.json").read_text())
+        cls.golden = json.loads((ROOT / "tests/fixtures/adk-skill-sources-7.14.2.json").read_text())
         cls.records = {r["name"]: r for r in json.loads((ROOT / "manifests/skills.json").read_text())["skills"]
                        if r["enabled"] and r["name"].startswith("adk-")}
 
@@ -117,7 +117,7 @@ class CompleteAdkImportTests(unittest.TestCase):
                 actual = _tree(directory)
                 self.assertEqual("jiying2007/agent-dev-kit", record["source_repo"])
                 self.assertEqual(COMMIT, record["source_ref"])
-                self.assertEqual("v7.14.1", record["source_release"])
+                self.assertEqual("v7.14.2", record["source_release"])
                 self.assertEqual(expected["source_path"], record["source_path"])
                 self.assertEqual(expected["tree"], _source_tree(record, actual))
                 self.assertEqual(_digest(expected["tree"]), record["source_tree_sha256"])
@@ -147,7 +147,7 @@ class CompleteAdkImportTests(unittest.TestCase):
         report = audit(ROOT)
         self.assertEqual({}, report["gap_counts"])
         self.assertEqual("consistent", report["status"])
-        self.assertEqual("7.14.1", report["provider_lock_version"])
+        self.assertEqual("7.14.2", report["provider_lock_version"])
         self.assertEqual(42, report["skills_matching_provider_lock_commit"])
         self.assertFalse(report["claims"]["runtime_qualified"])
 
