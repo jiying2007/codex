@@ -4,7 +4,7 @@ Codex distribution metadata; Skill content and support files remain upstream-own
 
 - Skill version: `2.0.0`
 - Provider: `jiying2007/agent-dev-kit`
-- Source commit: `46c35605a400f422414bfae85e809143e527c37c`
+- Source commit: `4c8ff2c2bfa37667f17e5c9613d3298848182daa`
 - Source path: `skills/adk-driver-bringup-checklist/SKILL.md`
 
 Repository-specific commands in the Skill apply only where those verified entrypoints exist. Project acceptance and release rules remain project-owned; Knowledge Hub access uses the Provider Adapter.
