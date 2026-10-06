@@ -28,8 +28,8 @@ from .execution_policy.reducer import reduce_events
 UTC = timezone.utc
 ENGINE_BASELINE = {
     "repository": "jiying2007/agent-dev-kit",
-    "version": "8.0.0",
-    "commit": "2c5bd3574c660c5d71bd7e71502977f8cadcf0ad",
+    "version": "8.0.1",
+    "commit": "46c35605a400f422414bfae85e809143e527c37c",
     "source_blobs": {
         "__init__.py": "10d3b1e71e2a91bdf30b7cf15215adcbec2b800e",
         "contracts.py": "7dccc6b391eb7dd5375eac5d361c39b8fccc4dd3",
