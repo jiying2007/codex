@@ -1,0 +1,11 @@
+# ADK 7.14.2 精确来源消费升级
+
+从已发布7.14.1升级到canonical jiying2007/agent-dev-kit的immutable v7.14.2，commit e9fab289f98961922342fa32a4f629067a5a9e21，tree37b5e02a544cb6a650137b239b29a9322ba00f98，manifest blob b312a2d8341c0ac769f7ac4b4be4e29ffc7aab9c；官方归档SHA2566179c9853e47059123f1ef15f40acf34a95f04b063b2a3f238599ea6f0f690e5。
+
+promotion证据来自实际main CI37395924472 attempt1，全部9项通过；自动发布37396400054成功。固定官方workflow identity、GitHub OIDC issuer及受审trusted-root的cosign verify-blob返回Verified OK，归档digest与签名证据、API和release contract一致。
+
+既有signed importer分别执行plan/apply、source fixture生成及consumer-owned README刷新。42个Skill changed_skills为空，9个Agent正文逐字节与旧版本相同，四policy保留exact上游内容。更新provider锁、来源字段、Agent版本目录、consumer-owned validator/adapter/test baselines和新7.14.2 fixture；历史fixture与session-wrap恢复的LICENSE保留。未修改profile、权限、模型、并行上限、MCP或信任条件。
+
+验收：来源审计和两个binding validator、Python3.8/3.11完整unittest、team-collab build及repo/build/governance doctor、冻结差异作者自审。最终结果与hash记录source外；自审不冒充独立owner审查。实际源仓五tracked用户修改及journal不进入本提交，合并后仍走完整同计划source-to-live，不能从源码准备推导live或产品资格。
+
+回滚保留原source分支和实际managed备份，通过既有source-to-live恢复；不手改上游mirror或live。无真实模型调用，所有评测仅确定性/离线fixture。

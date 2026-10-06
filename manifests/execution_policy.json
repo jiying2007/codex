@@ -6,8 +6,8 @@
     "contract": "runtime_control.policy/v2",
     "behavior_baseline": {
       "repository": "jiying2007/agent-dev-kit",
-      "version": "7.14.1",
-      "commit": "19dafa7c61355c04c08e87adcf3eae6946020f92",
+      "version": "7.14.2",
+      "commit": "e9fab289f98961922342fa32a4f629067a5a9e21",
       "source_blobs": {
         "__init__.py": "10d3b1e71e2a91bdf30b7cf15215adcbec2b800e",
         "contracts.py": "7dccc6b391eb7dd5375eac5d361c39b8fccc4dd3",
