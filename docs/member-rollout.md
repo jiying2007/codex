@@ -9,7 +9,7 @@
 
 在本机终端执行，停止正在修改同一资源目录的安装、同步和 Codex 会话；新资源不在
 旧会话中热替换。需要 Git、**Python >=3.8**、PyYAML 和现有脚本使用的 RTK。
-持续回归覆盖 Python 3.8/3.11/3.12。当前 ADK 7.14.2 的 Python 3.8 合同由
+持续回归覆盖 Python 3.8/3.11/3.12。当前 ADK 8.0.0 的 Python 3.8 合同由
 上游 CI 验证；Codex 宿主包仍保留历史 `datetime.UTC` 到 `timezone.utc` 的兼容别名，
 不修改 vendor 源码或安装同名 datetime 包。Execution Policy 的 intake
 和证据门禁仍按原策略执行。

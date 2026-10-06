@@ -32,8 +32,8 @@ class ExecutionPolicySourceSetTest(unittest.TestCase):
         for filename, expected in SOURCE_BLOBS.items():
             self.assertEqual(expected, git_blob_sha(directory / filename))
         provider = json.loads((ROOT / "manifests/provider-locks/agent-dev-kit.json").read_text())
-        self.assertEqual("7.14.2", provider["version"])
-        self.assertEqual("e9fab289f98961922342fa32a4f629067a5a9e21", provider["provider_commit"])
+        self.assertEqual("8.0.0", provider["version"])
+        self.assertEqual("2c5bd3574c660c5d71bd7e71502977f8cadcf0ad", provider["provider_commit"])
 
     def test_policy_manifest_is_v2_only(self) -> None:
         manifest = json.loads((ROOT / "manifests/execution_policy.json").read_text())
