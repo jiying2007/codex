@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 766,
+  "managed_count": 767,
   "items": [
     {
       "kind": "skill",
@@ -470,7 +470,7 @@
       "name": "session-wrap",
       "version": "4.0.1",
       "source": "vendor/skills/session-wrap/4.0.1",
-      "sha256": "207a0475e3be0b582caa3a2f4e65569e1e88f247c189e3d715cca2f760f1a0fc"
+      "sha256": "f471e7cc1b68997e20db80f7126b65ea8ed7e5a6091611c5cbfc59ed2de6dfdc"
     },
     {
       "kind": "skill",
