@@ -1,0 +1,7 @@
+# ADK8.0.2 exact-source消费候选
+
+实际canonicalmain4c8ff2c2bfa37667f17e5c9613d3298848182daa、tree1a3576f599d99d45ac588bde4349e738e2e88c97、manifestblob7adea7e00d02bb8c4f019b7ca4513f90ea517026；mainCI37452817886九jobs与tag/release37453425947成功。immutablev8.0.2 annotatedtag480dca5ca9cdc70d2ffb8d3de1975e4cc3585630->main；actualarchiveSHA9b003708b1b5e2d328826ae21557b135a5ccb78d0957d4beca4d25889611cbd0=API/signed evidence/contract，fixed workflow/issuer/trustedroot verifyblobVerifiedOK。
+
+既有signed importer plan/apply/fixture/metadata分别执行，来源严格绑定，不重标旧签名。42Skill/9Agent/4policy raw保持，31consumerREADME更新来源commit，新fixture与旧历史fixtures/license/notice分层保留。严格validator/integration/adapter/4测试source向量一起推进，不改guards/profile/MCP/模型/权限。旧8.0.1九受管Agent精确退役R100；仅验证空目录无file/link后移source外备份，clean Git目录构建一致。
+
+候选须两Python342完整unit、team-collab build/doctor/audit/bindings及wholestaged独立复审；actualSCM/5userdirty保护ff/actual344pre-post/同source-build-target SAFEplan source-to-live另验。上游持久化和锁修复不等于Skill正文变化，不认证模型收益/owner/M5/产品。回滚38ea745592c9a86292170f59d61371a11fd7b8a5/8.0.1 source；用户dirty/journal/liveconfig/profile保留。
