@@ -1,0 +1,11 @@
+# ADK 8.0.1 exact-source 消费候选
+
+实际main46c35605a400f422414bfae85e809143e527c37c，treee9955c89b7e425b50f5a94507caaed53e4c7b71e，manifestblob9e6e83d06b7c3cb1ec379ed8756bcd5c0347bfab。mainCI37425994529九jobs及release-tag37426558324成功；immutable v8.0.1 annotated tag979f928fa272064c14aa4f62b10931b66cb23493解析该main。
+
+实际归档SHA256c8de31339c864c947f34abdb356c93f6a318ae440cb94045533fdb767f0377be，与API/signed evidence/releasecontract一致，固定main workflow/issuer及reviewed trusted-root验签Verified OK。既有signed importer的plan、apply、source fixture、distributionmetadata分别执行，不重标旧签名。
+
+导入范围保持42Skill/9Agent/4policy原始上游内容；rawSkill目录与8.0.0比较无added/changed/removed。变更集中source identity、9Agent版本目录、31consumerREADME来源commit、新fixture、生成lock，以及2validator、integrationbinding、adapter baseline和固定测试向量严格期望。旧fixture/license/notice、profile、权限/MCP/模型边界保留，不恢复旧alias。8.0.1安装writer是上游SDK修复，不等于这些Skill正文发生变化。
+
+首unit342执行中因旧adapter baseline/固定source向量/旧Agent源目录未迁移，60fail+29error，不能计PASS；已同步真实来源常量和向量并精准退役9旧受管Agent文件，保留历史fixtures。旧8.0.0目录仅在验证无任何文件/链接后移到source外备份，避免私有worktree与clean Git checkout生成不同目录清单。最终测试/构建/复审以修正后新冻结为准。
+
+该候选须两Python完整unit、audit/binding、team-collab build/doctor以及whole-staged独立复审。真实SCM、actual source-to-live/live receipt另验；不声明模型收益/owner/M5/产品资格。actual ~/codex五dirty与journal由主线程保护，liveconfig/profile保持；独立运行资产仓与Root冻结codex证据依赖分离。回滚源基线4084f918f949a8b7969ac2c286f273712c046b2f，live按受管receipt处理。
