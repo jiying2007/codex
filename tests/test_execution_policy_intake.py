@@ -80,3 +80,39 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         self.assertEqual(0, created.returncode, created.stderr)
         self.assertEqual("REGISTERED", json.loads(created.stdout)["status"])
         self.assertTrue(journal.read_bytes().startswith(before))
+
+    def test_rejected_actions_do_not_poison_journal(self):
+        self.assertEqual(0, self.run_cli(*self.intake_args()).returncode)
+        self.assertEqual(0, self.run_cli('progress', '--revision', '1').returncode)
+        journal = next((self.codex_home / 'execution-policy').glob('*.jsonl'))
+        before = journal.read_bytes()
+        for action in [('progress', '--revision', '1'),
+                       ('progress', '--revision', '0')]:
+            rejected = self.run_cli(*action)
+            self.assertEqual(2, rejected.returncode, rejected.stderr)
+            self.assertEqual(before, journal.read_bytes())
+        self.assertEqual(0, self.run_cli('goal', 'status').returncode)
+
+    def test_duplicate_progress_recovery_preserves_original_and_valid_history(self):
+        self.assertEqual(0, self.run_cli(*self.intake_args()).returncode)
+        self.assertEqual(0, self.run_cli('progress', '--revision', '1').returncode)
+        journal = next((self.codex_home / 'execution-policy').glob('*.jsonl'))
+        event = json.loads(journal.read_text().splitlines()[-1])
+        event['event_id'] = 'evt-rejected-duplicate'
+        with journal.open('a') as stream:
+            stream.write(json.dumps(event) + '\n')
+        before = journal.read_bytes()
+        plan = self.run_cli('journal')
+        self.assertEqual(0, plan.returncode, plan.stderr)
+        result = json.loads(plan.stdout)
+        self.assertEqual(1, result['rejected_count'])
+        self.assertEqual(before, journal.read_bytes())
+        stale = self.run_cli('journal', '--apply', '--expected-sha256', '0' * 64)
+        self.assertEqual(2, stale.returncode)
+        self.assertEqual(before, journal.read_bytes())
+        applied = self.run_cli('journal', '--apply', '--expected-sha256', result['before_sha256'])
+        self.assertEqual(0, applied.returncode, applied.stderr)
+        receipt = json.loads(applied.stdout)
+        self.assertEqual('RECOVERED', receipt['status'])
+        self.assertEqual(before, (journal.parent / receipt['backup_name']).read_bytes())
+        self.assertEqual(0, self.run_cli('goal', 'status').returncode)

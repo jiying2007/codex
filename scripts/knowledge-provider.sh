@@ -23,7 +23,7 @@ case "$CMD" in
     for name in knowledge-context.sh knowledge-evidence-pack.sh knowledge-action-check.sh knowledge-proposal-route.sh knowledge-capture.sh knowledge-activity.sh; do
       require_surface "$HUB_ROOT/tools/$name"
     done
-    printf '{"status":"READY_FOR_CALL","provider":"knowledge-hub","root":"%s","note":"provider route/readiness must still be proven by the called operation"}\n' "$HUB_ROOT"
+    exec bash "$HUB_ROOT/tools/knowledge-capture.sh" --provider-capabilities --json
     ;;
   context)
     require_surface "$HUB_ROOT/tools/knowledge-context.sh"

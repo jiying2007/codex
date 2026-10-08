@@ -535,7 +535,7 @@ def build_lock(repo: Repo, profile: str, managed: list[dict[str, Any]]) -> dict[
     }
 
 
-def render_config(repo: Repo, build: pathlib.Path, profile: str) -> None:
+def render_config(repo: Repo, build: pathlib.Path, profile: str, source: pathlib.Path | None = None) -> None:
     config_spec = repo.assets.get("config", {})
     base_rel = config_spec.get("base", "config/base.toml")
     profile_rel = config_spec.get("profiles", {}).get(profile)
@@ -544,7 +544,7 @@ def render_config(repo: Repo, build: pathlib.Path, profile: str) -> None:
     for rel in [base_rel, profile_rel]:
         if not rel:
             continue
-        path = repo.source / rel
+        path = (source if source is not None else repo.source) / rel
         if not path.is_file():
             fail(f"config 模板不存在: {rel}")
         parts.append(path.read_text().rstrip() + "\n")
@@ -629,7 +629,7 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         rel = pathlib.Path(rel_text)
         copy_entry(source / rel, tmp_build / rel, rel, protected, skip_source)
 
-    render_config(repo, tmp_build, profile)
+    render_config(repo, tmp_build, profile, source)
 
     for item in skills:
         if active(item, profile):

@@ -12,6 +12,10 @@ Codex 的唯一任务执行策略面绑定 ADK 8.0.0 canonical Execution Policy 
 
 旧 `runtime-control` Python/CLI/config surface 已 hard-cut，不提供 alias、fallback、双读或双写。保留的 `runtime_control.*` 字符串仅是 ADK 冻结 wire schema 名称，不表示旧执行面仍存在。
 
+所有 action 和 goal start 都在与 intake 相同的线程锁内先用 canonical reducer 校验，再追加并同步 journal。非法或重复 progress 被拒绝时不改变 journal；新 goal 保留已终结历史。
+
+若旧 host adapter 曾将被拒绝的非递增 progress 写入 journal，可先运行 `execution-policy journal` 得到只读计划，再以计划的 `before_sha256` 执行 `execution-policy journal --apply --expected-sha256 <sha256>`。恢复仅允许 canonical reducer 明确拒绝的非递增 progress；其他错误继续阻断。原字节完整备份，恢复记录保存被隔离事件的 hash、原因、前后 journal hash，成功后回读。该操作不 complete goal、不补证据、不产生 PASS；恢复后按真实目标继续或显式 abort/replan。
+
 Execution Policy v2 要求每个 goal 在 `goal.started` 时携带可验证 intake：task mode、request/routing digests、authority id 与 routing provenance。缺失 intake、使用 v1 policy、source-set blob 漂移或 behavior baseline 漂移均 fail closed。
 
 Codex 资产工具的日常 CLI 支持 Python 3.8 及以上。宿主包保留历史上游源码使用
