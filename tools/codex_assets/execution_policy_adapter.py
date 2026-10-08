@@ -394,8 +394,9 @@ def _append_action(args: argparse.Namespace, kind: str, payload: Mapping[str, An
     root, config, _, thread, journal = _active_context(args)
     if not journal.is_file():
         raise ExecutionPolicyAdapterError("no active Execution Policy goal journal")
-    append_journal(journal, control_event(kind, thread["thread_id"], payload))
-    state, _ = snapshot(root, config, codex_home=args.codex_home, thread_id=args.thread_id)
+    from .execution_policy_journal import validated_append
+
+    state = validated_append(journal, control_event(kind, thread["thread_id"], payload), thread)
     _emit(state)
     return 0
 
@@ -407,35 +408,17 @@ def run(args: argparse.Namespace) -> int:
         return ensure(args)
     root, config, _, thread, journal = _active_context(args)
     action = args.runtime_action
+    if action == "journal":
+        from .execution_policy_journal import recover
+
+        _emit(recover(journal, thread, expected_sha256=args.expected_sha256, apply=args.apply))
+        return 0
 
     if action == "goal":
         if args.goal_action == "start":
-            existing = load_journal(journal)
-            if existing:
-                state = _engine_state(existing + [usage_event(thread)])
-                if state["goal"]["status"] == "active":
-                    raise ExecutionPolicyAdapterError("one active goal already exists for this thread")
-            baseline = usage_event(thread)["payload"]["total_tokens"]
-            now = _now()
-            started = {
-                "schema_version": "runtime_control.event/v1",
-                "event_id": "evt-{}".format(uuid.uuid4().hex),
-                "event_type": "goal.started",
-                "thread_id": thread["thread_id"],
-                "observed_at": _iso(now),
-                "payload": {
-                    "goal_id": args.goal_id,
-                    "token_budget": args.token_budget,
-                    "time_budget_seconds": args.time_budget_seconds,
-                    "usage_baseline_tokens": baseline,
-                    "success_criteria": args.success_criterion,
-                    "required_evidence": args.required_evidence,
-                    "open_items_count": args.open_items,
-                    "intake": _goal_intake(args, now),
-                },
-            }
-            _engine_state([started])
-            _write_new_journal(journal, started)
+            from .execution_policy_journal import start_goal
+            _emit(start_goal(journal, args, thread))
+            return 0
         elif args.goal_action == "update":
             payload = {
                 key: value for key, value in {
@@ -516,6 +499,9 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     from .execution_policy_intake import configure as configure_intake
 
     configure_intake(sub.add_parser("ensure", help="Register the actual request and local routing once per thread goal"))
+    journal = sub.add_parser("journal", help="Audit or recover rejected duplicate progress events, preserving original bytes")
+    journal.add_argument("--expected-sha256", default="")
+    journal.add_argument("--apply", action="store_true")
 
     goal = sub.add_parser("goal")
     goal_sub = goal.add_subparsers(dest="goal_action", required=True)

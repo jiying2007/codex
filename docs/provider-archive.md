@@ -23,4 +23,6 @@ rtk bash ~/codex/scripts/knowledge-provider.sh archive \
 
 原 proposal-route 策略仍为 disabled/shadow/report-only。新 archive 操作有独立 candidate-only 权限，不靠打开 shadow 开关获取写入能力。活动采集不替代知识归档回执。关闭 Hub policy 的 `enabled` 可暂停自动归档；已写入事务提供 before 备份与恢复日志，不能回退无关用户改动。
 
+`knowledge-provider.sh status` 返回逐操作 capability：只读查询、shadow proposal、candidate archive 与显式主体 activity 分别表示。入口存在不授予写权限；archive 的 policy/receipt 纳入 schema catalog，失败使用脱敏 `reason_code`。摘要和主题标签经校验保留；近重复只提示关联，不自动合并或改变生命周期。归档回执绑定 transaction_id；可通过 `KNOWLEDGE_TRACEPARENT` 接续已有 trace，trace 写失败不影响已经验证的 persistence，也不保存正文或 raw query。
+
 自动化是 Agent 任务执行约定，未安装后台定时任务。个人主体不从 owner、Git、路径或聊天身份推断。

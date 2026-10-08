@@ -1,233 +1,83 @@
-# Codex CLI 官方配置指南
+# Codex CLI 默认配置指南
 
-维护状态：本指南用于维护 `~/codex/src/codex-home/config/base.toml`，并通过声明式资产链路生成和同步 `~/.codex/config.toml`。
+维护状态：仅维护 `src/codex-home/config/base.toml`，通过受管构建与同步链路生成 `~/.codex/config.toml`。最近核验：2026-10-07，Codex CLI `0.159.2`。
 
-最近核验：2026-05-21，Codex CLI `0.132.0`。
+## 日常使用
 
-官方来源：
+日常直接运行 `rtk codex`。用户确认基本不切换配置模式，因此移除旧的 `dev/debug/embedded/max` 表，不部署对应独立模式文件。
 
-- [Config basics](https://developers.openai.com/codex/config-basic)
-- [Advanced configuration](https://developers.openai.com/codex/config-advanced)
-- [Configuration reference](https://developers.openai.com/codex/config-reference)
-- [Sample configuration](https://developers.openai.com/codex/config-sample)
+临时需要更深推理时使用命令行覆盖，只影响本次启动：
 
-## 维护原则
-
-1. 只把稳定、当前 CLI 可识别的字段写入 source 配置。
-2. `src/codex-home/config/base.toml` 是默认日常配置，优先低噪音、可验证、成本可控。
-3. 长期模式切换使用官方 `[profiles.<name>]` 和 `codex --profile <name>`。
-4. 不再维护 `config.dev.toml`、`config.debug.toml`、`config.embedded.toml`、`config.max.toml` 独立模板。
-5. `~/.codex/config.toml` 不直接手改；从 source 构建、plan、dry-run、apply。
-6. 每次升级 Codex CLI 后，用官方文档和 `codex --strict-config doctor` 双重验证字段。
-
-## 配置优先级
-
-官方规则按优先级从高到低：
-
-1. CLI flags 和 `--config`
-2. `--profile <name>` 选择的 profile
-3. trusted project 下的 `.codex/config.toml`
-4. 用户级 `~/.codex/config.toml`
-5. 系统级 `/etc/codex/config.toml`
-6. Codex 内置默认值
-
-本仓当前把 `dev`、`debug`、`embedded`、`max` 写入 `src/codex-home/config/base.toml` 的官方 `[profiles.<name>]`。多个窗口、多个会话需要不同配置时，直接使用 `codex --profile <name>`；不要通过覆盖全局 `~/.codex/config.toml` 来并发切换。
-
-## 推荐字段
-
-### 模型与输出
-
-```toml
-model = "gpt-5.6-terra"
-model_reasoning_effort = "medium"
-model_reasoning_summary = "concise"
-model_verbosity = "medium"
-hide_agent_reasoning = true
+```bash
+rtk codex -c model_reasoning_effort=xhigh
+rtk codex -c model_verbosity=low
 ```
 
-策略：
+CLI 配置模式与资产 profile 分属不同边界：删除四个 CLI 模式不切换当前 `team-collab` 资产 profile，也不删除技能或代理。
 
-- 默认使用 `medium`，需要更深推理时用 `codex --profile max`。
-- `model_reasoning_summary = "concise"` 和 `hide_agent_reasoning = true` 用于减少 TUI 噪音。
-- `model_verbosity` 按 profile 调整：日常 `medium`，省 token profile 使用 `low`。
+## 默认配置优化
 
-### 上下文与工具输出
+2026-10-07 按用户使用习惯统一落地以下设置：
 
-```toml
-model_context_window = 1000000
-model_auto_compact_token_limit = 700000
-tool_output_token_limit = 20000
-project_doc_max_bytes = 32768
-project_doc_fallback_filenames = []
-```
+- 删除 `model_context_window` 和 `model_auto_compact_token_limit` 手动覆盖，使用模型目录与 CLI 默认策略；手动填写大窗口不会扩大服务端能力。
+- 日常 `model_reasoning_effort = "medium"`，计划模式 `plan_mode_reasoning_effort = "high"`；计划模式设置不自动进入 Plan 模式。
+- `[agents] max_concurrent_threads_per_session = 3`，最多三个并行子代理，不含主代理；不因此获得自动派发权限。
+- `[tui] raw_output_mode = true`，默认便于复制日志；用 `/raw` 或默认 `Alt+R` 切换。`resume_cwd` 保持未设置，目录不一致时继续询问。
+- `[features] memories = true`，`[memories] use_memories = true`、`generate_memories = false`：使用既有记忆，新线程不进入自动记忆生成输入。该设置不删除已有记忆，也不承诺停止旧输入的所有后台处理；人工记忆更新仍须用户明确要求。
 
-策略：
+保留 20,000 token 工具输出预算、既有低噪音通知和状态栏，以及 `on-request`、`workspace-write`、默认关闭 sandbox network 的权限边界。运行中的会话不热加载完整配置，下一次启动读取新的默认值。
 
-- 所有官方 profile 统一开到 Codex 最大上下文窗口；读取文件时仍保持定向，避免无关上下文推高成本。
-- `model_auto_compact_token_limit` 与最大窗口策略配套上调，避免 profile 过早压缩历史。
-- `tool_output_token_limit` 分层控制：默认 `20000`、`dev` 为 `12000`、`debug` 为 `30000`、`embedded` 为 `24000`、`max` 为 `50000`。
-- `project_doc_max_bytes` 显式固定为 `32768`，足够覆盖当前项目规则，同时避免超长 `AGENTS.md` 注入持续膨胀。
+验证须覆盖源码模板、保留本机设置的构建候选和实际用户配置；CLI doctor 的 config 状态应为 `ok`、启动配置警告为 0。记录真实 effective 上下文元数据与 raw 输出模式，不能只凭 TOML 字段存在声明生效。
 
-### 权限、沙箱和网络
+## 当前字段与权限
+
+模型、推理强度、上下文与工具输出预算使用官方配置键。源码模板的模型是可复用默认值；本机用户配置允许保留其实际模型，不能在修复警告时无意覆盖。
 
 ```toml
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 web_search = "cached"
+hide_agent_reasoning = true
 
 [sandbox_workspace_write]
 network_access = false
-writable_roots = [
-  "/home/leiwenjun/.codex/memories",
-]
-```
+writable_roots = ["/home/leiwenjun/.codex/memories"]
 
-策略：
-
-- 默认保留 human approval，不使用 `never`。
-- 默认不开放 sandbox network；需要联网时由任务显式请求或使用 CLI override。
-- 默认 `web_search = "cached"`，实时信息再临时开启 live search。
-- 当前配置使用旧 `sandbox_mode` / `sandbox_workspace_write`；不要同时启用 beta `default_permissions`。本地期望边界先登记到 `manifests/permission_profiles.json`，通过 governance 和 strict-config doctor 验证后再考虑运行态迁移。
-- Command rules 只允许 exact prefix 审计，例如 `rtk` wrapper。新增 allow rule 前先登记到 `manifests/exec_rules.json`，不得直接 broad allow `bash`、`python`、`git`、`curl` 或 `npx`。
-- Hook 先作为 `manifests/hook_contracts.json` 的 disabled/report-only 契约管理。没有单独 runner 审查前，不把 hook 当作完整命令拦截或权限执行边界。
-
-### Shell 环境
-
-```toml
 [shell_environment_policy]
 inherit = "core"
 
-[shell]
-program = "rtk"
-args = ["bash", "-lc"]
-```
-
-策略：
-
-- 所有 shell 命令仍通过 `rtk`。
-- 日常 profile 使用 `core`，极省 token / 隔离 profile 可用 `none`。
-
-### TUI
-
-```toml
-[tui]
-notifications = ["approval-requested", "agent-turn-complete"]
-notification_condition = "unfocused"
-notification_method = "auto"
-animations = false
-show_tooltips = false
-alternate_screen = "auto"
-status_line = [
-  "git-branch",
-  "context-remaining",
-  "five-hour-limit",
-  "weekly-limit",
-  "fast-mode",
-  "model-with-reasoning",
-]
-terminal_title = ["spinner", "project", "git-branch", "status"]
-```
-
-策略：
-
-- 状态栏只使用 Codex 内置 item。
-- 只保留 `approval-requested` 和 `agent-turn-complete` 两类高价值通知，并限制在窗口未聚焦时触发。
-- `alternate_screen = "auto"` 保持官方默认意图：普通终端使用独立屏幕，在 Zellij 等环境中保留滚动历史。
-- 默认不显示 `current-dir`，避免深层工作目录挤占分支、上下文和限额信息；项目名与分支保留在 `terminal_title`。
-- `git-branch` 放在状态栏最前，模型与推理档位放在最后，减少长模型名遮挡工作区状态。
-- `terminal_title` 增加 `status`，让终端标签页能显示会话是否仍在运行。
-- 当前 Codex CLI 不等价支持 Claude `statusLine.command` 式外部脚本渲染；不要把外部命令写进 `status_line`。
-
-### History
-
-```toml
 [history]
 persistence = "save-all"
 max_bytes = 52428800
 ```
 
-策略：
+命令按 AGENTS 约定经 `rtk` 执行。不要使用不支持的 `auto_execute`、`[shell]`、`[workspace]`；这些设置不会提供命令确认或文件写保护。审批与访问边界由官方 approval 和 sandbox 设置控制。不同时启用 beta `default_permissions`。
 
-- 默认保存历史，便于会话接力和本地检索。
-- 设置 `max_bytes`，避免长期无限增长。
+TUI 状态栏、通知、终端标题继续使用官方内置配置；保留本机 notice、screen reader 与项目 trust。认证、session、日志和数据库不进入配置源或公开归档。
 
-## Profile 策略
+## CLI 升级兼容性
 
-| Profile | 启动命令 | 用途 | 核心策略 |
-| --- | --- | --- |
-| 默认 | `codex` | 日常 | `high` reasoning，16 万上下文，低噪音 TUI |
-| `dev` | `codex --profile dev` | 轻量开发 | `low` reasoning，少并行，小工具输出 |
-| `embedded` | `codex --profile embedded` | 嵌入式低成本路径 | `low` reasoning，禁自动命令，低 verbosity |
-| `debug` | `codex --profile debug` | 排障 | `medium` reasoning，保留较大工具输出 |
-| `max` | `codex --profile max` | 深水任务 | `xhigh` reasoning，1M context，高历史上限 |
+从 Codex `0.134.0` 起，`--profile <name>` 读取同目录 `<name>.config.toml`，不再读取主配置中的 `[profiles.<name>]`。本仓当前不维护这些可选文件。将来确需模式时使用文件顶层键，登记到资产清单，再按受管链路同步。
 
-## 多窗口与运行中切换
+本次 43 项 ignored settings 来自无效控制项与旧 profile 表中的不支持字段；删除这两类内容后，默认配置应无启动配置警告。已被忽略的 profile 参数不能当作之前实际生效的运行参数。
 
-运行中的 Codex TUI 不热切换完整配置。切换模式时应退出或另开窗口，以新 profile 启动：
+官方来源：
 
-```bash
-rtk codex --profile dev
-rtk codex --profile debug
-rtk codex --profile embedded
-rtk codex --profile max
-```
+- [Configuration reference](https://developers.openai.com/codex/config-reference)
+- [Advanced configuration](https://learn.chatgpt.com/docs/config-file/config-advanced)
 
-恢复旧会话时也在启动命令上指定 profile：
+## 构建与同步验证
+
+修改配置源后依次执行 build、doctor、plan、apply dry-run、Execution Policy apply gate、apply 和 check。构建使用当前 live 的资产 profile；本机配置有允许漂移时，用明确的临时 source 快照保留本机设置，不把私人 trust 等写入公共配置源。最终构建 receipt 必须绑定实际 source、build 与 target。
+
+默认 plan 保留已有本机配置；需要替换时使用 `--overwrite` 并审阅全部动作。不得借配置修复删除无关资产或覆盖用户其他修改。完整检查中的 smoke 可能重建 build，故检查后若构建身份发生变化，必须重新构建、doctor、plan 和 dry-run。
+
+验证实际用户配置：
 
 ```bash
-rtk codex resume --profile debug --last
-rtk codex resume --profile max <SESSION_ID>
+rtk codex --strict-config doctor --json
 ```
 
-多个窗口并发不同配置时，每个窗口显式指定 profile：
+检查 `config.load`：status 为 `ok`，解析为 `ok`，startup warnings 为 0（无警告时该字段可能省略）。doctor 的安装、更新、终端或会话历史诊断独立判断，不能据此误判配置修复失败。当前 CLI 的 `doctor` 不支持 `--profile`，不能用该入口验证独立模式。
 
-```bash
-# 窗口 A
-rtk codex --profile dev
-
-# 窗口 B
-rtk codex --profile max
-
-# 窗口 C
-rtk codex resume --profile debug --all
-```
-
-不要在多个窗口运行期间反复覆盖 `~/.codex/config.toml`。覆盖全局配置只影响后续启动，并且容易让窗口模式来源变得不可追踪。
-
-旧模板覆盖方式已移除。需要新增模式时，直接在 `src/codex-home/config/base.toml` 增加 `[profiles.<name>]`，并同步更新本指南。
-
-## 更新流程
-
-每次调整配置后执行：
-
-```bash
-rtk bash ~/codex/scripts/build.sh
-rtk bash ~/codex/scripts/doctor.sh --scope all
-rtk bash ~/codex/scripts/plan.sh --target ~/.codex --prune-stale --output ~/codex/build/apply-plan.json
-rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan.json --dry-run
-rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan.json
-rtk codex --strict-config doctor --summary --ascii
-```
-
-如果默认 `~/.codex/config.toml` 已发生允许漂移，且确需同步 source 的默认配置，再单独执行覆盖预演：
-
-```bash
-rtk bash ~/codex/scripts/plan.sh --target ~/.codex --overwrite --prune-stale --output ~/codex/build/apply-plan-overwrite.json
-rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan-overwrite.json --dry-run
-rtk bash ~/codex/scripts/apply.sh --plan ~/codex/build/apply-plan-overwrite.json
-```
-
-发布或 final 前补：
-
-```bash
-rtk bash ~/codex/scripts/runtime-control.sh gate --event apply
-rtk bash ~/codex/scripts/runtime-control.sh gate --event final
-```
-
-## 升级 Codex CLI 后的核验
-
-1. 运行 `rtk codex --version` 记录版本。
-2. 打开官方配置文档，核对新增、弃用和默认值变化。
-3. 运行 `rtk codex --strict-config doctor --summary --ascii`。
-4. 运行 `rtk codex features list`，不要默认启用 under-development flag。
-5. 若官方字段变化影响本指南，同步修改本文件和 `src/codex-home/config/base.toml`。
+运行中的会话不热加载完整配置；修复供下一次启动读取，无需主动中断当前会话。
