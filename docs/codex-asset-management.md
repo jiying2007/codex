@@ -480,3 +480,10 @@ rtk bash scripts/rollback.sh --plan build/apply-plan.live.json
 ```
 
 rollback 处理 plan 中记录的 copy、overwrite 和 delete 项：新增文件会移除，被覆盖或删除的文件会从备份恢复。rollback 后应重新 build 原 profile，并执行 doctor、diff 和 drift，确保 build 与 live 再次一致。
+## 本机权限构建输入
+
+保留既有本机权限时，使用显式 `build --local-rules <local.json> --expected-local-rules-sha256 <批准的哈希>`，再按 build、doctor、plan、apply dry-run、apply、check 执行。输入不从 live 自动读取，也不放宽 drift 检查；受管输出必须匹配 source、profile、输入哈希和 base rules 哈希。
+
+本机 JSON 包含 `schema_version=1`、`profile`、`target=rules/default.rules`、`base_sha256` 和 `extra_rules`。每行只允许声明 `prefix_rule(pattern=[...], decision=...)`，不会执行输入代码。生成的 managed state 保存 `machine_inputs`，后续 build 检查重新核对输入。个人权限输入保持本地，不成为团队发布默认权限。
+
+实际应用将个人输入保存在原源仓的 `local/exec-rules.json`，该路径由 Git 忽略；build 与 doctor 通过显式输入哈希核验它。临时审查目录只用于资格验证，发布后的运行和重建使用原源仓中的稳定输入。

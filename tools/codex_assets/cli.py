@@ -56,7 +56,9 @@ def default_root() -> pathlib.Path:
 
 
 def cmd_build(args: argparse.Namespace) -> int:
-    build = build_repo(args.root, args.profile or "", args.source or "", args.build or "")
+    build = build_repo(args.root, args.profile or "", args.source or "", args.build or "",
+                       local_rules_arg=args.local_rules or "",
+                       local_rules_sha256=args.expected_local_rules_sha256 or "")
     state = read_json(build / "control/state/managed-files.json")
     print(f"[DONE] build profile={state['profile']} output={build} managed={len(state['managed'])}")
     return 0
@@ -164,7 +166,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         else:
             state = read_json(build / "control/state/managed-files.json")
             source = pathlib.Path(state.get("source") or repo.source).expanduser().resolve()
-            expected_fingerprint = source_fingerprint(repo, source)
+            from .local_exec_rules import verified_inputs
+            try:
+                inputs = verified_inputs(state["machine_inputs"], source, state["profile"])
+            except (KeyError, ValueError, SyntaxError, TypeError, OSError) as exc:
+                errors.append("build machine inputs invalid: " + str(exc))
+                inputs = {}
+            expected_fingerprint = source_fingerprint(repo, source, inputs)
             actual_fingerprint = state.get("source_fingerprint", "")
             if not actual_fingerprint:
                 errors.append("build 缺少 source_fingerprint，请重新 build")
@@ -512,6 +520,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--profile", default="")
     p.add_argument("--source", default="")
     p.add_argument("--build", default="")
+    p.add_argument("--local-rules", default="")
+    p.add_argument("--expected-local-rules-sha256", default="")
     p.set_defaults(func=cmd_build)
 
     p = sub.add_parser("plan", parents=[common])
