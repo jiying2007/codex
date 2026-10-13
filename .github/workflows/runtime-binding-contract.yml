@@ -178,10 +178,10 @@ jobs:
       - name: Prove missing provider fails closed
         run: |
           set +e
-          HOME="$RUNNER_TEMP/no-provider-home" bash scripts/knowledge-provider.sh status >"$RUNNER_TEMP/provider-status.json"
+          KNOWLEDGE_HUB_ROOT="$RUNNER_TEMP/no-provider-source" bash scripts/knowledge-provider.sh status >"$RUNNER_TEMP/provider-status.json"
           rc=$?
           set -e
           test "$rc" -eq 2
-          grep -q '"status":"BLOCKED"' "$RUNNER_TEMP/provider-status.json"
+          python -c 'import json, pathlib, sys; value = json.loads(pathlib.Path(sys.argv[1]).read_text()); reasons = value["reason_codes"]; assert value["status"] == "BLOCKED" and value["persisted"] is False and value["write_performed"] is False and isinstance(reasons, list) and all(isinstance(reason, str) for reason in reasons) and "SOURCE_DRIFT" in reasons' "$RUNNER_TEMP/provider-status.json"
       - name: Ensure CI never applies to a real Codex home
         run: test ! -e "$HOME/.codex/control/state/active-profile.env"
