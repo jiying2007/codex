@@ -94,6 +94,33 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
             check=False,
         )
 
+    def test_context_maintenance_rechecks_are_read_only_and_keep_apply_gate_closed(self) -> None:
+        started = self.run_cli(*self.start_args("context-maintenance"))
+        self.assertEqual(started.returncode, 0, started.stderr)
+        journal = next((self.codex_home / "execution-policy").glob("thread-*.jsonl"))
+        original = journal.read_bytes()
+        rollout = self.codex_home / "rollout.jsonl"
+        record = json.loads(rollout.read_text())
+        record["payload"]["info"]["last_token_usage"]["input_tokens"] = 600
+        rollout.write_text(json.dumps(record, separators=(",", ":")) + "\n")
+        (self.codex_home / "config.toml").write_text('model_auto_compact_token_limit = 300\n')
+        for _ in range(3):
+            result = self.run_cli("gate", "--event", "apply")
+            self.assertEqual(result.returncode, 3, result.stderr)
+            decision = json.loads(result.stdout)
+            self.assertEqual(decision["recommended_action"], "compact")
+            self.assertFalse(decision["gate_allowed"])
+            self.assertTrue(decision["host_context_maintenance"]["required"])
+            self.assertIn("required-artifact-missing", decision["reasons"])
+        self.assertEqual(journal.read_bytes(), original)
+        # Simulate a fresh, reduced input observation; config alone never clears pressure.
+        record["payload"]["info"]["last_token_usage"]["input_tokens"] = 100
+        rollout.write_text(json.dumps(record, separators=(",", ":")) + "\n")
+        decision = json.loads(self.run_cli("snapshot").stdout)
+        self.assertFalse(decision["host_context_maintenance"]["required"])
+        self.assertEqual(decision["goal_id"], "context-maintenance")
+        self.assertEqual(journal.read_bytes(), original)
+
     def start_args(self, goal_id: str, *, open_items: int = 1) -> tuple[str, ...]:
         return (
             "goal", "start",

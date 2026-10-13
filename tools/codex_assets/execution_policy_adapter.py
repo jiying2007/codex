@@ -374,7 +374,13 @@ def snapshot(
     events = load_journal(journal)
     events.append(usage_event(thread, rate_per_minute=rate_per_minute))
     state = _engine_state(events)
-    return state, _decision(state, config, gate_event)
+    decision = _decision(state, config, gate_event)
+    from .context_maintenance import maintenance_diagnostic
+
+    decision["host_context_maintenance"] = maintenance_diagnostic(
+        state, decision, config["policy"], paths["state_db"].parent / "config.toml"
+    )
+    return state, decision
 
 
 def _emit(value: Mapping[str, Any]) -> None:

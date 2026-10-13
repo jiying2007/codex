@@ -16,7 +16,12 @@ import stat
 import subprocess
 import threading
 import time
-from typing import Any, Callable, Deque, Dict, FrozenSet, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, Deque, Dict, FrozenSet, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
+
+from .feishu_documents import (
+    ApplicationCredentials, DocumentReadError, DocumentReader, MAX_CONTEXT_CHARS, MAX_DOCUMENTS,
+    MAX_RESPONSE_BYTES, links_in_text, parse_document_url,
+)
 
 
 class FeishuCodexError(RuntimeError):
@@ -36,7 +41,7 @@ ALIAS_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}")
 OPEN_ID_PATTERN = re.compile(r"ou_[A-Za-z0-9]+")
 SUPPORTED_MODES = frozenset({"edit", "explain", "review"})
 SUPPORTED_EDIT_STRATEGIES = frozenset({"in_place", "worktree"})
-SOURCE_KINDS = frozenset({"task", "requirement", "defect", "log"})
+SOURCE_KINDS = frozenset({"task", "requirement", "defect", "log", "doc"})
 SOURCE_VALUE_PATTERN = re.compile(r"[^\s]{1,256}")
 ARTIFACT_EXTENSION_PATTERN = re.compile(r"\.[a-z0-9][a-z0-9._-]{0,15}")
 ARTIFACT_REFERENCE_MAX_CHARS = 512
@@ -536,10 +541,15 @@ def parse_command(text: str, default_repo: str) -> ParsedCommand:
     artifact = ""
     while parts:
         match = re.fullmatch(r"(repo|mode)=([A-Za-z0-9_-]+)", parts[0])
-        source_match = re.fullmatch(r"(task|requirement|defect|log)=([^\s]+)", parts[0])
+        source_match = re.fullmatch(r"(task|requirement|defect|log|doc)=([^\s]+)", parts[0])
         if source_match:
             kind, value = source_match.groups()
-            if not SOURCE_VALUE_PATTERN.fullmatch(value):
+            if kind == "doc":
+                try:
+                    value = parse_document_url(value).url
+                except DocumentReadError as exc:
+                    raise FeishuCodexError(str(exc)) from None
+            elif not SOURCE_VALUE_PATTERN.fullmatch(value):
                 raise FeishuCodexError(f"{kind} 引用格式无效")
             sources.append(SourceRef(kind, value))
             parts.pop(0)
@@ -564,6 +574,16 @@ def parse_command(text: str, default_repo: str) -> ParsedCommand:
     task = " ".join(parts).strip()
     if not task:
         raise FeishuCodexError("任务内容为空；发送 /help 查看用法")
+    try:
+        for reference in links_in_text(task):
+            source = SourceRef("doc", reference.url)
+            if source not in sources:
+                sources.append(source)
+    except DocumentReadError as exc:
+        raise FeishuCodexError(str(exc)) from None
+    sources = list(dict.fromkeys(sources))
+    if sum(source.kind == "doc" for source in sources) > MAX_DOCUMENTS:
+        raise FeishuCodexError(f"每条任务最多读取 {MAX_DOCUMENTS} 个飞书文档链接")
     return ParsedCommand("task", repository, mode, task, tuple(sources), artifact)
 
 
@@ -890,6 +910,8 @@ class MessageGate:
         message_type = str(getattr(message, "message_type", "") or "")
         open_id = str(getattr(sender_id, "open_id", "") or "")
         if chat_id != self.config.target_chat_id or message_type != "text" or not message_id:
+            return None
+        if self.config.allowed_open_ids and open_id not in self.config.allowed_open_ids:
             return None
         mentions = getattr(message, "mentions", None) or []
         mention_keys = [str(getattr(item, "key", "") or "") for item in mentions]
@@ -1305,7 +1327,7 @@ class CodexRunner:
 
 
 class FeishuTransport:
-    def __init__(self, config: BotConfig) -> None:
+    def __init__(self, config: Union[BotConfig, ApplicationCredentials]) -> None:
         self.config = config
         try:
             import lark_oapi as lark
@@ -1330,7 +1352,10 @@ class FeishuTransport:
         self.GetTaskRequest = GetTaskRequest
         self.ReplyMessageRequest = ReplyMessageRequest
         self.ReplyMessageRequestBody = ReplyMessageRequestBody
-        self.client = lark.Client.builder().app_id(config.app_id).app_secret(config.app_secret).build()
+        self.client = (
+            lark.Client.builder().app_id(config.app_id).app_secret(config.app_secret)
+            .timeout(15).log_level(lark.LogLevel.ERROR).build()
+        )
 
     def _send_message(
         self,
@@ -1453,16 +1478,50 @@ class FeishuTransport:
             reply_to_message_id,
         )
 
+    def _document_get(self, path: str, queries: Mapping[str, str]) -> Dict[str, Any]:
+        request = (
+            self.lark.BaseRequest.builder().http_method(self.lark.HttpMethod.GET)
+            .uri(path).token_types({self.lark.AccessTokenType.TENANT})
+            .queries(list(queries.items())).build()
+        )
+        try:
+            response = self.client.request(request)
+        except Exception as exc:
+            raise DocumentReadError(f"飞书只读请求失败（{type(exc).__name__}）") from None
+        if not response.success():
+            raise DocumentReadError(f"飞书读取失败（code={response.code}）；请核对应用权限和文档访问授权")
+        raw = response.raw.content
+        if not isinstance(raw, bytes) or len(raw) > MAX_RESPONSE_BYTES:
+            raise DocumentReadError("飞书正文响应格式无效或超过 2 MiB 上限")
+        try:
+            payload = json.loads(raw)
+        except (ValueError, UnicodeError):
+            raise DocumentReadError("飞书返回非 JSON 正文") from None
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, dict):
+            raise DocumentReadError("飞书正文响应缺少 data")
+        return data
+
     def resolve_sources(self, sources: Sequence[SourceRef]) -> str:
+        if sum(source.kind == "doc" for source in sources) > MAX_DOCUMENTS:
+            raise FeishuCodexError(f"每条任务最多读取 {MAX_DOCUMENTS} 个飞书文档链接")
         rendered: List[str] = []
         for source in sources:
             try:
                 rendered.append(self._resolve_source(source))
             except Exception as exc:
+                if source.kind == "doc":
+                    message = str(exc) if isinstance(exc, DocumentReadError) else type(exc).__name__
+                    raise FeishuCodexError(f"文档上下文未能读取，任务未交给 Codex：{message}") from None
                 rendered.append(f"- {source.kind}={source.value}：读取异常（{type(exc).__name__}），未静默忽略。")
-        return "\n".join(rendered)
+        context = "\n".join(rendered)
+        if len(context) > MAX_CONTEXT_CHARS:
+            raise FeishuCodexError("关联上下文超过 12000 字符；请减少引用或缩小 range")
+        return context
 
     def _resolve_source(self, source: SourceRef) -> str:
+        if source.kind == "doc":
+            return DocumentReader(self._document_get).read(parse_document_url(source.value))
         if source.kind == "task":
             request = self.GetTaskRequest.builder().task_guid(source.value).user_id_type("open_id").build()
             response = self.client.task.v2.task.get(request)
@@ -1567,6 +1626,8 @@ class FeishuCodexBot:
             "可用命令：\n"
             "repo=<别名> mode=explain <任务>\n"
             "repo=<别名> mode=review <审查任务>\n"
+            "repo=<别名> mode=explain [doc=<飞书文档链接>] <任务>\n"
+            "也可在任务正文粘贴 wiki、docx、sheets 链接；表格可用 range=A1:C20 限定范围\n"
             "repo=<别名> mode=edit [task=<GUID>] [requirement=<ID>] [defect=<ID>] [log=<消息ID>] <修改任务>\n"
             "repo=<别名> mode=edit artifact=<仓库相对路径> <构建任务>\n"
             "artifact 仅在仓库策略允许时回传，且表示本次显式文件外传授权\n"
@@ -1669,6 +1730,8 @@ class FeishuCodexBot:
                         flush=True,
                     )
                     source_context = self.transport.resolve_sources(job.sources)
+                    if len(job.task) + len(source_context) > self.config.max_prompt_chars:
+                        raise FeishuCodexError("任务与关联上下文超过提示预算；请缩小 range 或减少引用")
                     result = self.runner.run(job, source_context)
                     if result.worktree_path is not None:
                         self.store.record_result(
@@ -1710,19 +1773,50 @@ class FeishuCodexBot:
 def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "action",
-        choices=["check", "run-once", "discover-owner", "send-test", "start"],
+        choices=["check", "run-once", "discover-owner", "send-test", "start", "read-source"],
     )
     parser.add_argument("--env-file", default="")
     parser.add_argument("--prompt", default="")
     parser.add_argument("--repo", default="")
     parser.add_argument("--mode", default="explain", choices=sorted(SUPPORTED_MODES))
     parser.add_argument("--confirm-send", action="store_true")
+    parser.add_argument("--url", default="", help="read-source 的飞书文档、知识库或表格链接")
+    parser.add_argument("--dry-run", action="store_true", help="read-source 仅解析链接，不加载凭据或联网")
+    parser.add_argument("--show-content", action="store_true", help="read-source 显式输出读取正文；默认仅显示摘要")
 
 
 def run(args: argparse.Namespace) -> int:
     root = pathlib.Path(args.root).expanduser().resolve()
+    if args.action != "read-source" and any((
+        getattr(args, "dry_run", False), getattr(args, "show_content", False), getattr(args, "url", ""),
+    )):
+        raise FeishuCodexError("--url、--dry-run、--show-content 仅适用于 read-source")
+    if args.action == "read-source":
+        try:
+            reference = parse_document_url(args.url)
+        except DocumentReadError as exc:
+            raise FeishuCodexError(str(exc)) from None
+        if args.dry_run:
+            print(json.dumps({"read_only": True, "network_requested": False, "credential_loaded": False,
+                              "url": reference.url, "kind": reference.kind,
+                              "sheet": reference.sheet, "range": reference.cell_range or "default"}, ensure_ascii=False))
+            return 0
     env_file = pathlib.Path(args.env_file).expanduser().resolve() if args.env_file else root / "mcp/secrets/feishu.env"
-    config = BotConfig.from_values(merged_environment(env_file, os.environ), root)
+    values = merged_environment(env_file, os.environ)
+    if args.action == "read-source":
+        missing = [key for key in ("FEISHU_APP_ID", "FEISHU_APP_SECRET") if not values.get(key, "").strip()]
+        if missing:
+            raise FeishuCodexError("缺少环境变量: " + ", ".join(missing))
+        transport = FeishuTransport(ApplicationCredentials(values["FEISHU_APP_ID"], values["FEISHU_APP_SECRET"]))
+        context = transport.resolve_sources((SourceRef("doc", reference.url),))
+        if args.show_content:
+            print(context)
+        else:
+            print(json.dumps({"read_verified": True, "read_only": True,
+                              "context_chars": len(context), "content_printed": False,
+                              "context_sha256": hashlib.sha256(context.encode("utf-8")).hexdigest()}, ensure_ascii=False))
+        return 0
+    config = BotConfig.from_values(values, root)
     runner = CodexRunner(config)
     if args.action == "check":
         config.validate_runtime()

@@ -1,0 +1,3 @@
+interface:
+  display_name: "飞书只读读取"
+  short_description: "在 Codex CLI 中读取飞书文档和表格，保留范围与来源"

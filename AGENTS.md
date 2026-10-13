@@ -8,7 +8,7 @@
 - 小任务直接实现验证；非平凡任务先冻结目标、边界、风险、验收与阻塞；长任务使用 `adk-planning-execution-loop`。
 - 每场景仅一个 primary skill；需求、拆解、调试、review、完成验证使用对应 `adk-*`，收尾用 `session-wrap`。
 - 上游 Skill 的命令/路径仅对其源仓有效；跨项目先核实入口，不复制其发布规则或知识目录。
-- 可报告的实质产出需要持久化时，只允许通过 `rtk bash ~/codex/scripts/knowledge-provider.sh ...` 访问 Knowledge Provider；仅 Provider 明确返回成功语义才能声明已记录。不得依赖 Hub 内部目录、临时 receipt、缓存或实现脚本作为跨仓契约，也不得从 Git、路径、memory 或聊天身份推断主体。
+- 实质产出持久化仅用 `rtk bash ~/codex/scripts/knowledge-provider.sh ...` 访问 Knowledge Provider；仅 Provider 明确成功回执可声明已记录。Hub 内部目录、临时 receipt、缓存或实现脚本不得作跨仓契约；Git、路径、memory 或聊天身份不得用于推断主体。
 - catalog 未命中时运行 `rtk bash ~/codex/scripts/skill-search.sh --query "<任务>" --profile default --limit 3 --summary-json`；只加载选中项完整 `SKILL.md`，零命中可直接执行。
 
 ## 2. 上下文与知识
@@ -16,7 +16,7 @@
 - 项目事实、决策、runbook、release、debug 或长期结论优先通过 Provider Adapter 查询：
   `rtk bash ~/codex/scripts/knowledge-provider.sh context --cwd "$PWD" --query "<任务>" --task-type <type> --context-budget small --limit 3 --summary-json`
 - Provider unavailable / route unresolved 必须 BLOCKED 或 NEEDS_REVIEW；不得把本地缓存或路径猜测升级为事实。耐久结论只能形成 reviewing candidate/proposal，或声明无可归档结论。
-- final/apply/目标切换前运行 Execution Policy；按 `checkpoint`、`compact`、`replan`、`stop` 决策收口接力。automation 默认 disabled/report-only。
+- final/apply/目标切换前运行 Execution Policy；compact 先接力再宿主压缩复核，勿轮询或计业务阻塞；其他决策见 docs/execution-policy.md。automation 默认 disabled/report-only。
 - 自动：`docs/provider-archive.md`。
 
 ## 3. 命令与安全

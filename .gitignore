@@ -35,6 +35,7 @@ control/state/backup/
 control/generated/config-managed.toml
 mcp/secrets/*
 !mcp/secrets/README.md
+mcp/vendor/lark-cli/
 skills/.system/
 src/codex-home/skills/.system/
 src/codex-home/logs/

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source_repo": "https://github.com/larksuite/cli",
+  "source_commit": "72579c80027c863ca51d5f9affda72a70ab0d8a6",
+  "release": "v1.0.97",
+  "license": "MIT",
+  "install_scope": "optional-readonly-cli",
+  "binary_rel": "mcp/vendor/lark-cli/1.0.97/linux-amd64/lark-cli",
+  "binary_sha256": "815e39960ad5f4e2328d2d01eb82c1cb233b3ff80986cb0ff163ea860f8e9870",
+  "archive_sha256": "7ce11848724f0b0bc8204012140adbf76fe7c1fc8abd41c1878bc97b7228126b",
+  "archive_url": "https://github.com/larksuite/cli/releases/download/v1.0.97/lark-cli-1.0.97-linux-amd64.tar.gz",
+  "identity": "bot",
+  "network_targets": ["open.feishu.cn"],
+  "policy_rel": "src/codex-home/vendor/skills/feishu-readonly/0.1.0/references/policy.yml",
+  "allowed_commands": ["wiki/+node-get", "docs/+fetch", "sheets/+workbook-info", "sheets/+csv-get", "sheets/+cells-get"],
+  "upstream_skills": ["lark-shared", "lark-doc", "lark-sheets", "lark-wiki"],
+  "upstream_skills_use": "intake-design-only",
+  "writes_allowed": false
+}

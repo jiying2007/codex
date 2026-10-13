@@ -17,7 +17,7 @@
 - 飞书凭据不会传给 Codex 子进程；Bubblewrap 同时把私有凭据目录从子进程文件系统中隐藏。
 - SQLite 不保存消息正文或 Codex 输出，只保存去重 ID、用户 ID、仓库别名、个人默认项目、模式和任务状态。
 
-## 2. 当前仓库别名
+## 2. 基础策略与当前环境
 
 | 别名 | 工作目录 | 模式 | edit 策略 |
 | --- | --- | --- | --- |
@@ -26,7 +26,11 @@
 | `llm_apps` | `/home/leiwenjun/bin/llm_apps` | `explain`, `review`, `edit` | `in_place` |
 | `x5` | `/vsdata/leiwenjun/work/rdk/x5` | `explain`, `review`, `edit` | `in_place` |
 
-系统默认项目是 `llm_apps`。直接写任务会保留在当前仓库工作区中，便于本地立即审查；同一仓库一次只运行一个任务。
+上述是原基础策略的仓库登记，默认项目为 `llm_apps`。当前环境使用独立的 `mcp/secrets/feishu-bot-current.json`：只登记 `codex`，默认项目为 `codex`，只允许 `explain`、`review`，未启用 `edit` 和文件上传；不需要每条消息指定 `repo=`。原策略和凭据文件保持不变。
+
+当前环境通过 `~/.config/systemd/user/feishu-codex-bot.service.d/current-environment.conf` 覆盖 `FEISHU_BOT_CONFIG`。默认工作目录用于 Codex 的本地执行和隔离；飞书文档不需要保存到该仓库。单独使用 `read-source` CLI 时只需要应用凭据，不依赖任何仓库登记。
+
+下文的直接写任务和文件回传示例仅适用于明确开放对应权限的部署策略。直接写任务会保留在所选仓库工作区中，便于本地审查；同一仓库一次只运行一个任务。
 `llm_apps` 额外允许回传 `android-prototype/dist/android/` 下不超过 30 MiB 的非空 `.apk`；其他仓库默认不允许文件回传。
 
 ## 3. 飞书使用
@@ -96,7 +100,33 @@ repo=llm_apps mode=edit artifact=android-prototype/dist/android/1.0.0/jingdu-1.0
 
 关联正文只进入当前 Codex 提示，不写入 SQLite；SQLite 只保存引用类型和 ID。入站附件下载尚未启用，日志请先用文本消息或 `log=<消息ID>` 引用；这不影响上述出站构建产物回传。
 
-### 3.6 控制命令
+### 3.6 飞书文档与表格链接读取
+
+在任务正文中粘贴链接，或使用 `doc=<链接>` 前缀，服务会在既有会话和用户白名单检查后读取内容，再交给 Codex。例如：
+
+```text
+repo=codex mode=explain doc=https://example.feishu.cn/wiki/NodeToken?sheet=SheetId&range=A1:C20 根据表格整理问题
+repo=codex mode=review 根据需求文档检查当前代码 https://example.feishu.cn/docx/DocumentToken
+```
+
+支持 `wiki`、`docx`、`sheets` 链接；知识库节点仅支持底层新版文档或电子表格。多维表格、附件和飞书项目工作项正文尚未接入。链接只解析，实际网络请求发往飞书官方 API，不直接访问用户提供的主机。
+
+每个任务最多 3 个链接。电子表格未指定 `sheet` 时读取第一个返回的工作表；未指定 `range` 时读取从 A1 开始至多 50 行、20 列，并按实际网格缩小。显式范围最多 100 行、26 列、2000 单元格。单文档正文会标记截断，关联上下文总量超过 12000 字符时要求缩小范围。拒绝权限不足、无效对象或不存在的工作表，不在缺少文档证据时继续调用 Codex。
+
+内容仅作为不可信参考数据进入本次提示；SQLite 仅保存链接引用，不保存正文。需要应用身份权限 `wiki:wiki:readonly`、`docx:document:readonly`、`sheets:spreadsheet:readonly` 中与对象对应的权限，以及目标资源访问授权。开通权限不代表所有文档可读。
+
+只读 CLI 复验入口：
+
+```bash
+rtk bash /home/leiwenjun/codex/scripts/feishu-codex-bot.sh read-source --url 'https://example.feishu.cn/wiki/NodeToken?sheet=SheetId&range=A1:C3' --dry-run
+rtk bash /home/leiwenjun/codex/scripts/feishu-codex-bot.sh read-source --url 'https://example.feishu.cn/wiki/NodeToken?sheet=SheetId&range=A1:C3'
+```
+
+`--dry-run` 不读取凭据或联网；实际读取默认仅输出上下文长度与 SHA-256，不打印正文。显式添加 `--show-content` 才输出正文。此入口不会启动 Codex、发送消息或写入云端文档。
+
+源码更新后需在真实部署端按第 5 节检查、重启常驻服务，再从白名单用户的目标会话验证。CLI 读取成功不能替代聊天端联调。
+
+### 3.7 控制命令
 
 ```text
 /help

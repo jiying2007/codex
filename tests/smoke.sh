@@ -49,12 +49,13 @@ for profile in "${PROFILES[@]}"; do
     default)
       test -L "$TARGET/skills/adk-runtime-router"
       test ! -e "$TARGET/skills/skill-asset-manager"
-      test "$(find "$TARGET/skills" -mindepth 1 -maxdepth 1 -type l | wc -l)" -eq 11
+      test -L "$TARGET/skills/feishu-readonly"
+      test "$(find "$TARGET/skills" -mindepth 1 -maxdepth 1 -type l | wc -l)" -eq 12
       ;;
   esac
 done
 
-rtk bash "$ROOT/scripts/build.sh" --profile "$MAIN_PROFILE"
+rtk bash "$ROOT/scripts/build.sh" --profile "$MAIN_PROFILE" --reuse-context-input --reuse-machine-inputs
 test -f "$ROOT/manifests/lock.json"
 grep -Fxq "PROFILE=$MAIN_PROFILE" "$MAIN_PROFILE_STATE"
 
