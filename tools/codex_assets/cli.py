@@ -49,6 +49,7 @@ from .feishu_codex_bot import (
     configure_parser as configure_feishu_codex_parser,
     run as run_feishu_codex_bot,
 )
+from .feishu_cli_read import configure_parser as configure_feishu_read_parser, run as run_feishu_read
 
 
 def default_root() -> pathlib.Path:
@@ -57,6 +58,7 @@ def default_root() -> pathlib.Path:
 
 def cmd_build(args: argparse.Namespace) -> int:
     build = build_repo(args.root, args.profile or "", args.source or "", args.build or "",
+                       context_config_from=args.context_config_from, reuse_context_input=args.reuse_context_input,
                        local_rules_arg=args.local_rules or "",
                        local_rules_sha256=args.expected_local_rules_sha256 or "")
     state = read_json(build / "control/state/managed-files.json")
@@ -85,7 +87,24 @@ def cmd_apply(args: argparse.Namespace) -> int:
     else:
         build = pathlib.Path(args.build).expanduser().resolve() if args.build else repo.build
         if args.run_build and not args.dry_run:
-            build = build_repo(repo.root, args.profile or "", "", str(build))
+            rebuild_inputs = {}
+            rebuild_profile = args.profile or ""
+            state_path = build / "control/state/managed-files.json"
+            if state_path.is_file():
+                from .context_maintenance import reusable_context_input
+                from .local_exec_rules import verified_inputs
+                previous = read_json(state_path)
+                source = pathlib.Path(previous.get("source") or repo.source).expanduser().resolve()
+                if source != repo.source.resolve():
+                    raise CodexAssetError("implicit rebuild requires the original default source")
+                profile = args.profile or previous["profile"]
+                rebuild_profile = profile
+                inputs = verified_inputs(previous.get("machine_inputs", {}), source, profile)
+                rebuild_inputs["context_config_from"] = reusable_context_input(previous)
+                if "exec_rules" in inputs:
+                    rebuild_inputs["local_rules_arg"] = inputs["exec_rules"]["path"]
+                    rebuild_inputs["local_rules_sha256"] = inputs["exec_rules"]["sha256"]
+            build = build_repo(repo.root, rebuild_profile, "", str(build), **rebuild_inputs)
         target = pathlib.Path(args.target or "~/.codex").expanduser()
         backup_root = pathlib.Path(args.backup_root).expanduser() if args.backup_root else repo.root / ".backups/apply" / datetime.now().strftime("%Y%m%d-%H%M%S")
         plan = plan_apply(repo.root, build, target, backup_root, args.overwrite, args.prune_stale)
@@ -166,6 +185,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         else:
             state = read_json(build / "control/state/managed-files.json")
             source = pathlib.Path(state.get("source") or repo.source).expanduser().resolve()
+            from .context_maintenance import reusable_context_input
+            try:
+                reusable_context_input(state)
+            except (ValueError, TypeError, OSError) as exc:
+                errors.append("build context input invalid: " + str(exc))
             from .local_exec_rules import verified_inputs
             try:
                 inputs = verified_inputs(state["machine_inputs"], source, state["profile"])
@@ -522,6 +546,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--build", default="")
     p.add_argument("--local-rules", default="")
     p.add_argument("--expected-local-rules-sha256", default="")
+    p.add_argument("--context-config-from", default="", help="preserve input TOML except two managed native compaction keys")
+    p.add_argument("--reuse-context-input", action="store_true", help="reuse the previous build input only if its recorded hash still matches")
     p.set_defaults(func=cmd_build)
 
     p = sub.add_parser("plan", parents=[common])
@@ -671,6 +697,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("feishu-codex-bot", parents=[common])
     configure_feishu_codex_parser(p)
     p.set_defaults(func=cmd_feishu_codex_bot)
+
+    p = sub.add_parser("feishu-read", parents=[common])
+    configure_feishu_read_parser(p)
+    p.set_defaults(func=run_feishu_read)
 
     p = sub.add_parser("curate-memory", parents=[common])
     p.add_argument("--memories", default="~/.codex/memories")

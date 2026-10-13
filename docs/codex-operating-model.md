@@ -8,8 +8,8 @@
 
 | 线程角色 | 主要职责 | 默认入口 | 收口动作 |
 | --- | --- | --- | --- |
-| `asset-governance` | 维护 `~/codex` 资产、manifest、skill、agent、apply 链路 | `rtk bash scripts/runtime-control.sh snapshot` | `build -> doctor -> plan/dry-run -> apply -> check` |
-| `implementation` | 单仓实现、修复、重构和验证 | 项目 `AGENTS.md` + 定向测试 | `runtime-control gate --event final`，必要时 `session-wrap` |
+| `asset-governance` | 维护 `~/codex` 资产、manifest、skill、agent、apply 链路 | `rtk python3 -m tools.codex_assets execution-policy snapshot` | `build -> doctor -> plan/dry-run -> apply -> check` |
+| `implementation` | 单仓实现、修复、重构和验证 | 项目 `AGENTS.md` + 定向测试 | `execution-policy gate --event final`，必要时 `session-wrap` |
 | `release-ops` | 发布、版本、产物、NAS/OTA/量产闭环 | release 脚本和发布 runbook | 记录版本、产物路径、校验和、回退方式 |
 | `research-archive` | 外部资料核验、调研结论、归档与记忆候选 | `multi-search-engine`、`browser-reader`、`archive-search` | `research-note-wrap -> knowledge-archive -> memory-curator --dry-run` |
 | `external-monitor` | 等待型任务、PR/文档/外部反馈跟踪 | 明确数据源、刷新频率和只读边界 | 输出 action queue，不自动提交或发送 |
@@ -36,7 +36,8 @@
 完成后收口动作：
 ```
 
-Goal 只通过 Runtime Control Journal 创建和更新，策略只登记在 `manifests/runtime_control.json`。
+本地任务记录只通过 Execution Policy Journal 创建和更新，策略登记在 `manifests/execution_policy.json`。
+它与宿主原生 goal 的自动续跑机制分别验收，不冒充宿主调度器。
 不读取平台 goal table、不从 thread title 推断，也不维护第二套 goal template/state。
 
 目标强度：
@@ -147,11 +148,14 @@ MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `c
 准备 final、commit、push、apply 或目标切换前：
 
 ```bash
-rtk bash scripts/runtime-control.sh snapshot
-rtk bash scripts/runtime-control.sh gate --event final
+rtk python3 -m tools.codex_assets execution-policy --thread-id "${CODEX_THREAD_ID:?current thread id required}" snapshot
+rtk python3 -m tools.codex_assets execution-policy --thread-id "${CODEX_THREAD_ID:?current thread id required}" gate --event final
 ```
 
-长线程或 context 压力高时：
+长线程出现 `context-pressure → compact` 时先保留恢复入口，请求宿主压缩后复核。
+缺少模型侧压缩工具不等于宿主不支持压缩；不得连续空轮询或据此计业务阻塞。
+宿主确认失败或不支持时才要求人工介入或新会话接力，详见 `docs/execution-policy.md`。
+新会话接力流程：
 
 ```text
 context-preflight -> session-wrap -> archive-note -> memory-curator --dry-run -> new session

@@ -85,7 +85,7 @@ jobs:
               raise SystemExit('GitHub actions must be SHA pinned:\n' + '\n'.join(failures))
           PY
       - name: Install validation dependency
-        run: python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
+        run: python -m pip install --disable-pip-version-check --no-input -r requirements-codex-assets.txt
       - name: Validate profile manifests
         run: |
           python -m json.tool manifests/profiles.json >/dev/null

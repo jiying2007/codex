@@ -107,7 +107,7 @@ else
   echo "[INFO] plan=reused validation=build-receipt+target"
 fi
 rtk bash "$ROOT/scripts/apply.sh" --plan "$PLAN" --target "$TARGET" --dry-run --plan-out "$ROOT/build/apply-plan.check-dry-run.json"
-rtk bash "$ROOT/tests/smoke.sh"
+rtk bash "$ROOT/tests/smoke.sh" "$ROOT/build/check-smoke-home"
 if [[ "$MODE" == "post-apply" ]]; then
   rtk bash "$ROOT/scripts/diff.sh" --target "$TARGET"
   rtk bash "$ROOT/scripts/drift.sh" --target "$TARGET"

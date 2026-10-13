@@ -537,7 +537,8 @@ def build_lock(repo: Repo, profile: str, managed: list[dict[str, Any]]) -> dict[
     }
 
 
-def render_config(repo: Repo, build: pathlib.Path, profile: str, source: pathlib.Path | None = None) -> None:
+def render_config(repo: Repo, build: pathlib.Path, profile: str, source: pathlib.Path | None = None,
+                  context_config_from: pathlib.Path | None = None) -> None:
     config_spec = repo.assets.get("config", {})
     base_rel = config_spec.get("base", "config/base.toml")
     profile_rel = config_spec.get("profiles", {}).get(profile)
@@ -557,7 +558,14 @@ def render_config(repo: Repo, build: pathlib.Path, profile: str, source: pathlib
         parts.append(mcp_config)
     output = build / output_rel
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text("\n".join(parts))
+    rendered = "\n".join(parts)
+    if context_config_from is not None:
+        from .context_maintenance import merge_context_config
+        try:
+            rendered = merge_context_config(context_config_from.read_text(encoding="utf-8"), rendered)
+        except (OSError, ValueError) as exc:
+            fail(f"context 配置合并失败: {exc}")
+    output.write_text(rendered)
 
 
 def toml_value(value: Any) -> str:
@@ -605,12 +613,21 @@ def render_mcp_config(repo: Repo, profile: str) -> str:
 
 
 def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str = "", build_arg: str = "",
+               context_config_from: str = "", reuse_context_input: bool = False,
                *, local_rules_arg: str = "", local_rules_sha256: str = "") -> pathlib.Path:
     repo = Repo.from_path(root)
     assets = repo.assets
     policies = repo.policies
     source = pathlib.Path(source_arg).expanduser().resolve() if source_arg else repo.source
     build = pathlib.Path(build_arg).expanduser().resolve() if build_arg else repo.build
+    if reuse_context_input:
+        if context_config_from:
+            fail("context 配置显式输入与复用输入不能混用")
+        from .context_maintenance import reusable_context_input
+        try:
+            context_config_from = reusable_context_input(read_json(build / "control/state/managed-files.json"))
+        except ValueError as exc:
+            fail(str(exc))
     profile = profile_arg or assets.get("default_profile") or "default"
     profiles = {item["name"] for item in repo.manifest("profiles.json").get("profiles", [])}
     if profile not in profiles:
@@ -632,7 +649,14 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         rel = pathlib.Path(rel_text)
         copy_entry(source / rel, tmp_build / rel, rel, protected, skip_source)
 
-    render_config(repo, tmp_build, profile, source)
+    context_input = pathlib.Path(context_config_from).expanduser().resolve() if context_config_from else None
+    try:
+        context_input_sha256 = sha256(context_input) if context_input else None
+    except OSError:
+        fail("context 配置输入不可读取")
+    render_config(repo, tmp_build, profile, source, context_input)
+    if context_input and sha256(context_input) != context_input_sha256:
+        fail("context 配置输入在构建期间变化；请重新构建")
     machine_inputs = {}
     if bool(local_rules_arg) != bool(local_rules_sha256):
         fail("local rules require both a file and its approved SHA256")
@@ -678,6 +702,8 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         "source": str(source),
         "source_fingerprint": source_fingerprint(repo, source, machine_inputs),
         "machine_inputs": machine_inputs,
+        "context_config_input_sha256": context_input_sha256,
+        "context_config_input_path": str(context_input) if context_input else None,
         "managed": managed,
     })
     if build.exists() or build.is_symlink():
@@ -711,6 +737,11 @@ def plan_apply(
     state_path = build_path / "control/state/managed-files.json"
     if not state_path.is_file():
         fail(f"构建目录缺少 managed-files.json: {build_path}")
+    from .context_maintenance import reusable_context_input
+    try:
+        reusable_context_input(read_json(state_path))
+    except (ValueError, TypeError, OSError) as exc:
+        fail("build context input invalid: " + str(exc))
     protected = repo.policies.get("protected_paths", [])
     always_generated = {"skills/registry.csv", "control/state/active-profile.env", "control/state/managed-files.json"}
     # Do not read managed state through a redirected directory before preflight.
@@ -994,6 +1025,11 @@ def validate_apply_plan(
         fail(f"apply plan 构建状态不存在: {state_path}")
     if receipt.get("managed_state_sha256") != sha256(state_path):
         fail("apply plan 已失效: managed state 已变化")
+    from .context_maintenance import reusable_context_input
+    try:
+        reusable_context_input(read_json(state_path))
+    except (ValueError, TypeError, OSError) as exc:
+        fail("apply plan context input invalid: " + str(exc))
     if receipt.get("tree_sha256") != tree_fingerprint(build):
         fail("apply plan 已失效: build tree 已变化")
     if expected_target is not None:

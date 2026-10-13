@@ -37,7 +37,10 @@ personality = "pragmatic"
 # Token / 上下文控制（核心优化区）
 # ========================
 
-# 上下文窗口与自动压缩阈值由模型目录和 CLI 自动识别，不手动覆盖。
+# 不覆盖模型窗口。提前触发原生压缩，避免先撞到本地 50% 维护门禁。
+# 100000 < 258400 * 0.5；换用更小窗口时先核对 host_context_maintenance。
+model_auto_compact_token_limit = 100000
+model_auto_compact_token_limit_scope = "total"
 # 工具输出限制：覆盖编译、链接和现场日志的定向验证。
 tool_output_token_limit = 20000
 

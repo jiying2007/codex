@@ -107,3 +107,39 @@ manifest schema 由 3 升至 4：`engine.module` 指向 canonical package，
 Policy v2、event/state v1、decision v2、intake v1 及日志位置不变；已有日志不重写。
 基线生成的 19 个合成回放样本验证状态/决策指纹与失败语义，不能代替真实任务资格。
 来源完整不等于成员已升级、权限已批准或运行时/产品已通过资格认证。
+
+### 上下文维护与恢复
+
+`compact` + `context-pressure` 表示需要维护上下文。它不证明项目存在业务阻塞。
+先保留真实 checkpoint 与恢复入口，再由宿主原生自动压缩或可用的 `/compact`
+完成维护，之后复核最新 usage 和同一任务的门禁。模型未暴露压缩工具不等于宿主
+没有压缩能力。没有新 usage 或宿主结果时，不连续轮询、不把同一提示计为三轮
+业务阻塞；不伪造进展、heartbeat、压缩成功或外部等待来复位计数。
+若宿主确认压缩失败或不支持，才请求人工压缩或新会话接力，并说明具体限制。
+预算 stop、stale/retry replan、缺失工件及完成验收仍按 canonical decision 执行。
+
+宿主适配层输出 `host_context_maintenance`，只提供维护诊断，既不改写上游 decision
+字段，也不放宽 gate。配置文件中存在阈值不证明当前会话已经加载或已经压缩。
+`threshold_alignment` 用实际观测窗口对比配置文件阈值；窗口未知、配置缺失或
+非 total scope 时返回 unknown。命令行、profile 和宿主覆盖仍需独立核验。
+
+受管默认阈值为 100000 tokens、total scope；模型窗口仍由宿主识别。
+在观测窗口 258400 时早于本地 129200 门禁，不保证适合所有模型。
+支持 `build --context-config-from ~/.codex/config.toml`：只合并两个压缩 root key，
+其余配置必须保持 TOML 语义相同；无法安全合并则拒绝构建。输入路径与 hash 写入
+本机 build receipt，完整输入只存在本机受管 build，不进入源码或知识库。
+Python 3.8–3.10 需要 `requirements-codex-assets.txt` 中固定版本的 tomli；3.11 起用
+标准库 tomllib。无解析器时合并拒绝，诊断标明不可读取，不猜测配置生效状态。
+`build --reuse-context-input` 仅复用 receipt 中路径且 hash 未变的显式输入。
+smoke 恢复主 build 使用这个入口；输入变化时拒绝重建，不能悄悄退回模板配置。
+按 build、doctor、plan、dry-run、apply、check 同步；使用 `check --no-build`
+保留这个已核验 build。默认 plan 会保留本机 config；显式覆盖前必须检查配置差异、
+备份和准确当前线程 apply gate。未注册旁支不可借用主线程身份安装。
+回滚使用原 apply plan 的备份，不手改 live。生效范围由宿主配置加载决定，已有
+blocked 原生 goal 不会因配置文件更新而自动被恢复。
+
+官方来源：
+[Codex 配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)、
+[CLI 命令](https://learn.chatgpt.com/docs/developer-commands?surface=cli)。
+2026-10-11 核验，reviewed；2026-11-10 后重新核验再提升指导规则。
+本机配置和合成测试不能替代宿主真实压缩与目标续跑证据。

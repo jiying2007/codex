@@ -2,6 +2,22 @@
   "schema_version": 2,
   "skills": [
     {
+      "name": "feishu-readonly",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/feishu-readonly/0.1.0",
+      "target_rel": "skills/feishu-readonly",
+      "profiles": ["default", "team-collab"],
+      "tags": ["local", "feishu", "readonly", "cli"],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/feishu-readonly/0.1.0",
+      "imported_at": "2026-10-13",
+      "review_status": "accepted"
+    },
+    {
       "name": "activity-report",
       "enabled": true,
       "source_kind": "vendor",
