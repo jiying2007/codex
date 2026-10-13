@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import hashlib
 import json
 import os
 import pathlib
@@ -41,6 +42,16 @@ class DailyBootstrapIndependenceTests(unittest.TestCase):
         adapter = self.root / CORE[2]
         adapter.parent.mkdir(parents=True)
         adapter.write_text("# Unit fixture: provider adapter is not executed.\n", encoding="utf-8")
+        (self.knowledge / "registry").mkdir()
+        source = self.knowledge / "fixture-source.txt"
+        source.write_text("exact fixture source")
+        manifest = self.knowledge / "registry/provider-runtime-files.json"
+        (self.knowledge / "tools").mkdir()
+        manifest.write_text(json.dumps({"schema_version": 1, "inventory_roots": ["tools"], "files": {
+            "fixture-source.txt": hashlib.sha256(source.read_bytes()).hexdigest()}}))
+        (self.root / "manifests/provider-locks/knowledge-hub.json").write_text(json.dumps({
+            "repository": "jiying2007/knowledge-hub", "protocol_version": 4,
+            "provider_commit": "a" * 40, "source_manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest()}))
 
     def argv(self, mode: str, *extra: str) -> list[str]:
         return [
@@ -97,7 +108,7 @@ class DailyBootstrapIndependenceTests(unittest.TestCase):
         self.assertEqual(self.envelope("L1")["runtime_binding"]["source_binding"], expected)
 
     def test_missing_knowledge_is_degraded_only_for_l0_and_blocks_l1(self) -> None:
-        self.knowledge.rmdir()
+        self.knowledge = self.knowledge / "not-installed"
         result = self.envelope("L0")
         self.assert_daily(result, "L0")
         self.assertIn("knowledge_provider_unavailable", result["degraded_reasons"])
@@ -113,6 +124,15 @@ class DailyBootstrapIndependenceTests(unittest.TestCase):
         for mode in ("L0", "L1"):
             with self.subTest(mode=mode), self.assertRaisesRegex(BootstrapError, "ADK provider lock"):
                 self.envelope(mode)
+
+    def test_directory_presence_does_not_prove_provider_source_identity(self):
+        (self.knowledge / "fixture-source.txt").write_text("unreviewed drift")
+        result = self.envelope("L0")
+        self.assertIn("knowledge_provider_source_drift", result["degraded_reasons"])
+        self.assertFalse(result["knowledge"]["execution_identity_verified"])
+        result = self.envelope("L1")
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("knowledge_provider_source_drift", result["blocked_reasons"])
 
     def test_core_assets_are_still_required(self) -> None:
         for relative in CORE:

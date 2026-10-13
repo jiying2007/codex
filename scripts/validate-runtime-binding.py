@@ -16,6 +16,7 @@ HUB = ROOT / "manifests/provider-locks/knowledge-hub.json"
 RECEIPT_V2 = ROOT / "schemas/runtime-execution-receipt.v2.schema.json"
 RECEIPT_V1 = ROOT / "schemas/runtime-execution-receipt.schema.json"
 ADAPTER = ROOT / "scripts/knowledge-provider.sh"
+PROVIDER_MODULE = ROOT / "tools/codex_assets/knowledge_provider_adapter.py"
 AGENTS = ROOT / "AGENTS.md"
 
 ADK_RELEASE = {
@@ -142,8 +143,11 @@ def main() -> None:
     require(hub["repository"] == "jiying2007/knowledge-hub", "Knowledge Hub canonical repository required")
     require(re.fullmatch(r"[0-9a-f]{40}", hub["provider_commit"]) is not None, "Hub provider commit must be exact")
     require(hub["rules"]["consumer_must_not_depend_on_provider_internal_temp_paths"] is True, "Hub internal paths must not be contract")
-    adapter = ADAPTER.read_text(encoding="utf-8")
-    for token in ["knowledge-context.sh", "knowledge-evidence-pack.sh", "knowledge-action-check.sh", "knowledge-proposal-route.sh", "knowledge-activity.sh", "BLOCKED"]:
+    require(hub.get("protocol_version") == 4, "Hub protocol must be v4")
+    require(exact_sha(hub.get("source_manifest_sha256"), 64), "Hub executable source manifest must be exact")
+    require("tools.codex_assets.knowledge_provider_adapter" in ADAPTER.read_text(encoding="utf-8"), "shell must forward to sole adapter module")
+    adapter = PROVIDER_MODULE.read_text(encoding="utf-8")
+    for token in ["knowledge-provider.sh", "knowledge-evidence-pack.sh", "knowledge-action-check.sh", "knowledge-proposal-route.sh", "knowledge-activity.sh", "BLOCKED", "UNKNOWN", "verify_source"]:
         require(token in adapter, f"adapter missing surface: {token}")
     require(".tmp/activity/receipts" not in adapter, "adapter must not bind Hub internal receipt path")
     require(".tmp/activity/receipts" not in AGENTS.read_text(encoding="utf-8"), "AGENTS must not bind Hub internal receipt path")

@@ -6,6 +6,7 @@ import pathlib
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 from tools.codex_assets.session_bootstrap import BootstrapError, build_envelope, configure_parser, resolve_mode
 
@@ -15,6 +16,14 @@ BASE_COMMIT = "a" * 40
 
 
 class SessionBootstrapTests(unittest.TestCase):
+    def setUp(self):
+        # These tests qualify mode and formal-contract routing; source integrity
+        # has dedicated adapter and daily-bootstrap integration fixtures.
+        patcher = mock.patch("tools.codex_assets.knowledge_provider_adapter.verify_source", return_value={
+            "provider_commit": "a" * 40, "source_manifest_sha256": "b" * 64})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def parse(self, *args: str):
         return configure_parser().parse_args(["--root", str(ROOT), *args])
 

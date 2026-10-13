@@ -7,7 +7,11 @@ import os
 import pathlib
 import re
 import subprocess
+import sys
 from typing import Any
+
+if not __package__:
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
 
 class BootstrapError(RuntimeError):
@@ -493,6 +497,15 @@ def build_envelope(args: argparse.Namespace) -> dict[str, Any]:
                     "available": knowledge_root.is_dir(),
                     "adapter": str(provider_adapter_path),
                 }
+
+    if knowledge_root.is_dir():
+        from tools.codex_assets.knowledge_provider_adapter import verify_source, ProviderAdapterError
+        try:
+            knowledge["execution_identity"] = verify_source(root, knowledge_root)
+            knowledge["execution_identity_verified"] = True
+        except ProviderAdapterError:
+            knowledge["execution_identity_verified"] = False
+            (degraded if mode == "L0" else blocked).append("knowledge_provider_source_drift")
 
     mode_contract = bootstrap_contract["modes"][mode]
     agent_assets = {

@@ -69,7 +69,7 @@ def tree_fingerprint(root: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
-def source_fingerprint(repo: "Repo", source: pathlib.Path | None = None) -> str:
+def source_fingerprint(repo: "Repo", source: pathlib.Path | None = None, machine_inputs=None) -> str:
     """Hash conservative build inputs so reused builds fail closed when source changes."""
     digest = hashlib.sha256()
     roots = [
@@ -95,6 +95,8 @@ def source_fingerprint(repo: "Repo", source: pathlib.Path | None = None) -> str:
                 digest.update(b"file\0")
                 digest.update(sha256(path).encode())
             digest.update(b"\0")
+    if machine_inputs:
+        digest.update(json.dumps({key: value["sha256"] for key, value in machine_inputs.items()}, sort_keys=True).encode())
     return digest.hexdigest()
 
 
@@ -602,7 +604,8 @@ def render_mcp_config(repo: Repo, profile: str) -> str:
     return "\n".join(lines)
 
 
-def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str = "", build_arg: str = "") -> pathlib.Path:
+def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str = "", build_arg: str = "",
+               *, local_rules_arg: str = "", local_rules_sha256: str = "") -> pathlib.Path:
     repo = Repo.from_path(root)
     assets = repo.assets
     policies = repo.policies
@@ -630,6 +633,17 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         copy_entry(source / rel, tmp_build / rel, rel, protected, skip_source)
 
     render_config(repo, tmp_build, profile, source)
+    machine_inputs = {}
+    if bool(local_rules_arg) != bool(local_rules_sha256):
+        fail("local rules require both a file and its approved SHA256")
+    if local_rules_arg:
+        from .local_exec_rules import load_rules
+        try:
+            rules, identity = load_rules(local_rules_arg, local_rules_sha256, profile, (source / "rules/default.rules").read_bytes())
+        except (ValueError, SyntaxError, OSError, TypeError) as exc:
+            fail(str(exc))
+        (tmp_build / "rules/default.rules").write_text(rules)
+        machine_inputs["exec_rules"] = identity
 
     for item in skills:
         if active(item, profile):
@@ -662,7 +676,8 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         "schema_version": 2,
         "profile": profile,
         "source": str(source),
-        "source_fingerprint": source_fingerprint(repo, source),
+        "source_fingerprint": source_fingerprint(repo, source, machine_inputs),
+        "machine_inputs": machine_inputs,
         "managed": managed,
     })
     if build.exists() or build.is_symlink():
