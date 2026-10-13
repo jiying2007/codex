@@ -60,7 +60,8 @@ def cmd_build(args: argparse.Namespace) -> int:
     build = build_repo(args.root, args.profile or "", args.source or "", args.build or "",
                        context_config_from=args.context_config_from, reuse_context_input=args.reuse_context_input,
                        local_rules_arg=args.local_rules or "",
-                       local_rules_sha256=args.expected_local_rules_sha256 or "")
+                       local_rules_sha256=args.expected_local_rules_sha256 or "",
+                       reuse_machine_inputs=args.reuse_machine_inputs)
     state = read_json(build / "control/state/managed-files.json")
     print(f"[DONE] build profile={state['profile']} output={build} managed={len(state['managed'])}")
     return 0
@@ -546,6 +547,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--build", default="")
     p.add_argument("--local-rules", default="")
     p.add_argument("--expected-local-rules-sha256", default="")
+    p.add_argument("--reuse-machine-inputs", action="store_true", help="reuse approved machine inputs only after validating their hashes and profile")
     p.add_argument("--context-config-from", default="", help="preserve input TOML except two managed native compaction keys")
     p.add_argument("--reuse-context-input", action="store_true", help="reuse the previous build input only if its recorded hash still matches")
     p.set_defaults(func=cmd_build)

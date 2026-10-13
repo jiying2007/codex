@@ -1,5 +1,7 @@
 # Execution Policy
 
+Smoke 恢复主构建时同时使用 `--reuse-context-input --reuse-machine-inputs`，以哈希及 profile 校验保留已批准的本机 context 与执行规则输入。变化的输入拒绝复用；显式规则输入与复用模式不能混用。
+
 Codex 的唯一任务执行策略面绑定 ADK 8.0.0 canonical Execution Policy v2。
 
 - 配置：`manifests/execution_policy.json`

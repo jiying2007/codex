@@ -55,7 +55,7 @@ for profile in "${PROFILES[@]}"; do
   esac
 done
 
-rtk bash "$ROOT/scripts/build.sh" --profile "$MAIN_PROFILE" --reuse-context-input
+rtk bash "$ROOT/scripts/build.sh" --profile "$MAIN_PROFILE" --reuse-context-input --reuse-machine-inputs
 test -f "$ROOT/manifests/lock.json"
 grep -Fxq "PROFILE=$MAIN_PROFILE" "$MAIN_PROFILE_STATE"
 

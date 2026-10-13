@@ -614,7 +614,8 @@ def render_mcp_config(repo: Repo, profile: str) -> str:
 
 def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str = "", build_arg: str = "",
                context_config_from: str = "", reuse_context_input: bool = False,
-               *, local_rules_arg: str = "", local_rules_sha256: str = "") -> pathlib.Path:
+               *, local_rules_arg: str = "", local_rules_sha256: str = "",
+               reuse_machine_inputs: bool = False) -> pathlib.Path:
     repo = Repo.from_path(root)
     assets = repo.assets
     policies = repo.policies
@@ -629,6 +630,18 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         except ValueError as exc:
             fail(str(exc))
     profile = profile_arg or assets.get("default_profile") or "default"
+    if reuse_machine_inputs:
+        if local_rules_arg or local_rules_sha256:
+            fail("local rules explicit and reused inputs cannot be mixed")
+        from .local_exec_rules import verified_inputs
+        previous = read_json(build / "control/state/managed-files.json")
+        try:
+            inputs = verified_inputs(previous.get("machine_inputs", {}), source, profile)
+        except (ValueError, SyntaxError, OSError, TypeError) as exc:
+            fail(str(exc))
+        if "exec_rules" in inputs:
+            local_rules_arg = inputs["exec_rules"]["path"]
+            local_rules_sha256 = inputs["exec_rules"]["sha256"]
     profiles = {item["name"] for item in repo.manifest("profiles.json").get("profiles", [])}
     if profile not in profiles:
         fail(f"profile 未定义: {profile}")

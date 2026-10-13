@@ -103,6 +103,26 @@ hide_model_migration_prompt = true
 
 
 class ImplicitRebuildTests(unittest.TestCase):
+    def test_smoke_restore_preserves_hash_bound_rules_and_refuses_changed_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, local = self.fixture(directory)
+            rules = root / 'local-rules.json'
+            base = (root / 'src/codex-home/rules/default.rules').read_bytes()
+            rules.write_text(json.dumps({'schema_version': 1, 'profile': 'default',
+                'target': 'rules/default.rules', 'base_sha256': hashlib.sha256(base).hexdigest(),
+                'extra_rules': ['prefix_rule(pattern=["fixture-command"], decision="prompt")']}))
+            build = build_repo(root, 'default', context_config_from=str(local),
+                local_rules_arg=str(rules), local_rules_sha256=hashlib.sha256(rules.read_bytes()).hexdigest())
+            before = (build / 'rules/default.rules').read_bytes()
+            build_repo(root, 'default', reuse_context_input=True, reuse_machine_inputs=True)
+            self.assertEqual((build / 'rules/default.rules').read_bytes(), before)
+            self.assertEqual(parse_config((build / 'config.toml').read_text())['model'], 'fixture-local-model')
+            state = (build / 'control/state/managed-files.json').read_bytes()
+            rules.write_text('{}')
+            with self.assertRaisesRegex(CodexAssetError, 'hash mismatch'):
+                build_repo(root, 'default', reuse_context_input=True, reuse_machine_inputs=True)
+            self.assertEqual((build / 'control/state/managed-files.json').read_bytes(), state)
+
     def fixture(self, directory):
         root = pathlib.Path(directory)
         shutil.copytree(ROOT / 'src', root / 'src', symlinks=True)
