@@ -43,14 +43,23 @@ case "$CMD" in
     ;;
   archive)
     require_surface "$HUB_ROOT/tools/knowledge-capture.sh"
+    for argument in "$@"; do
+      if [[ "$argument" == "--api-version" || "$argument" == "--api-version=2" ]]; then
+        exec bash "$HUB_ROOT/tools/knowledge-capture.sh" --provider-v2 archive "$@"
+      fi
+    done
     exec bash "$HUB_ROOT/tools/knowledge-capture.sh" --provider-archive "$@"
+    ;;
+  resolve|grant|register|bind|assign|reconcile|migrate-operations|capture-source)
+    require_surface "$HUB_ROOT/tools/knowledge-capture.sh"
+    exec bash "$HUB_ROOT/tools/knowledge-capture.sh" --provider-v2 "$CMD" "$@"
     ;;
   activity-capture)
     require_surface "$HUB_ROOT/tools/knowledge-activity.sh"
     exec bash "$HUB_ROOT/tools/knowledge-activity.sh" capture "$@"
     ;;
   *)
-    echo "usage: $0 {status|context|evidence-pack|action-check|proposal-route|archive|activity-capture} [args...]" >&2
+    echo "usage: $0 {status|context|evidence-pack|action-check|proposal-route|archive|activity-capture|resolve|grant|register|bind|assign|reconcile|migrate-operations|capture-source} [args...]" >&2
     exit 2
     ;;
 esac

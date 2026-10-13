@@ -402,6 +402,9 @@ def _append_action(args: argparse.Namespace, kind: str, payload: Mapping[str, An
 
 
 def run(args: argparse.Namespace) -> int:
+    if args.runtime_action == "verify-request":
+        from .execution_policy_intake import verify_request
+        return verify_request(args)
     if args.runtime_action == "ensure":
         from .execution_policy_intake import ensure
 
@@ -499,6 +502,8 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     from .execution_policy_intake import configure as configure_intake
 
     configure_intake(sub.add_parser("ensure", help="Register the actual request and local routing once per thread goal"))
+    verify = sub.add_parser("verify-request", help="Read-only verification of current-thread actual request provenance")
+    verify.add_argument("--request-file", required=True)
     journal = sub.add_parser("journal", help="Audit or recover rejected duplicate progress events, preserving original bytes")
     journal.add_argument("--expected-sha256", default="")
     journal.add_argument("--apply", action="store_true")
