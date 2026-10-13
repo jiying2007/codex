@@ -35,6 +35,72 @@ def _checked_request(path: Path) -> bytes:
     return value
 
 
+def _user_request_matches(path: Path, value: bytes) -> bool:
+    """Compare bounded native user events; never return or persist their text."""
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    try:
+        fd = os.open(str(path), flags)
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode):
+                return False
+            # Intake may reference the initial message in a long running thread.
+            consumed = 0
+            while True:
+                line = stream.readline(1048577)
+                if not line:
+                    break
+                consumed += len(line)
+                if consumed > 67108864 or len(line) > 1048576:
+                    return False
+                try:
+                    event = json.loads(line)
+                except (ValueError, UnicodeError):
+                    continue
+                payload = event.get("payload", {})
+                text = None
+                if event.get("type") == "event_msg" and payload.get("type") == "user_message":
+                    text = payload.get("message")
+                elif event.get("type") == "response_item" and payload.get("role") == "user":
+                    parts = payload.get("content", [])
+                    text = "\n".join(p.get("text", "") for p in parts if p.get("type") == "input_text")
+                if isinstance(text, str) and text.strip() == value.decode("utf-8").strip():
+                    return True
+    except OSError:
+        return False
+    return False
+
+
+def verify_request(args: argparse.Namespace) -> int:
+    """Expose attested request provenance without exposing journal paths or text."""
+    from . import execution_policy_adapter as adapter
+    if not args.thread_id or args.thread_id != os.environ.get("CODEX_THREAD_ID"):
+        raise adapter.ExecutionPolicyAdapterError("request verification requires the exact current thread")
+    _, _, _, thread, journal = adapter._active_context(args)
+    value = _checked_request(Path(args.request_file).expanduser())
+    expected = hashlib.sha256(value).hexdigest()
+    user_verified = _user_request_matches(Path(thread["rollout_path"]), value)
+    events = adapter.load_journal(journal)
+    adapter._engine_state(events)  # Verify the whole canonical event stream, without appending usage.
+    for event in reversed(events):
+        intake = event.get("payload", {}).get("intake", {})
+        if (event.get("event_type") != "goal.started" or event.get("thread_id") != thread["thread_id"]
+                or intake.get("request_sha256") != expected or not user_verified):
+            continue
+        if str(intake.get("provenance", {}).get("issued_at", ""))[:10] != adapter._now().date().isoformat():
+            continue
+        adapter._emit({"schema_version": "codex-request-verification/v1", "status": "VERIFIED", "read_only": True,
+                       "thread_id": thread["thread_id"], "request_sha256": expected,
+                       "attestation_sha256": intake["attestation_sha256"],
+                       "user_message_verified": True,
+                       "cwd_sha256": hashlib.sha256(str(Path(thread["cwd"]).resolve()).encode()).hexdigest(),
+                       "purpose": "request-provenance-only;not-owner-approval"})
+        return 0
+    adapter._emit({"schema_version": "codex-request-verification/v1", "status": "UNVERIFIED", "read_only": True,
+                   "thread_id": thread["thread_id"], "request_sha256": expected})
+    return 2
+
+
 def ensure(args: argparse.Namespace) -> int:
     from . import execution_policy_adapter as adapter
 
