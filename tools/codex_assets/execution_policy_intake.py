@@ -44,28 +44,41 @@ def _user_request_matches(path: Path, value: bytes) -> bool:
             info = os.fstat(stream.fileno())
             if not stat.S_ISREG(info.st_mode):
                 return False
-            # Intake may reference the initial message in a long running thread.
-            consumed = 0
-            while True:
-                line = stream.readline(1048577)
-                if not line:
-                    break
-                consumed += len(line)
-                if consumed > 67108864 or len(line) > 1048576:
-                    return False
-                try:
-                    event = json.loads(line)
-                except (ValueError, UnicodeError):
-                    continue
-                payload = event.get("payload", {})
-                text = None
-                if event.get("type") == "event_msg" and payload.get("type") == "user_message":
-                    text = payload.get("message")
-                elif event.get("type") == "response_item" and payload.get("role") == "user":
-                    parts = payload.get("content", [])
-                    text = "\n".join(p.get("text", "") for p in parts if p.get("type") == "input_text")
-                if isinstance(text, str) and text.strip() == value.decode("utf-8").strip():
-                    return True
+            # Keep both initial and recent requests within a fixed total byte budget.
+            half = 33554432
+            windows = [(0, info.st_size)] if info.st_size <= 2 * half else [(0, half), (info.st_size - half, info.st_size)]
+            expected = value.decode("utf-8").strip()
+            for start, end in windows:
+                stream.seek(start)
+                discard = start > 0  # A tail window may start inside a record.
+                while stream.tell() < end:
+                    line = stream.readline(min(1048577, end - stream.tell()))
+                    if not line:
+                        break
+                    complete = line.endswith(b"\n") or stream.tell() == info.st_size
+                    if discard or len(line) > 1048576 or not complete:
+                        discard = not complete
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except (ValueError, UnicodeError):
+                        continue
+                    if not isinstance(event, dict):
+                        continue
+                    payload = event.get("payload", {})
+                    if not isinstance(payload, dict):
+                        continue
+                    text = None
+                    if event.get("type") == "event_msg" and payload.get("type") == "user_message":
+                        text = payload.get("message")
+                    elif event.get("type") == "response_item" and payload.get("role") == "user":
+                        parts = payload.get("content", [])
+                        if isinstance(parts, list):
+                            texts = [p.get("text", "") for p in parts if isinstance(p, dict) and p.get("type") == "input_text"]
+                            if all(isinstance(part, str) for part in texts):
+                                text = "\n".join(texts)
+                    if isinstance(text, str) and text.strip() == expected:
+                        return True
     except OSError:
         return False
     return False

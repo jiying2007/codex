@@ -45,6 +45,8 @@ def truncation_signals(data: Any, path: str = "data") -> list:
     if not isinstance(data, dict):
         return signals
     signals.extend(f"{path}.{key}" for key in TRUNCATION_KEYS if data.get(key) is True)
+    signals.extend(f"{path}.{key}:invalid" for key in TRUNCATION_KEYS
+                   if key in data and not isinstance(data[key], bool))
     for key in ("ranges", "sheets"):
         for index, item in enumerate(data.get(key, []) if isinstance(data.get(key), list) else []):
             signals.extend(truncation_signals(item, f"{path}.{key}[{index}]"))
@@ -77,7 +79,9 @@ def sheet_coverage(data: Mapping[str, Any], requested: str) -> Dict[str, Any]:
         clipped = bool(signals)
         valid = bool(target and actual and target[0] <= actual[0] <= actual[2] <= target[2]
                      and target[1] <= actual[1] <= actual[3] <= target[3])
-        if not valid or not contiguous_indices(item, actual):
+        if any(x.endswith(":invalid") for x in signals):
+            row.update(status="unknown", reason="invalid_truncation_flag", continuation_requires_smaller_window=True)
+        elif not valid or not contiguous_indices(item, actual):
             row.update(status="unknown", reason="missing_or_inconsistent_coordinates", continuation_requires_smaller_window=True)
         elif actual == target and not clipped:
             row["status"] = "complete"
@@ -118,6 +122,9 @@ def document_coverage(data: Mapping[str, Any], scope: str, start: str = "", end:
         result["reason"] = "xml_not_verifiable"
         return result
     container = root[0] if len(root) == 1 and root[0].tag in ("fragment", "document", "doc") else root
+    fragment_mode = container.get("mode") if container.tag == "fragment" else None
+    mode_mismatch = bool(container.tag == "fragment" and ((fragment_mode and fragment_mode != scope)
+                         or (scope == "full" and fragment_mode != "full")))
     for element in container:
         block = element.get("block-id") or element.get("id") or element.get("block_id")
         if block:
@@ -137,8 +144,12 @@ def document_coverage(data: Mapping[str, Any], scope: str, start: str = "", end:
     has_tips = bool(document.get("tips") or (comments.get("tips") if isinstance(comments, dict) else False))
     has_gaps = bool(result["excerpts"] or result["embedded_resources"] or result["truncation_signals"] or has_tips)
     result["status"] = "partial" if has_gaps else "structure-only" if result["structure_only"] else "complete-scope"
+    expected_endpoints = [value for value in (start, end) if value and value not in ("0", "-1")]
+    if mode_mismatch or any(value not in result["block_ids"] for value in expected_endpoints):
+        result["status"] = "unknown"
+        result["reason"] = "upstream_scope_mismatch" if mode_mismatch else "requested_endpoint_missing"
     result["full_document_complete"] = bool(result["full_document_requested"] and result["status"] == "complete-scope" and depth == -1)
-    if has_tips:
+    if has_tips and "reason" not in result:
         result["reason"] = "upstream_tips_require_review"
     return result
 
