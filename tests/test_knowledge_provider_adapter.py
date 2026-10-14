@@ -9,6 +9,53 @@ from tools.codex_assets import knowledge_provider_adapter as adapter
 
 
 class ProviderAdapterTests(unittest.TestCase):
+    def test_root_help_lists_auxiliary_operations_as_well(self):
+        with tempfile.TemporaryDirectory() as directory:
+            native, hub, _ = self.fixture(directory)
+            payload = {"schema_version": "knowledge-provider.help/v4", "status": "HELP", "operation": "status",
+                       "read_only": True, "persisted": False, "write_performed": False, "operations": ["status"]}
+            with mock.patch.object(adapter, "__file__", str(native / "tools/codex_assets/knowledge_provider_adapter.py")), \
+                    mock.patch.dict("os.environ", {"KNOWLEDGE_HUB_ROOT": str(hub)}), \
+                    mock.patch.object(adapter.subprocess, "run", return_value=mock.Mock(returncode=0, stdout=json.dumps(payload))), \
+                    mock.patch("builtins.print") as output:
+                self.assertEqual(adapter.main(["--help"]), 0)
+                result = json.loads(output.call_args.args[0])
+                self.assertIsNone(result["operation"])
+                self.assertEqual(set(result["operations"]), adapter.OPERATIONS)
+                self.assertIn("activity-capture", result["operations"])
+
+    def test_operation_help_is_readonly_and_never_forwards_write_flags(self):
+        for operation in ("context", "archive", "activity-capture"):
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as directory:
+                native, hub, _ = self.fixture(directory)
+                payload = {"schema_version": "knowledge-provider.help/v4", "status": "HELP",
+                           "operation": operation, "read_only": True, "persisted": False, "write_performed": False}
+                stdout = "usage: activity capture [--input INPUT]\n" if operation == "activity-capture" else json.dumps(payload)
+                with mock.patch.object(adapter, "__file__", str(native / "tools/codex_assets/knowledge_provider_adapter.py")), \
+                        mock.patch.dict("os.environ", {"KNOWLEDGE_HUB_ROOT": str(hub)}), \
+                        mock.patch.object(adapter.subprocess, "run", return_value=mock.Mock(returncode=0, stdout=stdout)) as transport, \
+                        mock.patch("builtins.print") as output:
+                    self.assertEqual(adapter.main([operation, "--apply", "--help"]), 0)
+                    self.assertNotIn("--apply", transport.call_args.args[0])
+                    self.assertEqual(transport.call_args.args[0][-1], "--help")
+                    self.assertEqual(json.loads(output.call_args.args[0])["status"], "HELP")
+
+    def test_help_rejects_malformed_payload_and_source_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            native, hub, source = self.fixture(directory)
+            with mock.patch.object(adapter, "__file__", str(native / "tools/codex_assets/knowledge_provider_adapter.py")), \
+                    mock.patch.dict("os.environ", {"KNOWLEDGE_HUB_ROOT": str(hub)}), \
+                    mock.patch.object(adapter.subprocess, "run", return_value=mock.Mock(returncode=0, stdout="{}")), \
+                    mock.patch("builtins.print") as output:
+                self.assertEqual(adapter.main(["context", "--help"]), 2)
+                self.assertEqual(json.loads(output.call_args.args[0])["reason_codes"], ["PROVIDER_RESPONSE_INVALID"])
+            source.write_text("changed source")
+            with mock.patch.object(adapter, "__file__", str(native / "tools/codex_assets/knowledge_provider_adapter.py")), \
+                    mock.patch.dict("os.environ", {"KNOWLEDGE_HUB_ROOT": str(hub)}), \
+                    mock.patch.object(adapter.subprocess, "run") as transport, mock.patch("builtins.print"):
+                self.assertEqual(adapter.main(["context", "--help"]), 2)
+                transport.assert_not_called()
+
     def fixture(self, directory):
         native, hub = pathlib.Path(directory) / "native", pathlib.Path(directory) / "hub"
         (native / "manifests/provider-locks").mkdir(parents=True)

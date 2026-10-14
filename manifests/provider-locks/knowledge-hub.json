@@ -2,9 +2,9 @@
   "schema_version": 1,
   "provider": "knowledge-hub",
   "repository": "jiying2007/knowledge-hub",
-  "provider_commit": "dbdaca1758ac6779f7ce66e00024e7588e50a842",
+  "provider_commit": "3bd6cbb170a36d6895121e90e59136414fe15dd2",
   "protocol_version": 4,
-  "source_manifest_sha256": "c600249e8a926ab0dd580252c3e67471f331133613cb5424b096ef915fbea4de",
+  "source_manifest_sha256": "7abfdc64ac1ce31407f35ceedf4a01166ae8ba1c9e87d54c3cb2f945e4d473e7",
   "status": "qualified",
   "readiness": "SOURCE_SET_BOUND",
   "public_interfaces": [

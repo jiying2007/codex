@@ -13,11 +13,11 @@
 
 ## 2. 上下文与知识
 - 一个线程一个职责；范围或验收变化先更新目标。先摘要后原文，按 stable/dynamic/evidence/excluded 管理上下文。
-- 项目事实、决策、runbook、release、debug 或长期结论优先通过 Provider Adapter 查询：
-  `rtk bash ~/codex/scripts/knowledge-provider.sh context --cwd "$PWD" --query "<任务>" --task-type <type> --context-budget small --limit 3 --summary-json`
+- 项目知识经 Provider Adapter 查询：
+  `rtk bash ~/codex/scripts/knowledge-provider.sh context --cwd "$PWD" --query "<任务>" --task-type general --summary-json`
 - Provider unavailable / route unresolved 必须 BLOCKED 或 NEEDS_REVIEW；不得把本地缓存或路径猜测升级为事实。耐久结论只能形成 reviewing candidate/proposal，或声明无可归档结论。
 - final/apply/目标切换前运行 Execution Policy；compact 先接力再宿主压缩复核，勿轮询或计业务阻塞；其他决策见 docs/execution-policy.md。automation 默认 disabled/report-only。
-- 自动：`docs/provider-archive.md`。
+- 类型仅 `general|debug|release|source|archive|decision|validation|session|runbook`；见 `docs/provider-archive.md`。
 
 ## 3. 命令与安全
 - shell 必须经 `rtk`；手工源码、脚本、配置和文档修改用 `apply_patch`，禁用 heredoc、重定向、cat、tee、Python 写仓库文件。

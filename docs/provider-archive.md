@@ -12,6 +12,10 @@ rtk bash ~/codex/scripts/knowledge-provider.sh archive \
 
 先通过 Provider context 的 `--execution-project` 或 `--workspace` 核定执行主体，跨项目查询用 `--retrieval-project`。归档始终显式传 `--subject`。正文只能是结论、证据、风险和下一步，不保存原始会话、日志、秘密或设备标识。`--sanitized` 是内容边界声明，服务端仍执行安全扫描。
 
+`context --help` 返回只读结构化帮助；`status` 的 context capability 给出合法 `task_types`，普通分析使用 `general`。任务类型不接受 `analysis` 或其他自行命名的别名。参数错误保持 `BLOCKED/SCHEMA_INVALID`，可选 `diagnostics` 只给出字段、问题类别和合法值，不回显输入内容、路径或凭据。
+
+会话结论分别报告查询成功与否、`authority_lanes` 的权威/候选内容、归档操作及回执。`context` 不写入长期知识；未执行 `archive` 时无需持久化回执。查询成功但只有 reviewing 内容时，应说明“查询成功，命中待复核候选，未取得已发布权威事实”；不得因此报告工具不可用。只有 archive/reconcile 的明确成功与 `persisted=true` 才支持候选归档成功声明。
+
 不传 `--apply` 或传 `--dry-run` 时只规划，返回 operation 和预测内容 hash；受治理执行器用 `--expected-content-sha256` 冻结计划。Provider 按 candidate-only 策略核对类型、主体与 registered owner；正文、registry、追加操作账本及派生索引在同一事务写入。当前回执为 `knowledge-provider.operation-receipt/v4`，公开 `reconcile` 使用调用方批准的内容 hash 验证持久化。
 
 - `PLANNED`：未持久化，不可声明归档成功。
