@@ -78,6 +78,10 @@ Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/ra
 
 本入口是 Agent 自动执行约定，不是 app-server 的隐式启动 hook；只有执行它后才会产生任务记录。
 
+该要求由 `src/codex-home/AGENTS.md` 分发到全局运行规则，适用于 Hub、其他项目、无 Git 和无 remote 的目录；不依赖项目自己的 AGENTS 再次声明。非平凡只读分析也应在取证前按实际模式登记，不能等到 final 才首次调用策略面。`ensure` 成功后继续登记真实证据、工件、进展和 checkpoint，再完成目标及运行 final gate；不能将登记成功当成任务通过。
+
+其他线程缺 intake 时，诊断者可以读取该线程的原始收据，但不得借用自己的 PASS、代写它的 journal 或追补一份历史完成证明。原线程继续工作时应使用自己的真实请求与准确线程执行 `ensure` 并重新核验证据。已经启动的会话可能保留旧规则快照，应核对实际收到的 AGENTS；文件更新不证明旧线程已执行 intake。
+
 回执将现存状态和本次写入分开表示：已登记任务的 dry-run 返回 `persisted=true`、`read_only=true`、`write_performed=false`；新任务 dry-run 返回 `persisted=false`，不创建 journal。
 
 长任务应按真实上下文量与预计轮数显式传入 `--token-budget`；默认 300000 仅是初始预算，累计输入计量包含重复加载的上下文。steady/apply 出现 stop 时先停止实施并 replan，不能用终态 final 通过推导未超预算。证据、任务预算和产品验收分别报告。
