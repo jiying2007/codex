@@ -2,7 +2,7 @@
   "schema_version": 1,
   "provider": "knowledge-hub",
   "repository": "jiying2007/knowledge-hub",
-  "provider_commit": "3ba216f3c147b658d42fc0624c39057d9fa09706",
+  "provider_commit": "dbdaca1758ac6779f7ce66e00024e7588e50a842",
   "protocol_version": 4,
   "source_manifest_sha256": "c600249e8a926ab0dd580252c3e67471f331133613cb5424b096ef915fbea4de",
   "status": "qualified",

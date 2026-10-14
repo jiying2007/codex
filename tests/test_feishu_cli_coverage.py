@@ -69,6 +69,24 @@ class CoverageTest(unittest.TestCase):
         self.assertEqual("structure-only", value["status"])
         self.assertFalse(value["full_document_complete"])
 
+    def test_upstream_scope_mismatch_cannot_claim_full(self):
+        for content in ('<fragment mode="keyword"><p block-id="P1">x</p></fragment>', '<fragment><p block-id="P1">x</p></fragment>'):
+            value = cover.document_coverage({"document": {"content": content}}, "full")
+            self.assertEqual("unknown", value["status"])
+            self.assertFalse(value["full_document_complete"])
+
+    def test_bounded_response_missing_endpoint_cannot_claim_complete_scope(self):
+        value = cover.document_coverage({"document": {"content": '<fragment mode="range"><p block-id="P1">x</p></fragment>'}}, "range", "P1", "P2")
+        self.assertEqual("unknown", value["status"])
+        self.assertEqual("requested_endpoint_missing", value["reason"])
+
+    def test_malformed_truncation_flags_are_unknown(self):
+        for flag in cover.TRUNCATION_KEYS:
+            for value in ("true", 1, None):
+                result = cover.sheet_coverage({"actual_range": "A1:C3", flag: value}, "A1:C3")
+                self.assertEqual("unknown", result["status"])
+                self.assertFalse(result["window_complete"])
+
 
 class AdapterContractTest(unittest.TestCase):
     def test_every_invalid_selection_fails_dry_run_without_credentials(self):

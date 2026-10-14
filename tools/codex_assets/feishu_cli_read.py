@@ -264,6 +264,7 @@ def fetch(backend: Backend, args: argparse.Namespace) -> Dict[str, Any]:
                  "top_level_block_ids": coverage["top_level_block_ids"][:200],
                  "catalog_hint_complete": bool(coverage["top_level_block_ids"]) and coverage["full_document_requested"]
                     and not coverage["excerpts"] and not coverage["truncation_signals"]
+                    and coverage["status"] != "unknown" and "reason" not in coverage
                     and len(coverage["top_level_block_ids"]) <= 200,
                  "next_action": "使用 catalog 或有界 range 继续，必须覆盖无标题正文和首标题前内容"}
         raise ReadError("content_budget_exceeded", "正文超预算；返回块定位提示，不截断正文。请按有界块范围缩小读取。", hints)
