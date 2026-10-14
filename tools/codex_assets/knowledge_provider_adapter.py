@@ -74,11 +74,12 @@ def verify_source(native_root, hub_root):
 
 def main(argv=None):
     supplied = list(sys.argv[1:] if argv is None else argv)
-    if supplied == ["--help"]:
-        print("knowledge-provider {" + "|".join(sorted(OPERATIONS)) + "} [current operation arguments]")
-        return 0
+    root_help = supplied in (["--help"], ["-h"])
+    if root_help:
+        supplied = ["status", "--help"]
     operation = supplied[0] if supplied else "status"
     rest = supplied[1:]
+    help_requested = any(arg in {"-h", "--help"} for arg in rest)
     if operation not in OPERATIONS:
         print(json.dumps({"status": "BLOCKED", "persisted": False, "reason_codes": ["UNSUPPORTED_OPERATION"]}))
         return 2
@@ -106,7 +107,9 @@ def main(argv=None):
                 if key in {"BASH_ENV", "ENV", "SHELLOPTS", "BASHOPTS", "CDPATH"} or key.startswith("BASH_FUNC_"):
                     env.pop(key, None)
             env["PYTHONPYCACHEPREFIX"] = directory
-            if operation in AUXILIARY and not any(flag in rest for flag in ("--json", "--summary-json")):
+            if help_requested:
+                rest = ["--help"]
+            elif operation in AUXILIARY and not any(flag in rest for flag in ("--json", "--summary-json")):
                 rest.append("--json")
             invoked = True
             result = subprocess.run(args + rest, env=env, cwd=env.get("KNOWLEDGE_PROVIDER_CALLER_CWD", os.getcwd()),
@@ -117,6 +120,22 @@ def main(argv=None):
             receipt = {}
         if verify_source(native_root, hub_root) != identity:
             raise ProviderAdapterError("SOURCE_DRIFT")
+        if help_requested:
+            if operation in AUXILIARY and result.returncode == 0 and result.stdout.startswith("usage:") and len(result.stdout) <= 32768:
+                receipt = {"schema_version": "knowledge-provider.help/v4", "status": "HELP",
+                           "operation": operation, "read_only": True, "persisted": False,
+                           "write_performed": False, "usage": result.stdout}
+            if (result.returncode != 0 or not isinstance(receipt, dict)
+                    or receipt.get("schema_version") != "knowledge-provider.help/v4"
+                    or receipt.get("status") != "HELP" or receipt.get("operation") != operation
+                    or receipt.get("read_only") is not True or receipt.get("persisted") is not False
+                    or receipt.get("write_performed") is not False):
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+            if root_help:
+                receipt["operation"] = None
+                receipt["operations"] = sorted(OPERATIONS)
+            print(json.dumps(receipt, ensure_ascii=False))
+            return 0
         if not isinstance(receipt, dict) or not receipt:
             raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
         if operation == "context":
