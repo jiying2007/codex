@@ -28,13 +28,13 @@ from .execution_policy.reducer import reduce_events
 UTC = timezone.utc
 ENGINE_BASELINE = {
     "repository": "jiying2007/agent-dev-kit",
-    "version": "8.0.2",
-    "commit": "4c8ff2c2bfa37667f17e5c9613d3298848182daa",
+    "version": "8.1.1",
+    "commit": "95997abb318144aa6433fb40af4b2f0f1f4ceee4",
     "source_blobs": {
-        "__init__.py": "10d3b1e71e2a91bdf30b7cf15215adcbec2b800e",
-        "contracts.py": "7dccc6b391eb7dd5375eac5d361c39b8fccc4dd3",
-        "decision.py": "404b0856bb11dc41a568b507191e6aad01150565",
-        "reducer.py": "e9bfb216239ddc1bc7ce45be4f21b408105d4d3c"
+        "__init__.py": "677b83c8f18254bea0b07a497ceef0941fe766ce",
+        "contracts.py": "93977bd4f53283f53205a60ab01cc2981127783f",
+        "decision.py": "61179126b3f623f8aa6c2bc603afb4689da9c78c",
+        "reducer.py": "3446508aa08b5a541be11a283f725b9298fc0a81"
     }
 }
 
@@ -448,7 +448,20 @@ def run(args: argparse.Namespace) -> int:
         return 0
 
     if action == "progress":
-        return _append_action(args, "progress.advanced", {"revision": args.revision})
+        from .execution_policy_convergence import progress_payload
+
+        return _append_action(args, "progress.advanced", progress_payload(args))
+    if action == "milestone":
+        from .execution_policy_convergence import milestone, require_capability
+
+        require_capability()
+        events = load_journal(journal)
+        events.append(usage_event(thread))
+        state = _engine_state(events)
+        # Keep the canonical fail-closed artifact mode; no authority is inferred.
+        result = milestone(state, config["policy"], criterion_id=args.criterion_id)
+        _emit(result)
+        return 0 if result["milestone_allowed"] else 3
     if action == "heartbeat":
         return _append_action(args, "heartbeat.recorded", {})
     if action == "retry":
@@ -541,6 +554,14 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
 
     progress = sub.add_parser("progress")
     progress.add_argument("--revision", type=int, required=True)
+    progress.add_argument("--criterion-id")
+    progress.add_argument("--change-kind", choices=["criterion-closed", "evidence-changed", "blocker-changed", "hypothesis-resolved", "replan"])
+    progress.add_argument("--evidence-id", action="append")
+    progress.add_argument("--plan-before-sha256")
+    progress.add_argument("--plan-after-sha256")
+    progress.add_argument("--adjustment", choices=["scope", "dependency", "acceptance", "verification"])
+    milestone_parser = sub.add_parser("milestone", help="Check a checkpoint without completing its parent goal")
+    milestone_parser.add_argument("--criterion-id", required=True)
     sub.add_parser("heartbeat")
     retry = sub.add_parser("retry")
     retry.add_argument("--reason-id", required=True)

@@ -40,8 +40,15 @@ class ExecutionPolicyMigrationTests(unittest.TestCase):
         self.assertEqual("tools.codex_assets.execution_policy.contracts", validate_policy.__module__)
         self.assertIsNone(importlib.util.find_spec("tools.codex_assets.execution_policy.engine"))
 
-    def test_frozen_old_journal_replays_with_identical_state_and_gate_results(self) -> None:
+    def test_frozen_old_journal_replays_with_reviewed_convergence_projection(self) -> None:
         fixture = json.loads(REPLAY.read_text(encoding="utf-8"))
+        projection = json.loads((ROOT / "tests/fixtures/execution-policy-convergence-replay-8.1.1.json").read_text())
+        self.assertEqual(hashlib.sha256(REPLAY.read_bytes()).hexdigest(), projection["original_fixture_sha256"])
+        self.assertEqual("synthetic-regression-not-live", projection["evidence_class"])
+        self.assertEqual("8.1.1", projection["provider_version"])
+        self.assertEqual("95997abb318144aa6433fb40af4b2f0f1f4ceee4", projection["provider_commit"])
+        expected = {case["name"]: case for case in projection["cases"]}
+        self.assertEqual({case["name"] for case in fixture["cases"]}, set(expected))
         self.assertEqual("synthetic-regression-not-live", fixture["evidence_class"])
         self.assertEqual("7.0.4", fixture["baseline_provider_version"])
         self.assertEqual("05dd80065ec4c58c342e48ff12d4cd53d3897740", fixture["baseline_engine_blob"])
@@ -62,8 +69,11 @@ class ExecutionPolicyMigrationTests(unittest.TestCase):
                     state = reduce_events(events)
                     result = evaluate(state, fixture["policy"], gate_event=case["gate_event"],
                                       as_of=datetime.fromisoformat(case["as_of"]))
-                    self.assertEqual(case["state_sha256"], digest(state))
-                    self.assertEqual(case["decision_sha256"], digest(result))
+                    # 8.1.0 adds convergence state and current-snapshot budget
+                    # fields. Preserve the old bytes and gate/action assertions;
+                    # compare extended fingerprints to canonical upstream output.
+                    self.assertEqual(expected[case["name"]]["state_sha256"], digest(state))
+                    self.assertEqual(expected[case["name"]]["decision_sha256"], digest(result))
                     self.assertEqual(case["expected_action"], result["recommended_action"])
                     self.assertIs(case["expected_gate_allowed"], result["gate_allowed"])
                 self.assertEqual(original, path.read_bytes())

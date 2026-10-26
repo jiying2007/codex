@@ -14,10 +14,10 @@ from tools.codex_assets.execution_policy.reducer import reduce_events
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SOURCE_BLOBS = {
-    "__init__.py": "10d3b1e71e2a91bdf30b7cf15215adcbec2b800e",
-    "contracts.py": "7dccc6b391eb7dd5375eac5d361c39b8fccc4dd3",
-    "decision.py": "404b0856bb11dc41a568b507191e6aad01150565",
-    "reducer.py": "e9bfb216239ddc1bc7ce45be4f21b408105d4d3c"
+    "__init__.py": "677b83c8f18254bea0b07a497ceef0941fe766ce",
+    "contracts.py": "93977bd4f53283f53205a60ab01cc2981127783f",
+    "decision.py": "61179126b3f623f8aa6c2bc603afb4689da9c78c",
+    "reducer.py": "3446508aa08b5a541be11a283f725b9298fc0a81"
 }
 
 def git_blob_sha(path: pathlib.Path) -> str:
@@ -26,14 +26,14 @@ def git_blob_sha(path: pathlib.Path) -> str:
 
 
 class ExecutionPolicySourceSetTest(unittest.TestCase):
-    def test_vendored_execution_policy_matches_adk_7124(self) -> None:
+    def test_vendored_execution_policy_matches_adk_811(self) -> None:
         directory = ROOT / "tools/codex_assets/execution_policy"
         self.assertEqual(set(SOURCE_BLOBS), {p.name for p in directory.glob("*.py")})
         for filename, expected in SOURCE_BLOBS.items():
             self.assertEqual(expected, git_blob_sha(directory / filename))
         provider = json.loads((ROOT / "manifests/provider-locks/agent-dev-kit.json").read_text())
-        self.assertEqual("8.0.2", provider["version"])
-        self.assertEqual("4c8ff2c2bfa37667f17e5c9613d3298848182daa", provider["provider_commit"])
+        self.assertEqual("8.1.1", provider["version"])
+        self.assertEqual("95997abb318144aa6433fb40af4b2f0f1f4ceee4", provider["provider_commit"])
 
     def test_policy_manifest_is_v2_only(self) -> None:
         manifest = json.loads((ROOT / "manifests/execution_policy.json").read_text())

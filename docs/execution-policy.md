@@ -2,7 +2,7 @@
 
 Smoke 恢复主构建时同时使用 `--reuse-context-input --reuse-machine-inputs`，以哈希及 profile 校验保留已批准的本机 context 与执行规则输入。变化的输入拒绝复用；显式规则输入与复用模式不能混用。
 
-Codex 的唯一任务执行策略面绑定 ADK 8.0.0 canonical Execution Policy v2。
+Codex 的唯一任务执行策略面绑定 ADK 8.1.1 canonical Execution Policy v2。
 
 - 配置：`manifests/execution_policy.json`
 - exact decision：`tools/codex_assets/execution_policy/decision.py`
@@ -21,7 +21,7 @@ Codex 的唯一任务执行策略面绑定 ADK 8.0.0 canonical Execution Policy 
 Execution Policy v2 要求每个 goal 在 `goal.started` 时携带可验证 intake：task mode、request/routing digests、authority id 与 routing provenance。缺失 intake、使用 v1 policy、source-set blob 漂移或 behavior baseline 漂移均 fail closed。
 
 Codex 资产工具的日常 CLI 支持 Python 3.8 及以上。宿主包保留历史上游源码使用
-`datetime.UTC` 时的 `timezone.utc` 兼容别名；当前 8.0.0 Execution Policy 源码
+`datetime.UTC` 时的 `timezone.utc` 兼容别名；当前 8.1.1 Execution Policy 源码
 本身不依赖该别名。此桥接不改变上游文件、来源哈希、策略条件或缺失 intake 时的 FATAL 结果。
 
 `readonly`/debug/review 若没有受管 mode-authority verifier，不会自动获得较弱 artifact gate；canonical engine 会按 fail-closed 规则提升到 implementation artifact boundary。
@@ -87,6 +87,16 @@ Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/ra
 长任务应按真实上下文量与预计轮数显式传入 `--token-budget`；默认 300000 仅是初始预算，累计输入计量包含重复加载的上下文。steady/apply 出现 stop 时先停止实施并 replan，不能用终态 final 通过推导未超预算。证据、任务预算和产品验收分别报告。
 
 ## 安装前检查与同源校验
+
+### 长任务收敛能力适配
+
+Host CLI预留`progress --revision <n> --criterion-id <original-id> --change-kind <kind> --evidence-id <registered-id>`及只读`milestone --criterion-id <original-id>`。执行前要求已受管导入的exact ADK源码声明`execution_policy.convergence/v1`；缺少能力明确拒绝，不手改冻结镜像、不伪造provider身份，也不把help成功当运行已采用。
+
+能力可用后，progress必须绑定原验收及新证据digest，关键假设/阻塞变化可算进度。旧revision-only保留历史可读性，但在新引擎中不能持续清除无进展计数。默认8次有效进展而无关闭项触发replan，可由provider支持的`progress.non_closing_limit`显式配置；只提高预算不清零。replan还需`--plan-before-sha256`、`--plan-after-sha256`及`--adjustment scope|dependency|acceptance|verification`，前后计划已登记且不同，审查仍须确认实际执行变化。
+
+milestone只核当前evidence-bound checkpoint和steady状态，不完成父goal、不要求无关全目标证据、不授予commit/apply/release；产品验收及独立审查仍由项目负责。完整目标完成时才用final。新引擎`budget_status`单列当前快照预算，final PASS不能推导历史预算合规或继续执行授权。
+
+当前状态只维护一个入口，默认8 KiB/最多3个下一动作，历史用指针；项目确需更大原文时显式说明并按需读取。源仓ADK可运行`devkit.sh goal state-check`检查JSON入口，该文档卫生检查不替代内容真实性或完成验收。
 
 `doctor --scope repo`、`doctor --scope governance`、完整 governance report 与运行时
 共用 `execution_policy_adapter.load_runtime_config`，不再维护旧 wheel/v1 配置校验器。
