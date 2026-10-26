@@ -448,7 +448,20 @@ def run(args: argparse.Namespace) -> int:
         return 0
 
     if action == "progress":
-        return _append_action(args, "progress.advanced", {"revision": args.revision})
+        from .execution_policy_convergence import progress_payload
+
+        return _append_action(args, "progress.advanced", progress_payload(args))
+    if action == "milestone":
+        from .execution_policy_convergence import milestone, require_capability
+
+        require_capability()
+        events = load_journal(journal)
+        events.append(usage_event(thread))
+        state = _engine_state(events)
+        # Keep the canonical fail-closed artifact mode; no authority is inferred.
+        result = milestone(state, config["policy"], criterion_id=args.criterion_id)
+        _emit(result)
+        return 0 if result["milestone_allowed"] else 3
     if action == "heartbeat":
         return _append_action(args, "heartbeat.recorded", {})
     if action == "retry":
@@ -541,6 +554,14 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
 
     progress = sub.add_parser("progress")
     progress.add_argument("--revision", type=int, required=True)
+    progress.add_argument("--criterion-id")
+    progress.add_argument("--change-kind", choices=["criterion-closed", "evidence-changed", "blocker-changed", "hypothesis-resolved", "replan"])
+    progress.add_argument("--evidence-id", action="append")
+    progress.add_argument("--plan-before-sha256")
+    progress.add_argument("--plan-after-sha256")
+    progress.add_argument("--adjustment", choices=["scope", "dependency", "acceptance", "verification"])
+    milestone_parser = sub.add_parser("milestone", help="Check a checkpoint without completing its parent goal")
+    milestone_parser.add_argument("--criterion-id", required=True)
     sub.add_parser("heartbeat")
     retry = sub.add_parser("retry")
     retry.add_argument("--reason-id", required=True)

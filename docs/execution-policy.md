@@ -88,6 +88,16 @@ Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/ra
 
 ## 安装前检查与同源校验
 
+### 长任务收敛能力适配
+
+Host CLI预留`progress --revision <n> --criterion-id <original-id> --change-kind <kind> --evidence-id <registered-id>`及只读`milestone --criterion-id <original-id>`。执行前要求已受管导入的exact ADK源码声明`execution_policy.convergence/v1`；缺少能力明确拒绝，不手改冻结镜像、不伪造provider身份，也不把help成功当运行已采用。
+
+能力可用后，progress必须绑定原验收及新证据digest，关键假设/阻塞变化可算进度。旧revision-only保留历史可读性，但在新引擎中不能持续清除无进展计数。默认8次有效进展而无关闭项触发replan，可由provider支持的`progress.non_closing_limit`显式配置；只提高预算不清零。replan还需`--plan-before-sha256`、`--plan-after-sha256`及`--adjustment scope|dependency|acceptance|verification`，前后计划已登记且不同，审查仍须确认实际执行变化。
+
+milestone只核当前evidence-bound checkpoint和steady状态，不完成父goal、不要求无关全目标证据、不授予commit/apply/release；产品验收及独立审查仍由项目负责。完整目标完成时才用final。新引擎`budget_status`单列当前快照预算，final PASS不能推导历史预算合规或继续执行授权。
+
+当前状态只维护一个入口，默认8 KiB/最多3个下一动作，历史用指针；项目确需更大原文时显式说明并按需读取。源仓ADK可运行`devkit.sh goal state-check`检查JSON入口，该文档卫生检查不替代内容真实性或完成验收。
+
 `doctor --scope repo`、`doctor --scope governance`、完整 governance report 与运行时
 共用 `execution_policy_adapter.load_runtime_config`，不再维护旧 wheel/v1 配置校验器。
 加载器只读取当前 manifest、provider lock 和四份固定 package/contracts/decision/reducer 源文件；
