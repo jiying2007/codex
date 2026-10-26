@@ -2,7 +2,7 @@
 
 Smoke 恢复主构建时同时使用 `--reuse-context-input --reuse-machine-inputs`，以哈希及 profile 校验保留已批准的本机 context 与执行规则输入。变化的输入拒绝复用；显式规则输入与复用模式不能混用。
 
-Codex 的唯一任务执行策略面绑定 ADK 8.0.0 canonical Execution Policy v2。
+Codex 的唯一任务执行策略面绑定 ADK 8.1.1 canonical Execution Policy v2。
 
 - 配置：`manifests/execution_policy.json`
 - exact decision：`tools/codex_assets/execution_policy/decision.py`
@@ -21,7 +21,7 @@ Codex 的唯一任务执行策略面绑定 ADK 8.0.0 canonical Execution Policy 
 Execution Policy v2 要求每个 goal 在 `goal.started` 时携带可验证 intake：task mode、request/routing digests、authority id 与 routing provenance。缺失 intake、使用 v1 policy、source-set blob 漂移或 behavior baseline 漂移均 fail closed。
 
 Codex 资产工具的日常 CLI 支持 Python 3.8 及以上。宿主包保留历史上游源码使用
-`datetime.UTC` 时的 `timezone.utc` 兼容别名；当前 8.0.0 Execution Policy 源码
+`datetime.UTC` 时的 `timezone.utc` 兼容别名；当前 8.1.1 Execution Policy 源码
 本身不依赖该别名。此桥接不改变上游文件、来源哈希、策略条件或缺失 intake 时的 FATAL 结果。
 
 `readonly`/debug/review 若没有受管 mode-authority verifier，不会自动获得较弱 artifact gate；canonical engine 会按 fail-closed 规则提升到 implementation artifact boundary。

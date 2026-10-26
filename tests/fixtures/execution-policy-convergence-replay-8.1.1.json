@@ -1,0 +1,133 @@
+{
+  "evidence_class": "synthetic-regression-not-live",
+  "provider_version": "8.1.1",
+  "provider_commit": "95997abb318144aa6433fb40af4b2f0f1f4ceee4",
+  "original_fixture_sha256": "3e2106aef4f8ceb1a6afb99ff6eadb22cd493ea96a3ab29e41c987e2a0f160ce",
+  "generation_source": "canonical upstream agent_dev_kit.execution_policy, not consumer mirror",
+  "cases": [
+    {
+      "name": "continue",
+      "state_sha256": "307cfc2dfd957e7091849be16d3787c872e2e4d3abf1cb348588a15edcf0960b",
+      "decision_sha256": "e2cbcafcc06955d89a7d8d0adf1b744f8524e7f595a7342b64c07ad4d9916352",
+      "expected_action": "continue",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "checkpoint",
+      "state_sha256": "0d5be7ff052abd86844c2616382c8ece0854e0b6d0a3aff2dc0a58ebe5fa7b9c",
+      "decision_sha256": "cae0581e4a99670cbcc80bd6defd22084a2ecae8fcd7a47d0867d4a98b50e254",
+      "expected_action": "checkpoint",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "compact-token",
+      "state_sha256": "46730ef863f4f425a648deea87172d1e8bf149d62fdcb56043729dd7c85eca96",
+      "decision_sha256": "818dfd0417b3c0619c8a27f20f0d9a31327002bcd263dd8e67a54d18ad6941e6",
+      "expected_action": "compact",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "stop",
+      "state_sha256": "51dec84370cc363abbc9732b29c5aadb925de3254cda27b6ade7f5e7beb98db8",
+      "decision_sha256": "906980aac8b094bf1f81fde2e39d9ee09f6789919414a57b5af977887440623f",
+      "expected_action": "stop",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "compact-context",
+      "state_sha256": "93424cb3ac8cf8532c62c80d4575e321dc3211f398d5de66897bb514e5cfc11c",
+      "decision_sha256": "9aa6398d239221e9af09cffa94a5e95a32598b11f74178966e90029556e16571",
+      "expected_action": "compact",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "retry-exhausted",
+      "state_sha256": "5f2d34de50a9c26dc1da4676104bcfa2bd0c29f498fd899c68fd740c9c4d431c",
+      "decision_sha256": "a8c81d7e085ecdb197027c46d8001ac1a8dc151e76639aaedc01afa5f36d86ad",
+      "expected_action": "replan",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "stale",
+      "state_sha256": "307cfc2dfd957e7091849be16d3787c872e2e4d3abf1cb348588a15edcf0960b",
+      "decision_sha256": "81b9b9dec1610842200327d8be2d1cf7c5ee56252a990bb72cd8dbe97ac20ad2",
+      "expected_action": "replan",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "aborted",
+      "state_sha256": "f32f80352e0c4b6bd68eab0c2fc6d448f0e00f3ea796746b3f79c7440cee513a",
+      "decision_sha256": "ea85e62363db04370b610b2c506f57311aefee49f2daf96eb8c67bb8e642e0d8",
+      "expected_action": "blocked",
+      "expected_gate_allowed": false
+    },
+    {
+      "name": "completed-final",
+      "state_sha256": "51bc234e6c3775ec100cabc91db6874ca34dbf707fd054960cd712a336b20b42",
+      "decision_sha256": "55b4c92f4eb0aa384146adcdf970723e00402cdeb0bb1b3d974532df32834488",
+      "expected_action": "pass",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "commit-missing-review",
+      "state_sha256": "51bc234e6c3775ec100cabc91db6874ca34dbf707fd054960cd712a336b20b42",
+      "decision_sha256": "8aa89f22f038e1e1f4b7559a06018f8803b959d0ce64fe25913cd7de8abdd941",
+      "expected_action": "replan",
+      "expected_gate_allowed": false
+    },
+    {
+      "name": "missing-checkpoint",
+      "state_sha256": "34dab341285c7358a5b8d981fa14d6063a6d48939831c96af30e304904f4f8e0",
+      "decision_sha256": "8597dd462c7c83c20137bbc09d9f79fe61d4c4ad3c2e8e7c220dc789ae2d3af5",
+      "expected_action": "replan",
+      "expected_gate_allowed": false
+    },
+    {
+      "name": "stale-checkpoint",
+      "state_sha256": "56812ef169a959905964e3543e93dfd85cb457eb7a1a5e0e7332c64f62759782",
+      "decision_sha256": "477022ea3e9baca80fc294becbe3799acac442f793e74c18959ca60811ddc67b",
+      "expected_action": "replan",
+      "expected_gate_allowed": false
+    },
+    {
+      "name": "active-apply",
+      "state_sha256": "2537083276bcbe834354146ffac46a8c26f26db56a5b0b5857e7c8c7f995a681",
+      "decision_sha256": "9c7a413d73a25641792fdf47955e56a6acd5956cad6311c7f7ba3ce46c419bbc",
+      "expected_action": "pass",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "active-final-blocked",
+      "state_sha256": "2537083276bcbe834354146ffac46a8c26f26db56a5b0b5857e7c8c7f995a681",
+      "decision_sha256": "70273d4e9c4f2abfd08d28a3a7ca088044e1263785e9f6634a134958a997a526",
+      "expected_action": "replan",
+      "expected_gate_allowed": false
+    },
+    {
+      "name": "unmanaged-review",
+      "state_sha256": "a35675be5c3919fc60f06ca7b919574e156bf6520fc744910cbbc26c7f2dd056",
+      "decision_sha256": "222538352e6b7ac0d6d112189e9c043f340376e97efe4e53c66f6a69f427d0a2",
+      "expected_action": "replan",
+      "expected_gate_allowed": false
+    },
+    {
+      "name": "duplicate-idempotent",
+      "state_sha256": "307cfc2dfd957e7091849be16d3787c872e2e4d3abf1cb348588a15edcf0960b",
+      "decision_sha256": "e2cbcafcc06955d89a7d8d0adf1b744f8524e7f595a7342b64c07ad4d9916352",
+      "expected_action": "continue",
+      "expected_gate_allowed": true
+    },
+    {
+      "name": "duplicate-conflict",
+      "expected_error": "duplicate event_id has a different payload"
+    },
+    {
+      "name": "raw-content-rejected",
+      "expected_error": "runtime control input contains a forbidden sensitive field"
+    },
+    {
+      "name": "mixed-thread-rejected",
+      "expected_error": "one state cannot mix thread_id values"
+    }
+  ]
+}

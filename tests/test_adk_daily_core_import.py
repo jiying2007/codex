@@ -16,12 +16,12 @@ from tools.codex_assets.skill_catalog import search_skills
 from tests import test_adk_skill_audit as audit_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_COMMIT = "4c8ff2c2bfa37667f17e5c9613d3298848182daa"
-# Reviewed upstream identities from the v8.0.2 exact Git tree, not local rehashes.
+SOURCE_COMMIT = "95997abb318144aa6433fb40af4b2f0f1f4ceee4"
+# Reviewed upstream identities from the v8.1.1 exact Git tree, not local rehashes.
 EXPECTED = {
-    "adk-runtime-router": ("2.1.0", "9ba36768b91eb551136604462105a5b836b47119", "460073fcac9ec92763c20d32fde305862e2d6692d557c4d95900ca556d018cd3", 2, "技能路由"),
-    "adk-code-review-loop": ("1.7.0", "8b536410b3cb0e656e2d032f071022c37a43b00c", "a9ae8c66af6b8bd1ad250d3dc208fe3082492feb682b028243d2ebf15818364a", 4, "独立代码审查"),
-    "adk-verification-before-completion": ("1.7.1", "0eb1fc97c1bfa108271a62a64020daf8ee4835a1", "bfb0659c01d9dbe87eed26c81107fb807e6dce1cc5de3fffa4aa5cc428bdfbfb", 2, "准备完成"),
+    "adk-runtime-router": ("2.1.1", "5d3d2002e56207492b05ea71ab1935a72ef65f31", "72fa9822713bb4a6c0036d8b14cfe9a8572d67b34842110a2220d7002f0d74a4", 2, "技能路由"),
+    "adk-code-review-loop": ("1.7.2", "8262e03cc956b650eab2aed89e73358de2ccccbe", "904e6ad77cdc4df5278f8f9225c3b93d35b0743e105214abb2427f7dc22159d5", 4, "独立代码审查"),
+    "adk-verification-before-completion": ("1.8.0", "f627f8fe97769e230d36d32870b376e422f33ac5", "d434ca5daaebcda6bb7bd03d02f80dcc8f7a2e5715f42dfd96f93b7613585a47", 2, "准备完成"),
 }
 
 
@@ -79,7 +79,7 @@ class DailyCoreImportTests(unittest.TestCase):
                 self.assertEqual(record["version"], version)
                 self.assertEqual(record["source_repo"], "jiying2007/agent-dev-kit")
                 self.assertEqual(record["source_ref"], SOURCE_COMMIT)
-                self.assertEqual(record["source_release"], "v8.0.2")
+                self.assertEqual(record["source_release"], "v8.1.1")
                 self.assertEqual(record["source_path"], f"skills/{name}/SKILL.md")
                 self.assertEqual(record["source_blob"], blob)
                 self.assertEqual(record["source_tree_sha256"], digest)

@@ -56,3 +56,25 @@ class ExecutionPolicyConvergenceTest(unittest.TestCase):
         result = self.run_cli("progress", "--revision", "1")
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertEqual(1, json.loads(result.stdout)["progress"]["revision"])
+
+    def test_imported_provider_supports_readonly_milestone_without_completing_goal(self) -> None:
+        commands = (
+            self.start_args("milestone-test"),
+            ("evidence", "--evidence-id", "tests", "--sha256", "c" * 64),
+            ("progress", "--revision", "1", "--criterion-id", "tests",
+             "--change-kind", "evidence-changed", "--evidence-id", "tests"),
+            ("checkpoint", "--revision", "1", "--evidence-id", "tests"),
+        )
+        for command in commands:
+            result = self.run_cli(*command)
+            self.assertEqual(0, result.returncode, result.stderr)
+        journal = next((self.codex_home / "execution-policy").glob("thread-*.jsonl"))
+        before = journal.read_bytes()
+        result = self.run_cli("milestone", "--criterion-id", "tests")
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertTrue(json.loads(result.stdout)["milestone_allowed"])
+        self.assertEqual(before, journal.read_bytes())
+        events = [json.loads(line) for line in before.decode().splitlines()]
+        self.assertFalse(any(event["event_type"] == "goal.completed" for event in events))
+        final = self.run_cli("gate", "--event", "final")
+        self.assertFalse(json.loads(final.stdout)["gate_allowed"])

@@ -12,7 +12,7 @@ from .contracts import (
     goal_intake_attestation_sha256,
     validate_policy,
 )
-from .decision import evaluate
+from .decision import evaluate, evaluate_milestone
 from .reducer import reduce_events
 
 __all__ = [
@@ -22,6 +22,7 @@ __all__ = [
     "STATE_SCHEMA",
     "ExecutionPolicyError",
     "evaluate",
+    "evaluate_milestone",
     "goal_intake_attestation_sha256",
     "reduce_events",
     "validate_policy",

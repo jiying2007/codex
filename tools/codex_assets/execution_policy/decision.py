@@ -18,6 +18,8 @@ from .contracts import (
     validate_policy,
 )
 
+CONVERGENCE_CONTRACT = "execution_policy.convergence/v1"
+
 
 def evaluate(
     state: Mapping[str, Any],
@@ -171,6 +173,11 @@ def evaluate(
     ):
         action = "replan"
         reasons.append("no-progress-limit-reached")
+    elif int(progress.get("non_closing_advances") or 0) >= int(
+        normalized_policy["progress"].get("non_closing_limit", 8)
+    ):
+        action = "replan"
+        reasons.append("non-closing-progress-limit-reached")
     elif context_ratio >= normalized_policy["context"]["compact_ratio"]:
         action = "compact"
         reasons.append("context-pressure")
@@ -240,6 +247,17 @@ def evaluate(
         "goal_tokens": goal_tokens,
         "token_budget": token_budget,
         "token_ratio": round(token_ratio, 6) if token_ratio is not None else None,
+        "budget_status": {
+            "scope": "current-snapshot",
+            "status": (
+                "exceeded" if (token_ratio is not None and token_ratio >= normalized_policy["token"]["stop_ratio"])
+                or (time_budget and time_elapsed >= time_budget)
+                else "within" if usage.get("observed_at") else "unknown"
+            ),
+            "token_exhausted": bool(token_ratio is not None and token_ratio >= normalized_policy["token"]["stop_ratio"]),
+            "time_exhausted": bool(time_budget and time_elapsed >= time_budget),
+            "historical_compliance_verified": False,
+        },
         "context_ratio": round(context_ratio, 6),
         "time_elapsed_seconds": round(time_elapsed, 3),
         "heartbeat_age_seconds": round(heartbeat_age, 3) if heartbeat_age is not None else None,
@@ -269,3 +287,59 @@ def evaluate(
         "required_artifacts": list(required_artifacts),
     })
     return decision
+
+
+def evaluate_milestone(
+    state: Mapping[str, Any],
+    policy: Mapping[str, Any],
+    *,
+    criterion_id: str,
+    mode_authority_verifier: Callable[[Mapping[str, Any], Mapping[str, Any]], bool] | None = None,
+    as_of: datetime | None = None,
+) -> dict[str, Any]:
+    """Check the current evidence-bound checkpoint without completing its parent goal.
+
+    This is a local checkpoint decision, not a domain acceptance or delivery gate.
+    The caller still verifies the contents and freshness of the referenced evidence.
+    """
+    from .contracts import _identifier
+
+    criterion_id = _identifier(criterion_id, "milestone.criterion_id")
+    decision = evaluate(
+        state, policy, gate_event="steady",
+        mode_authority_verifier=mode_authority_verifier, as_of=as_of,
+    )
+    goal = state.get("goal") or {}
+    progress = state.get("progress") or {}
+    checkpoint = state.get("checkpoint") or {}
+    evidence = state.get("evidence") or {}
+    reasons: list[str] = []
+    if goal.get("status") != "active":
+        reasons.append("milestone-requires-active-goal")
+    if criterion_id not in (goal.get("success_criteria") or []):
+        reasons.append("milestone-criterion-outside-goal")
+    revision = int(progress.get("revision") or 0)
+    if not revision or progress.get("verified_revision") != revision or progress.get("criterion_id") != criterion_id:
+        reasons.append("milestone-progress-unverified")
+    if not checkpoint.get("verified") or checkpoint.get("revision") != revision:
+        reasons.append("milestone-checkpoint-stale")
+    ids = checkpoint.get("evidence_ids") or []
+    if not ids or any(key not in evidence for key in ids):
+        reasons.append("milestone-evidence-missing")
+    if not set(progress.get("evidence_ids") or []) <= set(ids):
+        reasons.append("milestone-progress-evidence-not-checkpointed")
+    if decision["recommended_action"] != "continue" or not decision["gate_allowed"]:
+        reasons.extend(decision["reasons"] or ["milestone-runtime-not-ready"])
+    return {
+        "schema_version": "execution_policy.milestone/v1",
+        "thread_id": decision["thread_id"],
+        "goal_id": decision["goal_id"],
+        "criterion_id": criterion_id,
+        "revision": revision,
+        "milestone_allowed": not reasons,
+        "completion_allowed": False,
+        "domain_acceptance_verified": False,
+        "reasons": list(dict.fromkeys(reasons)),
+        "evidence_ids": ids,
+        "budget_status": decision["budget_status"],
+    }

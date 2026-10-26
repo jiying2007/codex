@@ -59,6 +59,14 @@ def _initial_state(thread_id: str) -> dict[str, Any]:
         },
         "progress": {
             "revision": 0,
+            "verified_revision": 0,
+            "used_evidence_digests": [],
+            "criterion_id": None,
+            "evidence_ids": [],
+            "plan_sha256": None,
+            "non_closing_advances": 0,
+            "closed_criteria": [],
+            "open_items_at_progress": 0,
             "last_progress_at": None,
             "heartbeat_at": None,
             "last_heartbeat_revision": -1,
@@ -116,6 +124,14 @@ def _reset_goal_state(state: dict[str, Any], payload: Mapping[str, Any], at: dat
     }
     state["progress"] = {
         "revision": 0,
+        "verified_revision": 0,
+        "used_evidence_digests": [],
+        "criterion_id": None,
+        "evidence_ids": [],
+        "plan_sha256": None,
+        "non_closing_advances": 0,
+        "closed_criteria": [],
+        "open_items_at_progress": state["goal"]["open_items_count"],
         "last_progress_at": _iso(at),
         "heartbeat_at": _iso(at),
         "last_heartbeat_revision": -1,
@@ -189,9 +205,10 @@ def reduce_events(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                 goal["intake_provenance"] = intake["provenance"]
                 goal["intake_revision"] = int(goal.get("intake_revision") or 0) + 1
             if "open_items_count" in payload:
-                goal["open_items_count"] = _integer(
+                open_items = _integer(
                     payload.get("open_items_count"), "goal.open_items_count"
                 )
+                goal["open_items_count"] = open_items
             if "token_budget" in payload:
                 goal["token_budget"] = _integer(payload.get("token_budget"), "goal.token_budget", positive=True)
             if "time_budget_seconds" in payload:
@@ -254,22 +271,69 @@ def reduce_events(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                 "rate_per_minute": max(0.0, _number(payload.get("rate_per_minute"), "usage.rate_per_minute")),
             }
         elif kind == "progress.advanced":
-            if goal["status"] != "active" or set(payload) != {"revision"}:
-                raise ExecutionPolicyError("progress.advanced requires active goal and revision")
+            legacy = set(payload) == {"revision"}
+            proof_fields = {"revision", "criterion_id", "change_kind", "evidence_ids"}
+            replan_fields = {"plan_before_sha256", "plan_after_sha256", "adjustment"}
+            if goal["status"] != "active" or (
+                not legacy and set(payload) not in (proof_fields, proof_fields | replan_fields)
+            ):
+                raise ExecutionPolicyError("progress.advanced requires revision and a complete evidence binding")
             revision = _integer(payload.get("revision"), "progress.revision", positive=True)
             if revision <= state["progress"]["revision"]:
                 raise ExecutionPolicyError("progress revision must increase")
+            if not legacy:
+                criterion = _identifier(payload["criterion_id"], "progress.criterion_id")
+                if criterion not in goal["success_criteria"]:
+                    raise ExecutionPolicyError("progress criterion must belong to the original goal")
+                change = payload["change_kind"]
+                if not isinstance(change, str) or change not in {"criterion-closed", "evidence-changed", "blocker-changed", "hypothesis-resolved", "replan"}:
+                    raise ExecutionPolicyError("unknown progress change_kind")
+                ids = _ids(payload["evidence_ids"], "progress.evidence_ids", non_empty=True)
+                if any(key not in state["evidence"] for key in ids):
+                    raise ExecutionPolicyError("progress evidence must already be registered")
+                digests = {state["evidence"][key] for key in ids}
+                previous_digests = set(state["progress"]["used_evidence_digests"])
+                if not digests - previous_digests:
+                    raise ExecutionPolicyError("progress requires new evidence, not a renamed digest")
+                if change == "replan":
+                    if set(payload) != proof_fields | replan_fields:
+                        raise ExecutionPolicyError("replan requires before/after plans and an adjustment")
+                    before = _sha256(payload["plan_before_sha256"], "replan.before")
+                    after = _sha256(payload["plan_after_sha256"], "replan.after")
+                    if before == after or after not in digests or before not in state["evidence"].values():
+                        raise ExecutionPolicyError("replan must register a changed plan as evidence")
+                    if state["progress"]["plan_sha256"] not in (None, before):
+                        raise ExecutionPolicyError("replan must continue the current plan identity")
+                    if not isinstance(payload["adjustment"], str) or payload["adjustment"] not in {"scope", "dependency", "acceptance", "verification"}:
+                        raise ExecutionPolicyError("replan must change execution, not only budget")
+                    state["progress"]["non_closing_advances"] = 0
+                    state["progress"]["plan_sha256"] = after
+                else:
+                    if set(payload) != proof_fields:
+                        raise ExecutionPolicyError("plan adjustment fields are only valid for replan")
+                    state["progress"]["non_closing_advances"] += 1
+                    if (change == "criterion-closed"
+                            and criterion not in state["progress"]["closed_criteria"]
+                            and goal["open_items_count"] < state["progress"]["open_items_at_progress"]):
+                        state["progress"]["non_closing_advances"] = 0
+                        state["progress"]["closed_criteria"].append(criterion)
+                state["progress"]["used_evidence_digests"] = sorted(previous_digests | digests)
+                state["progress"]["verified_revision"] = revision
+                state["progress"]["criterion_id"] = criterion
+                state["progress"]["evidence_ids"] = ids
+                state["progress"]["open_items_at_progress"] = goal["open_items_count"]
             state["progress"]["revision"] = revision
-            state["progress"]["last_progress_at"] = _iso(at)
+            if not legacy:
+                state["progress"]["last_progress_at"] = _iso(at)
         elif kind == "heartbeat.recorded":
             if goal["status"] != "active" or payload:
                 raise ExecutionPolicyError("heartbeat.recorded requires active goal and empty payload")
             progress = state["progress"]
-            if progress["last_heartbeat_revision"] == progress["revision"]:
+            if progress["last_heartbeat_revision"] == progress["verified_revision"]:
                 progress["no_progress_heartbeats"] += 1
             else:
                 progress["no_progress_heartbeats"] = 0
-            progress["last_heartbeat_revision"] = progress["revision"]
+            progress["last_heartbeat_revision"] = progress["verified_revision"]
             progress["heartbeat_at"] = _iso(at)
         elif kind == "retry.recorded":
             if goal["status"] != "active" or set(payload) != {"reason_id"}:

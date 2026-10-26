@@ -291,13 +291,17 @@ def validate_policy(value: Mapping[str, Any]) -> dict[str, Any]:
         raise ExecutionPolicyError("context.compact_ratio must be in (0, 1]")
 
     progress = value.get("progress")
-    if not isinstance(progress, dict) or set(progress) != {
+    if not isinstance(progress, dict) or not {
         "staleness_seconds", "retry_limit", "no_progress_limit"
+    } <= set(progress) or set(progress) - {
+        "staleness_seconds", "retry_limit", "no_progress_limit", "non_closing_limit"
     }:
         raise ExecutionPolicyError("progress policy fields are invalid")
     _integer(progress.get("staleness_seconds"), "progress.staleness_seconds", positive=True)
     _integer(progress.get("retry_limit"), "progress.retry_limit", positive=True)
     _integer(progress.get("no_progress_limit"), "progress.no_progress_limit", positive=True)
+    if "non_closing_limit" in progress:
+        _integer(progress["non_closing_limit"], "progress.non_closing_limit", positive=True)
 
     applicability = value.get("artifact_applicability")
     if not isinstance(applicability, dict) or set(applicability) != TASK_MODES:
