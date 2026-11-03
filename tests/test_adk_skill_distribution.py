@@ -16,7 +16,7 @@ from tools.codex_assets.core import Repo, parse_frontmatter
 from tools.codex_assets.skill_catalog import search_skills
 
 ROOT = Path(__file__).resolve().parents[1]
-COMMIT = "95997abb318144aa6433fb40af4b2f0f1f4ceee4"
+COMMIT = "22e6c790d1ed191cecc3083dc001a6ccfed264f6"
 
 
 class DistributionMetadataTests(unittest.TestCase):
@@ -102,13 +102,13 @@ class CompleteAdkImportTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         # Static evidence captured from the exact provider Git tree, not a lock
         # generated from the currently installed consumer files during testing.
-        cls.golden = json.loads((ROOT / "tests/fixtures/adk-skill-sources-8.1.1.json").read_text())
+        cls.golden = json.loads((ROOT / "tests/fixtures/adk-skill-sources-8.2.0.json").read_text())
         cls.records = {r["name"]: r for r in json.loads((ROOT / "manifests/skills.json").read_text())["skills"]
                        if r["enabled"] and r["name"].startswith("adk-")}
 
-    def test_all_42_sources_match_exact_upstream_files_and_modes(self) -> None:
+    def test_all_43_sources_match_exact_upstream_files_and_modes(self) -> None:
         self.assertEqual(COMMIT, self.golden["provider_commit"])
-        self.assertEqual(42, len(self.records))
+        self.assertEqual(43, len(self.records))
         self.assertEqual(set(self.records), set(self.golden["skills"]))
         for name, record in self.records.items():
             expected = self.golden["skills"][name]
@@ -117,7 +117,7 @@ class CompleteAdkImportTests(unittest.TestCase):
                 actual = _tree(directory)
                 self.assertEqual("jiying2007/agent-dev-kit", record["source_repo"])
                 self.assertEqual(COMMIT, record["source_ref"])
-                self.assertEqual("v8.1.1", record["source_release"])
+                self.assertEqual("v8.2.0", record["source_release"])
                 self.assertEqual(expected["source_path"], record["source_path"])
                 self.assertEqual(expected["tree"], _source_tree(record, actual))
                 self.assertEqual(_digest(expected["tree"]), record["source_tree_sha256"])
@@ -147,8 +147,8 @@ class CompleteAdkImportTests(unittest.TestCase):
         report = audit(ROOT)
         self.assertEqual({}, report["gap_counts"])
         self.assertEqual("consistent", report["status"])
-        self.assertEqual("8.1.1", report["provider_lock_version"])
-        self.assertEqual(42, report["skills_matching_provider_lock_commit"])
+        self.assertEqual("8.2.0", report["provider_lock_version"])
+        self.assertEqual(43, report["skills_matching_provider_lock_commit"])
         self.assertFalse(report["claims"]["runtime_qualified"])
 
     def test_moved_handoff_is_the_same_named_skill_not_a_guessed_replacement(self) -> None:
@@ -157,7 +157,7 @@ class CompleteAdkImportTests(unittest.TestCase):
         self.assertEqual(["team-collab"], record["profiles"])
 
     def test_revised_natural_language_triggers_resolve_without_extra_profiles(self) -> None:
-        cases = {"跨会话恢复": "adk-context-engineering", "编写驱动": "adk-driver-implementation",
+        cases = {"生成Goal": "adk-goal-authoring", "跨会话恢复": "adk-context-engineering", "编写驱动": "adk-driver-implementation",
                  "嵌入式发布编排": "adk-embedded-release-orchestration", "第三方引入": "adk-security-supply-chain"}
         with tempfile.TemporaryDirectory() as home:
             for query, name in cases.items():

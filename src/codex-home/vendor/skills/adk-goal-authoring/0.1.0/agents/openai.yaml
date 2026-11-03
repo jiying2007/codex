@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK Goal Authoring"
+  short_description: "生成可验证目标合同、有限批次与预算提案"
+  default_prompt: "Use $adk-goal-authoring to draft a verifiable Goal contract without changing host authority."

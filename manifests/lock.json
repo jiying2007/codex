@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 778,
+  "managed_count": 798,
   "items": [
     {
       "kind": "skill",
@@ -22,14 +22,14 @@
       "name": "adk-adr-writer",
       "version": "1.1.0",
       "source": "vendor/skills/adk-adr-writer/1.1.0",
-      "sha256": "1d02ec443ee9572ba75b90fd1d433eed0b9106874c954f08b63cc392f29b7eb8"
+      "sha256": "7f9b35ebe97bec607f8ffa3151bc5ae1bf8973b78846dea532328a9893f3ad4d"
     },
     {
       "kind": "skill",
       "name": "adk-after-action-review",
       "version": "1.2.0",
       "source": "vendor/skills/adk-after-action-review/1.2.0",
-      "sha256": "85ca6f88ebf8c5a6aaccdc36bfcfab3fa2814b108dffd52b84da979b6367ffa4"
+      "sha256": "6264ab2ed40a548f32ba5e56f36474ba6a46db228492e1fdfe2e0fac3a1a83d1"
     },
     {
       "kind": "skill",
@@ -43,49 +43,49 @@
       "name": "adk-artifact-gating",
       "version": "1.0.0",
       "source": "vendor/skills/adk-artifact-gating/1.0.0",
-      "sha256": "1cf6ee31c47477eef8bec6a99343d81d3bec5d00b007650fc52994fbce7ca270"
+      "sha256": "83ed68f92b2aaf8872658d626882770258030731bfae22da8b5dbac6230d3fa8"
     },
     {
       "kind": "skill",
       "name": "adk-branch-closeout",
       "version": "1.0.1",
       "source": "vendor/skills/adk-branch-closeout/1.0.1",
-      "sha256": "fbfb1d62fd5f8f152dfcfca7391817ecc31a7532b978194f8e0da30cbcfe86ae"
+      "sha256": "05f0a21fc5e3dd991b77d4135f3342b8679d483b5af1b8623d62d87405e3fcef"
     },
     {
       "kind": "skill",
       "name": "adk-chinese-code-review",
       "version": "1.1.0",
       "source": "vendor/skills/adk-chinese-code-review/1.1.0",
-      "sha256": "7b5b5a045edabea5ae3537c10ad29830e08662cbce1107fd9023d9f56f30dfbf"
+      "sha256": "b2360c82ba87321a89ba2ddc8a1636903b296f4b1c2721c1afe0603bd3219748"
     },
     {
       "kind": "skill",
       "name": "adk-chinese-commit-conventions",
       "version": "1.1.0",
       "source": "vendor/skills/adk-chinese-commit-conventions/1.1.0",
-      "sha256": "c38ddd8408e12336fdde2af7f0f11f75cdd5dbd7395860c613fbaae08d0115b5"
+      "sha256": "39c51ae02ec920448ed678626ac947e26656e6085073e8a48e7dcae8158cc1e7"
     },
     {
       "kind": "skill",
       "name": "adk-code-review-loop",
       "version": "1.7.2",
       "source": "vendor/skills/adk-code-review-loop/1.7.2",
-      "sha256": "0d4202e780541fb244c8f05d1a3796126f399ea9eb2d76ff008585319a1ea2de"
+      "sha256": "3eeaa845946b923f2811fe9684d8ebbf6e54aebda0e15954795f4402d6eb04ab"
     },
     {
       "kind": "skill",
       "name": "adk-commit-pr-quality-gate",
       "version": "1.1.1",
       "source": "vendor/skills/adk-commit-pr-quality-gate/1.1.1",
-      "sha256": "145f7701eb6c035546d6152718c12c35e15b65fe052baa7f61ccadbb56c88e69"
+      "sha256": "af2e31849e535336406ab5c306a91925df8ec632600b55689671f474fe23fa7f"
     },
     {
       "kind": "skill",
       "name": "adk-component-api-stability",
       "version": "1.0.0",
       "source": "vendor/skills/adk-component-api-stability/1.0.0",
-      "sha256": "05765fd7bca8faa0c67f8cb91660dc7000fcb0b757fb62f48de715192aaf2fa2"
+      "sha256": "a9175aad0cc9df2a5a0f72fca22cfecd958b232f4238f59fd40408b41c5aa5a2"
     },
     {
       "kind": "skill",
@@ -99,28 +99,28 @@
       "name": "adk-context-engineering",
       "version": "2.0.0",
       "source": "vendor/skills/adk-context-engineering/2.0.0",
-      "sha256": "1ed1fb453aa65b24ca4a7c1a32340b97ba1288fbf02ce399e3f651b9cbe47a15"
+      "sha256": "be58df32d87a07a00dadd270d543130d200a37fee19bfe81390388b35ef04269"
     },
     {
       "kind": "skill",
       "name": "adk-cross-team-handoff",
       "version": "1.0.0",
       "source": "vendor/skills/adk-cross-team-handoff/1.0.0",
-      "sha256": "d13fbaf340c61b4abc34c1628a30039ed9c45a318fd263bb34317d09e55a4a60"
+      "sha256": "f59c05e364bfba974ca0754583dab26135ddff45ae6640d4737f17d169e4b610"
     },
     {
       "kind": "skill",
       "name": "adk-driver-bringup-checklist",
       "version": "2.0.0",
       "source": "vendor/skills/adk-driver-bringup-checklist/2.0.0",
-      "sha256": "514ec327d6020ce5f8520210db7a4799bfcb81b39b40a143630f9cab889043b5"
+      "sha256": "772b6525687d9226c8a6f0d9fe3a914bd0c587f50a3e926229c91987d870c218"
     },
     {
       "kind": "skill",
       "name": "adk-driver-implementation",
       "version": "2.0.0",
       "source": "vendor/skills/adk-driver-implementation/2.0.0",
-      "sha256": "7e37edbadf1bcace75c13657332d2caa9d625d58533dfb98841e5a8ba4bffcc8"
+      "sha256": "7267087d33ee1e27dd5873c3fdbf0fe0ea915da36618969a0915fe77642bb168"
     },
     {
       "kind": "skill",
@@ -162,7 +162,7 @@
       "name": "adk-interface-contract-design",
       "version": "1.3.3",
       "source": "vendor/skills/adk-interface-contract-design/1.3.3",
-      "sha256": "34e15faf1a3ad611381762a04e6a4d3fb2bd15fc0d0d5977c3249eb064790e73"
+      "sha256": "1d0ac97f05e092eed809e965b6acaf3bea3ae54d14cae1ec6e07a91394740a77"
     },
     {
       "kind": "skill",
@@ -190,28 +190,28 @@
       "name": "adk-offline-core-dump-triage",
       "version": "1.0.0",
       "source": "vendor/skills/adk-offline-core-dump-triage/1.0.0",
-      "sha256": "ff88519b5d0cdebd7c21da4ae3c31efb904c4a14ab8a6809016b43fb8f554d58"
+      "sha256": "c28463adaf78797680410eea9b5affb60c60b59a6dcbcf06ec9598635c40db2a"
     },
     {
       "kind": "skill",
       "name": "adk-parallel-agent-governance",
-      "version": "1.4.1",
-      "source": "vendor/skills/adk-parallel-agent-governance/1.4.1",
-      "sha256": "ea0cbf4d3ca3d1208412f9167e9033f9135abe5fb73f31e9537508c6b0499794"
+      "version": "1.4.2",
+      "source": "vendor/skills/adk-parallel-agent-governance/1.4.2",
+      "sha256": "4c5cb5334fab522f055ff00c1d0ee6e406c3dde79259f2cbf716c855eefd9da3"
     },
     {
       "kind": "skill",
       "name": "adk-planning-execution-loop",
-      "version": "1.4.0",
-      "source": "vendor/skills/adk-planning-execution-loop/1.4.0",
-      "sha256": "cad4586c8d52a8fdaa830566609bdb43ad70845c38997b2792dd799b9f1ba2b9"
+      "version": "1.4.1",
+      "source": "vendor/skills/adk-planning-execution-loop/1.4.1",
+      "sha256": "4cba9780704fce544b52c47f2f4cff98a5c34931576f04c671ab5a8a518bf331"
     },
     {
       "kind": "skill",
       "name": "adk-release-versioning",
       "version": "1.4.1",
       "source": "vendor/skills/adk-release-versioning/1.4.1",
-      "sha256": "728ec412b250a8da7fadc4d320e4a1aa29c4615b41b4d4194c9fc008886b9c50"
+      "sha256": "3861f4f460285b1faf80dd6cbd3bcbafef248b0b05fd1bec944727b0e17d6ef0"
     },
     {
       "kind": "skill",
@@ -225,91 +225,91 @@
       "name": "adk-requirements-triage",
       "version": "1.3.1",
       "source": "vendor/skills/adk-requirements-triage/1.3.1",
-      "sha256": "4ecaf1e1cc457ee09d85155b43c97136bb7a193bee0c2ad967dcf8d101a4b107"
+      "sha256": "2ac6b88b91a0fe6e43f63ad10f9eba3248fed5c3901e3419a3c757dcf2059bba"
     },
     {
       "kind": "skill",
       "name": "adk-runtime-router",
       "version": "2.1.1",
       "source": "vendor/skills/adk-runtime-router/2.1.1",
-      "sha256": "2f6a4282dfb0c54743359c212b3ae49f0a4fc95151305431b780ac9ef8c0fbc8"
+      "sha256": "a906c0699951ff2fb2c822764faef389c0df9f2ab4ded48558dbfe071e646389"
     },
     {
       "kind": "skill",
       "name": "adk-security-supply-chain",
       "version": "1.1.0",
       "source": "vendor/skills/adk-security-supply-chain/1.1.0",
-      "sha256": "d5663a9da405b1153208c3cff115320bb451e948619af7f511277ff3658281e9"
+      "sha256": "5b2e0d06455cf8395799687210f3c9d8cd35ef51713828c0a98fd375a6c37777"
     },
     {
       "kind": "skill",
       "name": "adk-skill-composition-governance",
       "version": "1.1.1",
       "source": "vendor/skills/adk-skill-composition-governance/1.1.1",
-      "sha256": "6acc52aab2d3b96bba128496009c2572777facd436dff459c9c069ea88c01723"
+      "sha256": "04c5620b2d8d2dffa3f580bdefe38563095961a0f726312080d98ca89af50d51"
     },
     {
       "kind": "skill",
       "name": "adk-static-analysis-c-cpp",
       "version": "1.0.0",
       "source": "vendor/skills/adk-static-analysis-c-cpp/1.0.0",
-      "sha256": "c78d7927dc63e61d3963aa7b9bfdc5806533d5ed4a94dde78415a5dc1255267c"
+      "sha256": "c300d5bfd93ed9b9c635fa0265d0534fbdf293e2d8740df25e96795b59ed0235"
     },
     {
       "kind": "skill",
       "name": "adk-structured-requirements-questioning",
       "version": "1.0.0",
       "source": "vendor/skills/adk-structured-requirements-questioning/1.0.0",
-      "sha256": "55173bb9cb9ee709bd121a4449ab8b2fdc7414a3d1951a0fde62c86e02febd80"
+      "sha256": "ba89e73e8cae0817b9304b56a250bf2842e9a76fd60471d0ff67e22c573c7fac"
     },
     {
       "kind": "skill",
       "name": "adk-systematic-debugging",
       "version": "1.2.0",
       "source": "vendor/skills/adk-systematic-debugging/1.2.0",
-      "sha256": "e458bc66d11663f6004bec3891371bce135558bc486860740045106671a3f210"
+      "sha256": "5c34ec897f0bd4b85d1443c7ed524676759b5b0cd778fb38a97f175fe53c5c6d"
     },
     {
       "kind": "skill",
       "name": "adk-task-breakdown",
       "version": "1.4.2",
       "source": "vendor/skills/adk-task-breakdown/1.4.2",
-      "sha256": "a7ddf5acf80fc32fb1c6d743518381083a8516b9c2b24b1921531d2a309af12c"
+      "sha256": "53caa1b755a47749b069e659f9f0a0b93b56d9be6f0ea3186ec8f836de3e6d40"
     },
     {
       "kind": "skill",
       "name": "adk-test-strategy",
       "version": "2.1.2",
       "source": "vendor/skills/adk-test-strategy/2.1.2",
-      "sha256": "84c472e665515e408d5cb1895fe12fe1bb4ae29ffbc665e920d1b240f8aba42d"
+      "sha256": "d29f22e768d029bd91356a31eb0df937ba6020407a43f595e04669f8aa79bfb2"
     },
     {
       "kind": "skill",
       "name": "adk-token-context-governance",
       "version": "1.3.0",
       "source": "vendor/skills/adk-token-context-governance/1.3.0",
-      "sha256": "90263107e39a1df85520f32da8196b17795dac08d233242b64cf6ef1d5f97319"
+      "sha256": "03fe094a95b1480107908b2cdd68b2ede0bc5c01a2ae8b1dfcd4df742bc9dd16"
     },
     {
       "kind": "skill",
       "name": "adk-unit-test-embedded",
       "version": "1.1.1",
       "source": "vendor/skills/adk-unit-test-embedded/1.1.1",
-      "sha256": "6e042084c9ab2e7f680e82dd1fe111c9cd74c5502c8370f8408c5dadea95e103"
+      "sha256": "772d4126d6bc67fffbc535c0b0c3548af21747c46c6ab331abb977d39e5d2fe7"
     },
     {
       "kind": "skill",
       "name": "adk-verification-before-completion",
       "version": "1.8.0",
       "source": "vendor/skills/adk-verification-before-completion/1.8.0",
-      "sha256": "d26b5fdec9fe7ebf84134aff4ba46cb03fee3d53448c4e1095d3300e2474efdd"
+      "sha256": "96ad9ff12aeecf0ba983197c99668059f1b2d84fb71e84a01b5807feb0779e74"
     },
     {
       "kind": "skill",
       "name": "adk-worktree-governance",
       "version": "1.2.1",
       "source": "vendor/skills/adk-worktree-governance/1.2.1",
-      "sha256": "629569c5d1e38b0ff6d28ec4aa4e3c1ab7a9c3a3d5e55140bde357728d5392d3"
+      "sha256": "52872fc74cf5d23491dbb664d1def4c77018b356e69c5bf3cfd3b001a1b964e7"
     },
     {
       "kind": "skill",
@@ -513,6 +513,13 @@
       "version": "3.1.0",
       "source": "vendor/skills/worktree-closeout/3.1.0",
       "sha256": "6061e1d05cc6a4b67f762d709b67d520d4404ddafb013203b89eab1c9bc9dc5b"
+    },
+    {
+      "kind": "skill",
+      "name": "adk-goal-authoring",
+      "version": "0.1.0",
+      "source": "vendor/skills/adk-goal-authoring/0.1.0",
+      "sha256": "01f8a1ac58ba65066c252b19eaeeafdc7ad5d50609e9c317db6da7afb5c52eb9"
     }
   ]
 }
