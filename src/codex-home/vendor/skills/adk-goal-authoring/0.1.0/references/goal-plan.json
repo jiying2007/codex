@@ -1,0 +1,21 @@
+{
+  "schema_version": "adk.goal-plan/v1",
+  "objective": "修复导出消费者的错误传播，保留公开接口；实际消费者失败前后对比和回归通过后交付软件切片。",
+  "original_goal_ref": "requirements.md#original-acceptance",
+  "constraints": ["保留原目标及累计", "不提交或操作设备"],
+  "parent_criteria": ["AC-software", "AC-board"],
+  "deliverables": [
+    {"id": "D-error", "parents": ["AC-software"], "outcome": "消费者观察到真实错误且失败资源可重试回收", "verify": ["运行实际消费者的错误注入与成功对照"], "evidence": [], "depends_on": [], "status": "ready", "layer": "software"},
+    {"id": "D-board", "parents": ["AC-board"], "outcome": "匹配制品在目标板完成同一业务链", "verify": ["获得设备授权与匹配制品后运行板级用例"], "evidence": [], "depends_on": ["D-error"], "status": "blocked", "layer": "board"}
+  ],
+  "batch": {
+    "id": "B-error",
+    "deliverables": ["D-error"],
+    "scope": ["export implementation", "actual consumer tests"],
+    "done_when": "错误传播子项以真实失败/成功证据关闭；板级及完整目标保持独立验收。",
+    "verification": {"targeted": ["最小修前失败与修后通过"], "milestone": ["受影响消费者回归和适用审查"], "final": ["完整目标结束时才运行整体final"]},
+    "stop": {"same_failure_limit": 2, "nonclosing_batch_limit": 4, "external_trigger": "匹配板级输入和设备授权到达才重查D-board"},
+    "replan_effect": "若本批不能关闭D-error，固定未解错误路径，改依赖或验证路径并在下一批核验效果；不以新增测试数计关闭。"
+  },
+  "budget_proposal": {"tokens": 300000, "basis": "示例提案；实际项目按恢复成本与预期工具轮次估算并取得预算授权", "native_goal_applied": false}
+}

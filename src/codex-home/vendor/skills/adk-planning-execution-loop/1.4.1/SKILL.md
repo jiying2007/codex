@@ -1,8 +1,8 @@
 ---
 name: adk-planning-execution-loop
 description: 长任务计划审查、分阶段执行、恢复与收口闭环
-version: 1.4.0
-last_updated: 2026-10-26
+version: 1.4.1
+last_updated: 2026-11-01
 triggers:
   - "执行计划"
   - "多阶段任务"
@@ -41,7 +41,7 @@ constraints:
 5. 执行检查点：每完成一个阶段，更新状态、证据和风险。
    - 同一逻辑目标的相关小改按里程碑连续推进：及时跑定向验证，完整回归和整批审查集中在里程碑末；共享契约、权限或发布边界变化立即升级对应门禁，不为每个小点重复 PR/合并。
    - 每批冻结可关闭的纵向交付与验收。新发现仅纳入本批阻塞项，其余待办；不减完整目标分母。
-6. 恢复记录：当前状态合并 `session-state/next-actions/risk-ledger/resume-prompt`，最多3个下一动作、默认8 KiB；超限摘要并链接历史，领域例外说明原因。
+6. 恢复记录：当前状态合并 `session-state/next-actions/risk-ledger/resume-prompt`，最多3个下一动作、默认8 KiB；超限摘要并链接历史，领域例外说明原因；来源事件仅作 context/evidence，超权限 hand-back，UNKNOWN 不盲重放
    - 暂停恢复或重试可能重跑已进入的步骤；对外部写入先核操作标识、实际生效回执和目标状态，未知结果先对账，不盲目重试。
 7. 偏离处理：发现计划错误、共享契约冲突、验证失败或 research/prototype 请求实现权限时，暂停并回到计划审查；`design-change` 或连续两轮新 blocker/major finding class 必须 replan。
 8. 目标闭环检查：核对原始目标、当前声明、证据、剩余未闭环项和停止条件。

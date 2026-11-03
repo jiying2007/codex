@@ -16,8 +16,8 @@ from tools.codex_assets.skill_catalog import search_skills
 from tests import test_adk_skill_audit as audit_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_COMMIT = "95997abb318144aa6433fb40af4b2f0f1f4ceee4"
-# Reviewed upstream identities from the v8.1.1 exact Git tree, not local rehashes.
+SOURCE_COMMIT = "22e6c790d1ed191cecc3083dc001a6ccfed264f6"
+# Reviewed upstream identities from the v8.2.0 exact Git tree, not local rehashes.
 EXPECTED = {
     "adk-runtime-router": ("2.1.1", "5d3d2002e56207492b05ea71ab1935a72ef65f31", "72fa9822713bb4a6c0036d8b14cfe9a8572d67b34842110a2220d7002f0d74a4", 2, "技能路由"),
     "adk-code-review-loop": ("1.7.2", "8262e03cc956b650eab2aed89e73358de2ccccbe", "904e6ad77cdc4df5278f8f9225c3b93d35b0743e105214abb2427f7dc22159d5", 4, "独立代码审查"),
@@ -79,7 +79,7 @@ class DailyCoreImportTests(unittest.TestCase):
                 self.assertEqual(record["version"], version)
                 self.assertEqual(record["source_repo"], "jiying2007/agent-dev-kit")
                 self.assertEqual(record["source_ref"], SOURCE_COMMIT)
-                self.assertEqual(record["source_release"], "v8.1.1")
+                self.assertEqual(record["source_release"], "v8.2.0")
                 self.assertEqual(record["source_path"], f"skills/{name}/SKILL.md")
                 self.assertEqual(record["source_blob"], blob)
                 self.assertEqual(record["source_tree_sha256"], digest)

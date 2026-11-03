@@ -20,12 +20,12 @@ PROVIDER_MODULE = ROOT / "tools/codex_assets/knowledge_provider_adapter.py"
 AGENTS = ROOT / "AGENTS.md"
 
 ADK_RELEASE = {
-    "version": "8.1.1",
-    "release_tag": "v8.1.1",
-    "provider_commit": "95997abb318144aa6433fb40af4b2f0f1f4ceee4",
-    "provider_tree": "2048198ad81834f5b969bf2c984c4e5654989bc0",
-    "manifest_blob": "ec6540141053e19f7ba807ae0dbe95a06511b2d2",
-    "release_artifact_sha256": "df857a2144a20e13b08e7a0f5ef405857b03fd7196f9e107b3bebe731522908e"
+    "version": "8.2.0",
+    "release_tag": "v8.2.0",
+    "provider_commit": "22e6c790d1ed191cecc3083dc001a6ccfed264f6",
+    "provider_tree": "0408ce042b9692d2f553bdd11f041267a86b6fc9",
+    "manifest_blob": "d60a3f920993698a02ebf5b53c1d05d8e90fd9f0",
+    "release_artifact_sha256": "fd4ec6175c088494c87a71a6113ecc9ed6f3a7a2418b9a12d67e065e00222f1e"
 }
 ADK_FIELDS = {
     "schema", "repository", "version", "release_tag", "provider_commit", "provider_tree",
@@ -53,13 +53,13 @@ def validate_adk_lock(adk: dict[str, object]) -> None:
     require(adk["schema"] == "codex-provider-lock/v3", "ADK provider lock schema drift")
     require(adk["repository"] == "jiying2007/agent-dev-kit", "ADK canonical repository required")
     for field in ("version", "release_tag", "provider_commit", "provider_tree", "manifest_blob"):
-        require(adk[field] == ADK_RELEASE[field], f"ADK 8.1.1 exact release identity drift: {field}")
+        require(adk[field] == ADK_RELEASE[field], f"ADK 8.2.0 exact release identity drift: {field}")
     require(exact_sha(adk["provider_commit"], 40), "ADK provider commit must be exact")
     require(exact_sha(adk["provider_tree"], 40), "ADK provider tree must be exact")
     require(exact_sha(adk["manifest_blob"], 40), "ADK manifest blob must be exact")
     artifact = adk["release_artifact"]
     require(isinstance(artifact, dict) and set(artifact) == {"name", "sha256"}, "ADK release artifact fields drift")
-    require(artifact["name"] == "agent-dev-kit-8.1.1.tar.gz", "ADK release artifact name drift")
+    require(artifact["name"] == "agent-dev-kit-8.2.0.tar.gz", "ADK release artifact name drift")
     require(artifact["sha256"] == ADK_RELEASE["release_artifact_sha256"], "ADK release artifact digest drift")
     require(adk["asset_profile"] == "embedded-fullstack", "required ADK asset profile drift")
     require(adk["delivery_mode"] == "exact-source-set", "ADK delivery mode drift")

@@ -4,6 +4,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
 import shlex
 import unittest
@@ -37,15 +38,21 @@ class OperatorExecutionPolicyTests(unittest.TestCase):
 
     def test_declared_commands_parse_and_runtime_actions_bind_current_thread(self) -> None:
         prefix = "rtk python3 -m tools.codex_assets execution-policy"
+        wrapper_prefix = "rtk bash ~/codex/scripts/codex-policy.sh"
         count = 0
         for path in sorted((ROOT / "manifests").glob("*.json")):
             if path.name == "lock.json":
                 continue
             for command in strings(json.loads(path.read_text(encoding="utf-8"))):
-                if not command.startswith(prefix):
+                if command.startswith(wrapper_prefix):
+                    args = ["execution-policy", *shlex.split(command)[3:]]
+                    expected_thread = os.environ.get("CODEX_THREAD_ID", "")
+                elif command.startswith(prefix):
+                    args = shlex.split(command)[4:]
+                    expected_thread = "${CODEX_THREAD_ID:?current thread id required}"
+                else:
                     continue
                 count += 1
-                args = shlex.split(command)[4:]
                 with self.subTest(path=path.name, command=command), contextlib.redirect_stdout(io.StringIO()):
                     if "--help" in args:
                         with self.assertRaises(SystemExit) as exit:
@@ -53,7 +60,7 @@ class OperatorExecutionPolicyTests(unittest.TestCase):
                         self.assertEqual(0, exit.exception.code)
                     else:
                         parsed = build_parser().parse_args(args)
-                        self.assertEqual("${CODEX_THREAD_ID:?current thread id required}", parsed.thread_id)
+                        self.assertEqual(expected_thread, parsed.thread_id)
                         self.assertIn(parsed.runtime_action, {"snapshot", "watch", "gate"})
         self.assertGreaterEqual(count, 20)
 

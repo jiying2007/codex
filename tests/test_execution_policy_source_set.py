@@ -26,14 +26,14 @@ def git_blob_sha(path: pathlib.Path) -> str:
 
 
 class ExecutionPolicySourceSetTest(unittest.TestCase):
-    def test_vendored_execution_policy_matches_adk_811(self) -> None:
+    def test_vendored_execution_policy_matches_adk_820(self) -> None:
         directory = ROOT / "tools/codex_assets/execution_policy"
         self.assertEqual(set(SOURCE_BLOBS), {p.name for p in directory.glob("*.py")})
         for filename, expected in SOURCE_BLOBS.items():
             self.assertEqual(expected, git_blob_sha(directory / filename))
         provider = json.loads((ROOT / "manifests/provider-locks/agent-dev-kit.json").read_text())
-        self.assertEqual("8.1.1", provider["version"])
-        self.assertEqual("95997abb318144aa6433fb40af4b2f0f1f4ceee4", provider["provider_commit"])
+        self.assertEqual("8.2.0", provider["version"])
+        self.assertEqual("22e6c790d1ed191cecc3083dc001a6ccfed264f6", provider["provider_commit"])
 
     def test_policy_manifest_is_v2_only(self) -> None:
         manifest = json.loads((ROOT / "manifests/execution_policy.json").read_text())

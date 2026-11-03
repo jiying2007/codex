@@ -1,8 +1,8 @@
 ---
 name: adk-parallel-agent-governance
 description: 并行子代理治理，定义任务分片、scope_write、冲突矩阵、等待和整合验证
-version: 1.4.1
-last_updated: 2026-08-31
+version: 1.4.2
+last_updated: 2026-11-01
 triggers:
   - "并行 agent"
   - "多 agent"
@@ -62,12 +62,11 @@ constraints:
    - reviewer 默认只读，除非任务明确是“修复 review findings”。
    - reviewer 输出必须含 spec verdict、quality verdict、cannot-verify-from-diff 项和文件/行证据。
 8. **调度执行**：优先并发运行独立任务；阻塞任务保留在主线程。
-9. **等待与收集**：使用平台子代理等待语义，收集 DONE/BLOCKED/NEEDS_CONTEXT；执行 context noise budget，默认收集摘要、证据引用、变更清单、验证结果和风险，不直接合并 raw command transcript。
+9. **等待与收集**：使用平台子代理等待语义，收集 DONE/BLOCKED/NEEDS_CONTEXT；执行 context noise budget，默认收集摘要、证据引用、变更清单、验证结果和风险，不直接合并 raw command transcript；context-only 线程不授予权限，stable work-item ID 不随 Worker attempt 变化
 10. **整合审查**：检查文件冲突、逻辑依赖、测试覆盖和文档一致性。
 11. **最终广域审查**：任务级 review 结束后，对整条分支/diff 做一次跨任务整体验证或高能力 review，覆盖局部 reviewer 看不到的集成风险。
 12. **最终验证**：运行整体验证，不能只依赖子任务验证。
 13. **收口报告**：输出 merge order、剩余风险和 fallback 使用情况。
-
 ## Task Package Template
 ```md
 [parallel-task]

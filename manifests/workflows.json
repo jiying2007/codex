@@ -983,7 +983,8 @@
         "adk-commit-pr-quality-gate",
         "adk-verification-before-completion",
         "adk-planning-execution-loop",
-        "adk-runtime-router"
+        "adk-runtime-router",
+        "adk-goal-authoring"
       ],
       "context_activation": {
         "resident": [
@@ -998,8 +999,9 @@
         "lazy": [
           "adk-test-strategy",
           "adk-unit-test-embedded",
-          "adk-static-analysis-c-cpp",
-          "adk-commit-pr-quality-gate"
+        "adk-static-analysis-c-cpp",
+        "adk-commit-pr-quality-gate",
+        "adk-goal-authoring"
         ],
         "fallback": []
       },
@@ -1124,14 +1126,14 @@
         "local-integrator"
       ],
       "commands": [
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" snapshot",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" watch",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event apply"
+        "rtk bash ~/codex/scripts/codex-policy.sh snapshot",
+        "rtk bash ~/codex/scripts/codex-policy.sh watch",
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final",
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event apply"
       ],
       "verification": [
         "rtk python3 -m tools.codex_assets execution-policy --help",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" snapshot",
+        "rtk bash ~/codex/scripts/codex-policy.sh snapshot",
         "rtk python3 -m unittest tests.test_execution_policy"
       ],
       "description": "唯一 Goal、Token、progress、checkpoint、evidence 与 delivery gate 控制面"
