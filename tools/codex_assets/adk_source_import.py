@@ -115,8 +115,8 @@ def _promotion(evidence_path: Path, provider: dict[str, Any], artifact_sha256: s
     matrices = (ci.get("contract_matrix"), ci.get("regression_matrix"))
     if (evidence.get("schema") != "adk-promotion-evidence/v2"
             or any(source.get(key) != value for key, value in expected.items())
-            or not isinstance(source.get("run_id"), int) or source["run_id"] <= 0
-            or not isinstance(source.get("run_attempt"), int) or source["run_attempt"] <= 0
+            or type(source.get("run_id")) is not int or source["run_id"] <= 0
+            or type(source.get("run_attempt")) is not int or source["run_attempt"] <= 0
             or release.get("release_eligible") is not True
             or release.get("artifact_sha256") != artifact_sha256
             or provenance.get("format") != "sigstore-bundle/v1"
