@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "profile": "team-collab",
-  "managed_count": 904,
+  "managed_count": 884,
   "items": [
     {
       "kind": "skill",
@@ -58,20 +58,6 @@
       "version": "1.0.1",
       "source": "vendor/skills/adk-branch-closeout/1.0.1",
       "sha256": "05f0a21fc5e3dd991b77d4135f3342b8679d483b5af1b8623d62d87405e3fcef"
-    },
-    {
-      "kind": "skill",
-      "name": "adk-chinese-code-review",
-      "version": "1.1.0",
-      "source": "vendor/skills/adk-chinese-code-review/1.1.0",
-      "sha256": "b2360c82ba87321a89ba2ddc8a1636903b296f4b1c2721c1afe0603bd3219748"
-    },
-    {
-      "kind": "skill",
-      "name": "adk-chinese-commit-conventions",
-      "version": "1.1.0",
-      "source": "vendor/skills/adk-chinese-commit-conventions/1.1.0",
-      "sha256": "39c51ae02ec920448ed678626ac947e26656e6085073e8a48e7dcae8158cc1e7"
     },
     {
       "kind": "skill",

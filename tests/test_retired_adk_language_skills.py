@@ -16,6 +16,13 @@ class RetiredADKLanguageSkillTest(unittest.TestCase):
         for name in RETIRED:
             self.assertFalse((ROOT/"src/codex-home/vendor/skills"/name).exists())
 
+    def test_registry_and_lock_no_retired_skills(self):
+        registry=(ROOT/"src/codex-home/skills/registry.csv").read_text()
+        lock=json.loads((ROOT/"manifests/lock.json").read_text())
+        for name in RETIRED:
+            self.assertNotIn(name+",",registry)
+        self.assertTrue({item["name"] for item in lock["items"]}.isdisjoint(RETIRED))
+
     def test_no_active_superpowers_source(self):
         value=json.loads((ROOT/"manifests/skills.json").read_text())
         active=[x for x in value["skills"] if x.get("enabled") and x.get("profiles")]

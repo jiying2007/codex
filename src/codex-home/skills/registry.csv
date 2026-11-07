@@ -5,8 +5,6 @@ adk-after-action-review,1.2.0,active,agent-dev-kit
 adk-archive-governance,1.0.1,active,agent-dev-kit
 adk-artifact-gating,1.0.0,active,agent-dev-kit
 adk-branch-closeout,1.0.1,active,agent-dev-kit
-adk-chinese-code-review,1.1.0,active,agent-dev-kit
-adk-chinese-commit-conventions,1.1.0,active,agent-dev-kit
 adk-code-review-loop,1.7.2,active,agent-dev-kit
 adk-commit-pr-quality-gate,1.1.1,active,agent-dev-kit
 adk-component-api-stability,1.0.0,active,agent-dev-kit
