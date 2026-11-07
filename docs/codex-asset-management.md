@@ -95,7 +95,7 @@ rtk bash scripts/governance-report.sh --summary-json
 rtk bash scripts/skill-search.sh --query "<任务>" --profile default --limit 3 --summary-json
 ```
 
-只有在 `why_selected` 足以区分相邻候选后才读取 `load_path`。默认排除 Superpowers；仅显式兼容时使用 `--include-fallback`。需要旧式完整 catalog 时可构建并 apply `team-collab`，但 catalog 只在新线程刷新。
+只有在 `why_selected` 足以区分相邻候选后才读取 `load_path`。已停用 Superpowers 运行依赖；不得通过 `--include-fallback` 重新激活旧框架。需要旧式完整 catalog 时可构建并 apply `team-collab`，但 catalog 只在新线程刷新。
 
 ### Profile 切换操作边界
 
@@ -175,7 +175,7 @@ OpenAI Developers 内容只能通过可追溯路径提升为长期规则。默�
 
 ## Skill 接入
 
-本地沉淀和 Chronicle 派生 skill 是持续迭代的声明式资产。`adk-*`、Superpowers、OpenAI、Composio、Anthropic 等外部导入 skill 默认是版本化镜像，通过上游更新后重新导入，不在本仓直接迭代其正文。完整策略见 `docs/skill-lifecycle.md`。
+本地沉淀和 Chronicle 派生 skill 是持续迭代的声明式资产。`adk-*`、OpenAI、Composio、Anthropic 等外部导入 skill 默认是版本化镜像，通过上游更新后重新导入，不在本仓直接迭代其正文。完整策略见 `docs/skill-lifecycle.md`。
 
 维护边界：
 
