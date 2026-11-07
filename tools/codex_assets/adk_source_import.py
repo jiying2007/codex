@@ -85,10 +85,20 @@ def _skill_version(path: Path) -> str:
 
 
 def _promotion(evidence_path: Path, provider: dict[str, Any], artifact_sha256: str) -> None:
+    """Require signed ADK v2 promotion claims to match the exact imported Git tree.
+
+    This is source-claim validation only; `plan` also independently verifies
+    the Sigstore bundle against the pinned trusted root and GitHub OIDC identity.
+    A v1 historical receipt must not silently authorize a v2 source migration.
+    """
     evidence = _json(evidence_path)
-    source = evidence.get("source", {})
-    release = evidence.get("release", {})
+    source, release = evidence.get("source"), evidence.get("release")
+    ci, provenance = evidence.get("ci"), evidence.get("provenance")
+    if not all(isinstance(value, dict) for value in (source, release, ci, provenance)):
+        raise ImportError("signed promotion has an invalid v2 envelope")
     tracked = provider["tracked"]
+    manifest_path = provider["root"] / "manifest.json"
+    actual_manifest_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
     expected = {
         "repository": REPOSITORY,
         "ref": "refs/heads/main",
@@ -97,13 +107,30 @@ def _promotion(evidence_path: Path, provider: dict[str, Any], artifact_sha256: s
         "commit": provider["commit"],
         "tree": _git(provider["root"], "rev-parse", "HEAD^{tree}"),
         "manifest_blob": tracked["manifest.json"]["blob"],
+        "manifest_sha256": actual_manifest_sha256,
+        "workflow": "agent-dev-kit-ci",
+        "workflow_ref": REPOSITORY + "/.github/workflows/ci.yml@refs/heads/main",
+        "workflow_sha": provider["commit"],
     }
-    if (evidence.get("schema") != "adk-promotion-evidence/v1"
-            or not isinstance(source, dict) or not isinstance(release, dict)
+    matrices = (ci.get("contract_matrix"), ci.get("regression_matrix"))
+    if (evidence.get("schema") != "adk-promotion-evidence/v2"
             or any(source.get(key) != value for key, value in expected.items())
+            or type(source.get("run_id")) is not int or source["run_id"] <= 0
+            or type(source.get("run_attempt")) is not int or source["run_attempt"] <= 0
             or release.get("release_eligible") is not True
-            or release.get("artifact_sha256") != artifact_sha256):
-        raise ImportError("signed promotion does not bind the exact ADK source and artifact")
+            or release.get("artifact_sha256") != artifact_sha256
+            or provenance.get("format") != "sigstore-bundle/v1"
+            or provenance.get("subject") != "promotion-evidence.json"
+            or ci.get("deterministic_eval_package") != "success"
+            or ci.get("static_security") != "success"
+            or not all(isinstance(matrix, dict) and matrix.get("status") == "success"
+                       for matrix in matrices)
+            or any(not isinstance(matrix.get("python"), list)
+                   or not matrix["python"]
+                   or not all(isinstance(v, str) for v in matrix["python"])
+                   for matrix in matrices)
+            or matrices[0]["python"] != matrices[1]["python"]):
+        raise ImportError("signed v2 promotion does not bind exact ADK source, CI, and release")
 
 
 def _local_readme_identities(root: Path, manifest: dict[str, Any],
