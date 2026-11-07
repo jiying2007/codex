@@ -17,6 +17,8 @@ from datetime import date
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+import yaml
+
 from .adk_skill_audit import (
     REPOSITORY,
     _blob,
@@ -133,6 +135,30 @@ def _promotion(evidence_path: Path, provider: dict[str, Any], artifact_sha256: s
         raise ImportError("signed v2 promotion does not bind exact ADK source, CI, and release")
 
 
+def _format_only_native_metadata(local: Path, provider: Path) -> bool:
+    """Allow only semantically identical native display metadata to be re-pinned.
+
+    This is NOT a generic YAML normalization or a permission migration. Semantic
+    changes, non-native files, symlinks and large inputs still require a separate
+    reviewed change. The signed provider SHA remains authoritative.
+    """
+    if (local.is_symlink() or provider.is_symlink()
+            or not local.is_file() or not provider.is_file()
+            or local.stat().st_size > 32768 or provider.stat().st_size > 32768):
+        return False
+    try:
+        old = yaml.safe_load(local.read_text(encoding="utf-8"))
+        new = yaml.safe_load(provider.read_text(encoding="utf-8"))
+    except (yaml.YAMLError, OSError, UnicodeError):
+        return False
+    if (not isinstance(old, dict) or not isinstance(new, dict)
+            or set(old) != {"interface"} or set(new) != {"interface"}
+            or not isinstance(old.get("interface"), dict)
+            or not isinstance(new.get("interface"), dict)):
+        return False
+    return old == new
+
+
 def _local_readme_identities(root: Path, manifest: dict[str, Any],
                              expected: dict[str, dict[str, str]] | None = None) -> dict[str, dict[str, str]]:
     """Validate consumer text against managed identities, never its own claims."""
@@ -207,10 +233,18 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
         if target["changed"] and new_version == old_version:
             raise ImportError(f"changed Skill did not advance its version: {row['name']}")
         upstream_tree = _candidate(provider_root, item["source_path"], provider)
+        format_only_rebindings = {}
         for relative, binding in item.get("distribution_metadata", {}).items():
             declared = binding["source"]
-            if declared != upstream_tree.get(relative):
-                raise ImportError(f"distribution metadata needs review: {row['name']}/{relative}")
+            candidate = upstream_tree.get(relative)
+            if declared != candidate:
+                local_metadata = root / "src/codex-home" / item["vendor_rel"] / relative
+                provider_metadata = provider_root / source / relative
+                if (relative != "agents/openai.yaml"
+                        or candidate is None
+                        or not _format_only_native_metadata(local_metadata, provider_metadata)):
+                    raise ImportError(f"distribution metadata needs review: {row['name']}/{relative}")
+                format_only_rebindings[relative] = candidate
         new_rel = "vendor/skills/{}/{}".format(row["name"], new_version)
         new_dir = root / "src/codex-home" / new_rel
         if new_version != old_version and new_dir.exists():
@@ -222,6 +256,7 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
             "new_rel": new_rel, "tree": target["tree_sha256"],
             "blob": target["entrypoint_blob"],
             "changed": target["changed"], "added": target["added"],
+            "format_only_metadata_rebindings": format_only_rebindings,
         })
     agents = _json(root / "manifests/agents.json")
     agent_names = [item["name"] for item in agents["agents"]
@@ -275,11 +310,18 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         source_dir = provider_root / change["source"]
         upstream = _candidate(provider_root, item["source_path"], _provider(provider_root, commit))
         metadata = item.get("distribution_metadata", {})
+        requested_rebindings = change.get("format_only_metadata_rebindings", {})
         for relative, identity in upstream.items():
             if relative in metadata:
                 declared = metadata[relative]["source"]
                 if declared != identity:
-                    raise ImportError("distribution source metadata changed: {}".format(change["name"]))
+                    local_metadata = old_dir / relative
+                    provider_metadata = source_dir / relative
+                    if (relative != "agents/openai.yaml"
+                            or requested_rebindings.get(relative) != identity
+                            or not _format_only_native_metadata(local_metadata, provider_metadata)):
+                        raise ImportError("distribution source metadata changed: {}".format(change["name"]))
+                    metadata[relative]["source"] = identity
                 continue
             destination = new_dir / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
