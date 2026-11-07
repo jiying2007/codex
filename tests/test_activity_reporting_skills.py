@@ -16,10 +16,10 @@ class ActivityReportingSkillTest(unittest.TestCase):
     def test_active_versions_and_workflow_are_registered(self) -> None:
         skills = {row["name"]: row for row in read_json("manifests/skills.json")["skills"]}
         expected = {
-            "activity-report": "1.0.0",
+            "activity-report": "1.1.0",
             "git-activity-summary": "1.0.0",
-            "session-wrap": "4.0.1",
-            "chronicle-workflow-miner": "1.3.0",
+            "session-wrap": "4.1.0",
+            "chronicle-workflow-miner": "1.4.0",
         }
         for name, version in expected.items():
             with self.subTest(skill=name):
@@ -35,29 +35,33 @@ class ActivityReportingSkillTest(unittest.TestCase):
     def test_reporting_skill_is_facts_first_and_privacy_bounded(self) -> None:
         skill = (
             ROOT
-            / "src/codex-home/vendor/skills/activity-report/1.0.0/SKILL.md"
+            / "src/codex-home/vendor/skills/activity-report/1.1.0/SKILL.md"
         ).read_text(encoding="utf-8")
         contract = (
             ROOT
-            / "src/codex-home/vendor/skills/activity-report/1.0.0/references/facts-contract.md"
+            / "src/codex-home/vendor/skills/activity-report/1.1.0/references/facts-contract.md"
         ).read_text(encoding="utf-8")
-        self.assertIn("activity-facts-v2", skill)
-        self.assertIn("Do not read raw sessions", skill)
-        self.assertIn("do not prove completion or personal ownership", skill)
-        self.assertIn("work-activity-item", contract)
-        self.assertIn("identity inference", contract)
-        self.assertIn("needs-fix", contract)
+        self.assertIn("Activity Facts v2", skill)
+        self.assertIn("不能批量保存会话正文", skill)
+        self.assertIn("不能升级为修复完成", skill)
+        self.assertIn("knowledge-provider.sh activity-report", skill)
+        self.assertNotIn("knowledge-hub/tools/", skill)
+        self.assertIn("work item 必须为 schema v2", contract)
+        self.assertIn("身份推断", contract)
+        self.assertIn("needs-review", contract)
 
     def test_session_receipt_is_bounded_and_chronicle_uses_it_first(self) -> None:
         session_wrap = (
-            ROOT / "src/codex-home/vendor/skills/session-wrap/4.0.1/SKILL.md"
+            ROOT / "src/codex-home/vendor/skills/session-wrap/4.1.0/SKILL.md"
         ).read_text(encoding="utf-8")
         miner = (
-            ROOT / "src/codex-home/vendor/skills/chronicle-workflow-miner/1.3.0/SKILL.md"
+            ROOT / "src/codex-home/vendor/skills/chronicle-workflow-miner/1.4.0/SKILL.md"
         ).read_text(encoding="utf-8")
         self.assertIn('"kind": "activity-session-receipt"', session_wrap)
         self.assertIn('"kind": "work-activity-item"', session_wrap)
         self.assertIn('"verification": "verified|reported|missing"', session_wrap)
+        self.assertIn("configured_subject_id", session_wrap)
+        self.assertNotIn("knowledge-hub/local/", session_wrap)
         self.assertIn("Governed daily/weekly activity facts", miner)
         self.assertIn("Raw Codex history/session transcripts only as an explicit", miner)
         self.assertIn("three sessions across at least two projects", miner)

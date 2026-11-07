@@ -16,7 +16,7 @@
 - 项目知识经 Provider Adapter 查询：
   `rtk bash ~/codex/scripts/knowledge-provider.sh context --cwd "$PWD" --query "<任务>" --task-type general --summary-json`
 - Provider unavailable / route unresolved 必须 BLOCKED 或 NEEDS_REVIEW；本地缓存/路径猜测不得作事实。耐久结论仅 reviewing candidate/proposal，或声明无可归档结论。
-- 非平凡任务先执行 execution-policy ensure，登记并回读真实请求、当前线程、模式与验收；final/apply/目标切换前运行门禁。compact 先接力再宿主压缩复核，勿轮询或计业务阻塞；见 docs/execution-policy.md。automation 默认 disabled/report-only。
+- 非平凡任务用 `rtk bash ~/codex/scripts/codex-policy.sh ensure` 登记真实请求、线程、模式与验收；相同目标复用登记，阶段内不重复 final。只读模式核验路由来源。compact 先接力后复核，勿轮询；见 docs/execution-policy.md。
 - 类型仅 `general|debug|release|source|archive|decision|validation|session|runbook`；见 `docs/provider-archive.md`。
 
 ## 3. 命令与安全
@@ -28,7 +28,7 @@
 ## 4. 验证与运行资产
 - 无新鲜证据不得声明完成、通过、可提交或可合并；共享/高风险逻辑升级回归。
 - SSOT 是 `manifests/*.json` 与 `src/codex-home/`；build 禁止手改，第三方镜像必须从 exact 上游导入，不直接修改 `~/.codex`。
-- source-to-live 依次执行 build、doctor、plan、apply dry-run、apply、check；receipt 必须绑定 source/build/target。最终运行 `(cd ~/codex && rtk python3 -m tools.codex_assets execution-policy --thread-id "${CODEX_THREAD_ID:?current thread id required}" gate --event final)`；缺线程 ID 先核实，勿借用其它会话。
+- source-to-live 依次执行 build、doctor、plan、apply dry-run、apply、check；receipt 绑定 source/build/target。最终运行 `rtk bash ~/codex/scripts/codex-policy.sh gate --event final`；CLI 自动读取当前线程，缺 ID 则停止核实。工具调用用绝对路径和 workdir，勿套 bash -lc、内联变量或拼接 cd。
 - Execution Policy 的 `final/commit/apply/release` 仅代表 Codex Runtime 本地 conformance；不得推导 domain verification、产品 release-ready 或跨域 PASS。
 - 不自动 commit/push/merge/rebase；提交格式 `<type>(scope): <中文动词摘要>`。
 

@@ -54,7 +54,15 @@ class ExecutionPolicyMigrationTests(unittest.TestCase):
         self.assertEqual("05dd80065ec4c58c342e48ff12d4cd53d3897740", fixture["baseline_engine_blob"])
         self.assertEqual("626af591141b2dda6302edbe4363637435066628", fixture["baseline_contracts_blob"])
         self.assertEqual(19, len(fixture["cases"]))
-        self.assertEqual(fixture["policy"], load_runtime_config(ROOT)["policy"])
+        current_policy = load_runtime_config(ROOT)["policy"]
+        # Replay the frozen quota separately from intentionally configurable
+        # deployment quotas. Never rewrite the historical events or digests.
+        current_policy = copy.deepcopy(current_policy)
+        current_policy["progress"]["retry_limit"] = fixture["policy"]["progress"]["retry_limit"]
+        current_policy["context"]["compact_ratio"] = fixture["policy"]["context"]["compact_ratio"]
+        legacy_policy = copy.deepcopy(current_policy)
+        legacy_policy["mode_authority_policy"] = fixture["policy"]["mode_authority_policy"]
+        self.assertEqual(fixture["policy"], legacy_policy)
         for case in fixture["cases"]:
             with self.subTest(case=case["name"]), tempfile.TemporaryDirectory() as tmp:
                 path = Path(tmp) / "old-journal.jsonl"
@@ -76,7 +84,43 @@ class ExecutionPolicyMigrationTests(unittest.TestCase):
                     self.assertEqual(expected[case["name"]]["decision_sha256"], digest(result))
                     self.assertEqual(case["expected_action"], result["recommended_action"])
                     self.assertIs(case["expected_gate_allowed"], result["gate_allowed"])
+                    self.assertEqual(result, evaluate(state, current_policy, gate_event=case["gate_event"],
+                                                      as_of=datetime.fromisoformat(case["as_of"])))
                 self.assertEqual(original, path.read_bytes())
+
+    def test_raised_retry_quota_preserves_history_and_still_enforces_limit(self) -> None:
+        fixture = json.loads(REPLAY.read_text(encoding="utf-8"))
+        case = next(case for case in fixture["cases"] if case["name"] == "retry-exhausted")
+        state = reduce_events(case["events"])
+        original = copy.deepcopy(state)
+        policy = copy.deepcopy(fixture["policy"])
+        policy["progress"]["retry_limit"] = 16
+        result = evaluate(state, policy, as_of=datetime.fromisoformat(case["as_of"]))
+        self.assertEqual("continue", result["recommended_action"])
+        self.assertEqual(16 - state["retry"]["used"], result["retry_remaining"])
+        self.assertEqual(original, state)
+        exhausted = copy.deepcopy(state)
+        exhausted["retry"]["used"] = 16
+        result = evaluate(exhausted, policy, as_of=datetime.fromisoformat(case["as_of"]))
+        self.assertEqual("replan", result["recommended_action"])
+        self.assertIn("retry-budget-exhausted", result["reasons"])
+        self.assertEqual(0, result["retry_remaining"])
+
+    def test_raised_context_quota_still_blocks_apply_at_the_new_boundary(self) -> None:
+        fixture = json.loads(REPLAY.read_text(encoding="utf-8"))
+        case = next(case for case in fixture["cases"] if case["name"] == "active-apply")
+        state = reduce_events(case["events"])
+        policy = copy.deepcopy(fixture["policy"])
+        policy["context"]["compact_ratio"] = 0.7
+        state["usage"]["context_window"] = 1000
+        state["usage"]["last_input_tokens"] = 690
+        result = evaluate(state, policy, gate_event="apply", as_of=datetime.fromisoformat(case["as_of"]))
+        self.assertTrue(result["gate_allowed"])
+        state["usage"]["last_input_tokens"] = 700
+        result = evaluate(state, policy, gate_event="apply", as_of=datetime.fromisoformat(case["as_of"]))
+        self.assertFalse(result["gate_allowed"])
+        self.assertEqual("compact", result["recommended_action"])
+        self.assertIn("context-pressure", result["reasons"])
 
     def test_old_custom_config_is_rejected_not_silently_reinterpreted(self) -> None:
         root = make_repo(self)

@@ -119,7 +119,7 @@
         "https://developers.openai.com/codex/hooks"
       ],
       "verification": [
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ],
       "rollback": "keep hook disabled and use execution-policy final decision checks",
       "artifacts": [

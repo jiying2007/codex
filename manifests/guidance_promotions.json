@@ -64,7 +64,7 @@
       ],
       "verification": [
         "rtk bash scripts/curate-memory.sh --dry-run",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ],
       "rollback": "mark the memory candidate rejected or superseded; do not directly edit ~/.codex/memories without approval"
     }

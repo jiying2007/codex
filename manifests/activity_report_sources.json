@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "kind": "local-activity-report-source-profile",
+  "enabled": true,
+  "timezone": "Asia/Hong_Kong",
+  "declared_by": "explicit-user-request-2026-10-31",
+  "subject": {
+    "subject_id": "local-user",
+    "display_name": "雷文军",
+    "mapping_basis": "existing-v2-subject-config-plus-explicit-user-name",
+    "team_display_name": "软件部系统组",
+    "team_aliases": ["系统组"]
+  },
+  "sources": [
+    {
+      "id": "feishu-personal-weekly",
+      "url": "https://ucnm0op59sw7.feishu.cn/wiki/AhCqwBIXpiqLq2kpKO4ciL3cnDf",
+      "purpose": "本人记录、团队成员连续行、跨部门关联",
+      "sheet_selection": "inspect-and-select-date-within-report-period",
+      "columns": {"team": "A", "name": "B", "carryover": "C", "progress": "D", "ai": "E", "technical": "F", "risks": "G", "collaboration": "H", "next": "I"},
+      "layout_policy": "verify-headers-each-run"
+    },
+    {
+      "id": "feishu-management-weekly",
+      "url": "https://ucnm0op59sw7.feishu.cn/wiki/OJMEwpy0qifGyVkdC7wcdav0nxb",
+      "purpose": "系统组汇总、上周承诺及部门间依赖核对",
+      "sheet_selection": "inspect-and-select-date-within-report-period",
+      "columns": {"team": "A", "owner": "B", "progress": "C", "blockers": "D", "next": "E"},
+      "layout_policy": "verify-headers-each-run"
+    }
+  ],
+  "local_recovery": {
+    "governed_records_first": true,
+    "memory_use": "discovery-only-then-verify",
+    "bounded_history_requires_task_authorization": true,
+    "raw_content_persistence": false
+  },
+  "plan_alignment": {
+    "sources": "Provider-resolved project plans and explicitly authorized source objects",
+    "projects": ["gros", "pcr02-ssc305", "a123x"],
+    "authority": "verify-current-plan-version-do-not-assume",
+    "cross_department_claims": "dependency-or-conflict-only-not-personal-delivery"
+  },
+  "persistence": {
+    "default": "report-only",
+    "activity": "knowledge-provider activity-capture",
+    "archive": "knowledge-provider archive; reviewing-candidate-only",
+    "personal_archive_subject": "personal:local-user",
+    "team_archive_subject": "resolve-with-provider-do-not-infer-from-team-name",
+    "cloud_write": false,
+    "memory_write": false
+  }
+}

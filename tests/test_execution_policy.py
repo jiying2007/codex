@@ -101,7 +101,9 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
         original = journal.read_bytes()
         rollout = self.codex_home / "rollout.jsonl"
         record = json.loads(rollout.read_text())
-        record["payload"]["info"]["last_token_usage"]["input_tokens"] = 600
+        record["payload"]["info"]["last_token_usage"]["input_tokens"] = int(
+            1000 * self.config["policy"]["context"]["compact_ratio"]
+        ) + 1
         rollout.write_text(json.dumps(record, separators=(",", ":")) + "\n")
         (self.codex_home / "config.toml").write_text('model_auto_compact_token_limit = 300\n')
         for _ in range(3):

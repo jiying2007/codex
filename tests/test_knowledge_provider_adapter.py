@@ -9,6 +9,57 @@ from tools.codex_assets import knowledge_provider_adapter as adapter
 
 
 class ProviderAdapterTests(unittest.TestCase):
+    def test_content_maintenance_receipts_are_exact_and_never_approve(self):
+        for corrupt in (None, "persisted", "owner_review_performed", "manifest_ref", "write_count"):
+            with self.subTest(corrupt=corrupt), tempfile.TemporaryDirectory() as directory:
+                native, hub, _ = self.fixture(directory)
+                expected = "a" * 64
+                receipt = {"schema_version": "knowledge-provider.content-maintenance/v1", "status": "MAINTAINED",
+                           "persisted": True, "write_performed": True, "read_only": False,
+                           "expected_hash": expected, "item_count": 2, "write_count": 3, "delete_count": 1,
+                           "active_promoted": False, "owner_review_performed": False,
+                           "transaction_id": "content-maintenance-" + expected[:24],
+                           "manifest_ref": "artifacts/manifests/content-maintenance-" + expected + ".json"}
+                if corrupt:
+                    receipt[corrupt] = {"persisted": False, "owner_review_performed": True,
+                                        "manifest_ref": "wrong.json", "write_count": True}[corrupt]
+                with mock.patch.object(adapter, "__file__", str(native / "tools/codex_assets/knowledge_provider_adapter.py")), \
+                        mock.patch.dict("os.environ", {"KNOWLEDGE_HUB_ROOT": str(hub)}), \
+                        mock.patch.object(adapter.subprocess, "run", return_value=mock.Mock(returncode=0, stdout=json.dumps(receipt))), \
+                        mock.patch("builtins.print"):
+                    self.assertEqual(adapter.main(["maintain-content", "--apply"]), 2 if corrupt else 0)
+
+    def test_repository_registration_is_an_explicit_public_operation(self):
+        self.assertIn("register-repository", adapter.OPERATIONS)
+        with tempfile.TemporaryDirectory() as directory:
+            native, hub, _ = self.fixture(directory)
+            with mock.patch.object(adapter, "__file__", str(native / "tools/codex_assets/knowledge_provider_adapter.py")), \
+                    mock.patch.dict("os.environ", {"KNOWLEDGE_HUB_ROOT": str(hub)}), \
+                    mock.patch.object(adapter.subprocess, "run", return_value=mock.Mock(returncode=0, stdout='{"status":"PLANNED","persisted":false}')) as call, \
+                    mock.patch("builtins.print"):
+                self.assertEqual(adapter.main(["register-repository", "--project", "test", "--repository-id", "sample",
+                                               "--remote-url", "ssh://git@example.test/group/sample.git", "--dry-run"]), 0)
+                forwarded = call.call_args.args[0]
+                self.assertIn("register-repository", forwarded)
+                self.assertNotIn("--apply", forwarded)
+
+    def test_extended_deadline_keeps_timeout_write_uncertainty(self):
+        for arguments, expected_status, expected_persisted in (
+                (["archive", "--apply"], "UNKNOWN", None),
+                (["reconcile"], "BLOCKED", False)):
+            with self.subTest(arguments=arguments), tempfile.TemporaryDirectory() as directory:
+                native, hub, _ = self.fixture(directory)
+                with mock.patch.object(adapter, "__file__", str(native / "tools/codex_assets/knowledge_provider_adapter.py")), \
+                        mock.patch.dict("os.environ", {"KNOWLEDGE_HUB_ROOT": str(hub)}), \
+                        mock.patch.object(adapter.subprocess, "run", side_effect=adapter.subprocess.TimeoutExpired("provider", 180)) as transport, \
+                        mock.patch("builtins.print") as output:
+                    self.assertEqual(adapter.main(arguments), 2)
+                    self.assertEqual(transport.call_args.kwargs["timeout"], 180)
+                    receipt = json.loads(output.call_args.args[0])
+                    self.assertEqual(receipt["status"], expected_status)
+                    self.assertIs(receipt["persisted"], expected_persisted)
+                    self.assertEqual(receipt["reason_codes"], ["PROVIDER_TIMEOUT"])
+
     def test_root_help_lists_auxiliary_operations_as_well(self):
         with tempfile.TemporaryDirectory() as directory:
             native, hub, _ = self.fixture(directory)
@@ -55,6 +106,29 @@ class ProviderAdapterTests(unittest.TestCase):
                     mock.patch.object(adapter.subprocess, "run") as transport, mock.patch("builtins.print"):
                 self.assertEqual(adapter.main(["context", "--help"]), 2)
                 transport.assert_not_called()
+
+    def test_project_migration_validates_persistence_and_current_manifest(self):
+        expected = "c" * 64
+        base = {"schema_version": "knowledge-provider.project-migration/v1", "status": "MIGRATED",
+                "subject_ref": {"type": "project", "id": "target"}, "expected_hash": expected,
+                "source_file_count": 3, "source_item_count": 2, "write_count": 4, "delete_count": 3,
+                "provider_proofs": 1, "active_promoted": False, "owner_review_performed": False,
+                "persisted": True, "write_performed": True, "read_only": False,
+                "manifest_ref": "artifacts/manifests/project-migration-" + expected + ".json",
+                "transaction_id": "project-migration-" + expected[:24]}
+        for change, valid in (({}, True), ({"persisted": False}, False),
+                              ({"subject_ref": {"type": "project"}}, False),
+                              ({"manifest_ref": "/tmp/untrusted.json"}, False),
+                              ({"provider_proofs": True}, False), ({"active_promoted": True}, False)):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                native, hub, _ = self.fixture(directory)
+                with mock.patch.object(adapter, "__file__", str(native / "tools/codex_assets/knowledge_provider_adapter.py")), \
+                        mock.patch.dict("os.environ", {"KNOWLEDGE_HUB_ROOT": str(hub)}), \
+                        mock.patch.object(adapter.subprocess, "run", return_value=mock.Mock(returncode=0, stdout=json.dumps(dict(base, **change)))), \
+                        mock.patch("builtins.print") as output:
+                    self.assertEqual(adapter.main(["migrate-project", "--apply"]), 0 if valid else 2)
+                    if not valid:
+                        self.assertEqual(json.loads(output.call_args.args[0])["status"], "UNKNOWN")
 
     def fixture(self, directory):
         native, hub = pathlib.Path(directory) / "native", pathlib.Path(directory) / "hub"

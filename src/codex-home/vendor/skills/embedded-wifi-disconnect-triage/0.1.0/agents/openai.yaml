@@ -1,0 +1,4 @@
+interface:
+  display_name: "嵌入式 Wi-Fi 断连诊断"
+  short_description: "串联业务、Wi-Fi、supplicant 和驱动证据，定位断连与恢复卡滞并验证最小修复"
+  default_prompt: "使用 $embedded-wifi-disconnect-triage 分析 Wi-Fi 断连日志及当前实现，定位最早失败点，完成已授权的最小修复并分别报告源码、制品和设备验证边界。"

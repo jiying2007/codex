@@ -11,9 +11,9 @@
   "archive_url": "https://github.com/larksuite/cli/releases/download/v1.0.97/lark-cli-1.0.97-linux-amd64.tar.gz",
   "identity": "bot",
   "network_targets": ["open.feishu.cn"],
-  "policy_rel": "src/codex-home/vendor/skills/feishu-readonly/0.1.0/references/policy.yml",
-  "allowed_commands": ["wiki/+node-get", "docs/+fetch", "sheets/+workbook-info", "sheets/+csv-get", "sheets/+cells-get"],
-  "upstream_skills": ["lark-shared", "lark-doc", "lark-sheets", "lark-wiki"],
+  "policy_rel": "src/codex-home/vendor/skills/feishu-readonly/0.3.0/references/policy.yml",
+  "allowed_commands": ["wiki/+node-get", "docs/+fetch", "sheets/+workbook-info", "sheets/+csv-get", "sheets/+cells-get", "drive/+download", "drive/+preview", "okr/cycles/list", "okr/cycle.objectives/list", "okr/objective.key_results/list"],
+  "upstream_skills": ["lark-shared", "lark-doc", "lark-sheets", "lark-wiki", "lark-drive", "lark-okr"],
   "upstream_skills_use": "intake-design-only",
   "writes_allowed": false
 }

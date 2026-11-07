@@ -1,0 +1,4 @@
+interface:
+  display_name: "Embedded Production Test Lifecycle"
+  short_description: "Audit aging, calibration, health, and station handoff"
+  default_prompt: "Use $embedded-production-test-lifecycle to audit an embedded production-test lifecycle and produce a minimal fix and validation matrix."

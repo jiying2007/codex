@@ -2,6 +2,19 @@
   "schema_version": 1,
   "workflow_recipes": [
     {
+      "name": "multi-repo-safe-sync-preserve-local",
+      "enabled": true,
+      "profiles": ["default", "team-collab"],
+      "workflow": "multi-repo-safe-sync",
+      "context_inputs": ["explicit per-repository action authority", "actual Git roots and HEAD/ref identity", "staged unstaged untracked inventory", "recovery anchors and dependency order"],
+      "done_criteria": ["local changes and index boundaries preserved", "every repository has a bounded outcome and evidence", "no unauthorized commit push rebase or stash deletion"],
+      "review_artifacts": ["docs/workflows/multi-repo-safe-sync.md", "per-repository sync record", "conflict decisions and recovery anchors"],
+      "failure_modes": ["parent status hides nested repositories", "untracked conflict or restore failure", "target ref changes during sync", "shared contract modified concurrently"],
+      "trigger_examples": ["多仓同步并保留本地修改"],
+      "negative_examples": ["只检查状态不执行同步", "发布固件到设备"],
+      "verification": ["rtk python3 -m unittest tests.test_agent_routing_eval", "rtk git diff --check"]
+    },
+    {
       "name": "asset-governance-codex-home",
       "enabled": true,
       "profiles": [
@@ -88,7 +101,7 @@
         "只登记一个 MCP server，不改业务代码"
       ],
       "verification": [
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ]
     },
     {
@@ -131,7 +144,7 @@
         "只运行本地 check.sh 并汇报结果"
       ],
       "verification": [
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" snapshot"
+        "rtk bash ~/codex/scripts/codex-policy.sh snapshot"
       ]
     },
     {
@@ -179,7 +192,7 @@
         "rtk codex mcp list",
         "rtk python3 -m unittest tests.test_agent_routing_eval",
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ]
     },
     {
@@ -230,7 +243,7 @@
         "rtk python3 -m unittest tests.test_governance",
         "rtk bash scripts/doctor.sh --scope governance",
         "rtk codex --strict-config doctor --summary --ascii",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ]
     },
     {
@@ -343,7 +356,7 @@
         "rtk python3 -m unittest tests.test_agent_routing_eval",
         "rtk bash scripts/check-routing-precedence.sh",
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ]
     },
     {
@@ -389,7 +402,7 @@
       ],
       "verification": [
         "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ]
     },
     {
@@ -451,7 +464,7 @@
         "rtk python3 -m unittest tests.test_agent_routing_eval",
         "rtk bash scripts/check-skills.sh",
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ]
     }
   ]

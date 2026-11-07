@@ -83,7 +83,7 @@
       "negative_cases_required": true,
       "commands": [
         "rtk python3 -m unittest tests.test_execution_policy tests.test_execution_policy_source_set",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final",
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final",
         "rtk bash scripts/check.sh"
       ],
       "artifacts": [

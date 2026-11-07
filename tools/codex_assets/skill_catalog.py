@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import pathlib
 import re
+import os
+import hashlib
 from typing import Any
 
-from .core import Repo, active, parse_frontmatter
+from .core import Repo, active, parse_frontmatter, CodexAssetError
 
 
 DEFAULT_LIMIT = 3
@@ -35,6 +37,7 @@ EMBEDDED_QUERY_MARKERS = {
     "芯片",
     "设备",
     "驱动",
+    "内存泄漏", "内存泄露", "资源泄漏", "无界容器", "FD", "fd",
 }
 ROUTE_ROLE_SCORES = {
     "primary": 320,
@@ -142,8 +145,59 @@ def _query_has_embedded_context(query: str) -> bool:
 
 
 def _load_path(repo: Repo, codex_home: pathlib.Path, item: dict[str, Any]) -> pathlib.Path:
+    if item.get("discovery_path"):
+        return pathlib.Path(item["discovery_path"])
     live = codex_home / item["vendor_rel"] / "SKILL.md"
     return live if live.is_file() else repo.source / item["vendor_rel"] / "SKILL.md"
+
+
+def external_items(repo: Repo) -> tuple[list[dict[str, Any]], list[str]]:
+    """Explicit local sources only; never recurse or import executable content."""
+    manifest = repo.manifests_dir / "skill_discovery.json"
+    if not manifest.is_file():
+        return [], []
+    config = json.loads(manifest.read_text(encoding="utf-8"))
+    if config.get("schema_version") != 1 or not isinstance(config.get("sources"), list):
+        raise CodexAssetError("invalid skill discovery manifest")
+    items, unavailable = [], []
+    seen_names, seen_sources = set(), set()
+    for source in config["sources"]:
+        sid = source.get("source_id", "")
+        names = source.get("allowed_names", [])
+        rel = pathlib.PurePosixPath(source.get("skills_rel", ""))
+        if (not re.fullmatch(r"[a-z0-9][a-z0-9-]*", sid)
+                or not isinstance(names, list) or rel.is_absolute() or ".." in rel.parts
+                or not rel.parts):
+            raise CodexAssetError("invalid skill discovery source")
+        if sid in seen_sources:
+            raise CodexAssetError("duplicate skill discovery source")
+        seen_sources.add(sid)
+        root = pathlib.Path(os.environ.get(source.get("root_env", "")) or source["default_root"]).expanduser().resolve()
+        skills = root.joinpath(*rel.parts)
+        for name in names:
+            if not isinstance(name, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name):
+                raise CodexAssetError("invalid discovery skill name")
+            # Manifest source order is explicit precedence for external names;
+            # a repeated name never consumes another candidate slot.
+            if name in seen_names:
+                continue
+            path = skills / name / "SKILL.md"
+            if not path.is_file():
+                continue
+            try:
+                path.resolve().relative_to(root)
+            except ValueError:
+                raise CodexAssetError("discovery skill escapes configured root")
+            meta = parse_frontmatter(path)
+            if meta.get("name") != name:
+                raise CodexAssetError("discovery skill identity mismatch")
+            seen_names.add(name)
+            items.append({"name": name, "enabled": True, "profiles": [],
+                          "tags": ["embedded", name], "discovery_path": str(path),
+                          "source_id": sid, "review_status": "accepted"})
+        if not skills.is_dir():
+            unavailable.append(sid)
+    return items, unavailable
 
 
 def _route_hints(repo: Repo, query: str) -> dict[str, dict[str, Any]]:
@@ -259,14 +313,20 @@ def search_skills(
     fallback_excluded = 0
     route_hints = _route_hints(repo, query)
     activation_modes = _context_activation_modes(repo) if _profile_catalog_mode(repo, profile) == "lazy" else {}
-    for item in repo.manifest("skills.json").get("skills", []):
+    managed = repo.manifest("skills.json").get("skills", [])
+    extras, unavailable = external_items(repo)
+    managed_names = {x["name"] for x in managed}
+    shadowed = sorted({x["name"] for x in extras if x["name"] in managed_names})
+    inventory = managed + [x for x in extras if x["name"] not in managed_names]
+    for item in inventory:
         if not item.get("enabled", True) or item.get("review_status") in {"pending", "rejected"}:
             continue
         fallback = _is_fallback(item)
         is_active = active(item, profile)
         if active_only and not is_active:
             continue
-        skill_path = repo.source / item["vendor_rel"] / "SKILL.md"
+        skill_path = (pathlib.Path(item["discovery_path"]) if item.get("discovery_path")
+                      else repo.source / item["vendor_rel"] / "SKILL.md")
         meta = parse_frontmatter(skill_path)
         description = _text(meta.get("description", ""))
         triggers = _list(meta.get("triggers", []))
@@ -331,6 +391,8 @@ def search_skills(
                     else None
                 ),
                 "fallback": fallback,
+                "source_id": item.get("source_id", "managed"),
+                "content_sha256": hashlib.sha256(_load_path(repo, home, item).read_bytes()).hexdigest(),
             }
         )
     candidates.sort(key=lambda item: (-item["score"], item["activation"] != "active", item["name"]))
@@ -359,6 +421,9 @@ def search_skills(
             else "no high-confidence match; direct execution is allowed for micro tasks"
         ),
         "output_truncated": total_matches > len(selected),
+        "discovery": {"managed_precedence": True, "shadowed_names": shadowed,
+                      "unavailable_sources": unavailable,
+                      "zero_hit_proves_absence": False},
     }
     compact_payload(payload, max_output_bytes)
     return payload
@@ -380,6 +445,7 @@ def compact_payload(payload: dict[str, Any], max_output_bytes: int) -> None:
         payload["candidates"][0].pop("triggers", None)
         payload["candidates"][0]["why_selected"].pop("terms", None)
     if size() > max_output_bytes:
+        payload.pop("discovery", None)
         payload["context_contract"] = {
             "no_skill_allowed": True,
             "fallback_condition": "ambiguity or high risk requires targeted raw evidence",

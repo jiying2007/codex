@@ -33,7 +33,16 @@ OPENAI_POLICY_FIELDS = {"allow_implicit_invocation"}
 
 
 def frontmatter(path: pathlib.Path) -> dict[str, str]:
-    return {str(key): str(value) for key, value in parse_frontmatter(path).items()}
+    data = parse_frontmatter(path)
+    metadata = data.get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise CodexAssetError(f"{path}: metadata 必须是对象")
+    for key in ("version", "last_updated"):
+        if key in metadata:
+            if key in data and str(data[key]) != str(metadata[key]):
+                raise CodexAssetError(f"{path}: {key} 与 metadata.{key} 冲突")
+            data[key] = metadata[key]
+    return {str(key): str(value) for key, value in data.items()}
 
 
 def validate_openai_metadata(path: pathlib.Path, errors: list[str]) -> None:
@@ -110,7 +119,9 @@ def main() -> int:
                 errors.append(f"{skill_md}: frontmatter 缺少 {field}")
 
         name = meta.get("name", expected_name)
-        if name in names:
+        # Versioned releases of one skill share a name; different skill
+        # directories must never claim the same identity.
+        if name in names and names[name].parent.parent != skill_dir.parent:
             errors.append(f"重复 skill name: {name} ({names[name]} 与 {skill_md})")
         names[name] = skill_md
 

@@ -29,11 +29,11 @@
       "stop_ratio": 1
     },
     "context": {
-      "compact_ratio": 0.5
+      "compact_ratio": 0.7
     },
     "progress": {
       "staleness_seconds": 900,
-      "retry_limit": 2,
+      "retry_limit": 16,
       "no_progress_limit": 3
     },
     "artifact_applicability": {
@@ -90,8 +90,8 @@
     },
     "mode_authority_policy": {
       "managed": true,
-      "trusted_mode_authorities": [],
-      "verification_backend": "not-configured"
+      "trusted_mode_authorities": ["codex-project-routing"],
+      "verification_backend": "managed-authority-registry"
     },
     "retention": {
       "journal_days": 14,

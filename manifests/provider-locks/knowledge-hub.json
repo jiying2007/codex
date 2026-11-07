@@ -2,11 +2,11 @@
   "schema_version": 1,
   "provider": "knowledge-hub",
   "repository": "jiying2007/knowledge-hub",
-  "provider_commit": "3bd6cbb170a36d6895121e90e59136414fe15dd2",
+  "provider_commit": "217b1bc6a51ccf1712561662de299f2e5c0fffc2",
   "protocol_version": 4,
-  "source_manifest_sha256": "7abfdc64ac1ce31407f35ceedf4a01166ae8ba1c9e87d54c3cb2f945e4d473e7",
-  "status": "qualified",
-  "readiness": "SOURCE_SET_BOUND",
+  "source_manifest_sha256": "68e18d869995937025675127929f07bcf9052cecf360e7ddc8bf0f162c35ec85",
+  "status": "reviewing",
+  "readiness": "LOCAL_REVIEWED_SOURCE_SET_BOUND",
   "public_interfaces": [
     "status",
     "context",
@@ -14,6 +14,7 @@
     "resolve",
     "grant",
     "register",
+    "register-repository",
     "bind",
     "assign",
     "reconcile",
@@ -21,7 +22,9 @@
     "evidence-pack",
     "action-check",
     "proposal-route",
-    "activity-capture"
+    "activity-capture",
+    "migrate-project",
+    "maintain-content"
   ],
   "rules": {
     "source_of_truth_stays_at_source": true,
@@ -29,5 +32,7 @@
     "provider_unavailable_is_blocked_not_pass": true,
     "unresolved_project_route_is_needs_review_or_blocked": true
   },
-  "known_blockers": []
+  "known_blockers": [],
+  "source_state": "reviewed-worktree",
+  "source_change_sha256": "4e29e51784b3f2416b9127f9573e9a7c12dc8d88ed508442ed0a6616c7cf130d"
 }

@@ -11,14 +11,42 @@ import subprocess
 import sys
 import tempfile
 
-OPERATIONS = {"status", "context", "archive", "resolve", "grant", "register", "bind", "assign", "reconcile", "capture-source",
-              "evidence-pack", "action-check", "proposal-route", "activity-capture"}
+OPERATIONS = {"status", "context", "archive", "resolve", "grant", "register", "register-repository", "bind", "assign", "reconcile", "capture-source", "migrate-project", "maintain-content",
+              "evidence-pack", "action-check", "proposal-route", "activity-capture", "activity-report"}
 AUXILIARY = {"evidence-pack": "knowledge-evidence-pack.sh", "action-check": "knowledge-action-check.sh",
-             "proposal-route": "knowledge-proposal-route.sh", "activity-capture": "knowledge-activity.sh"}
+             "proposal-route": "knowledge-proposal-route.sh", "activity-capture": "knowledge-activity.sh",
+             "activity-report": "knowledge-activity.sh"}
+PROVIDER_TIMEOUT_SECONDS = 180
 
 
 class ProviderAdapterError(RuntimeError):
     pass
+
+
+def validate_evidence_pack(value):
+    """Accept the existing readonly wire schema without promoting candidates."""
+    lanes = ("must", "should", "context", "provisional", "conflict", "missing")
+    if (value.get("schema_version") != "knowledge-hub.evidence-pack.v1"
+            or value.get("read_only") is not True
+            or not isinstance(value.get("authority_contract"), dict)
+            or value["authority_contract"].get("active_only") is not True
+            or not isinstance(value.get("counts"), dict)):
+        raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+    for lane in lanes:
+        rows = value.get(lane)
+        if (not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows)
+                or type(value["counts"].get(lane)) is not int
+                or value["counts"][lane] != len(rows)):
+            raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+        if lane in {"must", "should", "context", "provisional"}:
+            for row in rows:
+                authority = "provisional" if lane == "provisional" else "active"
+                if (not isinstance(row.get("id"), str) or not row["id"]
+                        or not isinstance(row.get("summary_zh"), str)
+                        or row.get("authority") != authority
+                        or (lane != "provisional" and row.get("status") != "active")
+                        or (lane == "provisional" and row.get("status") not in {"reviewing", "draft", "active"})):
+                    raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
 
 
 def sha256(path):
@@ -86,6 +114,22 @@ def main(argv=None):
     if any(arg == "--root" or arg.startswith("--root=") or arg in {"--a", "--ap", "--app", "--appl"} for arg in rest):
         print(json.dumps({"status": "BLOCKED", "persisted": False, "reason_codes": ["SCHEMA_INVALID"]}))
         return 2
+    if operation == "activity-report" and not help_requested:
+        values = {"--period", "--scope", "--detail", "--as-of", "--knowledge-as-of",
+                  "--start", "--end", "--subject-id", "--project-id"}
+        switches = {"--json", "--summary-json", "--stdout-only"}
+        index = 0
+        while index < len(rest):
+            flag = rest[index]
+            if flag in switches:
+                index += 1
+            elif flag in values and index + 1 < len(rest) and not rest[index + 1].startswith("--"):
+                index += 2
+            else:
+                print(json.dumps({"status": "BLOCKED", "persisted": False,
+                                  "write_performed": False, "reason_codes": ["SCHEMA_INVALID"]}))
+                return 2
+        rest.append("--stdout-only")
     native_root = pathlib.Path(__file__).resolve().parents[2]
     hub_root = pathlib.Path(os.environ.get("KNOWLEDGE_HUB_ROOT", str(pathlib.Path.home() / "knowledge-hub"))).expanduser().resolve()
     invoked, receipt = False, {}
@@ -97,6 +141,8 @@ def main(argv=None):
             args = ["bash", str(hub_root / "tools" / AUXILIARY[operation])]
             if operation == "activity-capture":
                 args.append("capture")
+            elif operation == "activity-report":
+                args.append("report")
         else:
             args = ["bash", str(hub_root / "tools/knowledge-provider.sh"), operation]
         with tempfile.TemporaryDirectory(prefix="provider-import-") as directory:
@@ -113,7 +159,7 @@ def main(argv=None):
                 rest.append("--json")
             invoked = True
             result = subprocess.run(args + rest, env=env, cwd=env.get("KNOWLEDGE_PROVIDER_CALLER_CWD", os.getcwd()),
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=PROVIDER_TIMEOUT_SECONDS)
         try:
             receipt = json.loads(result.stdout)
         except ValueError:
@@ -145,6 +191,23 @@ def main(argv=None):
                     print(result.stdout.strip())
                     return result.returncode
                 raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+        elif operation == "evidence-pack":
+            validate_evidence_pack(receipt)
+        elif operation == "activity-report":
+            if (receipt.get("schema_version") != 2 or not isinstance(receipt.get("status"), str)
+                    or (result.returncode == 0 and
+                        (receipt.get("mode") != "report-only" or receipt.get("written") is not False
+                         or not isinstance(receipt.get("source_coverage"), dict)
+                         or not isinstance(receipt.get("facts"), dict)
+                         or receipt["facts"].get("schema_version") != 2
+                         or receipt["facts"].get("kind") != "knowledge-hub.activity-facts-v2"
+                         or receipt["facts"].get("period") != receipt.get("period")
+                         or not isinstance(receipt["facts"].get("work_items"), list)
+                         or not isinstance(receipt.get("privacy"), dict)
+                         or any(receipt["privacy"].get(key) is not False for key in
+                                ("raw_sessions_stored", "raw_logs_stored", "credentials_stored",
+                                 "identity_inferred_from_git", "memory_write", "external_write"))))):
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
         elif operation == "resolve":
             if (receipt.get("schema_version") != "knowledge-provider.resolve/v1" or receipt.get("read_only") is not True
                     or not isinstance(receipt.get("state"), str)):
@@ -160,6 +223,45 @@ def main(argv=None):
                 if (receipt["persisted"] is not True or not isinstance(receipt["subject_ref"], dict)
                         or any(re.fullmatch(r"[a-f0-9]{64}", str(receipt[key])) is None for key in ("operation_id", "content_sha256"))):
                     raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+        elif operation == "maintain-content":
+            if receipt.get("schema_version") == "knowledge-provider.operation-receipt/v4" and result.returncode != 0 and receipt.get("status") in {"BLOCKED", "CONFLICT", "UNKNOWN"}:
+                print(result.stdout.strip())
+                return result.returncode
+            if (receipt.get("schema_version") != "knowledge-provider.content-maintenance/v1"
+                    or receipt.get("status") not in {"PLANNED", "MAINTAINED"}
+                    or re.fullmatch(r"[a-f0-9]{64}", str(receipt.get("expected_hash", ""))) is None
+                    or any(type(receipt.get(key)) is not int or receipt[key] < 0 for key in ("item_count", "write_count", "delete_count"))
+                    or receipt.get("active_promoted") is not False or receipt.get("owner_review_performed") is not False):
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+            wrote = receipt["status"] == "MAINTAINED"
+            if (receipt.get("persisted") is not wrote or receipt.get("write_performed") is not wrote
+                    or receipt.get("read_only") is not (not wrote)):
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+            if wrote and (receipt.get("transaction_id") != "content-maintenance-" + receipt["expected_hash"][:24]
+                          or receipt.get("manifest_ref") != "artifacts/manifests/content-maintenance-" + receipt["expected_hash"] + ".json"):
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+        elif operation == "migrate-project":
+            if receipt.get("schema_version") == "knowledge-provider.operation-receipt/v4" and result.returncode != 0 and receipt.get("status") in {"BLOCKED", "CONFLICT", "UNKNOWN"}:
+                print(result.stdout.strip())
+                return result.returncode
+            if (receipt.get("schema_version") != "knowledge-provider.project-migration/v1"
+                    or receipt.get("status") not in {"PLANNED", "MIGRATED", "ALREADY_MIGRATED"}
+                    or not isinstance(receipt.get("subject_ref"), dict)
+                    or receipt["subject_ref"].get("type") != "project"
+                    or re.fullmatch(r"[a-z0-9][a-z0-9-]{0,80}", str(receipt["subject_ref"].get("id", ""))) is None
+                    or re.fullmatch(r"[a-f0-9]{64}", str(receipt.get("expected_hash", ""))) is None
+                    or receipt.get("active_promoted") is not False or receipt.get("owner_review_performed") is not False
+                    or any(type(receipt.get(key)) is not int or receipt[key] < 0 for key in
+                           ("source_file_count", "source_item_count", "write_count", "delete_count", "provider_proofs"))):
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+            persisted = receipt["status"] != "PLANNED"
+            wrote = receipt["status"] == "MIGRATED"
+            if receipt.get("persisted") is not persisted or receipt.get("write_performed") is not wrote or receipt.get("read_only") is not (not wrote):
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+            if persisted and receipt.get("manifest_ref") != "artifacts/manifests/project-migration-" + receipt["expected_hash"] + ".json":
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
+            if wrote and receipt.get("transaction_id") != "project-migration-" + receipt["expected_hash"][:24]:
+                raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
         elif not isinstance(receipt.get("status"), str) or not receipt["status"]:
             raise ProviderAdapterError("PROVIDER_RESPONSE_INVALID")
         print(result.stdout.strip())

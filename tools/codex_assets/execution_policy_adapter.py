@@ -352,9 +352,9 @@ def _engine_state(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         raise ExecutionPolicyAdapterError(str(exc)) from exc
 
 
-def _decision(state: Mapping[str, Any], config: Mapping[str, Any], gate_event: str) -> dict[str, Any]:
+def _decision(state: Mapping[str, Any], config: Mapping[str, Any], gate_event: str, *, verifier=None) -> dict[str, Any]:
     try:
-        return evaluate(state, config["policy"], gate_event=gate_event)
+        return evaluate(state, config["policy"], gate_event=gate_event, mode_authority_verifier=verifier)
     except ExecutionPolicyError as exc:
         raise ExecutionPolicyAdapterError(str(exc)) from exc
 
@@ -374,7 +374,8 @@ def snapshot(
     events = load_journal(journal)
     events.append(usage_event(thread, rate_per_minute=rate_per_minute))
     state = _engine_state(events)
-    decision = _decision(state, config, gate_event)
+    from .execution_policy_authority import verifier
+    decision = _decision(state, config, gate_event, verifier=verifier(root, thread, events))
     from .context_maintenance import maintenance_diagnostic
 
     decision["host_context_maintenance"] = maintenance_diagnostic(
@@ -408,6 +409,15 @@ def _append_action(args: argparse.Namespace, kind: str, payload: Mapping[str, An
 
 
 def run(args: argparse.Namespace) -> int:
+    if not args.thread_id:
+        raise ExecutionPolicyAdapterError("Execution Policy requires CODEX_THREAD_ID or an explicit --thread-id")
+    read_only = (args.runtime_action in {"snapshot", "gate", "watch", "verify-request", "milestone"}
+                 or (args.runtime_action == "goal" and args.goal_action == "status")
+                 or (args.runtime_action == "journal" and not args.apply)
+                 or (args.runtime_action == "ensure" and args.dry_run))
+    if (not read_only and os.environ.get("CODEX_THREAD_ID")
+            and args.thread_id != os.environ["CODEX_THREAD_ID"]):
+        raise ExecutionPolicyAdapterError("Execution Policy cannot mutate a different thread")
     if args.runtime_action == "verify-request":
         from .execution_policy_intake import verify_request
         return verify_request(args)
@@ -515,7 +525,8 @@ def run(args: argparse.Namespace) -> int:
 def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--config", default="")
     parser.add_argument("--codex-home", default="~/.codex")
-    parser.add_argument("--thread-id", default=os.environ.get("CODEX_THREAD_ID", ""))
+    parser.add_argument("--thread-id", default=os.environ.get("CODEX_THREAD_ID", ""),
+                        help="defaults to CODEX_THREAD_ID; missing identity is rejected, never guessed")
     sub = parser.add_subparsers(dest="runtime_action", required=True)
 
     from .execution_policy_intake import configure as configure_intake
@@ -523,6 +534,8 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     configure_intake(sub.add_parser("ensure", help="Register the actual request and local routing once per thread goal"))
     verify = sub.add_parser("verify-request", help="Read-only verification of current-thread actual request provenance")
     verify.add_argument("--request-file", required=True)
+    verify.add_argument("--renewal-request-file", default="",
+                        help="Explicit current-day user request renewing existing request provenance only")
     journal = sub.add_parser("journal", help="Audit or recover rejected duplicate progress events, preserving original bytes")
     journal.add_argument("--expected-sha256", default="")
     journal.add_argument("--apply", action="store_true")

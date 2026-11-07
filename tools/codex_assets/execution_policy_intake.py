@@ -7,7 +7,9 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import stat
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -35,8 +37,16 @@ def _checked_request(path: Path) -> bytes:
     return value
 
 
-def _user_request_matches(path: Path, value: bytes) -> bool:
-    """Compare bounded native user events; never return or persist their text."""
+def _event_issued_on(event: dict, day: str) -> bool:
+    try:
+        timestamp = datetime.fromisoformat(str(event.get("timestamp", "")).replace("Z", "+00:00"))
+        return timestamp.tzinfo is not None and timestamp.astimezone(timezone.utc).date().isoformat() == day
+    except ValueError:
+        return False
+
+
+def _user_request_matches(path: Path, value: bytes = b"", *, sha256: str = "", issued_on: str = "") -> bool:
+    """Compare bounded native user events; never persist or expose their text."""
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
     try:
         fd = os.open(str(path), flags)
@@ -65,6 +75,8 @@ def _user_request_matches(path: Path, value: bytes) -> bool:
                         continue
                     if not isinstance(event, dict):
                         continue
+                    if issued_on and not _event_issued_on(event, issued_on):
+                        continue
                     payload = event.get("payload", {})
                     if not isinstance(payload, dict):
                         continue
@@ -77,11 +89,48 @@ def _user_request_matches(path: Path, value: bytes) -> bool:
                             texts = [p.get("text", "") for p in parts if isinstance(p, dict) and p.get("type") == "input_text"]
                             if all(isinstance(part, str) for part in texts):
                                 text = "\n".join(texts)
-                    if isinstance(text, str) and text.strip() == expected:
-                        return True
+                    if isinstance(text, str):
+                        if sha256:
+                            # apply_patch request files conventionally end in one newline.
+                            if sha256 in {hashlib.sha256(raw.encode()).hexdigest()
+                                          for raw in (text, text + "\n")}:
+                                return True
+                        elif text.strip() == expected:
+                            return True
     except OSError:
         return False
     return False
+
+
+def _explicit_request_renewal(value: bytes) -> bool:
+    text = value.decode("utf-8")
+    if re.search(r"不得|不要|禁止|不再|取消|撤销|do not|revoke|cancel", text, re.I):
+        return False
+    return bool(re.search(r"当前目标|current goal", text, re.I)
+                and re.search(r"预算.{0,24}(?:延长|追加)|(?:续期|延长).{0,24}预算|(?:extend|renew).{0,40}budget", text, re.I)
+                and re.search(r"沿用.{0,40}授权.{0,20}继续执行|continue.{0,40}(?:existing|prior).{0,20}authori[sz]ation", text, re.I))
+
+
+def _renewed_request_provenance(adapter, config, thread, events, intake, renewal, request_hash):
+    """Fresh request provenance only; never append events or grant domain approval."""
+    day = adapter._now().date().isoformat()
+    if (not _explicit_request_renewal(renewal)
+            or not _user_request_matches(Path(thread["rollout_path"]), renewal, issued_on=day)):
+        return None
+    state = adapter._engine_state(events + [adapter.usage_event(thread)])
+    goal = state.get("goal", {})
+    if goal.get("status") != "active" or not goal.get("goal_id"):
+        return None
+    decision = adapter._decision(state, config, "steady")
+    if decision.get("budget_status", {}).get("status") != "within":
+        return None
+    binding = {"schema_version": "codex-request-renewal/v1", "thread_id": thread["thread_id"],
+               "request_sha256": request_hash, "original_attestation_sha256": intake["attestation_sha256"],
+               "renewal_request_sha256": hashlib.sha256(renewal).hexdigest(), "goal_id": goal["goal_id"],
+               "current_goal_intake_attestation_sha256": goal.get("intake_attestation_sha256"),
+               "issued_on": day, "purpose": "request-provenance-only;not-owner-approval"}
+    return dict(binding, attestation_sha256=hashlib.sha256(
+        json.dumps(binding, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
 
 
 def verify_request(args: argparse.Namespace) -> int:
@@ -89,10 +138,12 @@ def verify_request(args: argparse.Namespace) -> int:
     from . import execution_policy_adapter as adapter
     if not args.thread_id or args.thread_id != os.environ.get("CODEX_THREAD_ID"):
         raise adapter.ExecutionPolicyAdapterError("request verification requires the exact current thread")
-    _, _, _, thread, journal = adapter._active_context(args)
+    _, config, _, thread, journal = adapter._active_context(args)
     value = _checked_request(Path(args.request_file).expanduser())
     expected = hashlib.sha256(value).hexdigest()
     user_verified = _user_request_matches(Path(thread["rollout_path"]), value)
+    renewal_file = getattr(args, "renewal_request_file", "")
+    renewal = _checked_request(Path(renewal_file).expanduser()) if renewal_file else None
     events = adapter.load_journal(journal)
     adapter._engine_state(events)  # Verify the whole canonical event stream, without appending usage.
     for event in reversed(events):
@@ -100,11 +151,16 @@ def verify_request(args: argparse.Namespace) -> int:
         if (event.get("event_type") != "goal.started" or event.get("thread_id") != thread["thread_id"]
                 or intake.get("request_sha256") != expected or not user_verified):
             continue
-        if str(intake.get("provenance", {}).get("issued_at", ""))[:10] != adapter._now().date().isoformat():
+        renewed = (_renewed_request_provenance(adapter, config, thread, events, intake, renewal, expected)
+                   if renewal is not None else None)
+        if renewal is not None and renewed is None:
+            continue
+        if renewed is None and str(intake.get("provenance", {}).get("issued_at", ""))[:10] != adapter._now().date().isoformat():
             continue
         adapter._emit({"schema_version": "codex-request-verification/v1", "status": "VERIFIED", "read_only": True,
                        "thread_id": thread["thread_id"], "request_sha256": expected,
-                       "attestation_sha256": intake["attestation_sha256"],
+                       "attestation_sha256": renewed["attestation_sha256"] if renewed else intake["attestation_sha256"],
+                       **({"renewal_provenance": renewed} if renewed else {}),
                        "user_message_verified": True,
                        "cwd_sha256": hashlib.sha256(str(Path(thread["cwd"]).resolve()).encode()).hexdigest(),
                        "purpose": "request-provenance-only;not-owner-approval"})
@@ -123,18 +179,9 @@ def ensure(args: argparse.Namespace) -> int:
         raise adapter.ExecutionPolicyAdapterError("ensure cannot register a different thread from the current environment")
     root, config, paths, thread, journal = adapter._active_context(args)
     request_sha256 = hashlib.sha256(_checked_request(Path(args.request_file).expanduser())).hexdigest()
-    rules = {}
-    for label, path in (("runtime", root / "AGENTS.md"), ("project", Path(thread["cwd"]) / "AGENTS.md")):
-        if path.is_file():
-            rules[label] = hashlib.sha256(_checked_request(path)).hexdigest()
-    if not rules:
-        raise adapter.ExecutionPolicyAdapterError("ensure requires actual project or runtime routing rules")
-    routing = {
-        "schema_version": "codex-project-routing/v1", "task_mode": args.task_mode,
-        "request_sha256": request_sha256, "rule_sha256": rules,
-        "success_criteria": args.success_criterion, "required_evidence": args.required_evidence,
-        "open_items": args.open_items,
-    }
+    from .execution_policy_authority import routing_record
+    routing = routing_record(root, thread, request_sha256, args.task_mode,
+                             args.success_criterion, args.required_evidence, args.open_items)
     routing_sha256 = hashlib.sha256(json.dumps(routing, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     goal_id = "task-" + routing_sha256[:24]
     decision_id = "routing-" + routing_sha256[:24]
@@ -144,7 +191,7 @@ def ensure(args: argparse.Namespace) -> int:
     start_args.routing_decision_sha256 = routing_sha256
     start_args.authority_id = "codex-project-routing"
     start_args.source_id = "codex-project-routing"
-    start_args.source_version = "v1"
+    start_args.source_version = "v2"
     start_args.decision_id = decision_id
     start_args.issued_at = ""
 

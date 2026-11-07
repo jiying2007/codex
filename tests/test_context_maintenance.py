@@ -95,10 +95,21 @@ hide_model_migration_prompt = true
             with self.assertRaises(CodexAssetError):
                 render_config(repo, build, 'default', context_config_from=local)
 
-    def test_managed_default_precedes_observed_window_guard(self):
+    def test_default_overlay_removes_old_overrides_and_preserves_other_settings(self):
+        existing = 'model = "local"\n' + MANAGED + '[projects."/private/work"]\ntrust_level = "trusted"\n'
+        result = merge_context_config(existing, 'model = "template"\n')
+        expected = parse_config(existing)
+        for key in ('model_auto_compact_token_limit', 'model_auto_compact_token_limit_scope'):
+            expected.pop(key)
+        self.assertEqual(parse_config(result), expected)
+        self.assertEqual(merge_context_config(result, ''), result)
+        with self.assertRaises(ValueError):
+            merge_context_config(existing, 'model_auto_compact_token_limit_scope = "total"\n')
+
+    def test_managed_default_uses_host_model_defaults(self):
         config = parse_config((ROOT / 'src/codex-home/config/base.toml').read_text())
-        self.assertLess(config['model_auto_compact_token_limit'], 258400 * .5)
-        self.assertEqual(config['model_auto_compact_token_limit_scope'], 'total')
+        self.assertNotIn('model_auto_compact_token_limit', config)
+        self.assertNotIn('model_auto_compact_token_limit_scope', config)
         self.assertNotIn('model_context_window', config)
 
 

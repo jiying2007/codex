@@ -86,18 +86,19 @@ class AgentRulesTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "not declared"):
             VALIDATOR.validate_rules(self.root)
 
-    def test_final_command_requires_current_thread_before_invoking_tools(self) -> None:
-        command = re.search(r"`(\(cd ~/codex && .*?\))`", self.original)
+    def test_final_command_requires_current_thread_before_reading_state(self) -> None:
+        command = re.search(r"`(rtk bash ~/codex/scripts/codex-policy\.sh gate --event final)`", self.original)
         self.assertIsNotNone(command)
-        home = self.root / "home"
-        (home / "codex").mkdir(parents=True)
-        env = {**os.environ, "HOME": str(home)}
+        env = dict(os.environ)
         env.pop("CODEX_THREAD_ID", None)
-        result = subprocess.run(["bash", "-c", command.group(1)], env=env, text=True, capture_output=True, timeout=10)
+        target = self.root / ".codex"
+        result = subprocess.run(["bash", str(ROOT / "scripts/codex-policy.sh"), "--codex-home", str(target),
+                                 "gate", "--event", "final"], cwd=str(self.root), env=env,
+                                text=True, capture_output=True, timeout=10)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("current thread id required", result.stderr)
+        self.assertIn("requires CODEX_THREAD_ID", result.stderr)
         self.assertNotIn("command not found", result.stderr)
-        self.assertFalse((home / ".codex").exists())
+        self.assertFalse(target.exists())
 
 
 if __name__ == "__main__":

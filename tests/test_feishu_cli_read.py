@@ -88,7 +88,7 @@ class ReadBoundaryTest(unittest.TestCase):
         with mock.patch.object(read.subprocess, "run", return_value=result), self.assertRaises(read.ReadError) as raised:
             value.invoke(["docs", "+fetch"])
         self.assertNotIn("secret-value", json.dumps(raised.exception.details))
-        self.assertEqual("REDACTED", raised.exception.details["app_secret"])
+        self.assertNotIn("app_secret", raised.exception.details)
         for payload in ({"ok": False, "identity": "bot", "data": {}}, {"ok": True, "identity": "user", "data": {}}, {"ok": True, "identity": "bot", "data": []}):
             with mock.patch.object(value, "invoke", return_value=payload), self.assertRaises(read.ReadError):
                 value.read("docs/+fetch", [])
@@ -154,7 +154,53 @@ class ReadRoutingTest(unittest.TestCase):
         with self.assertRaises(read.ReadError) as raised:
             read.fetch(value, args())
         self.assertEqual("unsupported_type", raised.exception.kind)
+        self.assertEqual("bitable", raised.exception.details["resource_type"])
         self.assertEqual(1, value.read.call_count)
+
+    def test_inspect_unsupported_objects_reports_metadata_without_content(self):
+        for kind in ("bitable", "doc", "slides", "future_type"):
+            with self.subTest(kind=kind):
+                value = mock.Mock()
+                value.read.return_value = {"obj_type": kind, "obj_token": "Object1", "title": "资源标题", "owner": "private-owner"}
+                result = read.fetch(value, args(action="inspect"))
+                self.assertTrue(result["ok"])
+                self.assertEqual(kind, result["source"]["type"])
+                self.assertEqual("资源标题", result["data"]["title"])
+                self.assertFalse(result["data"]["content_read_supported"])
+                self.assertEqual("metadata-only", result["coverage"]["status"])
+                self.assertFalse(result["coverage"]["whole_resource_complete"])
+                self.assertIsNone(result["coverage"]["revision"])
+                self.assertNotIn("private-owner", json.dumps(result))
+                self.assertEqual(1, value.read.call_count)
+
+    def test_file_read_rejects_sheet_selection_without_downloading(self):
+        for action in ("read", "catalog"):
+            value = mock.Mock()
+            value.read.return_value = {"obj_type": "file", "obj_token": "Object1"}
+            with self.assertRaises(read.ReadError) as raised:
+                read.fetch(value, args(action=action))
+            self.assertEqual("invalid_input", raised.exception.kind)
+            value.download.assert_not_called()
+            self.assertEqual(1, value.read.call_count)
+
+    def test_malformed_wiki_metadata_is_invalid_response_not_unsupported_type(self):
+        for node in ({}, {"node": {"obj_type": "file", "obj_token": "Object1"}},
+                     {"obj_type": None, "obj_token": "Object1"},
+                     {"obj_type": ["docx"], "obj_token": "Object1"},
+                     {"obj_type": "file"}, {"obj_type": "file", "obj_token": "../bad"}):
+            value = mock.Mock()
+            value.read.return_value = node
+            with self.assertRaises(read.ReadError) as raised:
+                read.fetch(value, args(action="inspect"))
+            self.assertEqual("invalid_response", raised.exception.kind)
+            self.assertEqual(1, value.read.call_count)
+
+    def test_metadata_inspection_does_not_claim_expected_revision(self):
+        value = mock.Mock()
+        value.read.return_value = {"obj_type": "file", "obj_token": "Object1", "obj_edit_time": "123"}
+        with self.assertRaises(read.ReadError) as raised:
+            read.fetch(value, args(action="inspect", expected_revision="123"))
+        self.assertEqual("invalid_input", raised.exception.kind)
 
 
 if __name__ == "__main__":

@@ -56,9 +56,11 @@ class DocumentReference:
     sheet: str = ""
     cell_range: str = ""
     url: str = ""
+    owner_id: str = ""
+    period_id: str = ""
 
 
-def parse_document_url(value: str) -> DocumentReference:
+def parse_document_url(value: str, *, allow_files: bool = False, allow_okr: bool = False) -> DocumentReference:
     if len(value) > 1024 or any(ord(char) < 33 for char in value):
         raise DocumentReadError("飞书文档链接格式无效")
     try:
@@ -69,9 +71,29 @@ def parse_document_url(value: str) -> DocumentReference:
         )
     except ValueError:
         raise DocumentReadError("飞书文档链接格式无效") from None
-    path = re.fullmatch(r"/(wiki|docx|sheets)/([A-Za-z0-9]{1,128})/?", parts.path)
+    kinds = r"wiki|docx|sheets|file|drive/file" if allow_files else r"wiki|docx|sheets"
+    path = re.fullmatch(r"/(" + kinds + r")/([A-Za-z0-9]{1,128})/?", parts.path)
+    okr_path = re.fullmatch(r"/okr/user/([1-9][0-9]{0,18})/?", parts.path) if allow_okr else None
+    if valid_authority and okr_path:
+        try:
+            query = parse_qs(parts.query, keep_blank_values=True, max_num_fields=20)
+        except ValueError:
+            raise DocumentReadError("飞书链接参数过多") from None
+        selected = {}
+        if "sheet" in query or "range" in query:
+            raise DocumentReadError("OKR链接不能混用工作表或单元格选择参数")
+        for key in ("okrId", "periodId"):
+            values = query.get(key, [])
+            if len(values) != 1 or not re.fullmatch(r"[1-9][0-9]{0,18}", values[0]) or int(values[0]) > 2**63 - 1:
+                raise DocumentReadError("OKR链接需要唯一、非空的正整数okrId和periodId")
+            selected[key] = values[0]
+        if int(okr_path[1]) > 2**63 - 1:
+            raise DocumentReadError("OKR用户标识超出范围")
+        canonical = urlunsplit(("https", parts.hostname or "", parts.path.rstrip("/"), urlencode(selected), ""))
+        return DocumentReference("okr", selected["okrId"], url=canonical,
+                                 owner_id=okr_path[1], period_id=selected["periodId"])
     if not valid_authority or not path:
-        raise DocumentReadError("仅支持 https://<租户>.feishu.cn/ 下的 wiki、docx、sheets 链接")
+        raise DocumentReadError("仅支持飞书租户下的 wiki、docx、sheets 链接" + ("及 file、drive/file 文件链接" if allow_files else ""))
     try:
         queries = parse_qs(parts.query, keep_blank_values=True, max_num_fields=20)
     except ValueError:
@@ -85,7 +107,7 @@ def parse_document_url(value: str) -> DocumentReference:
     sheet = checked_token(selected["sheet"]) if "sheet" in selected else ""
     cell_range = checked_range(selected["range"]) if "range" in selected else ""
     canonical = urlunsplit(("https", parts.hostname or "", parts.path.rstrip("/"), urlencode(selected, safe=":"), ""))
-    return DocumentReference(path[1], path[2], sheet, cell_range, canonical)
+    return DocumentReference(path[1].split("/")[-1], path[2], sheet, cell_range, canonical)
 
 
 def links_in_text(text: str) -> Tuple[DocumentReference, ...]:

@@ -2,6 +2,19 @@
   "schema_version": 1,
   "workflows": [
     {
+      "name": "multi-repo-safe-sync",
+      "enabled": true,
+      "profiles": ["default", "team-collab"],
+      "description": "逐仓核对身份、保留本地修改与恢复锚点，按已授权动作同步；提交推送独立授权。",
+      "triggers": ["多仓同步", "保留本地修改", "同步仓库"],
+      "skills": ["adk-repo-drift-remediation", "adk-worktree-governance"],
+      "agents": [],
+      "commands": ["rtk git status --short --branch", "rtk git diff --check"],
+      "verification": ["rtk python3 -m unittest tests.test_agent_routing_eval"],
+      "context_activation": {"resident": [], "lazy": ["adk-repo-drift-remediation", "adk-worktree-governance"], "fallback": []},
+      "routes": [{"name": "preserve-local-sync", "match_any": ["多仓同步", "保留本地修改", "同步仓库并保留", "保留本地有效修改"], "exclude_any": ["发布", "发版", "skill", "技能"], "primary_skill": "adk-repo-drift-remediation", "supporting_skills": ["adk-worktree-governance"], "fallback_skill": "", "mutually_exclusive_skills": []}]
+    },
+    {
       "name": "adk-delivery-gate",
       "enabled": true,
       "profiles": [
@@ -304,6 +317,9 @@
         "项目周报",
         "个人日报",
         "个人周报",
+        "团队周报",
+        "周报补漏",
+        "日报周报归档",
         "本周事项",
         "本周工作总结",
         "跨项目工作汇总",
@@ -329,15 +345,15 @@
         "local-context-curator"
       ],
       "commands": [
-        "rtk bash ~/knowledge-hub/tools/knowledge-activity.sh report --period daily --scope personal --summary-json",
-        "rtk bash ~/knowledge-hub/tools/knowledge-activity.sh report --period weekly --scope personal --summary-json"
+        "rtk bash ~/codex/scripts/knowledge-provider.sh activity-report --period daily --scope personal --summary-json",
+        "rtk bash ~/codex/scripts/knowledge-provider.sh activity-report --period weekly --scope personal --summary-json"
       ],
       "verification": [
         "rtk python3 -m unittest tests.test_agent_routing_eval",
         "rtk bash scripts/check-skills.sh",
         "rtk bash ~/knowledge-hub/tools/knowledge-check.sh --dry-run"
       ],
-      "description": "使用 activity facts v2 生成个人、项目或跨项目的证据化日报、周报；缺少范围或个人主体时 fail closed。",
+      "description": "以activity facts v2为底稿，结合已授权本地记录、飞书及项目计划生成个人、团队与项目日报周报；补漏候选不冒充验证完成，归档通过Provider。",
       "routes": [
         {
           "name": "activity-period-report",
@@ -350,6 +366,10 @@
             "项目周报",
             "个人日报",
             "个人周报",
+            "团队周报",
+            "个人和团队",
+            "周报补漏",
+            "日报周报归档",
             "本周周报",
             "本周事项",
             "本周工作总结",
@@ -448,6 +468,10 @@
         "压测日志",
         "设备日志分析",
         "现场日志排查",
+        "WiFi 断连",
+        "WiFi 掉线",
+        "WiFi 重连卡住",
+        "DHCP 成功却连接失败",
         "看门狗重启",
         "流式音频断续",
         "音频吞首字",
@@ -483,6 +507,7 @@
         "embedded-log-triage",
         "embedded-core-dump-triage",
         "embedded-audio-stream-triage",
+        "embedded-wifi-disconnect-triage",
         "embedded-production-test-lifecycle",
         "embedded-low-power-wakeup-triage",
         "embedded-runtime-performance-triage",
@@ -530,6 +555,41 @@
           "mutually_exclusive_skills": [
             "embedded-log-triage"
           ]
+        },
+        {
+          "name": "wifi-disconnect-triage",
+          "match_any": [
+            "WiFi 断连",
+            "WiFi断连",
+            "Wi-Fi 断连",
+            "WiFi 掉线",
+            "WiFi掉线",
+            "Wi-Fi 掉线",
+            "WiFi 重连卡住",
+            "WiFi 启动后不自动联网",
+            "WiFi 重启后不自动联网",
+            "WiFi 升级后需要重新配网",
+            "WiFi 离线误报",
+            "WiFi 状态异常触发 MQTT 断开",
+            "WiFi 业务质量反馈触发扫描",
+            "DHCP 成功却连接失败",
+            "开关 WiFi 后恢复"
+          ],
+          "exclude_any": [
+            "TCPKA 唤醒",
+            "WiFi IRQ 唤醒",
+            "休眠后自动唤醒",
+            "无法进入深度休眠",
+            "仅分析日志文本",
+            "只读分析粘贴",
+            "本地日志文件"
+          ],
+          "primary_skill": "embedded-wifi-disconnect-triage",
+          "supporting_skills": [
+            "adk-embedded-remote-debug-log-triage"
+          ],
+          "fallback_skill": "adk-systematic-debugging",
+          "mutually_exclusive_skills": []
         },
         {
           "name": "runtime-performance-triage",

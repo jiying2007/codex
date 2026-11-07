@@ -1,0 +1,3 @@
+interface:
+  display_name: "飞书只读读取与审查"
+  short_description: "用官方CLI只读查看飞书文档、表格、文件与OKR，核对覆盖并定位证据"

@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import pathlib
+import shutil
 import tempfile
 import unittest
 from unittest import mock
@@ -88,6 +89,51 @@ class CheckSkillsTest(unittest.TestCase):
         result, output = self.run_check(root, manifest_path)
         self.assertEqual(1, result)
         self.assertIn("source skill 未登记到 manifests/skills.json", output)
+
+    def test_versioned_history_can_coexist_with_manifest_selected_release(self) -> None:
+        root, manifest = self.make_repo("# Example", self.manifest_item())
+        old = root / "src/codex-home/vendor/skills/example-skill/1.0.0"
+        new = old.with_name("2.0.0")
+        shutil.copytree(old, new)
+        text = (new / "SKILL.md").read_text().replace("version: 1.0.0", "version: 2.0.0")
+        (new / "SKILL.md").write_text(text)
+        data = json.loads(manifest.read_text())
+        data["skills"][0].update(version="2.0.0", vendor_rel="vendor/skills/example-skill/2.0.0")
+        manifest.write_text(json.dumps(data))
+        result, output = self.run_check(root, manifest)
+        self.assertEqual(0, result, output)
+        (new / "SKILL.md").write_text(text.replace("version: 2.0.0", "version: 3.0.0"))
+        result, output = self.run_check(root, manifest)
+        self.assertEqual(1, result)
+        self.assertIn("与目录版本 2.0.0 不一致", output)
+        self.assertIn("manifest:example-skill", output)
+
+    def test_cross_directory_duplicate_name_is_rejected(self) -> None:
+        root, manifest = self.make_repo("# Example", self.manifest_item())
+        old = root / "src/codex-home/vendor/skills/example-skill/1.0.0"
+        shutil.copytree(old, old.parent.with_name("other-skill") / "1.0.0")
+        result, output = self.run_check(root, manifest)
+        self.assertEqual(1, result)
+        self.assertIn("重复 skill name", output)
+
+    def test_standard_metadata_version_and_date_are_supported(self) -> None:
+        root, manifest = self.make_repo("# Example", self.manifest_item())
+        path = root / "src/codex-home/vendor/skills/example-skill/1.0.0/SKILL.md"
+        path.write_text(path.read_text().replace(
+            "version: 1.0.0\nlast_updated: 2026-07-15",
+            "metadata:\n  version: 1.0.0\n  last_updated: 2026-07-15"))
+        result, output = self.run_check(root, manifest)
+        self.assertEqual(0, result, output)
+
+    def test_conflicting_or_malformed_metadata_is_rejected(self) -> None:
+        root, manifest = self.make_repo("# Example", self.manifest_item())
+        path = root / "src/codex-home/vendor/skills/example-skill/1.0.0/SKILL.md"
+        original = path.read_text()
+        for extra in ("metadata: invalid", "metadata:\n  version: 2.0.0"):
+            path.write_text(original.replace("version: 1.0.0", "version: 1.0.0\n" + extra))
+            result, output = self.run_check(root, manifest)
+            self.assertEqual(1, result)
+            self.assertIn("metadata", output)
 
     def test_disabled_pending_vendor_skill_is_allowed(self) -> None:
         root, manifest_path = self.make_repo(

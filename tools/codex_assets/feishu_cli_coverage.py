@@ -125,10 +125,15 @@ def document_coverage(data: Mapping[str, Any], scope: str, start: str = "", end:
     fragment_mode = container.get("mode") if container.tag == "fragment" else None
     mode_mismatch = bool(container.tag == "fragment" and ((fragment_mode and fragment_mode != scope)
                          or (scope == "full" and fragment_mode != "full")))
+    result["top_level_unidentified_count"] = int(bool(container.text and container.text.strip()))
     for element in container:
         block = element.get("block-id") or element.get("id") or element.get("block_id")
         if block:
             result["top_level_block_ids"].append(block)
+        elif element.tag not in ("title", "metadata") and (list(element) or (element.text or "").strip()):
+            result["top_level_unidentified_count"] += 1
+        if element.tail and element.tail.strip():
+            result["top_level_unidentified_count"] += 1
     for element in root.iter():
         tag = element.tag.split("}")[-1]
         block = element.get("block-id") or element.get("id") or element.get("block_id")
@@ -142,7 +147,8 @@ def document_coverage(data: Mapping[str, Any], scope: str, start: str = "", end:
     references = document.get("reference_map", {})
     comments = references.get("comments", {}) if isinstance(references, dict) else {}
     has_tips = bool(document.get("tips") or (comments.get("tips") if isinstance(comments, dict) else False))
-    has_gaps = bool(result["excerpts"] or result["embedded_resources"] or result["truncation_signals"] or has_tips)
+    has_gaps = bool(result["excerpts"] or result["embedded_resources"] or result["truncation_signals"]
+                    or has_tips or result["top_level_unidentified_count"])
     result["status"] = "partial" if has_gaps else "structure-only" if result["structure_only"] else "complete-scope"
     expected_endpoints = [value for value in (start, end) if value and value not in ("0", "-1")]
     if mode_mismatch or any(value not in result["block_ids"] for value in expected_endpoints):

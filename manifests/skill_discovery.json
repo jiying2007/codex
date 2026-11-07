@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "source_id": "embedded-knowledge",
+      "root_env": "EMBEDDED_KNOWLEDGE_HOME",
+      "default_root": "~/knowledge",
+      "skills_rel": ".agents/skills",
+      "allowed_names": ["artifact-provenance-audit", "asan-crash-triage", "crash-report-normalizer", "docs-knowledge-governance", "embedded-audio-stream-triage", "embedded-build-release-check", "embedded-log-triage", "embedded-low-power-wakeup-triage", "embedded-performance-triage", "embedded-product-readiness-gate", "embedded-production-test-lifecycle", "field-issue-intake-normalizer", "offline-gdb-core-debug", "protocol-implementation-audit", "resource-leak-triage", "sdk-upgrade-risk-review", "sigbus-memory-triage", "sigmastar-media-pipeline-triage", "sigmastar-release-app-flow", "voice-audio-normalizer", "yolo-ai-vision-triage"]
+    }
+  ]
+}

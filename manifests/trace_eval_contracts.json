@@ -46,7 +46,7 @@
       ],
       "commands": [
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ],
       "artifacts": [
         "governance-report JSON",
@@ -103,7 +103,7 @@
       "commands": [
         "rtk codex mcp list",
         "rtk bash scripts/doctor.sh --scope governance",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ],
       "artifacts": [
         "official docs source URL list",
@@ -170,7 +170,7 @@
         "rtk python3 -m unittest tests.test_governance",
         "rtk bash scripts/doctor.sh --scope governance",
         "rtk codex --strict-config doctor --summary --ascii",
-        "rtk python3 -m tools.codex_assets execution-policy --thread-id \"${CODEX_THREAD_ID:?current thread id required}\" gate --event final"
+        "rtk bash ~/codex/scripts/codex-policy.sh gate --event final"
       ],
       "artifacts": [
         "permission profile report",

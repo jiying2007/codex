@@ -25,8 +25,8 @@ REQUIRED = (
     "exact provider commit",
     "Execution Policy",
     "Digital Worker 不是日常前置依赖",
-    'execution-policy --thread-id "${CODEX_THREAD_ID:?current thread id required}" gate --event final',
-    "(cd ~/codex && rtk python3 -m tools.codex_assets",
+    "rtk bash ~/codex/scripts/codex-policy.sh gate --event final",
+    "CLI 自动读取当前线程",
 )
 
 

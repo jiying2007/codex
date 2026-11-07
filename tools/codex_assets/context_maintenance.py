@@ -47,7 +47,8 @@ def merge_context_config(existing: str, managed: str) -> str:
     """Change only two root keys; reject layouts that cannot be edited safely."""
     before, source = parse_config(existing), parse_config(managed)
     limit = source.get(KEYS[0])
-    if type(limit) is not int or limit <= 0 or source.get(KEYS[1]) != "total":
+    use_defaults = all(key not in source for key in KEYS)
+    if not use_defaults and (type(limit) is not int or limit <= 0 or source.get(KEYS[1]) != "total"):
         raise ValueError("managed context settings require a positive limit and total scope")
     lines = existing.splitlines(keepends=True)
     boundary = next((i for i, line in enumerate(lines) if re.match(r"\s*\[", line)), len(lines))
@@ -60,10 +61,13 @@ def merge_context_config(existing: str, managed: str) -> str:
     prefix = "".join(root)
     if prefix and not prefix.endswith("\n"):
         prefix += "\n"
-    result = prefix + f'{KEYS[0]} = {limit}\n{KEYS[1]} = "total"\n' + "".join(lines[boundary:])
+    managed_keys = "" if use_defaults else f'{KEYS[0]} = {limit}\n{KEYS[1]} = "total"\n'
+    result = prefix + managed_keys + "".join(lines[boundary:])
     after = parse_config(result)
     expected = dict(before)
-    expected.update({key: source[key] for key in KEYS})
+    for key in KEYS:
+        expected.pop(key, None)
+    expected.update({key: source[key] for key in KEYS if key in source})
     if after != expected:
         raise ValueError("context overlay changed unrelated configuration; refusing build")
     return result

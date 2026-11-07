@@ -7,26 +7,33 @@ import json
 import os
 import pathlib
 import re
+import resource
+import signal
+import stat
 import shutil
 import subprocess
 import tempfile
 import time
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 from .feishu_codex_bot import ApplicationCredentials, FeishuCodexError, FeishuTransport, load_env_file
 from .feishu_documents import checked_range, checked_token, parse_document_url
 from .feishu_cli_coverage import coverage_receipt, document_coverage, revision_of, sheet_coverage
+from .feishu_cli_errors import ReadError, backend_error, error_payload, recovery
+from .feishu_cli_files import MAX_FILE_BYTES, file_metadata, read_file
+from .feishu_cli_okr import COMMANDS as OKR_COMMANDS, fetch_okr, validate_options as validate_okr_options
+from .feishu_read_evidence import enrich
+from .feishu_read_sessions import SessionStore, prepare as prepare_session, record as record_session, failed as failed_session, summary as session_summary, NAME as SESSION_NAME, target_rectangle
 
-ALLOWED = ("wiki/+node-get", "docs/+fetch", "sheets/+workbook-info", "sheets/+csv-get", "sheets/+cells-get")
+ALLOWED = ("wiki/+node-get", "docs/+fetch", "sheets/+workbook-info", "sheets/+csv-get", "sheets/+cells-get",
+           "drive/+download", "drive/+preview", *OKR_COMMANDS)
 SECRET_KEYS = {"access_token", "tenant_access_token", "user_access_token", "app_secret", "appsecret", "authorization"}
 BLOCK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}")
 MAX_RESPONSE = 2 * 1024 * 1024
 
 
-class ReadError(ValueError):
-    def __init__(self, kind: str, message: str, details: Any = None) -> None:
-        super().__init__(message)
-        self.kind, self.details = kind, details
+def limit_download_size() -> None:
+    resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_FILE_BYTES, MAX_FILE_BYTES))
 
 
 def digest(path: pathlib.Path) -> str:
@@ -47,6 +54,39 @@ def redact(value: Any, secrets: Sequence[str]) -> Any:
 
 def continuation(data: Mapping[str, Any], requested: str) -> Dict[str, Any]:
     return sheet_coverage(data, requested)
+
+
+def cli_json(raw: str) -> Dict[str, Any]:
+    # v1.0.97 may put a documented warning before the JSON error on stderr.
+    # Accept only warning lines followed by one complete JSON value.
+    lines = raw.splitlines(keepends=True)
+    while lines and (not lines[0].strip() or lines[0].lstrip().startswith("warning:")):
+        lines.pop(0)
+    return json.loads("".join(lines))
+
+
+def application_scope_error(error: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(error, dict):
+        return None
+    if error.get("code") == 99991672:
+        return {"api_code": 99991672, "required_scopes_any_of": []}
+    message = error.get("message", "")
+    if not isinstance(message, str) or "{" not in message:
+        return None
+    try:
+        inner = json.loads(message[message.index("{"):])
+    except ValueError:
+        return None
+    if not isinstance(inner, dict) or inner.get("code") != 99991672:
+        return None
+    detail = inner.get("error", {})
+    violations = detail.get("permission_violations", []) if isinstance(detail, dict) else []
+    if not isinstance(violations, list):
+        violations = []
+    scopes = sorted({row["subject"] for row in violations if isinstance(row, dict)
+                     and row.get("type") == "action_scope_required" and isinstance(row.get("subject"), str)
+                     and re.fullmatch(r"[a-z][a-z0-9_.:-]{0,127}", row["subject"])})
+    return {"api_code": 99991672, "required_scopes_any_of": scopes}
 
 
 class Backend:
@@ -74,24 +114,35 @@ class Backend:
         if remaining <= 0:
             raise ReadError("timeout", "本次读取超过总时限")
         try:
+            download = len(argv) >= 2 and argv[0] == "drive" and argv[1] in ("+download", "+preview") and "--output" in argv
             result = subprocess.run([str(self.binary), *argv], cwd=str(self.runtime), env=self.env,
-                                    capture_output=True, text=True, timeout=min(30, remaining))
+                                    capture_output=True, text=True, timeout=min(30, remaining),
+                                    preexec_fn=limit_download_size if download else None)
         except subprocess.TimeoutExpired:
             raise ReadError("timeout", "官方 CLI 读取超时") from None
         except OSError:
             raise ReadError("backend_unavailable", "官方 CLI 无法执行") from None
+        if result.returncode == -signal.SIGXFSZ:
+            raise ReadError("file_too_large", "下载触发 4 MiB 文件大小上限；已拒绝局部内容")
         raw = result.stdout if result.returncode == 0 else result.stderr or result.stdout
         if len(raw.encode()) > MAX_RESPONSE:
             raise ReadError("response_too_large", "响应超过 2 MiB；请缩小读取范围")
         try:
-            payload = json.loads(raw)
+            payload = cli_json(raw)
         except ValueError:
             raise ReadError("invalid_response", "官方 CLI 未返回完整 JSON") from None
         if not isinstance(payload, dict):
             raise ReadError("invalid_response", "官方 CLI 返回格式无效")
         if result.returncode:
             error = redact(payload.get("error", {}), self.secrets)
-            raise ReadError("backend_error", "官方飞书读取失败", error)
+            scope_error = application_scope_error(error)
+            if scope_error is not None:
+                if not scope_error["required_scopes_any_of"] and argv and argv[0] == "okr":
+                    scope_error["required_scopes_any_of"] = [
+                        "okr:okr.period:readonly" if len(argv) > 1 and argv[1] == "cycles"
+                        else "okr:okr.content:readonly"]
+                raise ReadError("application_scope_missing", "当前应用未开通该读取接口所需 scope；需由应用管理员配置并发布权限", scope_error)
+            raise backend_error(error)
         return payload
 
     def verify_policy(self) -> None:
@@ -129,14 +180,84 @@ class Backend:
     def read(self, command: str, flags: Sequence[str]) -> Dict[str, Any]:
         if command not in ALLOWED:
             raise ReadError("command_denied", "仅允许已登记的飞书只读命令")
-        payload = self.invoke([*command.split("/"), *flags, "--as", "bot"])
+        retry_limit = getattr(self, "retries", 0)
+        for attempt in range(retry_limit + 1):
+            try:
+                payload = self.invoke([*command.split("/"), *flags, "--as", "bot"])
+                break
+            except ReadError as error:
+                info = recovery(error.kind)
+                delay = info["retry_after_seconds"]
+                if attempt >= retry_limit or not info["retryable"] or delay > 5 or time.monotonic() + delay + 1 >= self.deadline:
+                    raise
+                time.sleep(delay)
         if payload.get("ok") is not True or payload.get("identity") != "bot" or not isinstance(payload.get("data"), dict):
             raise ReadError("invalid_response", "官方 CLI 未确认 bot 读取成功")
         return redact(payload["data"], self.secrets)
 
+    def download(self, token: str, mode: str) -> bytes:
+        checked_token(token)
+        if mode not in ("download", "source-preview", "text-preview"):
+            raise ReadError("invalid_input", "无效文件读取方式")
+        # The official CLI protects its config directory from downloaded files.
+        # Keep payloads in a separate private directory, never relax that denylist.
+        with tempfile.TemporaryDirectory(prefix="codex-feishu-file-") as directory:
+            target = pathlib.Path(directory) / "content.bin"
+            command = "drive/+download" if mode == "download" else "drive/+preview"
+            flags = ["--file-token", token, "--output", str(target)]
+            if mode != "download":
+                flags += ["--type", "source_file" if mode == "source-preview" else "text"]
+            try:
+                self.read(command, flags)
+            except ReadError:
+                if target.is_file() and not target.is_symlink() and target.stat().st_size >= MAX_FILE_BYTES:
+                    raise ReadError("file_too_large", "下载达到 4 MiB 上限；已拒绝局部内容") from None
+                raise
+            try:
+                fd = os.open(str(target), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            except OSError:
+                raise ReadError("invalid_response", "CLI 未在受控路径生成普通文件") from None
+            with os.fdopen(fd, "rb") as stream:
+                info = os.fstat(stream.fileno())
+                if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                    raise ReadError("invalid_response", "下载结果不是独立普通文件")
+                if info.st_size > MAX_FILE_BYTES:
+                    raise ReadError("file_too_large", "文件超过 4 MiB 上限")
+                raw = stream.read(MAX_FILE_BYTES + 1)
+            if len(raw) > MAX_FILE_BYTES:
+                raise ReadError("file_too_large", "文件超过 4 MiB 上限")
+            return raw
+
 
 def validate_input(args: argparse.Namespace) -> None:
-    reference = parse_document_url(args.url)
+    reference = parse_document_url(args.url, allow_files=True, allow_okr=True)
+    validate_okr_options(args, reference)
+    if args.session and not SESSION_NAME.fullmatch(args.session):
+        raise ReadError("invalid_input", "session 名称格式无效")
+    if (args.resume or args.action == "status" or args.target_range) and not args.session:
+        raise ReadError("invalid_input", "resume/status/target-range 需要显式 session 名称")
+    if args.resume and args.action != "read":
+        raise ReadError("invalid_input", "resume 只用于 read，由会话选择所需下一步")
+    if args.target_range:
+        target_rectangle(args.target_range)
+        if reference.kind not in ("wiki", "sheets"):
+            raise ReadError("invalid_input", "target-range 只用于电子表格会话")
+    if not 0 <= args.retries <= 2:
+        raise ReadError("invalid_input", "retries 必须为0至2，默认不自动重试")
+    if args.file_offset < 0 or not 0 <= args.file_length <= MAX_FILE_BYTES:
+        raise ReadError("invalid_input", "file-offset 必须非负，file-length 必须为0至4 MiB字符")
+    if args.expected_content_sha256 and not re.fullmatch(r"[a-f0-9]{64}", args.expected_content_sha256):
+        raise ReadError("invalid_input", "expected-content-sha256 必须为64位小写十六进制")
+    if reference.kind not in ("wiki", "file") and (args.file_offset or args.file_length or args.file_mode != "auto" or args.expected_content_sha256):
+        raise ReadError("invalid_input", "文件参数不能用于原生文档或电子表格")
+    if reference.kind == "file" and (reference.sheet or reference.cell_range or args.sheet_id or args.range
+            or args.format == "cells" or args.include or args.scope != "outline" or args.start_block
+            or args.end_block or args.keyword or args.max_depth != -1 or args.expected_revision or args.revision_id > 0):
+        raise ReadError("invalid_input", "文件读取不能使用文档版本、块或表格参数")
+    if args.action != "read" and (args.file_offset or args.file_length):
+        raise ReadError("invalid_input", "文件字符范围仅用于 read")
+    if args.action == "inspect" and args.expected_content_sha256:
+        raise ReadError("invalid_input", "inspect 不读取文件正文，不能校验内容哈希")
     if not 1000 <= args.max_chars <= 25000:
         raise ReadError("invalid_input", "max-chars 必须为 1000 至 25000")
     if args.range:
@@ -204,12 +325,55 @@ def finish(source: Mapping[str, Any], data: Dict[str, Any], coverage: Dict[str, 
 
 def fetch(backend: Backend, args: argparse.Namespace) -> Dict[str, Any]:
     validate_input(args)
-    reference = parse_document_url(args.url)
+    reference = parse_document_url(args.url, allow_files=True, allow_okr=True)
+    if reference.kind == "okr":
+        return fetch_okr(backend, args, reference)
     kind, token = reference.kind, reference.token
     if kind == "wiki":
         node = backend.read("wiki/+node-get", ["--node-token", reference.url])
-        kind, token = node.get("obj_type"), checked_token(node.get("obj_token"))
+        kind = node.get("obj_type")
+        if not isinstance(kind, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,31}", kind):
+            raise ReadError("invalid_response", "Wiki 响应缺少有效 obj_type；不能据此判定资源不受支持")
+        try:
+            token = checked_token(node.get("obj_token"))
+        except ValueError:
+            raise ReadError("invalid_response", "Wiki 响应缺少有效 obj_token") from None
     source = {"url": reference.url, "type": kind, "token": token, "trust": "untrusted_external_content"}
+    file_options = args.file_offset or args.file_length or args.file_mode != "auto" or args.expected_content_sha256
+    if kind != "file" and file_options:
+        raise ReadError("invalid_input", "文件参数不能用于当前 Wiki 底层对象类型")
+    if kind == "file":
+        if reference.sheet or reference.cell_range or args.sheet_id or args.range or args.format == "cells" or args.include or args.scope != "outline" or args.start_block or args.end_block or args.keyword or args.max_depth != -1:
+            raise ReadError("invalid_input", "文件读取不能使用文档块或表格参数")
+        title = node.get("title", "") if reference.kind == "wiki" else ""
+        if not isinstance(title, str):
+            title = ""
+        result = file_metadata(source, title, args) if args.action == "inspect" else read_file(backend, source, title, args)
+        redacted = redact(result["data"], backend.secrets)
+        if redacted != result["data"]:
+            redacted["content_redacted"] = True
+            result["coverage"].update(whole_resource_complete=False, original_file_complete=False, content_redacted=True)
+            result["receipt"]["whole_resource_complete"] = False
+            result["receipt"]["coverage"] = dict(result["coverage"])
+        result["data"] = redacted
+        return result
+    if kind not in ("sheet", "sheets", "docx"):
+        details = {"resource_type": kind, "supported_content_types": ["docx", "sheet", "sheets"],
+                   "content_read_supported": False, "content_read": False,
+                   "next_action": "提供该对象的导出文件或粘贴内容；如已有新版文档/电子表格副本，可提供其直接链接"}
+        if kind == "bitable":
+            message = "Wiki 指向多维表格（bitable）；当前入口未接入多维表格读取"
+        elif kind == "doc":
+            message = "Wiki 指向旧版文档（doc）；当前入口仅支持新版文档正文"
+        else:
+            message = "Wiki 对象类型不在当前正文读取能力内：" + kind
+        if args.action != "inspect":
+            raise ReadError("unsupported_type", message, details)
+        data = dict(details, message=message)
+        if isinstance(node.get("title"), str):
+            data["title"] = node["title"][:500]
+        return finish(source, data, {"status": "metadata-only", "whole_resource_complete": False,
+                                    "content_read": False, "reason": "unsupported_content_type"}, args)
     if kind in ("sheet", "sheets"):
         if args.action == "catalog" or args.revision_id != -1 or args.start_block or args.end_block or args.max_depth != -1 or args.scope != "outline" or args.keyword:
             raise ReadError("invalid_input", "文档参数不能用于电子表格")
@@ -235,8 +399,6 @@ def fetch(backend: Backend, args: argparse.Namespace) -> Dict[str, Any]:
         if args.format == "cells" and not isinstance(data.get("ranges"), list):
             raise ReadError("invalid_response", "单元格响应缺少 ranges")
         return finish(dict(source, sheet_id=sheet, read_format=args.format), data, continuation(data, cell_range), args)
-    if kind != "docx":
-        raise ReadError("unsupported_type", "本次只接入新版文档和电子表格；多维表格需另行接入")
     if reference.sheet or reference.cell_range or args.sheet_id or args.range or args.format == "cells":
         raise ReadError("invalid_input", "文档读取不能使用表格参数")
     scope = "outline" if args.action == "inspect" else "range" if args.action == "catalog" else args.scope
@@ -274,7 +436,7 @@ def fetch(backend: Backend, args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("action", choices=["inspect", "catalog", "read"])
+    parser.add_argument("action", choices=["inspect", "catalog", "read", "status"])
     parser.add_argument("--url", required=True)
     parser.add_argument("--sheet-id", default="")
     parser.add_argument("--range", default="")
@@ -288,33 +450,80 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--format", choices=["csv", "cells"], default="csv")
     parser.add_argument("--include", default="")
     parser.add_argument("--max-chars", type=int, default=8000)
+    parser.add_argument("--file-mode", choices=["auto", "download", "source-preview", "text-preview"], default="auto")
+    parser.add_argument("--file-offset", type=int, default=0)
+    parser.add_argument("--file-length", type=int, default=0)
+    parser.add_argument("--expected-content-sha256", default="")
+    parser.add_argument("--retries", type=int, default=0)
+    parser.add_argument("--okr-user-id", default="")
+    parser.add_argument("--okr-user-id-type", choices=["open_id", "union_id", "user_id"], default="")
+    parser.add_argument("--okr-objective-id", default="")
+    parser.add_argument("--okr-page-size", type=int, default=100)
+    parser.add_argument("--session", default="")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--target-range", default="")
     parser.add_argument("--dry-run", action="store_true")
+
+
+def execute_read(args: argparse.Namespace, root: pathlib.Path) -> Dict[str, Any]:
+    with tempfile.TemporaryDirectory(prefix="codex-feishu-read-") as temp:
+        backend = Backend(root, pathlib.Path(temp))
+        backend.retries = args.retries
+        backend.authenticate()
+        result = enrich(fetch(backend, args))
+        result["backend"] = {"name": "larksuite/cli", "version": backend.meta["release"].lstrip("v"), "identity": "bot"}
+        result["receipt"]["backend"] = dict(result["backend"])
+        return result
 
 
 def run(args: argparse.Namespace) -> int:
     try:
         validate_input(args)
-        reference = parse_document_url(args.url)
+        reference = parse_document_url(args.url, allow_files=True, allow_okr=True)
         if args.dry_run:
             print(json.dumps({"ok": True, "dry_run": True, "network_requested": False,
                               "credentials_loaded": False, "url": reference.url, "action": args.action,
                               "target_type_requires_resolution": reference.kind == "wiki"}, ensure_ascii=False))
             return 0
         root = pathlib.Path(__file__).resolve().parents[2]
-        with tempfile.TemporaryDirectory(prefix="codex-feishu-read-") as temp:
-            backend = Backend(root, pathlib.Path(temp))
-            backend.authenticate()
-            result = fetch(backend, args)
-            result["backend"] = {"name": "larksuite/cli", "version": "1.0.97", "identity": "bot"}
-            result["receipt"]["backend"] = dict(result["backend"])
-            print(json.dumps(result, ensure_ascii=False))
+        if args.session:
+            meta = json.loads((root / "manifests/feishu_cli.json").read_text())
+            store = SessionStore(args.session, args.url, meta["binary_sha256"], require_existing=args.resume)
+            if args.action == "status":
+                print(json.dumps({"ok": True, "network_requested": False, "snapshot_revalidated": False, "session": store.status()}, ensure_ascii=False))
+                return 0
+            with store:
+                if not prepare_session(store.state, args):
+                    print(json.dumps({"ok": True, "network_requested": False, "already_complete": True,
+                                      "session": session_summary(store.state)}, ensure_ascii=False))
+                    return 0
+                # The validated resume request may select a planning catalog
+                # call; the resulting concrete action is validated normally.
+                args.resume = False
+                validate_input(args)
+                try:
+                    result = execute_read(args, root)
+                    try:
+                        state = record_session(store.state, result, args)
+                    except (KeyError, TypeError, IndexError):
+                        raise ReadError("invalid_response", "覆盖回执结构无效；本次不能计入会话覆盖") from None
+                except ReadError as error:
+                    store.save(failed_session(store.state, error))
+                    raise
+                store.save(state)
+                result["session"] = session_summary(state)
+                result["session"]["id"] = args.session
+                if getattr(args, "_session_revalidation", False):
+                    result.update(already_complete=True, snapshot_revalidated=True)
+        else:
+            result = execute_read(args, root)
+        print(json.dumps(result, ensure_ascii=False))
         return 0
     except (OSError, FeishuCodexError, ImportError):
-        print(json.dumps({"ok": False, "error": {"kind": "local_config_unavailable", "message": "本机配置不可用；请检查受管安装及凭据权限"}}, ensure_ascii=False))
+        error = ReadError("local_config_unavailable", "本机配置或会话存储不可用；请检查受管安装和本机权限")
+        print(json.dumps({"ok": False, "error": error_payload(error)}, ensure_ascii=False))
         return 2
     except (ReadError, ValueError) as exc:
-        error = {"kind": getattr(exc, "kind", "invalid_input"), "message": str(exc)}
-        if getattr(exc, "details", None) is not None:
-            error["details"] = exc.details
+        error = error_payload(exc)
         print(json.dumps({"ok": False, "error": error}, ensure_ascii=False))
         return 2

@@ -2,6 +2,90 @@
   "schema_version": 1,
   "cases": [
     {
+      "name": "multi-repo-preserve-local-sync",
+      "prompt": "多仓同步并保留本地修改，先检查独立子仓和恢复锚点",
+      "expected_workflow": "multi-repo-safe-sync",
+      "expected_route": "preserve-local-sync",
+      "expected_primary_skill": "adk-repo-drift-remediation"
+    },
+    {
+      "name": "wifi-status-causes-local-mqtt-disconnect",
+      "prompt": "WiFi 状态异常触发 MQTT 断开，结合源码核查状态查询与业务主动断开链",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "wifi-disconnect-triage",
+      "expected_primary_skill": "embedded-wifi-disconnect-triage"
+    },
+    {
+      "name": "wifi-business-quality-feedback-scan",
+      "prompt": "WiFi 业务质量反馈触发扫描，核查好信号下的恢复策略",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "wifi-disconnect-triage",
+      "expected_primary_skill": "embedded-wifi-disconnect-triage"
+    },
+    {
+      "name": "wifi-status-offline-log-keeps-log-primary",
+      "prompt": "仅分析日志文本：WiFi 状态异常触发 MQTT 断开，不连接设备",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "offline-pasted-log-triage",
+      "expected_primary_skill": "embedded-log-triage"
+    },
+    {
+      "name": "wifi-dns-only-does-not-force-specialist",
+      "prompt": "关联保持，MQTT 初次丢线原因 unknown，之后 DNS 失败，检查解析返回码",
+      "expected_workflow": "",
+      "expected_route": "",
+      "expected_primary_skill": ""
+    },
+    {
+      "name": "wifi-status-wakeup-keeps-low-power-primary",
+      "prompt": "WiFi 状态异常触发 MQTT 断开，伴随 TCPKA 唤醒，需要检查休眠状态机",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "low-power-wakeup-triage",
+      "expected_primary_skill": "embedded-low-power-wakeup-triage"
+    },
+    {
+      "name": "wifi-disconnect-source-and-log-primary",
+      "prompt": "PCR02 WiFi 断连，结合日志和源码定位重连为什么卡住",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "wifi-disconnect-triage",
+      "expected_primary_skill": "embedded-wifi-disconnect-triage"
+    },
+    {
+      "name": "wifi-dhcp-success-connect-failure-primary",
+      "prompt": "设备 DHCP 成功却连接失败，检查 STATUS 和目标 SSID 校验",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "wifi-disconnect-triage",
+      "expected_primary_skill": "embedded-wifi-disconnect-triage"
+    },
+    {
+      "name": "wifi-reinit-recovery-primary",
+      "prompt": "设备开关 WiFi 后恢复，请核对 action worker 和实际链接库",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "wifi-disconnect-triage",
+      "expected_primary_skill": "embedded-wifi-disconnect-triage"
+    },
+    {
+      "name": "wifi-wakeup-keeps-low-power-primary",
+      "prompt": "WiFi 断连伴随 TCPKA 唤醒，需要检查重新休眠状态机",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "low-power-wakeup-triage",
+      "expected_primary_skill": "embedded-low-power-wakeup-triage"
+    },
+    {
+      "name": "wifi-bounded-log-keeps-offline-primary",
+      "prompt": "仅分析日志文本：WiFi 断连，不连接设备",
+      "expected_workflow": "embedded-diagnostic-validation",
+      "expected_route": "offline-pasted-log-triage",
+      "expected_primary_skill": "embedded-log-triage"
+    },
+    {
+      "name": "mqtt-only-does-not-route-to-wifi",
+      "prompt": "MQTT 掉线但关联和 IP 正常，检查 broker 会话超时",
+      "expected_workflow": "",
+      "expected_route": "",
+      "expected_primary_skill": ""
+    },
+    {
       "name": "diagnostic-cli-primary",
       "prompt": "检查 prog_tool strict suite 的 invoke_ret 返回码语义",
       "expected_workflow": "embedded-diagnostic-validation",

@@ -148,8 +148,8 @@ MCP server 先登记到 `manifests/mcp_servers.json`，再由 build 渲染到 `c
 准备 final、commit、push、apply 或目标切换前：
 
 ```bash
-rtk python3 -m tools.codex_assets execution-policy --thread-id "${CODEX_THREAD_ID:?current thread id required}" snapshot
-rtk python3 -m tools.codex_assets execution-policy --thread-id "${CODEX_THREAD_ID:?current thread id required}" gate --event final
+rtk bash ~/codex/scripts/codex-policy.sh snapshot
+rtk bash ~/codex/scripts/codex-policy.sh gate --event final
 ```
 
 长线程出现 `context-pressure → compact` 时先保留恢复入口，请求宿主压缩后复核。

@@ -1,0 +1,4 @@
+interface:
+  display_name: "嵌入式 Wi-Fi 分析与恢复定位"
+  short_description: "按实际平台串联无线、网络与业务证据，定位断连、误报和启动恢复问题"
+  default_prompt: "使用 $embedded-wifi-disconnect-triage 按实际平台和后端分析 Wi-Fi 日志，区分离线触发与恢复失败，完成已授权修复并分别报告证据、制品和设备验证边界。"

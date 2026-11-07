@@ -1,6 +1,6 @@
 # Codex CLI 默认配置指南
 
-维护状态：仅维护 `src/codex-home/config/base.toml`，通过受管构建与同步链路生成 `~/.codex/config.toml`。最近核验：2026-10-07，Codex CLI `0.159.2`。
+维护状态：仅维护 `src/codex-home/config/base.toml`，通过受管构建与同步链路生成 `~/.codex/config.toml`。最近核验：2026-10-14，Codex CLI `0.159.2`。
 
 ## 日常使用
 
@@ -26,6 +26,8 @@ CLI 配置模式与资产 profile 分属不同边界：删除四个 CLI 模式�
 - `[features] memories = true`，`[memories] use_memories = true`、`generate_memories = false`：使用既有记忆，新线程不进入自动记忆生成输入。该设置不删除已有记忆，也不承诺停止旧输入的所有后台处理；人工记忆更新仍须用户明确要求。
 
 保留 20,000 token 工具输出预算、既有低噪音通知和状态栏，以及 `on-request`、`workspace-write`、默认关闭 sandbox network 的权限边界。运行中的会话不热加载完整配置，下一次启动读取新的默认值。
+
+2026-10-14 移除后续加入的 100,000 tokens 自动压缩覆盖及其 scope，恢复上述模型默认策略。本机 GPT-6.1 Sol 模型目录报告窗口 500,000、有效窗口比例 95%；未设置字段不等于已实测压缩触发点。Execution Policy 的本地 50% 上下文维护门禁继续独立执行，可能先于原生压缩触发。
 
 验证须覆盖源码模板、保留本机设置的构建候选和实际用户配置；CLI doctor 的 config 状态应为 `ok`、启动配置警告为 0。记录真实 effective 上下文元数据与 raw 输出模式，不能只凭 TOML 字段存在声明生效。
 

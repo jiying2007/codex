@@ -2,11 +2,36 @@
   "schema_version": 2,
   "skills": [
     {
+      "name": "embedded-wifi-disconnect-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.3.0",
+      "vendor_rel": "vendor/skills/embedded-wifi-disconnect-triage/0.3.0",
+      "target_rel": "skills/embedded-wifi-disconnect-triage",
+      "profiles": [
+        "team-collab"
+      ],
+      "tags": [
+        "local",
+        "chronicle-derived",
+        "embedded",
+        "wifi",
+        "disconnect",
+        "recovery"
+      ],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/embedded-wifi-disconnect-triage/0.3.0",
+      "imported_at": "2026-10-20",
+      "review_status": "accepted"
+    },
+    {
       "name": "feishu-readonly",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/feishu-readonly/0.1.0",
+      "version": "0.3.0",
+      "vendor_rel": "vendor/skills/feishu-readonly/0.3.0",
       "target_rel": "skills/feishu-readonly",
       "profiles": [
         "default",
@@ -21,7 +46,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/feishu-readonly/0.1.0",
+      "source_path": "src/codex-home/vendor/skills/feishu-readonly/0.3.0",
       "imported_at": "2026-10-13",
       "review_status": "accepted"
     },
@@ -29,8 +54,8 @@
       "name": "activity-report",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/activity-report/1.0.0",
+      "version": "1.1.0",
+      "vendor_rel": "vendor/skills/activity-report/1.1.0",
       "target_rel": "skills/activity-report",
       "profiles": [
         "solo-dev",
@@ -45,7 +70,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/activity-report/1.0.0",
+      "source_path": "src/codex-home/vendor/skills/activity-report/1.1.0",
       "imported_at": "2026-08-21",
       "review_status": "accepted"
     },
@@ -2052,8 +2077,8 @@
       "name": "chronicle-workflow-miner",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.3.0",
-      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.3.0",
+      "version": "1.4.0",
+      "vendor_rel": "vendor/skills/chronicle-workflow-miner/1.4.0",
       "target_rel": "skills/chronicle-workflow-miner",
       "profiles": [
         "solo-dev",
@@ -2069,8 +2094,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.3.0",
-      "imported_at": "2026-08-22",
+      "source_path": "src/codex-home/vendor/skills/chronicle-workflow-miner/1.4.0",
+      "imported_at": "2026-11-03",
       "review_status": "accepted"
     },
     {
@@ -2225,8 +2250,8 @@
       "name": "embedded-low-power-wakeup-triage",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.1.0",
-      "vendor_rel": "vendor/skills/embedded-low-power-wakeup-triage/0.1.0",
+      "version": "0.1.1",
+      "vendor_rel": "vendor/skills/embedded-low-power-wakeup-triage/0.1.1",
       "target_rel": "skills/embedded-low-power-wakeup-triage",
       "profiles": [
         "solo-dev",
@@ -2243,8 +2268,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-low-power-wakeup-triage/0.1.0",
-      "imported_at": "2026-08-22",
+      "source_path": "src/codex-home/vendor/skills/embedded-low-power-wakeup-triage/0.1.1",
+      "imported_at": "2026-11-03",
       "review_status": "accepted"
     },
     {
@@ -2277,8 +2302,8 @@
       "name": "embedded-production-test-lifecycle",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.2.0",
-      "vendor_rel": "vendor/skills/embedded-production-test-lifecycle/0.2.0",
+      "version": "0.2.1",
+      "vendor_rel": "vendor/skills/embedded-production-test-lifecycle/0.2.1",
       "target_rel": "skills/embedded-production-test-lifecycle",
       "profiles": [
         "solo-dev",
@@ -2295,8 +2320,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/embedded-production-test-lifecycle/0.2.0",
-      "imported_at": "2026-08-22",
+      "source_path": "src/codex-home/vendor/skills/embedded-production-test-lifecycle/0.2.1",
+      "imported_at": "2026-11-03",
       "review_status": "accepted"
     },
     {
@@ -2573,8 +2598,8 @@
       "name": "session-wrap",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "4.0.1",
-      "vendor_rel": "vendor/skills/session-wrap/4.0.1",
+      "version": "4.1.0",
+      "vendor_rel": "vendor/skills/session-wrap/4.1.0",
       "target_rel": "skills/session-wrap",
       "profiles": [
         "solo-dev",
@@ -2588,7 +2613,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/session-wrap/4.0.1",
+      "source_path": "src/codex-home/vendor/skills/session-wrap/4.1.0",
       "imported_at": "2026-08-21",
       "review_status": "accepted"
     },
@@ -2622,8 +2647,8 @@
       "name": "skill-asset-manager",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "0.2.0",
-      "vendor_rel": "vendor/skills/skill-asset-manager/0.2.0",
+      "version": "0.3.0",
+      "vendor_rel": "vendor/skills/skill-asset-manager/0.3.0",
       "target_rel": "skills/skill-asset-manager",
       "profiles": [
         "solo-dev",
@@ -2636,8 +2661,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/skill-asset-manager/0.2.0",
-      "imported_at": "2026-05-09",
+      "source_path": "src/codex-home/vendor/skills/skill-asset-manager/0.3.0",
+      "imported_at": "2026-11-03",
       "review_status": "accepted"
     },
     {

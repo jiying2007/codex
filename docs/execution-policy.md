@@ -24,7 +24,7 @@ Codex 资产工具的日常 CLI 支持 Python 3.8 及以上。宿主包保留历
 `datetime.UTC` 时的 `timezone.utc` 兼容别名；当前 8.1.1 Execution Policy 源码
 本身不依赖该别名。此桥接不改变上游文件、来源哈希、策略条件或缺失 intake 时的 FATAL 结果。
 
-`readonly`/debug/review 若没有受管 mode-authority verifier，不会自动获得较弱 artifact gate；canonical engine 会按 fail-closed 规则提升到 implementation artifact boundary。
+`readonly`/debug/review 使用 host-owned `codex-project-routing/v2` verifier：核对当前线程、原生用户请求摘要、实际路由规则摘要、初始验收项和 canonical intake。只有全部匹配才使用 readonly artifact boundary；缺失、手工声明、旧 v1、规则漂移或跨线程仍提升到 implementation。该来源核验不代表操作系统强制只读，也不授予 owner、提交或发布权限；任务进入实现时必须重新登记 implementation。
 
 ## 日常 CLI 与线程身份
 
@@ -33,8 +33,7 @@ Digital Worker 不是日常 CLI 的安装依赖。下方 `authority-id/source-id
 在项目目录中执行门禁时，模块从资源仓加载，检查绑定当前准确线程，而不是按“最近更新”猜测其它会话：
 
 ```bash
-(cd ~/codex && rtk python3 -m tools.codex_assets execution-policy \
-  --thread-id "${CODEX_THREAD_ID:?current thread id required}" gate --event final)
+rtk bash ~/codex/scripts/codex-policy.sh gate --event final
 ```
 
 没有当前线程 ID 时先核实实际会话，不能借用别的线程状态。`gate_allowed` 只表示该线程的本地执行策略结论，不等于项目测试、独立审查、设备验证或产品放行已经完成。CI 的外部 cwd `gate --help` 仅验证命令可解析，不是一次真实门禁通过。
@@ -65,16 +64,21 @@ Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/ra
 非平凡任务在实施前使用幂等入口，避免只在结束时才发现缺 intake：
 
 ```bash
-(cd ~/codex && rtk python3 -m tools.codex_assets execution-policy \
-  --thread-id "${CODEX_THREAD_ID:?current thread id required}" ensure \
+rtk bash ~/codex/scripts/codex-policy.sh ensure \
   --request-file /tmp/task-request.md --task-mode implementation \
   --success-criterion repo-and-tests --required-evidence repo-and-tests \
-  --open-items 1)
+  --open-items 1
 ```
 
-临时文件保存本次真实用户请求，不进入知识库或 journal；ensure 读取一次并计算 request 摘要，结合实际 runtime/project AGENTS 文件摘要、显式任务模式与验收项产生本地 `codex-project-routing/v1` 决策。authority/source 使用真实本地 adapter 身份，不冒充人审或 Digital Worker。它不获得 managed readonly authority 的特权，也不降低 canonical artifact gate。
+临时文件保存本次真实用户请求，不进入知识库或 journal；ensure 读取一次并计算 request 摘要，结合实际 runtime/project AGENTS 文件摘要、线程、cwd 摘要、显式任务模式与验收项产生本地 `codex-project-routing/v2` 决策。authority/source 使用真实本地 adapter 身份，不冒充人审或 Digital Worker。readonly 来源须在实际门禁时再次核验，登记成功不授予通过资格。
 
 `--dry-run` 不创建 journal；首次执行返回 `REGISTERED`，相同请求和路由重试返回 `ALREADY_REGISTERED`。已有目标与请求或路由不符时退出 2，保留原 journal，必须显式 replan 或开始新的逻辑任务。ensure 不自动补造 evidence，不自动 complete，也不代表 final gate 通过。有效 intake 只是前置条件；目标、验收证据、工件与 checkpoint 仍由实际执行登记。
+
+固定 shell 入口只转发到现有 Python CLI，可从非仓库 cwd 调用；工具提交命令时将 ~/codex 展开为实际绝对路径。CLI 从环境读取 CODEX_THREAD_ID，缺失时拒绝运行，不再选最近会话；非只读操作拒绝写其他线程。直接调用模块时通过工具 workdir 指定源仓，或用该固定入口，避免外层 bash -lc、变量展开和 cd 复合脚本导致批准绑定整条字符串。
+
+执行策略的内部登记由 Agent 在已授权任务内完成，无须另行询问用户；相同逻辑目标保持一次 intake，里程碑内只做必要检查，目标完成或实际 apply/commit/release 边界再运行相应门禁。automation 仍默认 disabled/report-only。本机已有 rtk 授权可复用，不新增 bash/python 的宽泛允许；历史固定证据哈希的授权通过显式本机输入移除。
+
+v2 路由摘要增加线程与 cwd 摘要，真实请求来源核验只读取有界原生 user 事件，不持久化正文。无法读取或匹配真实请求时保守回退；临时请求文件应保存原文（可带一个末尾换行）。新的 verifier 不修改 exact 上游引擎，也不替代 required evidence、checkpoint、open items 或完成验证。
 
 本入口是 Agent 自动执行约定，不是 app-server 的隐式启动 hook；只有执行它后才会产生任务记录。
 
@@ -139,9 +143,11 @@ Policy v2、event/state v1、decision v2、intake v1 及日志位置不变；已
 `threshold_alignment` 用实际观测窗口对比配置文件阈值；窗口未知、配置缺失或
 非 total scope 时返回 unknown。命令行、profile 和宿主覆盖仍需独立核验。
 
-受管默认阈值为 100000 tokens、total scope；模型窗口仍由宿主识别。
-在观测窗口 258400 时早于本地 129200 门禁，不保证适合所有模型。
+2026-10-14 起，受管配置不固定窗口或自动压缩阈值，使用宿主模型默认值。
+此前的 100000 tokens 覆盖已移除；本机 GPT-6.1 Sol 模型目录窗口为 500000。
+这不改变本地 50% 上下文维护门禁；它可能先于原生自动压缩触发，仍须按接力流程处理。
 支持 `build --context-config-from ~/.codex/config.toml`：只合并两个压缩 root key，
+源中两项均缺省时删除本机对应覆盖；显式配置仍须为正阈值和 total scope。
 其余配置必须保持 TOML 语义相同；无法安全合并则拒绝构建。输入路径与 hash 写入
 本机 build receipt，完整输入只存在本机受管 build，不进入源码或知识库。
 Python 3.8–3.10 需要 `requirements-codex-assets.txt` 中固定版本的 tomli；3.11 起用

@@ -1,0 +1,17 @@
+name: codex-feishu-readonly
+description: Read-only Feishu document access with bot identity.
+allow:
+  - wiki/+node-get
+  - docs/+fetch
+  - sheets/+workbook-info
+  - sheets/+csv-get
+  - sheets/+cells-get
+  - drive/+download
+  - drive/+preview
+  - okr/cycles/list
+  - okr/cycle.objectives/list
+  - okr/objective.key_results/list
+max_risk: read
+identities:
+  - bot
+allow_unannotated: false
