@@ -106,10 +106,15 @@ class CompleteAdkImportTests(unittest.TestCase):
         cls.records = {r["name"]: r for r in json.loads((ROOT / "manifests/skills.json").read_text())["skills"]
                        if r["enabled"] and r["name"].startswith("adk-")}
 
-    def test_all_43_sources_match_exact_upstream_files_and_modes(self) -> None:
+    def test_remaining_sources_match_exact_upstream_files_and_modes(self) -> None:
         self.assertEqual(COMMIT, self.golden["provider_commit"])
-        self.assertEqual(43, len(self.records))
-        self.assertEqual(set(self.records), set(self.golden["skills"]))
+        # Keep the original 43-source golden immutable: these two names were
+        # intentionally retired from the consumer, not rewritten upstream.
+        retired = {"adk-chinese-code-review", "adk-chinese-commit-conventions"}
+        self.assertEqual(43, len(self.golden["skills"]))
+        self.assertEqual(retired, set(self.golden["skills"]) - set(self.records))
+        self.assertEqual(41, len(self.records))
+        self.assertEqual(set(self.records), set(self.golden["skills"]) - retired)
         for name, record in self.records.items():
             expected = self.golden["skills"][name]
             with self.subTest(skill=name):
@@ -148,7 +153,7 @@ class CompleteAdkImportTests(unittest.TestCase):
         self.assertEqual({}, report["gap_counts"])
         self.assertEqual("consistent", report["status"])
         self.assertEqual("8.2.0", report["provider_lock_version"])
-        self.assertEqual(43, report["skills_matching_provider_lock_commit"])
+        self.assertEqual(41, report["skills_matching_provider_lock_commit"])
         self.assertFalse(report["claims"]["runtime_qualified"])
 
     def test_moved_handoff_is_the_same_named_skill_not_a_guessed_replacement(self) -> None:
