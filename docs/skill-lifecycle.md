@@ -22,8 +22,7 @@ skill-asset-manager
 
 Out of scope for local iteration:
 
-- `adk-*` skills imported from `llm_agent/agent-dev-kit`;
-- Superpowers plugin skills under `src/codex-home/vendor/plugins/**/skills/`;
+- `adk-*` skills imported from the canonical `jiying2007/agent-dev-kit`;
 - OpenAI, Composio, Anthropic, or other third-party imported skills.
 
 External skills are version-pinned mirrors. Update them by importing a new upstream version and changing `manifests/skills.json`; do not edit their skill body locally unless doing a documented emergency compatibility patch.
@@ -37,7 +36,6 @@ Manifest signals:
 - local maintained skill: `owner=local`, `source_repo=local/codex`, and `tags` contains `local`;
 - Chronicle-derived skill: local maintained skill whose `tags` also contains `chronicle-derived`;
 - ADK import: `owner=agent-dev-kit` or `tags` contains `adk`;
-- Superpowers fallback: `tags` contains `superpowers` and `fallback`;
 - third-party import: `owner` and `source_repo` point to the upstream source.
 
 Chronicle-derived `SKILL.md` frontmatter should include:
@@ -79,7 +77,7 @@ Chinese triggers should optimize for the user's natural phrasing without becomin
 - Prefer phrase-level triggers with object and action, such as `归档元数据修复`, not generic nouns such as `元数据`.
 - Keep workflow triggers representative, not exhaustive. Add a phrase only when repeated real usage or a clear routing miss justifies it.
 - Avoid ambiguous standalone phrases that belong to several skills. Put disambiguation rules in `AGENTS.md` or the skill body instead.
-- Keep command names such as `archive-check` and `archive-search` as compatibility aliases, not as the primary route.
+- Keep existing command entrypoints only where they are genuinely in use; do not create new compatibility aliases for retired Skills.
 - For local and Chronicle-derived skills, false positives should remove or narrow triggers; false negatives should add one precise phrase or improve the skill `description`.
 - After changing triggers, run governance checks and source-to-live apply before relying on the new route.
 
@@ -133,8 +131,7 @@ rtk rg -n "<trigger or workflow>" ~/.codex/history.jsonl ~/.codex/memories ~/kno
 2. Decide the ownership first:
 
 - local or Chronicle-derived skill: iterate in this repository;
-- `adk-*`: update `llm_agent/agent-dev-kit` first, then re-import;
-- Superpowers: update the plugin version or fallback mapping, not the copied plugin body;
+- `adk-*`: update the canonical `jiying2007/agent-dev-kit` first, then re-import an exact reviewed release;
 - other third-party skill: import a new reviewed upstream revision or keep a local companion skill.
 
 3. Decide the change target:
