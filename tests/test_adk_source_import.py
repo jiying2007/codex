@@ -176,6 +176,64 @@ class AdkSourceImportTests(unittest.TestCase):
                     with self.assertRaisesRegex(importer.ImportError, "promotion"):
                         importer._promotion(path, provider, "d" * 64)
 
+    def _add_format_only_native_metadata(self, *, semantic_change: bool = False) -> None:
+        """Build a disposable source-set with display metadata that was reflowed upstream."""
+        item = self.current()
+        vendor = self.root / "src/codex-home" / item["vendor_rel"]
+        old_yaml = ("interface:\n"
+                    "  display_name: Example\n"
+                    "  short_description: A concise description\n"
+                    "    of a single behavior.\n")
+        new_yaml = ("interface:\n"
+                    "  display_name: Example\n"
+                    "  short_description: A concise description of a single behavior.\n")
+        if semantic_change:
+            new_yaml = new_yaml.replace("single behavior", "privileged destructive behavior")
+        self.write(vendor / "agents/openai.yaml", old_yaml)
+        item = self.current()
+        item["distribution_metadata"]["agents/openai.yaml"] = {
+            "source": {"blob": "a" * 40, "mode": "100644"},
+            "installed": _tree(vendor)["agents/openai.yaml"],
+        }
+        item["source_tree_sha256"] = _digest(_source_tree(item, _tree(vendor)))
+        item["local_tree_sha256"] = _digest(_tree(vendor))
+        self.record = item
+        self.save()
+        source = self.provider / "skills/adk-example/agents/openai.yaml"
+        self.write(source, new_yaml)
+        self.provider_state["tracked"]["skills/adk-example/agents/openai.yaml"] = {
+            "kind": "blob", "mode": "100644", "blob": _blob(source.read_bytes()),
+        }
+
+    def test_format_only_native_metadata_is_rebound_to_exact_source_blob(self) -> None:
+        self._add_format_only_native_metadata()
+        with self.boundaries():
+            result = self.make_plan()
+            renewal = result["skills"][0]["format_only_metadata_rebindings"]
+            self.assertEqual(["agents/openai.yaml"], list(renewal))
+            prior_yaml = (self.root / "src/codex-home" / self.record["vendor_rel"] /
+                          "agents/openai.yaml").read_bytes()
+            importer.apply(self.root, self.provider, result)
+        updated = self.current()
+        target_dir = self.root / "src/codex-home" / updated["vendor_rel"]
+        self.assertEqual(
+            updated["distribution_metadata"]["agents/openai.yaml"]["source"],
+            renewal["agents/openai.yaml"],
+        )
+        self.assertEqual((target_dir / "agents/openai.yaml").read_bytes(), prior_yaml)
+        self.assertEqual(
+            _source_tree(updated, _tree(target_dir)),
+            _tree(self.provider / "skills/adk-example"),
+        )
+
+    def test_semantically_changed_native_metadata_requires_review_without_writes(self) -> None:
+        self._add_format_only_native_metadata(semantic_change=True)
+        before = self.snapshot()
+        with self.boundaries():
+            with self.assertRaisesRegex(importer.ImportError, "distribution metadata needs review"):
+                self.make_plan()
+        self.assertEqual(self.snapshot(), before)
+
     def test_two_successive_upgrades_bind_each_managed_predecessor(self) -> None:
         previous = self.old_commit
         with self.boundaries():
