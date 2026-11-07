@@ -107,6 +107,75 @@ class AdkSourceImportTests(unittest.TestCase):
         return {p.relative_to(self.root).as_posix(): p.read_bytes()
                 for p in self.root.rglob("*") if p.is_file()}
 
+    def _v2_promotion_receipt(self) -> dict:
+        provider = self.provider_state
+        manifest = (self.provider / "manifest.json").read_bytes()
+        return {
+            "schema": "adk-promotion-evidence/v2",
+            "source": {
+                "repository": importer.REPOSITORY,
+                "ref": "refs/heads/main",
+                "event": "push",
+                "version": provider["version"],
+                "commit": provider["commit"],
+                "tree": "c" * 40,
+                "manifest_blob": provider["tracked"]["manifest.json"]["blob"],
+                "manifest_sha256": hashlib.sha256(manifest).hexdigest(),
+                "workflow": "agent-dev-kit-ci",
+                "workflow_ref": importer.REPOSITORY + "/.github/workflows/ci.yml@refs/heads/main",
+                "workflow_sha": provider["commit"],
+                "run_id": 421234,
+                "run_attempt": 1,
+            },
+            "release": {"release_eligible": True, "artifact_sha256": "d" * 64},
+            "ci": {
+                "contract_matrix": {"status": "success", "python": ["3.11", "3.12"]},
+                "regression_matrix": {"status": "success", "python": ["3.11", "3.12"]},
+                "deterministic_eval_package": "success",
+                "static_security": "success",
+            },
+            "provenance": {"format": "sigstore-bundle/v1", "subject": "promotion-evidence.json"},
+        }
+
+    def test_exact_promotion_v2_claims_accept_clean_fixture(self) -> None:
+        provider = dict(self.provider_state, root=self.provider)
+        receipt = self._v2_promotion_receipt()
+        path = Path(self.temp.name) / "promotion.json"
+        self.write(path, json.dumps(receipt))
+        with patch.object(importer, "_git", return_value="c" * 40):
+            importer._promotion(path, provider, "d" * 64)
+
+    def test_v2_promotion_fails_closed_on_identity_ci_and_attestation_drift(self) -> None:
+        import copy
+        provider = dict(self.provider_state, root=self.provider)
+        baseline = self._v2_promotion_receipt()
+        mutants = {
+            "historical-v1": lambda d: d.update(schema="adk-promotion-evidence/v1"),
+            "wrong-source": lambda d: d["source"].update(commit="a" * 40),
+            "wrong-tree": lambda d: d["source"].update(tree="b" * 40),
+            "wrong-manifest-blob": lambda d: d["source"].update(manifest_blob="a" * 40),
+            "wrong-manifest-bytes": lambda d: d["source"].update(manifest_sha256="a" * 64),
+            "wrong-workflow": lambda d: d["source"].update(workflow_sha="e" * 40),
+            "missing-run": lambda d: d["source"].pop("run_id"),
+            "bool-run": lambda d: d["source"].update(run_id=True),
+            "missing-attempt": lambda d: d["source"].update(run_attempt=0),
+            "wrong-ref": lambda d: d["source"].update(ref="refs/heads/develop"),
+            "ci-failed": lambda d: d["ci"]["regression_matrix"].update(status="failure"),
+            "ci-not-matched": lambda d: d["ci"]["contract_matrix"].update(python=["3.12"]),
+            "release-unqualified": lambda d: d["release"].update(release_eligible=False),
+            "wrong-artifact": lambda d: d["release"].update(artifact_sha256="e" * 64),
+            "unsigned-subject": lambda d: d["provenance"].update(subject="other.json"),
+        }
+        path = Path(self.temp.name) / "promotion.json"
+        with patch.object(importer, "_git", return_value="c" * 40):
+            for label, mutate in mutants.items():
+                with self.subTest(label=label):
+                    receipt = copy.deepcopy(baseline)
+                    mutate(receipt)
+                    self.write(path, json.dumps(receipt))
+                    with self.assertRaisesRegex(importer.ImportError, "promotion"):
+                        importer._promotion(path, provider, "d" * 64)
+
     def test_two_successive_upgrades_bind_each_managed_predecessor(self) -> None:
         previous = self.old_commit
         with self.boundaries():
