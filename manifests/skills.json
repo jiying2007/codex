@@ -1958,8 +1958,8 @@
       "name": "caveman",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.0.0",
-      "vendor_rel": "vendor/skills/caveman/1.0.0",
+      "version": "1.0.1",
+      "vendor_rel": "vendor/skills/caveman/1.0.1",
       "target_rel": "skills/caveman",
       "profiles": [
         "minimal",
@@ -1973,8 +1973,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/caveman/1.0.0",
-      "imported_at": "2026-05-09",
+      "source_path": "src/codex-home/vendor/skills/caveman/1.0.1/SKILL.md",
+      "imported_at": "2026-11-09",
       "review_status": "accepted"
     },
     {
@@ -2029,8 +2029,8 @@
       "name": "codex-parallel-collab",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "3.1.0",
-      "vendor_rel": "vendor/skills/codex-parallel-collab/3.1.0",
+      "version": "3.1.1",
+      "vendor_rel": "vendor/skills/codex-parallel-collab/3.1.1",
       "target_rel": "skills/codex-parallel-collab",
       "profiles": [
         "solo-dev",
@@ -2043,8 +2043,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/codex-parallel-collab/3.1.0",
-      "imported_at": "2026-05-09",
+      "source_path": "src/codex-home/vendor/skills/codex-parallel-collab/3.1.1/SKILL.md",
+      "imported_at": "2026-11-09",
       "review_status": "accepted"
     },
     {
@@ -2480,8 +2480,8 @@
       "name": "research-note-wrap",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "3.1.0",
-      "vendor_rel": "vendor/skills/research-note-wrap/3.1.0",
+      "version": "3.1.1",
+      "vendor_rel": "vendor/skills/research-note-wrap/3.1.1",
       "target_rel": "skills/research-note-wrap",
       "profiles": [
         "solo-dev",
@@ -2494,8 +2494,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/research-note-wrap/3.1.0",
-      "imported_at": "2026-05-09",
+      "source_path": "src/codex-home/vendor/skills/research-note-wrap/3.1.1/SKILL.md",
+      "imported_at": "2026-11-09",
       "review_status": "accepted"
     },
     {
@@ -2621,8 +2621,8 @@
       "name": "worktree-closeout",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "3.1.0",
-      "vendor_rel": "vendor/skills/worktree-closeout/3.1.0",
+      "version": "3.1.1",
+      "vendor_rel": "vendor/skills/worktree-closeout/3.1.1",
       "target_rel": "skills/worktree-closeout",
       "profiles": [
         "solo-dev",
@@ -2635,8 +2635,8 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/worktree-closeout/3.1.0",
-      "imported_at": "2026-05-09",
+      "source_path": "src/codex-home/vendor/skills/worktree-closeout/3.1.1/SKILL.md",
+      "imported_at": "2026-11-09",
       "review_status": "accepted"
     },
     {
