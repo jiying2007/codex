@@ -11,8 +11,8 @@ SOURCE = ROOT / "src/codex-home"
 AGENTS = ROOT / "manifests/agents.json"
 PROVIDER = ROOT / "manifests/provider-locks/agent-dev-kit.json"
 
-PROVIDER_VERSION = "8.2.0"
-PROVIDER_COMMIT = "22e6c790d1ed191cecc3083dc001a6ccfed264f6"
+PROVIDER_VERSION = "11.2.1"
+PROVIDER_COMMIT = "a5ba89065b163594571cc673dd436a23524725a6"
 EXPECTED = {
     "architecture-planner": "3b7638b277806f0e752a2ae5d261a93047c394b0",
     "build-release-engineer": "e9fca2c67489d9dd5471f6b075ba2d660397f322",
@@ -42,7 +42,7 @@ def main() -> None:
     require(provider["schema"] == "codex-provider-lock/v3", "provider lock schema drift")
     require(provider["repository"] == "jiying2007/agent-dev-kit", "provider repository drift")
     require(provider["version"] == PROVIDER_VERSION, "provider version drift")
-    require(provider["release_tag"] == "v8.2.0", "provider release tag drift")
+    require(provider["release_tag"] == "v11.2.1", "provider release tag drift")
     require(provider["provider_commit"] == PROVIDER_COMMIT, "provider commit drift")
     require(provider["delivery_mode"] == "exact-source-set", "provider delivery mode drift")
     require(provider["binding_status"] == "source-set-bound", "provider binding status drift")

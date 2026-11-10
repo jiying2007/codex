@@ -100,7 +100,12 @@ def _promotion(evidence_path: Path, provider: dict[str, Any], artifact_sha256: s
         raise ImportError("signed promotion has an invalid v2 envelope")
     tracked = provider["tracked"]
     manifest_path = provider["root"] / "manifest.json"
-    actual_manifest_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    # ADK v2 signs canonical manifest JSON, not raw whitespace-sensitive bytes.
+    # The exact Git blob remains independently bound by source.manifest_blob.
+    canonical_manifest = (json.dumps(
+        _json(manifest_path), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ) + "\n").encode("utf-8")
+    actual_manifest_sha256 = hashlib.sha256(canonical_manifest).hexdigest()
     expected = {
         "repository": REPOSITORY,
         "ref": "refs/heads/main",

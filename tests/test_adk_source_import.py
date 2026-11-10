@@ -120,7 +120,10 @@ class AdkSourceImportTests(unittest.TestCase):
                 "commit": provider["commit"],
                 "tree": "c" * 40,
                 "manifest_blob": provider["tracked"]["manifest.json"]["blob"],
-                "manifest_sha256": hashlib.sha256(manifest).hexdigest(),
+                "manifest_sha256": hashlib.sha256(
+                    (json.dumps(json.loads(manifest), ensure_ascii=False, sort_keys=True,
+                                separators=(",", ":")) + "\n").encode("utf-8")
+                ).hexdigest(),
                 "workflow": "agent-dev-kit-ci",
                 "workflow_ref": importer.REPOSITORY + "/.github/workflows/ci.yml@refs/heads/main",
                 "workflow_sha": provider["commit"],
@@ -144,6 +147,21 @@ class AdkSourceImportTests(unittest.TestCase):
         self.write(path, json.dumps(receipt))
         with patch.object(importer, "_git", return_value="c" * 40):
             importer._promotion(path, provider, "d" * 64)
+
+    def test_promotion_manifest_digest_uses_canonical_json_not_raw_bytes(self) -> None:
+        """Independent Git blob binding remains exact while signed JSON digest is canonical."""
+        provider = dict(self.provider_state, root=self.provider)
+        receipt = self._v2_promotion_receipt()
+        raw = (self.provider / "manifest.json").read_bytes()
+        self.assertNotEqual(hashlib.sha256(raw).hexdigest(), receipt["source"]["manifest_sha256"])
+        path = Path(self.temp.name) / "promotion-canonical.json"
+        self.write(path, json.dumps(receipt))
+        with patch.object(importer, "_git", return_value="c" * 40):
+            importer._promotion(path, provider, "d" * 64)
+            receipt["source"]["manifest_sha256"] = hashlib.sha256(raw).hexdigest()
+            self.write(path, json.dumps(receipt))
+            with self.assertRaisesRegex(importer.ImportError, "promotion"):
+                importer._promotion(path, provider, "d" * 64)
 
     def test_v2_promotion_fails_closed_on_identity_ci_and_attestation_drift(self) -> None:
         import copy

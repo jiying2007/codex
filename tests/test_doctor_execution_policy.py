@@ -108,6 +108,48 @@ class DoctorPolicyContractTests(unittest.TestCase):
         path.unlink()
         self.assert_rejected()
 
+    def test_independent_policy_lock_is_required_and_binds_both_sources(self) -> None:
+        provider_path = self.root / "manifests/provider-locks/agent-dev-kit.json"
+        data = json.loads(provider_path.read_text(encoding="utf-8"))
+        data.update(
+            version="11.2.1",
+            release_tag="v11.2.1",
+            provider_commit="a5ba89065b163594571cc673dd436a23524725a6",
+            provider_tree="9e679843c2f4b6d87a8ed8542029ca58abbbd437",
+            manifest_blob="8f11102cacb75663ea5861bff0edee094a078cab",
+            release_artifact={
+                "name": "agent-dev-kit-11.2.1.tar.gz",
+                "sha256": "dfd7dbea35d52fa60aa45fc4e1ce8c3d689d7209dc2482fe4edfe13e998bad90",
+            },
+        )
+        write_json(provider_path, data)
+        reviewed = ROOT / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
+        lock_path = self.root / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
+        # The disposable governance fixture includes the reviewed lock by default:
+        # remove it to prove an undecided split is rejected.
+        lock_path.unlink()
+        self.assert_rejected()
+        shutil.copyfile(reviewed, lock_path)
+        self.assertEqual([], validate_repo(self.root))
+        template = json.loads(lock_path.read_text())
+        for label, change in (
+            ("engine", lambda d: d["source"].update(commit="0" * 40)),
+            ("artifact", lambda d: d["source"]["release_artifact"].update(sha256="0" * 64)),
+            ("consumer", lambda d: d["consumer"].update(commit="0" * 40)),
+            ("boundary", lambda d: d.update(boundary="unreviewed")),
+        ):
+            with self.subTest(label=label):
+                damaged = json.loads(json.dumps(template))
+                change(damaged)
+                write_json(lock_path, damaged)
+                self.assert_rejected()
+        write_json(lock_path, template)
+        data["provider_commit"] = "0" * 40
+        write_json(provider_path, data)
+        self.assert_rejected()
+        lock_path.unlink()
+        self.assert_rejected()
+
     def test_each_source_blob_drift_or_absence_fails(self) -> None:
         for filename in ("__init__.py", "contracts.py", "decision.py", "reducer.py"):
             path = self.root / "tools/codex_assets/execution_policy" / filename

@@ -16,7 +16,7 @@ from tools.codex_assets.core import Repo, parse_frontmatter
 from tools.codex_assets.skill_catalog import search_skills
 
 ROOT = Path(__file__).resolve().parents[1]
-COMMIT = "22e6c790d1ed191cecc3083dc001a6ccfed264f6"
+COMMIT = "a5ba89065b163594571cc673dd436a23524725a6"
 
 
 class DistributionMetadataTests(unittest.TestCase):
@@ -102,19 +102,14 @@ class CompleteAdkImportTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         # Static evidence captured from the exact provider Git tree, not a lock
         # generated from the currently installed consumer files during testing.
-        cls.golden = json.loads((ROOT / "tests/fixtures/adk-skill-sources-8.2.0.json").read_text())
+        cls.golden = json.loads((ROOT / "tests/fixtures/adk-skill-sources-11.2.1.json").read_text())
         cls.records = {r["name"]: r for r in json.loads((ROOT / "manifests/skills.json").read_text())["skills"]
                        if r["enabled"] and r["name"].startswith("adk-")}
 
     def test_remaining_sources_match_exact_upstream_files_and_modes(self) -> None:
         self.assertEqual(COMMIT, self.golden["provider_commit"])
-        # Keep the original 43-source golden immutable: these two names were
-        # intentionally retired from the consumer, not rewritten upstream.
-        retired = {"adk-chinese-code-review", "adk-chinese-commit-conventions"}
-        self.assertEqual(43, len(self.golden["skills"]))
-        self.assertEqual(retired, set(self.golden["skills"]) - set(self.records))
-        self.assertEqual(41, len(self.records))
-        self.assertEqual(set(self.records), set(self.golden["skills"]) - retired)
+        self.assertEqual(41, len(self.golden["skills"]))
+        self.assertEqual(set(self.records), set(self.golden["skills"]))
         for name, record in self.records.items():
             expected = self.golden["skills"][name]
             with self.subTest(skill=name):
@@ -122,7 +117,7 @@ class CompleteAdkImportTests(unittest.TestCase):
                 actual = _tree(directory)
                 self.assertEqual("jiying2007/agent-dev-kit", record["source_repo"])
                 self.assertEqual(COMMIT, record["source_ref"])
-                self.assertEqual("v8.2.0", record["source_release"])
+                self.assertEqual("v11.2.1", record["source_release"])
                 self.assertEqual(expected["source_path"], record["source_path"])
                 self.assertEqual(expected["tree"], _source_tree(record, actual))
                 self.assertEqual(_digest(expected["tree"]), record["source_tree_sha256"])
@@ -152,7 +147,7 @@ class CompleteAdkImportTests(unittest.TestCase):
         report = audit(ROOT)
         self.assertEqual({}, report["gap_counts"])
         self.assertEqual("consistent", report["status"])
-        self.assertEqual("8.2.0", report["provider_lock_version"])
+        self.assertEqual("11.2.1", report["provider_lock_version"])
         self.assertEqual(41, report["skills_matching_provider_lock_commit"])
         self.assertFalse(report["claims"]["runtime_qualified"])
 
