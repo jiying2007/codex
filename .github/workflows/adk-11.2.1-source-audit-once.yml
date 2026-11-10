@@ -53,6 +53,16 @@ jobs:
             --certificate-identity https://github.com/jiying2007/agent-dev-kit/.github/workflows/ci.yml@refs/heads/main \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             "$RUNNER_TEMP/adk-audit/promotion-evidence.json"
+      - name: Inspect pinned Sigstore trusted root
+        run: |
+          set -euo pipefail
+          f="$HOME/.sigstore/root/tuf-repo-cdn.sigstore.dev/targets/trusted_root.json"
+          if [[ -f "$f" ]]; then
+            sha256sum "$f"
+            echo "expected-import-root: 6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66"
+          else
+            echo "expected root path not materialized by cosign; explicit importer root unavailable"
+          fi
       - name: Upload source-only audit
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
