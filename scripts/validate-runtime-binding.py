@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 BINDING = ROOT / "manifests/integrations/digital-worker-runtime-binding.json"
+POLICY_SOURCE = ROOT / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
 ADK = ROOT / "manifests/provider-locks/agent-dev-kit.json"
 RUNTIME = ROOT / "manifests/execution_policy.json"
 HUB = ROOT / "manifests/provider-locks/knowledge-hub.json"
@@ -20,12 +21,12 @@ PROVIDER_MODULE = ROOT / "tools/codex_assets/knowledge_provider_adapter.py"
 AGENTS = ROOT / "AGENTS.md"
 
 ADK_RELEASE = {
-    "version": "8.2.0",
-    "release_tag": "v8.2.0",
-    "provider_commit": "22e6c790d1ed191cecc3083dc001a6ccfed264f6",
-    "provider_tree": "0408ce042b9692d2f553bdd11f041267a86b6fc9",
-    "manifest_blob": "d60a3f920993698a02ebf5b53c1d05d8e90fd9f0",
-    "release_artifact_sha256": "fd4ec6175c088494c87a71a6113ecc9ed6f3a7a2418b9a12d67e065e00222f1e"
+    "version": "11.2.1",
+    "release_tag": "v11.2.1",
+    "provider_commit": "a5ba89065b163594571cc673dd436a23524725a6",
+    "provider_tree": "9e679843c2f4b6d87a8ed8542029ca58abbbd437",
+    "manifest_blob": "8f11102cacb75663ea5861bff0edee094a078cab",
+    "release_artifact_sha256": "dfd7dbea35d52fa60aa45fc4e1ce8c3d689d7209dc2482fe4edfe13e998bad90"
 }
 ADK_FIELDS = {
     "schema", "repository", "version", "release_tag", "provider_commit", "provider_tree",
@@ -53,13 +54,13 @@ def validate_adk_lock(adk: dict[str, object]) -> None:
     require(adk["schema"] == "codex-provider-lock/v3", "ADK provider lock schema drift")
     require(adk["repository"] == "jiying2007/agent-dev-kit", "ADK canonical repository required")
     for field in ("version", "release_tag", "provider_commit", "provider_tree", "manifest_blob"):
-        require(adk[field] == ADK_RELEASE[field], f"ADK 8.2.0 exact release identity drift: {field}")
+        require(adk[field] == ADK_RELEASE[field], f"ADK 11.2.1 exact release identity drift: {field}")
     require(exact_sha(adk["provider_commit"], 40), "ADK provider commit must be exact")
     require(exact_sha(adk["provider_tree"], 40), "ADK provider tree must be exact")
     require(exact_sha(adk["manifest_blob"], 40), "ADK manifest blob must be exact")
     artifact = adk["release_artifact"]
     require(isinstance(artifact, dict) and set(artifact) == {"name", "sha256"}, "ADK release artifact fields drift")
-    require(artifact["name"] == "agent-dev-kit-8.2.0.tar.gz", "ADK release artifact name drift")
+    require(artifact["name"] == "agent-dev-kit-11.2.1.tar.gz", "ADK release artifact name drift")
     require(artifact["sha256"] == ADK_RELEASE["release_artifact_sha256"], "ADK release artifact digest drift")
     require(adk["asset_profile"] == "embedded-fullstack", "required ADK asset profile drift")
     require(adk["delivery_mode"] == "exact-source-set", "ADK delivery mode drift")
@@ -112,7 +113,7 @@ def validate_receipt_v2(receipt: dict[str, object], binding: dict[str, object]) 
 
 
 def main() -> None:
-    for path in [BINDING, ADK, RUNTIME, HUB, RECEIPT_V2, RECEIPT_V1, ADAPTER, AGENTS]:
+    for path in [BINDING, ADK, POLICY_SOURCE, RUNTIME, HUB, RECEIPT_V2, RECEIPT_V1, ADAPTER, AGENTS]:
         require(path.is_file(), f"missing runtime binding asset: {path.relative_to(ROOT)}")
     binding = json.loads(BINDING.read_text(encoding="utf-8"))
     adk = json.loads(ADK.read_text(encoding="utf-8"))
