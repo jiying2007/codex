@@ -26,14 +26,17 @@ def git_blob_sha(path: pathlib.Path) -> str:
 
 
 class ExecutionPolicySourceSetTest(unittest.TestCase):
-    def test_vendored_execution_policy_matches_adk_820(self) -> None:
+    def test_vendored_execution_policy_remains_explicitly_pinned_820(self) -> None:
         directory = ROOT / "tools/codex_assets/execution_policy"
         self.assertEqual(set(SOURCE_BLOBS), {p.name for p in directory.glob("*.py")})
         for filename, expected in SOURCE_BLOBS.items():
             self.assertEqual(expected, git_blob_sha(directory / filename))
         provider = json.loads((ROOT / "manifests/provider-locks/agent-dev-kit.json").read_text())
-        self.assertEqual("8.2.0", provider["version"])
-        self.assertEqual("22e6c790d1ed191cecc3083dc001a6ccfed264f6", provider["provider_commit"])
+        self.assertEqual("11.2.1", provider["version"])
+        self.assertEqual("a5ba89065b163594571cc673dd436a23524725a6", provider["provider_commit"])
+        behavior=json.loads((ROOT/"manifests/execution_policy.json").read_text())["engine"]["behavior_baseline"]
+        self.assertEqual("8.2.0", behavior["version"])
+        self.assertEqual("22e6c790d1ed191cecc3083dc001a6ccfed264f6", behavior["commit"])
 
     def test_policy_manifest_is_v2_only(self) -> None:
         manifest = json.loads((ROOT / "manifests/execution_policy.json").read_text())
