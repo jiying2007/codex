@@ -63,6 +63,29 @@ jobs:
           else
             echo "expected root path not materialized by cosign; explicit importer root unavailable"
           fi
+      - name: Explain signed promotion claim mismatch without bypass
+        run: |
+          python - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          from tools.codex_assets.adk_skill_audit import _provider, REPOSITORY
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'adk'
+          data=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'adk-audit/promotion-evidence.json').read_text())
+          p=_provider(root,'a5ba89065b163594571cc673dd436a23524725a6')
+          expected={
+              'repository':REPOSITORY,'ref':'refs/heads/main','event':'push','version':p['version'],
+              'commit':p['commit'],'tree':subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD^{tree}'],text=True).strip(),
+              'manifest_blob':p['tracked']['manifest.json']['blob'],
+              'manifest_sha256':hashlib.sha256((root/'manifest.json').read_bytes()).hexdigest(),
+              'workflow':'agent-dev-kit-ci',
+              'workflow_ref':REPOSITORY+'/.github/workflows/ci.yml@refs/heads/main',
+              'workflow_sha':p['commit'],
+          }
+          print('signed source mismatch fields:',
+              {key:{'expected':value,'signed':data['source'].get(key)}
+               for key,value in expected.items() if data['source'].get(key)!=value})
+          print('signed release claim:',data['release'])
+          print('signed matrices:',data['ci'].get('contract_matrix'),data['ci'].get('regression_matrix'))
+          PY
       - name: Construct exact-source Codex candidate (isolated only)
         env:
           GH_TOKEN: ${{ github.token }}
