@@ -37,6 +37,13 @@ class ExecutionPolicySourceSetTest(unittest.TestCase):
         behavior=json.loads((ROOT/"manifests/execution_policy.json").read_text())["engine"]["behavior_baseline"]
         self.assertEqual("8.2.0", behavior["version"])
         self.assertEqual("22e6c790d1ed191cecc3083dc001a6ccfed264f6", behavior["commit"])
+        split=json.loads((ROOT/"manifests/provider-locks/agent-dev-kit-execution-policy.json").read_text())
+        self.assertEqual("codex-execution-policy-source-lock/v1", split["schema"])
+        self.assertEqual(behavior["commit"], split["source"]["commit"])
+        self.assertEqual(behavior["version"], split["source"]["version"])
+        self.assertEqual(SOURCE_BLOBS, behavior["source_blobs"])
+        self.assertEqual(provider["provider_commit"], split["consumer"]["commit"])
+        self.assertEqual(provider["version"], split["consumer"]["version"])
 
     def test_policy_manifest_is_v2_only(self) -> None:
         manifest = json.loads((ROOT / "manifests/execution_policy.json").read_text())

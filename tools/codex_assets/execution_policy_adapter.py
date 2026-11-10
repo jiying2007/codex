@@ -39,6 +39,53 @@ ENGINE_BASELINE = {
 }
 
 
+
+# Independent source authority: ADK Skills may advance without pretending the
+# Python 3.8-compatible Codex Execution Policy module came from the new release.
+# This is an exact source pin, not an executable compatibility shim.
+PINNED_POLICY_SOURCE = {
+    "repository": "jiying2007/agent-dev-kit",
+    "version": "8.2.0",
+    "commit": "22e6c790d1ed191cecc3083dc001a6ccfed264f6",
+    "release_tag": "v8.2.0",
+    "tree": "0408ce042b9692d2f553bdd11f041267a86b6fc9",
+    "manifest_blob": "d60a3f920993698a02ebf5b53c1d05d8e90fd9f0",
+    "release_artifact": {
+        "name": "agent-dev-kit-8.2.0.tar.gz",
+        "sha256": "fd4ec6175c088494c87a71a6113ecc9ed6f3a7a2418b9a12d67e065e00222f1e"
+    }
+}
+
+
+def _verify_split_policy_source(root: Path, provider: dict[str, Any]) -> None:
+    path = root / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 4096:
+        raise ExecutionPolicyAdapterError("independent Execution Policy source lock unavailable")
+    try:
+        split = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ExecutionPolicyAdapterError("independent Execution Policy source lock invalid") from exc
+    expected_consumer = {
+        "repository": provider["repository"],
+        "version": provider["version"],
+        "commit": provider["provider_commit"],
+        "tree": provider.get("provider_tree"),
+        "manifest_blob": provider.get("manifest_blob"),
+        "release_tag": provider.get("release_tag"),
+        "release_artifact": provider.get("release_artifact"),
+    }
+    if (not isinstance(split, dict)
+            or set(split) != {"schema", "boundary", "source", "consumer"}
+            or split.get("schema") != "codex-execution-policy-source-lock/v1"
+            or split.get("boundary") != "independent-exact-policy-source"
+            or split.get("source") != PINNED_POLICY_SOURCE
+            or split.get("consumer") != expected_consumer
+            or split["source"]["repository"] != ENGINE_BASELINE["repository"]
+            or split["source"]["version"] != ENGINE_BASELINE["version"]
+            or split["source"]["commit"] != ENGINE_BASELINE["commit"]):
+        raise ExecutionPolicyAdapterError("independent Execution Policy source lock drift")
+
+
 class ExecutionPolicyAdapterError(CodexAssetError):
     """Raised when Codex runtime inputs or journal state violate Execution Policy."""
 
@@ -95,11 +142,16 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
     if (not isinstance(provider, dict)
             or provider.get("schema") != "codex-provider-lock/v3"
             or provider.get("repository") != ENGINE_BASELINE["repository"]
-            or provider.get("version") != ENGINE_BASELINE["version"]
-            or provider.get("provider_commit") != ENGINE_BASELINE["commit"]
             or provider.get("delivery_mode") != "exact-source-set"
-            or provider.get("binding_status") != "source-set-bound"):
+            or provider.get("binding_status") != "source-set-bound"
+            or not isinstance(provider.get("version"), str)
+            or not isinstance(provider.get("provider_commit"), str)):
         raise ExecutionPolicyAdapterError("Execution Policy provider identity drift")
+    # Prior one-source deployments remain exact: no independent lock is needed.
+    # For an advanced Skills provider require a reviewed, two-sided identity lock.
+    if (provider["version"] != ENGINE_BASELINE["version"]
+            or provider["provider_commit"] != ENGINE_BASELINE["commit"]):
+        _verify_split_policy_source(root, provider)
     retired_engine = root / "tools/codex_assets/execution_policy/engine.py"
     if retired_engine.exists() or retired_engine.is_symlink():
         raise ExecutionPolicyAdapterError("retired Execution Policy module must be removed")
