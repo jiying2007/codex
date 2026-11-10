@@ -123,10 +123,12 @@ class DoctorPolicyContractTests(unittest.TestCase):
             },
         )
         write_json(provider_path, data)
-        # No split declaration means a new provider cannot silently relabel the old engine.
-        self.assert_rejected()
         reviewed = ROOT / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
         lock_path = self.root / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
+        # The disposable governance fixture includes the reviewed lock by default:
+        # remove it to prove an undecided split is rejected.
+        lock_path.unlink()
+        self.assert_rejected()
         shutil.copyfile(reviewed, lock_path)
         self.assertEqual([], validate_repo(self.root))
         template = json.loads(lock_path.read_text())

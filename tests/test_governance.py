@@ -149,6 +149,7 @@ def make_repo(test_case: unittest.TestCase) -> pathlib.Path:
     for relative in (
         "manifests/execution_policy.json",
         "manifests/provider-locks/agent-dev-kit.json",
+        "manifests/provider-locks/agent-dev-kit-execution-policy.json",
         "tools/codex_assets/execution_policy/__init__.py",
         "tools/codex_assets/execution_policy/decision.py",
         "tools/codex_assets/execution_policy/reducer.py",
