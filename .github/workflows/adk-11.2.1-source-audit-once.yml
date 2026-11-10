@@ -211,7 +211,24 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/audit/adk-11.2.1-source-20261110"
-          test -z "$(git status --porcelain --untracked-files=normal | grep '^??' | grep -v 'tests/fixtures/adk-skill-sources-11.2.1.json' | grep -v 'docs/changes/20261110-adk-1121-skills-source/' || true)"
+          python - <<'PY'
+          import subprocess
+          lines = subprocess.check_output(
+              ['git', 'status', '--porcelain=v1', '--untracked-files=all'], text=True
+          ).splitlines()
+          untracked = [line[3:] for line in lines if line.startswith('?? ')]
+          allowed_prefixes = (
+              'src/codex-home/vendor/skills/',
+              'src/codex-home/vendor/agents/agent-dev-kit/',
+              'docs/changes/20261110-adk-1121-skills-source/',
+          )
+          allowed_exact = {'tests/fixtures/adk-skill-sources-11.2.1.json'}
+          unexpected = sorted(path for path in untracked
+                              if not path.startswith(allowed_prefixes) and path not in allowed_exact)
+          print('Allowed managed source additions:', len(untracked) - len(unexpected))
+          if unexpected:
+              raise SystemExit('STOP: unexpected untracked paths: ' + repr(unexpected[:20]))
+          PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add manifests src/codex-home tests docs/changes/20261110-adk-1121-skills-source tools/codex_assets/execution_policy
