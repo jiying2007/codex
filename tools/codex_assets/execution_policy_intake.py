@@ -170,6 +170,38 @@ def verify_request(args: argparse.Namespace) -> int:
     return 2
 
 
+def _initial_goal_budget(args: argparse.Namespace, usage: dict) -> tuple[int, str]:
+    """Propose a *per-goal* starting budget from trusted host usage, not a daily cap.
+
+    Uses the actual last completed turn's total tokens, including cached input,
+    because the canonical policy accounts for all cumulative tokens. This is a
+    planning estimate only, not authorization to extend an existing Goal.
+    """
+    from .execution_policy_adapter import ExecutionPolicyAdapterError
+
+    if args.token_budget is not None:
+        if type(args.token_budget) is not int or args.token_budget <= 0:
+            raise ExecutionPolicyAdapterError("explicit goal token budget must be positive")
+        return args.token_budget, "explicit"
+    payload = usage.get("payload")
+    if not isinstance(payload, dict):
+        raise ExecutionPolicyAdapterError("host usage snapshot is missing; provide --token-budget")
+    observed = payload.get("last_delta_tokens")
+    if type(observed) is not int or observed <= 0:
+        raise ExecutionPolicyAdapterError(
+            "no measured last-turn token delta; specify --token-budget explicitly"
+        )
+    count = args.open_items
+    if type(count) is not int or count < 0:
+        raise ExecutionPolicyAdapterError("open items must be a nonnegative integer")
+    # One initial diagnosis and a bounded number of verify/repair turns for up
+    # to four items. Exceeding this estimate must follow normal Host replan;
+    # it does NOT permit unbounded requests or reset completed history.
+    turns = 4 + 4 * min(max(count, 1), 4)
+    estimated = max(300_000, ((observed * turns + 99_999) // 100_000) * 100_000)
+    return estimated, "measured-last-turn-per-goal-proposal"
+
+
 def ensure(args: argparse.Namespace) -> int:
     from . import execution_policy_adapter as adapter
 
@@ -195,12 +227,20 @@ def ensure(args: argparse.Namespace) -> int:
     start_args.decision_id = decision_id
     start_args.issued_at = ""
 
+    # The exact native engine still owns stop/replan and requires positive
+    # goal.started.token_budget. We never change that engine or its lock.
+    observed_usage = adapter.usage_event(thread)
+    initial_budget = None
+    budget_basis = "existing-goal"
+
     def started_event():
+        nonlocal initial_budget, budget_basis
+        initial_budget, budget_basis = _initial_goal_budget(args, observed_usage)
         now = adapter._now()
         event = adapter.control_event("goal.started", thread["thread_id"], {
-            "goal_id": goal_id, "token_budget": args.token_budget,
+            "goal_id": goal_id, "token_budget": initial_budget,
             "time_budget_seconds": args.time_budget_seconds,
-            "usage_baseline_tokens": adapter.usage_event(thread)["payload"]["total_tokens"],
+            "usage_baseline_tokens": observed_usage["payload"]["total_tokens"],
             "success_criteria": args.success_criterion, "required_evidence": args.required_evidence,
             "open_items_count": args.open_items, "intake": adapter._goal_intake(start_args, now),
         })
@@ -208,11 +248,13 @@ def ensure(args: argparse.Namespace) -> int:
         return event
     # Serialize ensure callers, re-read state under the lock, and never replace an active goal.
     if args.dry_run:
-        started_event()  # Validate budgets and canonical intake even when no write is requested.
-        state = adapter._engine_state(adapter.load_journal(journal) + [adapter.usage_event(thread)])
+        state = adapter._engine_state(adapter.load_journal(journal) + [observed_usage])
+        if state["goal"].get("goal_id") != goal_id and state["goal"].get("status") != "active":
+            started_event()  # Validate proposed budget only when creating a new Goal.
         if state["goal"].get("status") in {"completed", "aborted"} and state["goal"].get("goal_id") != goal_id:
             state = dict(state, goal={"status": "idle"})
-        return _result(adapter, state, goal_id, request_sha256, routing_sha256, args)
+        return _result(adapter, state, goal_id, request_sha256, routing_sha256, args,
+                       suggested_budget=initial_budget, budget_basis=budget_basis)
     journal.parent.mkdir(parents=True, exist_ok=True)
     lock = journal.with_suffix(".intake.lock")
     fd = os.open(str(lock), os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0), 0o600)
@@ -224,7 +266,8 @@ def ensure(args: argparse.Namespace) -> int:
         state = adapter._engine_state(events + [adapter.usage_event(thread)])
         if (state["goal"].get("goal_id") == goal_id
                 or state["goal"].get("status") == "active"):
-            return _result(adapter, state, goal_id, request_sha256, routing_sha256, args)
+            return _result(adapter, state, goal_id, request_sha256, routing_sha256, args,
+                       suggested_budget=initial_budget, budget_basis=budget_basis)
         if events and not state["goal"].get("goal_id"):
             raise adapter.ExecutionPolicyAdapterError("ensure refuses to reset a journal without a valid goal")
         # Actual local routing authority, not an invented human or Digital Worker attestation.
@@ -238,12 +281,14 @@ def ensure(args: argparse.Namespace) -> int:
         if (state["goal"].get("goal_id") != goal_id
                 or not state["goal"].get("intake_attestation_sha256")):
             raise adapter.ExecutionPolicyAdapterError("intake readback failed")
-        return _result(adapter, state, goal_id, request_sha256, routing_sha256, args, created=True)
+        return _result(adapter, state, goal_id, request_sha256, routing_sha256, args,
+                       created=True, suggested_budget=initial_budget, budget_basis=budget_basis)
     finally:
         os.close(fd)
 
 
-def _result(adapter, state, goal_id, request_hash, routing_hash, args, created=False):
+def _result(adapter, state, goal_id, request_hash, routing_hash, args, created=False,
+            suggested_budget=None, budget_basis="unknown"):
     goal = state["goal"]
     if goal.get("goal_id"):
         if (goal.get("goal_id") != goal_id or goal.get("request_sha256") != request_hash
@@ -258,7 +303,11 @@ def _result(adapter, state, goal_id, request_hash, routing_hash, args, created=F
                    "write_performed": created, "read_only": args.dry_run,
                    "thread_id": args.thread_id, "goal_id": goal_id,
                    "request_sha256": request_hash, "routing_decision_sha256": routing_hash,
-                   "goal_status": goal.get("status"), "final_gate_passed": False})
+                   "goal_status": goal.get("status"),
+                   "token_budget": goal.get("token_budget") if goal.get("goal_id") else suggested_budget,
+                   "budget_basis": budget_basis if created or args.dry_run else "existing-goal",
+                   "budget_is_runtime_permission": False,
+                   "final_gate_passed": False})
     return 0
 
 
@@ -268,6 +317,7 @@ def configure(parser):
     parser.add_argument("--success-criterion", action="append", required=True)
     parser.add_argument("--required-evidence", action="append", required=True)
     parser.add_argument("--open-items", type=int, required=True)
-    parser.add_argument("--token-budget", type=int, default=300000)
+    parser.add_argument("--token-budget", type=int, default=None,
+                        help="per-Goal explicit budget; if omitted derive from observed last-turn tokens")
     parser.add_argument("--time-budget-seconds", type=int, default=14400)
     parser.add_argument("--dry-run", action="store_true")

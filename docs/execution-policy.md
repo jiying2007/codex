@@ -88,7 +88,7 @@ v2 路由摘要增加线程与 cwd 摘要，真实请求来源核验只读取有
 
 回执将现存状态和本次写入分开表示：已登记任务的 dry-run 返回 `persisted=true`、`read_only=true`、`write_performed=false`；新任务 dry-run 返回 `persisted=false`，不创建 journal。
 
-长任务应按真实上下文量与预计轮数显式传入 `--token-budget`；默认 300000 仅是初始预算，累计输入计量包含重复加载的上下文。steady/apply 出现 stop 时先停止实施并 replan，不能用终态 final 通过推导未超预算。证据、任务预算和产品验收分别报告。
+长任务的初始 Goal Token 预算应根据真实观测确定：`ensure` 显式提供 `--token-budget` 时采用该值；省略时按当前线程可信 `last_delta_tokens` 与已登记待办项数给出初始估计（最小 300000，仅为较小任务的计划下限，不是人民币费用/日配额）。没有可验证的最近一轮 Token 用量时，必须显式提供 `--token-budget`，绝不凭空假定低上下文或自动放行。估计基于已发生的累计输入/输出计数，含 cached input，不代表真实费用，也不能为现有 Goal 续期或修改其预算；`ensure` 的回执记录来源 `budget_basis`。steady/apply 发生实际预算 stop 时保持原生 Execution Policy 决策并按授权 replan，不重置旧目标、历史或证据。证据、任务预算和产品验收分别报告。
 
 ## 安装前检查与同源校验
 

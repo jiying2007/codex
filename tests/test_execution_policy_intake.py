@@ -34,6 +34,71 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         self.assertEqual(2, changed.returncode)
         self.assertEqual(before, journal.read_bytes())
 
+    def test_automatic_budget_scales_with_trusted_last_turn_usage(self):
+        # One large observed turn must no longer silently inherit a 300K cap.
+        rollout = self.codex_home / "rollout.jsonl"
+        item = json.loads(rollout.read_text(encoding="utf-8").splitlines()[0])
+        item["payload"]["info"]["total_token_usage"] = {
+            "input_tokens": 240000, "cached_input_tokens": 230000,
+            "output_tokens": 10000, "reasoning_output_tokens": 2000,
+            "total_tokens": 250000,
+        }
+        item["payload"]["info"]["last_token_usage"] = {
+            "input_tokens": 220000, "total_tokens": 250000,
+        }
+        item["payload"]["info"]["model_context_window"] = 500000
+        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
+        result = self.run_cli(*self.intake_args())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        receipt = json.loads(result.stdout)
+        self.assertEqual(receipt["budget_basis"], "measured-last-turn-per-goal-proposal")
+        self.assertGreaterEqual(receipt["token_budget"], 2000000)
+        journal = next((self.codex_home / "execution-policy").glob("*.jsonl"))
+        recorded = json.loads(journal.read_text(encoding="utf-8").splitlines()[0])
+        self.assertEqual(recorded["payload"]["token_budget"], receipt["token_budget"])
+        # Retry does not append a new Goal or change its budget.
+        before = journal.read_bytes()
+        retry = self.run_cli(*self.intake_args())
+        self.assertEqual(retry.returncode, 0, retry.stderr)
+        self.assertEqual(json.loads(retry.stdout)["budget_basis"], "existing-goal")
+        self.assertEqual(journal.read_bytes(), before)
+
+    def test_existing_goal_does_not_require_a_fresh_budget_estimate(self):
+        first = self.run_cli(*self.intake_args())
+        self.assertEqual(first.returncode, 0, first.stderr)
+        journal = next((self.codex_home / "execution-policy").glob("*.jsonl"))
+        prior = journal.read_bytes()
+        rollout = self.codex_home / "rollout.jsonl"
+        item = json.loads(rollout.read_text(encoding="utf-8").splitlines()[0])
+        item["payload"]["info"]["last_token_usage"]["total_tokens"] = 0
+        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
+        repeated = self.run_cli(*self.intake_args())
+        self.assertEqual(repeated.returncode, 0, repeated.stderr)
+        data = json.loads(repeated.stdout)
+        self.assertEqual(data["status"], "ALREADY_REGISTERED")
+        self.assertEqual(data["budget_basis"], "existing-goal")
+        self.assertEqual(data["token_budget"], json.loads(first.stdout)["token_budget"])
+        self.assertEqual(journal.read_bytes(), prior)
+
+    def test_explicit_budget_overrides_automatic_estimate(self):
+        result = self.run_cli(*self.intake_args("--token-budget", "450000"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        receipt = json.loads(result.stdout)
+        self.assertEqual(receipt["budget_basis"], "explicit")
+        self.assertEqual(receipt["token_budget"], 450000)
+
+    def test_missing_last_turn_usage_requires_explicit_budget(self):
+        rollout = self.codex_home / "rollout.jsonl"
+        item = json.loads(rollout.read_text(encoding="utf-8").splitlines()[0])
+        item["payload"]["info"]["last_token_usage"]["total_tokens"] = 0
+        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
+        refused = self.run_cli(*self.intake_args())
+        self.assertEqual(refused.returncode, 2)
+        self.assertIn("--token-budget", refused.stderr)
+        self.assertEqual([], list((self.codex_home / "execution-policy").glob("*.jsonl")))
+        explicit = self.run_cli(*self.intake_args("--token-budget", "500000"))
+        self.assertEqual(explicit.returncode, 0, explicit.stderr)
+
     def test_ensure_dry_run_does_not_create_journal(self):
         result = self.run_cli(*self.intake_args("--dry-run"))
         self.assertEqual(0, result.returncode, result.stderr)
