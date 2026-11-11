@@ -230,9 +230,12 @@ def ensure(args: argparse.Namespace) -> int:
     # The exact native engine still owns stop/replan and requires positive
     # goal.started.token_budget. We never change that engine or its lock.
     observed_usage = adapter.usage_event(thread)
-    initial_budget, budget_basis = _initial_goal_budget(args, observed_usage)
+    initial_budget = None
+    budget_basis = "existing-goal"
 
     def started_event():
+        nonlocal initial_budget, budget_basis
+        initial_budget, budget_basis = _initial_goal_budget(args, observed_usage)
         now = adapter._now()
         event = adapter.control_event("goal.started", thread["thread_id"], {
             "goal_id": goal_id, "token_budget": initial_budget,
@@ -245,8 +248,9 @@ def ensure(args: argparse.Namespace) -> int:
         return event
     # Serialize ensure callers, re-read state under the lock, and never replace an active goal.
     if args.dry_run:
-        started_event()  # Validate budgets and canonical intake even when no write is requested.
-        state = adapter._engine_state(adapter.load_journal(journal) + [adapter.usage_event(thread)])
+        state = adapter._engine_state(adapter.load_journal(journal) + [observed_usage])
+        if state["goal"].get("goal_id") != goal_id and state["goal"].get("status") != "active":
+            started_event()  # Validate proposed budget only when creating a new Goal.
         if state["goal"].get("status") in {"completed", "aborted"} and state["goal"].get("goal_id") != goal_id:
             state = dict(state, goal={"status": "idle"})
         return _result(adapter, state, goal_id, request_sha256, routing_sha256, args,

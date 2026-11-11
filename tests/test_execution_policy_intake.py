@@ -63,6 +63,23 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         self.assertEqual(json.loads(retry.stdout)["budget_basis"], "existing-goal")
         self.assertEqual(journal.read_bytes(), before)
 
+    def test_existing_goal_does_not_require_a_fresh_budget_estimate(self):
+        first = self.run_cli(*self.intake_args())
+        self.assertEqual(first.returncode, 0, first.stderr)
+        journal = next((self.codex_home / "execution-policy").glob("*.jsonl"))
+        prior = journal.read_bytes()
+        rollout = self.codex_home / "rollout.jsonl"
+        item = json.loads(rollout.read_text(encoding="utf-8").splitlines()[0])
+        item["payload"]["info"]["last_token_usage"]["total_tokens"] = 0
+        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
+        repeated = self.run_cli(*self.intake_args())
+        self.assertEqual(repeated.returncode, 0, repeated.stderr)
+        data = json.loads(repeated.stdout)
+        self.assertEqual(data["status"], "ALREADY_REGISTERED")
+        self.assertEqual(data["budget_basis"], "existing-goal")
+        self.assertEqual(data["token_budget"], json.loads(first.stdout)["token_budget"])
+        self.assertEqual(journal.read_bytes(), prior)
+
     def test_explicit_budget_overrides_automatic_estimate(self):
         result = self.run_cli(*self.intake_args("--token-budget", "450000"))
         self.assertEqual(result.returncode, 0, result.stderr)
