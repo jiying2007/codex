@@ -46,7 +46,7 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         item["payload"]["info"]["last_token_usage"] = {
             "input_tokens": 220000, "total_tokens": 250000,
         }
-        rollout.write_text(json.dumps(item) + "\n", encoding="utf-8")
+        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
         result = self.run_cli(*self.intake_args())
         self.assertEqual(result.returncode, 0, result.stderr)
         receipt = json.loads(result.stdout)
@@ -73,7 +73,7 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         rollout = self.codex_home / "rollout.jsonl"
         item = json.loads(rollout.read_text(encoding="utf-8").splitlines()[0])
         item["payload"]["info"]["last_token_usage"]["total_tokens"] = 0
-        rollout.write_text(json.dumps(item) + "\n", encoding="utf-8")
+        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
         refused = self.run_cli(*self.intake_args())
         self.assertEqual(refused.returncode, 2)
         self.assertIn("--token-budget", refused.stderr)
