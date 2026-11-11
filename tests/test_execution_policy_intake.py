@@ -95,7 +95,7 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         refused = self.run_cli(*self.intake_args())
         self.assertEqual(refused.returncode, 2)
         self.assertIn("--token-budget", refused.stderr)
-        self.assertFalse((self.codex_home / "execution-policy").exists())
+        self.assertEqual([], list((self.codex_home / "execution-policy").glob("*.jsonl")))
         explicit = self.run_cli(*self.intake_args("--token-budget", "500000"))
         self.assertEqual(explicit.returncode, 0, explicit.stderr)
 
