@@ -46,6 +46,7 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         item["payload"]["info"]["last_token_usage"] = {
             "input_tokens": 220000, "total_tokens": 250000,
         }
+        item["payload"]["info"]["model_context_window"] = 500000
         rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
         result = self.run_cli(*self.intake_args())
         self.assertEqual(result.returncode, 0, result.stderr)
