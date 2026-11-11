@@ -59,6 +59,14 @@ conversation -> context-preflight -> ~/knowledge-hub/domains/codex/archive/codex
 - `manifests/guidance_promotions.json` 中存在匹配的提升策略。
 - `manifests/context_state_contracts.json` 中存在匹配的上下文状态契约，且没有把 dynamic 或 excluded context 误提升为 stable context。
 
+## Token 友好的增量披露
+
+- **稳定前缀**：保持已经审查的项目规则、工具契约与 schema 顺序稳定；最新时间戳、Goal 事件、动态证据仅放末尾。不要为了短一些而每轮重写系统规则，避免不必要地损坏 prompt cache 命中。
+- **动态阶段**：下一轮只携带 Goal/Phase、当前状态指纹、原始证据引用和有变化的工具摘要；来自旧事件/旧 CI 结果的长输出不反复进入模型上下文。重复问题先做 SHA/状态对比、批量查询与定向复现。
+- **增量证据索引**：Host 独立保存全部原始日志、diff、source 与 SHA；正常上下文最多放当前相关的少量 changed refs。高风险、无法解释的失败、迁移/签名/权限必须按需读取完整原文，不靠有界摘要冒充审核。
+- **缓存实测**：同时观察 input/cached input/cache write、延迟和真实费用。现有大量 cached input 不意味着先强制压缩就更省；压缩是否有收益须在同一任务条件下对照，再决定缓存 ttl、显式断点或延迟工具加载；不盲目启用 Host 未支持的参数。
+- **上下文包**是工作提示，不是执行凭据。状态指纹与 cursor 必须由受信 Host 记录，不能让模型任意签发新进展或重置被阻断的 Goal。
+
 ## Preflight 输出
 
 `scripts/context-preflight.sh` 必须显式输出 Stable、Dynamic、Evidence 和 Excluded 四段。恢复线程时优先读取 Dynamic；修改规则或记忆时优先读取 Stable 和 Promotion Gate。
