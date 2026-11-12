@@ -2,6 +2,38 @@
   "schema_version": 2,
   "skills": [
     {
+      "name": "disk-space-triage",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/disk-space-triage/0.1.0",
+      "target_rel": "skills/disk-space-triage",
+      "profiles": ["team-collab"],
+      "tags": ["local", "chronicle-derived", "disk", "diagnostics"],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/disk-space-triage/0.1.0",
+      "imported_at": "2026-11-12",
+      "review_status": "accepted"
+    },
+    {
+      "name": "schematic-datasheet-evidence",
+      "enabled": true,
+      "source_kind": "vendor",
+      "version": "0.1.0",
+      "vendor_rel": "vendor/skills/schematic-datasheet-evidence/0.1.0",
+      "target_rel": "skills/schematic-datasheet-evidence",
+      "profiles": ["team-collab"],
+      "tags": ["local", "embedded", "schematic", "datasheet", "evidence"],
+      "owner": "local",
+      "source_repo": "local/codex",
+      "source_ref": "workspace",
+      "source_path": "src/codex-home/vendor/skills/schematic-datasheet-evidence/0.1.0",
+      "imported_at": "2026-11-12",
+      "review_status": "accepted"
+    },
+    {
       "name": "embedded-wifi-disconnect-triage",
       "enabled": true,
       "source_kind": "vendor",
@@ -54,8 +86,8 @@
       "name": "activity-report",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.1.0",
-      "vendor_rel": "vendor/skills/activity-report/1.1.0",
+      "version": "1.2.0",
+      "vendor_rel": "vendor/skills/activity-report/1.2.0",
       "target_rel": "skills/activity-report",
       "profiles": [
         "solo-dev",
@@ -70,7 +102,7 @@
       "owner": "local",
       "source_repo": "local/codex",
       "source_ref": "workspace",
-      "source_path": "src/codex-home/vendor/skills/activity-report/1.1.0",
+      "source_path": "src/codex-home/vendor/skills/activity-report/1.2.0",
       "imported_at": "2026-08-21",
       "review_status": "accepted"
     },
