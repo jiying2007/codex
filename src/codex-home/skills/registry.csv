@@ -50,7 +50,9 @@ caveman,1.0.1,active,vendor
 chronicle-workflow-miner,1.4.0,active,local
 cli-creator,0.1.0,active,openai
 codex-parallel-collab,3.1.1,active,vendor
-activity-report,1.1.0,active,local
+activity-report,1.2.0,active,local
+disk-space-triage,0.1.0,active,local
+schematic-datasheet-evidence,0.1.0,active,local
 mcp-builder,0.1.0,active,anthropics
 office-document-delivery,0.1.0,active,local
 mcu-firmware-release-closure,0.1.0,active,local

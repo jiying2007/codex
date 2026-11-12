@@ -43,11 +43,17 @@ def load_rules(path, expected_sha256, profile, base):
 
 
 def verified_inputs(inputs, source, profile):
-    if not isinstance(inputs, dict) or set(inputs) - {"exec_rules"}:
+    if not isinstance(inputs, dict) or set(inputs) - {"exec_rules", "config_overrides"}:
         raise ValueError("unsupported machine build input")
     if "exec_rules" in inputs:
         item = inputs["exec_rules"]
         if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
             raise ValueError("invalid local rule input identity")
         load_rules(item["path"], item["sha256"], profile, (source / "rules/default.rules").read_bytes())
+    if "config_overrides" in inputs:
+        from .local_config import load_config
+        item = inputs["config_overrides"]
+        if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+            raise ValueError("invalid local config input identity")
+        load_config(item["path"], item["sha256"], profile)
     return inputs

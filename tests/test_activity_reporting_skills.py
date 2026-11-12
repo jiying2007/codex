@@ -16,7 +16,7 @@ class ActivityReportingSkillTest(unittest.TestCase):
     def test_active_versions_and_workflow_are_registered(self) -> None:
         skills = {row["name"]: row for row in read_json("manifests/skills.json")["skills"]}
         expected = {
-            "activity-report": "1.1.0",
+            "activity-report": "1.2.0",
             "git-activity-summary": "1.0.0",
             "session-wrap": "4.1.0",
             "chronicle-workflow-miner": "1.4.0",
@@ -35,11 +35,11 @@ class ActivityReportingSkillTest(unittest.TestCase):
     def test_reporting_skill_is_facts_first_and_privacy_bounded(self) -> None:
         skill = (
             ROOT
-            / "src/codex-home/vendor/skills/activity-report/1.1.0/SKILL.md"
+            / "src/codex-home/vendor/skills/activity-report/1.2.0/SKILL.md"
         ).read_text(encoding="utf-8")
         contract = (
             ROOT
-            / "src/codex-home/vendor/skills/activity-report/1.1.0/references/facts-contract.md"
+            / "src/codex-home/vendor/skills/activity-report/1.2.0/references/facts-contract.md"
         ).read_text(encoding="utf-8")
         self.assertIn("Activity Facts v2", skill)
         self.assertIn("不能批量保存会话正文", skill)

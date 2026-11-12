@@ -1,0 +1,3 @@
+interface:
+  display_name: "磁盘空间与清理评估"
+  short_description: "分析挂载点及各用户占用，保护近期文件并提供分批清理建议"

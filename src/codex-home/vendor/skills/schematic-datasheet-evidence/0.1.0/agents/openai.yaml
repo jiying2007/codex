@@ -1,0 +1,4 @@
+interface:
+  display_name: "原理图与规格书证据读取"
+  short_description: "核对原理图、规格书和IO表，保留引脚及参数证据与未知项"
+  default_prompt: "使用 $schematic-datasheet-evidence 读取原理图或规格书，按原件坐标建立证据，区分定位、图面确认、原生网表与待核实项。"

@@ -32,7 +32,16 @@ USER_AGENT = "CodexPublicKnowledgeArchive/0.1 (+public-only; no-auth)"
 def network_disabled() -> bool:
     return os.environ.get("CODEX_OFFLINE_HERMETIC") == "1"
 MAX_PAGES_HARD_LIMIT = 100
-RESERVED_OUTPUT_ROOTS = (Path("/home/leiwenjun/.codex"), Path("/home/leiwenjun/codex"))
+
+
+def reserved_output_roots() -> tuple[Path, ...]:
+    """Protect the actual checkout and runtime homes after relocation, too."""
+    return tuple(path.expanduser().resolve() for path in (
+        Path(__file__).resolve().parents[2],
+        Path.home() / "codex",
+        Path.home() / ".codex",
+        Path(os.environ.get("CODEX_HOME") or "~/.codex"),
+    ))
 
 
 class VisibleTextParser(HTMLParser):
@@ -99,7 +108,7 @@ def host_allowed(url: str, allow_domains: Iterable[str]) -> bool:
 
 def safe_output_dir(value: str) -> Path:
     target = Path(value).expanduser().resolve()
-    for reserved in RESERVED_OUTPUT_ROOTS:
+    for reserved in reserved_output_roots():
         if target == reserved or reserved in target.parents:
             raise ValueError(f"output directory is reserved: {target}")
     return target

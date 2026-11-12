@@ -615,7 +615,8 @@ def render_mcp_config(repo: Repo, profile: str) -> str:
 def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str = "", build_arg: str = "",
                context_config_from: str = "", reuse_context_input: bool = False,
                *, local_rules_arg: str = "", local_rules_sha256: str = "",
-               reuse_machine_inputs: bool = False) -> pathlib.Path:
+               reuse_machine_inputs: bool = False, local_config_arg: str = "",
+               local_config_sha256: str = "") -> pathlib.Path:
     repo = Repo.from_path(root)
     assets = repo.assets
     policies = repo.policies
@@ -631,8 +632,8 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
             fail(str(exc))
     profile = profile_arg or assets.get("default_profile") or "default"
     if reuse_machine_inputs:
-        if local_rules_arg or local_rules_sha256:
-            fail("local rules explicit and reused inputs cannot be mixed")
+        if local_rules_arg or local_rules_sha256 or local_config_arg or local_config_sha256:
+            fail("machine explicit and reused inputs cannot be mixed")
         from .local_exec_rules import verified_inputs
         previous = read_json(build / "control/state/managed-files.json")
         try:
@@ -642,6 +643,11 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         if "exec_rules" in inputs:
             local_rules_arg = inputs["exec_rules"]["path"]
             local_rules_sha256 = inputs["exec_rules"]["sha256"]
+        if "config_overrides" in inputs:
+            local_config_arg = inputs["config_overrides"]["path"]
+            local_config_sha256 = inputs["config_overrides"]["sha256"]
+    if local_config_arg and context_config_from:
+        fail("partial local config and full context snapshot cannot be combined")
     profiles = {item["name"] for item in repo.manifest("profiles.json").get("profiles", [])}
     if profile not in profiles:
         fail(f"profile 未定义: {profile}")
@@ -671,6 +677,17 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
     if context_input and sha256(context_input) != context_input_sha256:
         fail("context 配置输入在构建期间变化；请重新构建")
     machine_inputs = {}
+    if bool(local_config_arg) != bool(local_config_sha256):
+        fail("local config requires both a file and its approved SHA256")
+    if local_config_arg:
+        from .local_config import load_config, merge_config
+        try:
+            overrides, identity = load_config(local_config_arg, local_config_sha256, profile)
+            config_path = tmp_build / assets.get("config", {}).get("output", "config.toml")
+            config_path.write_text(merge_config(config_path.read_text(encoding="utf-8"), overrides), encoding="utf-8")
+        except (ValueError, OSError, TypeError) as exc:
+            fail("local config invalid: " + str(exc))
+        machine_inputs["config_overrides"] = identity
     if bool(local_rules_arg) != bool(local_rules_sha256):
         fail("local rules require both a file and its approved SHA256")
     if local_rules_arg:
@@ -719,6 +736,11 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
         "context_config_input_path": str(context_input) if context_input else None,
         "managed": managed,
     })
+    from .local_exec_rules import verified_inputs
+    try:
+        verified_inputs(machine_inputs, source, profile)
+    except (ValueError, TypeError, OSError, KeyError, SyntaxError) as exc:
+        fail("machine input changed during build: " + str(exc))
     if build.exists() or build.is_symlink():
         old_build = build.with_name(f".{build.name}.old-{os.getpid()}")
         if old_build.exists():
@@ -755,6 +777,13 @@ def plan_apply(
         reusable_context_input(read_json(state_path))
     except (ValueError, TypeError, OSError) as exc:
         fail("build context input invalid: " + str(exc))
+    from .local_exec_rules import verified_inputs
+    state = read_json(state_path)
+    try:
+        verified_inputs(state.get("machine_inputs", {}),
+                        pathlib.Path(state.get("source") or build_path), state.get("profile", ""))
+    except (ValueError, TypeError, OSError, KeyError, SyntaxError) as exc:
+        fail("build machine input invalid: " + str(exc))
     protected = repo.policies.get("protected_paths", [])
     always_generated = {"skills/registry.csv", "control/state/active-profile.env", "control/state/managed-files.json"}
     # Do not read managed state through a redirected directory before preflight.
@@ -1043,6 +1072,13 @@ def validate_apply_plan(
         reusable_context_input(read_json(state_path))
     except (ValueError, TypeError, OSError) as exc:
         fail("apply plan context input invalid: " + str(exc))
+    from .local_exec_rules import verified_inputs
+    state = read_json(state_path)
+    try:
+        verified_inputs(state.get("machine_inputs", {}),
+                        pathlib.Path(state.get("source") or build), state.get("profile", ""))
+    except (ValueError, TypeError, OSError, KeyError, SyntaxError) as exc:
+        fail("apply plan machine input invalid: " + str(exc))
     if receipt.get("tree_sha256") != tree_fingerprint(build):
         fail("apply plan 已失效: build tree 已变化")
     if expected_target is not None:
