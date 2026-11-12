@@ -1,5 +1,5 @@
 ########################################
-# Codex Industrial Config (VSCode)
+# Codex CLI managed configuration
 # https://developers.openai.com/codex/config-basic
 # https://developers.openai.com/codex/config-advanced
 # https://developers.openai.com/codex/config-reference
@@ -12,7 +12,8 @@ developer_instructions = "请使用中文回答,务必使用清晰详细准确�
 # ========================
 # 模型配置
 # ========================
-model = "gpt-5.6-terra"  # 默认快速模型（适合日常编码与资产管理任务）
+model = "gpt-6.1-sol"  # 默认快速模型（适合日常编码与资产管理任务）
+model_provider = "openai"
 
 # 推理强度（核心成本控制参数）
 # low    = 最省钱（推荐日常）
@@ -20,7 +21,7 @@ model = "gpt-5.6-terra"  # 默认快速模型（适合日常编码与资产管�
 # high   = 深度分析
 model_reasoning_effort = "medium"
 # 显式进入计划模式时固定较深推理；不影响日常默认强度。
-plan_mode_reasoning_effort = "high"
+plan_mode_reasoning_effort = "xhigh"
 
 # 推理摘要和输出冗余控制
 model_reasoning_summary = "concise"
@@ -63,8 +64,17 @@ writable_roots = [
 
 
 # ========================
-# Shell 环境控制
+# 中转站连接（本机选择 relay 时使用）
 # ========================
+[model_providers.relay]
+name = "LAN OpenAI-compatible relay"
+base_url = "http://192.168.2.109:3000/v1"
+wire_api = "responses"
+# 启动 Codex 的终端或 IDE 必须继承此变量；密钥不进入配置源。
+env_key = "CODEX_RELAY_API_KEY"
+env_key_instructions = "请在启动终端或 IDE 的环境中设置 CODEX_RELAY_API_KEY，再重新启动 Codex。"
+requires_openai_auth = false
+
 [shell_environment_policy]
 
 # 环境变量继承策略：
@@ -116,7 +126,7 @@ show_tooltips = false
 alternate_screen = "auto"
 # 默认使用便于终端选择、复制日志的滚动输出；/raw 或 Alt+R 可切换。
 raw_output_mode = true
-# resume_cwd 保持未设置，恢复目录不一致时由 CLI 询问。
+# 默认未设置 resume_cwd；本机覆盖可显式选择 current 或 session。
 status_line = [
   "git-branch",
   "context-remaining",

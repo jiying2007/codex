@@ -7,6 +7,7 @@ build/
 inbox/
 .tmp/
 local/exec-rules.json
+local/config-overrides.json
 scratch/
 __pycache__/
 *.pyc

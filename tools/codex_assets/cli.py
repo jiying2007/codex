@@ -50,6 +50,7 @@ from .feishu_codex_bot import (
     run as run_feishu_codex_bot,
 )
 from .feishu_cli_read import configure_parser as configure_feishu_read_parser, run as run_feishu_read
+from .disk_space import configure_parser as configure_disk_parser, run as run_disk_usage
 
 
 def default_root() -> pathlib.Path:
@@ -61,7 +62,9 @@ def cmd_build(args: argparse.Namespace) -> int:
                        context_config_from=args.context_config_from, reuse_context_input=args.reuse_context_input,
                        local_rules_arg=args.local_rules or "",
                        local_rules_sha256=args.expected_local_rules_sha256 or "",
-                       reuse_machine_inputs=args.reuse_machine_inputs)
+                       reuse_machine_inputs=args.reuse_machine_inputs,
+                       local_config_arg=args.local_config or "",
+                       local_config_sha256=args.expected_local_config_sha256 or "")
     state = read_json(build / "control/state/managed-files.json")
     print(f"[DONE] build profile={state['profile']} output={build} managed={len(state['managed'])}")
     return 0
@@ -105,6 +108,9 @@ def cmd_apply(args: argparse.Namespace) -> int:
                 if "exec_rules" in inputs:
                     rebuild_inputs["local_rules_arg"] = inputs["exec_rules"]["path"]
                     rebuild_inputs["local_rules_sha256"] = inputs["exec_rules"]["sha256"]
+                if "config_overrides" in inputs:
+                    rebuild_inputs["local_config_arg"] = inputs["config_overrides"]["path"]
+                    rebuild_inputs["local_config_sha256"] = inputs["config_overrides"]["sha256"]
             build = build_repo(repo.root, rebuild_profile, "", str(build), **rebuild_inputs)
         target = pathlib.Path(args.target or "~/.codex").expanduser()
         backup_root = pathlib.Path(args.backup_root).expanduser() if args.backup_root else repo.root / ".backups/apply" / datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -547,6 +553,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--build", default="")
     p.add_argument("--local-rules", default="")
     p.add_argument("--expected-local-rules-sha256", default="")
+    p.add_argument("--local-config", default="", help="partial machine preference JSON; sandbox/command permissions and MCP stay source-owned")
+    p.add_argument("--expected-local-config-sha256", default="")
     p.add_argument("--reuse-machine-inputs", action="store_true", help="reuse approved machine inputs only after validating their hashes and profile")
     p.add_argument("--context-config-from", default="", help="preserve input TOML except two managed native compaction keys")
     p.add_argument("--reuse-context-input", action="store_true", help="reuse the previous build input only if its recorded hash still matches")
@@ -711,6 +719,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--write-memory-candidate", action="store_true")
     p.set_defaults(func=cmd_curate_memory)
+
+    p = sub.add_parser("disk-usage", parents=[common])
+    configure_disk_parser(p)
+    p.set_defaults(func=run_disk_usage)
 
     p = sub.add_parser("execution-policy", parents=[common])
     configure_execution_policy_parser(p)
