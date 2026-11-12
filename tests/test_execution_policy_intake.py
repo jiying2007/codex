@@ -76,7 +76,7 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         rollout = self.codex_home / "rollout.jsonl"
         item = json.loads(rollout.read_text(encoding="utf-8").splitlines()[0])
         item["payload"]["info"]["last_token_usage"]["total_tokens"] = 17_000
-        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\\n", encoding="utf-8")
+        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
         receipt = self.run_cli(*self.intake_args("--dry-run"))
         self.assertEqual(0, receipt.returncode, receipt.stderr)
         # One open item: eight projected turns; 136K rounds to 150K.
