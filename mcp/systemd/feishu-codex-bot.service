@@ -5,9 +5,9 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/leiwenjun/codex
-Environment=PATH=/home/leiwenjun/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/leiwenjun/codex/scripts/feishu-codex-bot.sh start
+WorkingDirectory=%h/codex
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/codex/scripts/feishu-codex-bot.sh start
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30

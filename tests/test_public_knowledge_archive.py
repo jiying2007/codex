@@ -23,6 +23,29 @@ RENDERED_SPEC.loader.exec_module(rendered)
 
 
 class PublicKnowledgeArchiveTest(unittest.TestCase):
+    def test_output_boundary_follows_home_checkout_and_runtime_override(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            home = root / "another-user"
+            checkout = root / "relocated-assets"
+            runtime = root / "custom-runtime"
+            module_path = checkout / "tools/codex_assets/public_knowledge_archive.py"
+            with mock.patch.object(archive, "__file__", str(module_path)), \
+                 mock.patch.object(Path, "home", return_value=home), \
+                 mock.patch.dict(archive.os.environ, {"CODEX_HOME": str(runtime)}):
+                for reserved in (checkout, home / "codex", home / ".codex", runtime):
+                    for target in (reserved, reserved / "pages"):
+                        with self.subTest(target=target):
+                            with self.assertRaisesRegex(ValueError, "reserved"):
+                                archive.safe_output_dir(str(target))
+                allowed = root / "relocated-assets-archive"
+                self.assertEqual(archive.safe_output_dir(str(allowed)), allowed)
+                runtime.mkdir()
+                alias = root / "runtime-alias"
+                alias.symlink_to(runtime, target_is_directory=True)
+                with self.assertRaisesRegex(ValueError, "reserved"):
+                    archive.safe_output_dir(str(alias / "pages"))
+
     def test_canonicalize_and_allowlist(self):
         self.assertEqual(archive.canonicalize("HTTPS://WWW.YUQUE.COM/a#x"), "https://www.yuque.com/a")
         self.assertTrue(archive.host_allowed("https://sub.yuque.com/a", ("yuque.com",)))

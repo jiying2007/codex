@@ -32,7 +32,7 @@
       "review_required": true,
       "secret_scan_required": true,
       "promotion_gate": "Promote only after a second ADK asset update confirms stale codex source is a recurring failure mode.",
-      "summary": "Before applying ADK assets to ~/.codex, confirm /home/leiwenjun/codex has absorbed the target agent-dev-kit commit; if source is stale, sync source first, then run build, doctor, plan, dry-run, apply and check."
+      "summary": "Before applying ADK assets to ~/.codex, confirm ~/codex has absorbed the target agent-dev-kit commit; if source is stale, sync source first, then run build, doctor, plan, dry-run, apply and check."
     },
     {
       "name": "managed-source-live-drift-after-format-fix",

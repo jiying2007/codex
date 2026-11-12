@@ -21,9 +21,9 @@
 
 | 别名 | 工作目录 | 模式 | edit 策略 |
 | --- | --- | --- | --- |
-| `codex` | `/home/leiwenjun/codex` | `explain`, `review` | - |
+| `codex` | `~/codex` | `explain`, `review` | - |
 | `pcr02-demo` | `/vsdata/leiwenjun/work/sigmastar/pcr02_ssc305/SourceCode/sdk/verify/xcrz_sigmastar_demo` | `explain`, `review`, `edit` | `in_place` |
-| `llm_apps` | `/home/leiwenjun/bin/llm_apps` | `explain`, `review`, `edit` | `in_place` |
+| `llm_apps` | `~/bin/llm_apps` | `explain`, `review`, `edit` | `in_place` |
 | `x5` | `/vsdata/leiwenjun/work/rdk/x5` | `explain`, `review`, `edit` | `in_place` |
 
 上述是原基础策略的仓库登记，默认项目为 `llm_apps`。当前环境使用独立的 `mcp/secrets/feishu-bot-current.json`：只登记 `codex`，默认项目为 `codex`，只允许 `explain`、`review`，未启用 `edit` 和文件上传；不需要每条消息指定 `repo=`。原策略和凭据文件保持不变。
@@ -118,8 +118,8 @@ repo=codex mode=review 根据需求文档检查当前代码 https://example.feis
 只读 CLI 复验入口：
 
 ```bash
-rtk bash /home/leiwenjun/codex/scripts/feishu-codex-bot.sh read-source --url 'https://example.feishu.cn/wiki/NodeToken?sheet=SheetId&range=A1:C3' --dry-run
-rtk bash /home/leiwenjun/codex/scripts/feishu-codex-bot.sh read-source --url 'https://example.feishu.cn/wiki/NodeToken?sheet=SheetId&range=A1:C3'
+rtk bash ~/codex/scripts/feishu-codex-bot.sh read-source --url 'https://example.feishu.cn/wiki/NodeToken?sheet=SheetId&range=A1:C3' --dry-run
+rtk bash ~/codex/scripts/feishu-codex-bot.sh read-source --url 'https://example.feishu.cn/wiki/NodeToken?sheet=SheetId&range=A1:C3'
 ```
 
 `--dry-run` 不读取凭据或联网；实际读取默认仅输出上下文长度与 SHA-256，不打印正文。显式添加 `--show-content` 才输出正文。此入口不会启动 Codex、发送消息或写入云端文档。
@@ -153,7 +153,7 @@ rtk bash /home/leiwenjun/codex/scripts/feishu-codex-bot.sh read-source --url 'ht
 默认路径：
 
 ```text
-/home/leiwenjun/codex/mcp/secrets/feishu.env
+~/codex/mcp/secrets/feishu.env
 ```
 
 最小内容：
@@ -163,7 +163,7 @@ FEISHU_APP_ID=cli_xxx
 FEISHU_APP_SECRET=replace-me
 FEISHU_TARGET_CHAT_ID=oc_xxx
 FEISHU_BOT_NAME=AI助手
-FEISHU_BOT_CONFIG=/home/leiwenjun/codex/mcp/secrets/feishu-bot.json
+FEISHU_BOT_CONFIG=~/codex/mcp/secrets/feishu-bot.json
 ```
 
 文件必须设置为 `600`，不得提交到 Git、粘贴到工单或输出到日志。
@@ -173,7 +173,7 @@ FEISHU_BOT_CONFIG=/home/leiwenjun/codex/mcp/secrets/feishu-bot.json
 默认本机路径：
 
 ```text
-/home/leiwenjun/codex/mcp/secrets/feishu-bot.json
+~/codex/mcp/secrets/feishu-bot.json
 ```
 
 可提交的脱敏示例：[feishu-codex-bot.example.json](../mcp/feishu-codex-bot.example.json)。
@@ -186,7 +186,7 @@ FEISHU_BOT_CONFIG=/home/leiwenjun/codex/mcp/secrets/feishu-bot.json
   "allowed_open_ids": ["ou_owner"],
   "repositories": {
     "llm_apps": {
-      "path": "/home/leiwenjun/bin/llm_apps",
+      "path": "~/bin/llm_apps",
       "allowed_modes": ["explain", "review", "edit"],
       "allowed_open_ids": [],
       "edit_strategy": "in_place",
@@ -244,6 +244,10 @@ rtk systemctl --user show feishu-codex-bot.service \
 ```text
 mcp/systemd/feishu-codex-bot.service
 ```
+
+模板使用 systemd `%h` 指向运行用户的主目录，默认仓库位置为 `~/codex`。
+仓库安装在其他位置时，安装前调整 unit 的 `WorkingDirectory` 和 `ExecStart`；
+文档中的 `~/codex` 命令也应使用实际位置。本次源码修改不会更新已安装的 unit 或重启服务。
 
 本机安装位置：
 
