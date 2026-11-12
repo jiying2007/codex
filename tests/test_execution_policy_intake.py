@@ -63,6 +63,25 @@ class IntakeTest(ExecutionPolicyAdapterTest):
         self.assertEqual(json.loads(retry.stdout)["budget_basis"], "existing-goal")
         self.assertEqual(journal.read_bytes(), before)
 
+    def test_lightweight_goal_has_no_unconditional_300k_floor(self):
+        result = self.run_cli(*self.intake_args("--dry-run"))
+        self.assertEqual(0, result.returncode, result.stderr)
+        receipt = json.loads(result.stdout)
+        # Fixture's trusted most recent turn is 12 tokens: 12 * 8 < 20K.
+        self.assertEqual(20_000, receipt["token_budget"])
+        self.assertEqual("measured-last-turn-per-goal-proposal", receipt["budget_basis"])
+        self.assertFalse(receipt["budget_is_runtime_permission"])
+
+    def test_medium_goal_uses_proportional_rounding(self):
+        rollout = self.codex_home / "rollout.jsonl"
+        item = json.loads(rollout.read_text(encoding="utf-8").splitlines()[0])
+        item["payload"]["info"]["last_token_usage"]["total_tokens"] = 17_000
+        rollout.write_text(json.dumps(item, separators=(",", ":")) + "\n", encoding="utf-8")
+        receipt = self.run_cli(*self.intake_args("--dry-run"))
+        self.assertEqual(0, receipt.returncode, receipt.stderr)
+        # One open item: eight projected turns; 136K rounds to 150K.
+        self.assertEqual(150_000, json.loads(receipt.stdout)["token_budget"])
+
     def test_existing_goal_does_not_require_a_fresh_budget_estimate(self):
         first = self.run_cli(*self.intake_args())
         self.assertEqual(first.returncode, 0, first.stderr)

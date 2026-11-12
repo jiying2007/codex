@@ -198,7 +198,13 @@ def _initial_goal_budget(args: argparse.Namespace, usage: dict) -> tuple[int, st
     # to four items. Exceeding this estimate must follow normal Host replan;
     # it does NOT permit unbounded requests or reset completed history.
     turns = 4 + 4 * min(max(count, 1), 4)
-    estimated = max(300_000, ((observed * turns + 99_999) // 100_000) * 100_000)
+    raw_estimate = observed * turns
+    # Round in proportion to task size; the old unconditional 300K floor
+    # overprovisioned lightweight Goals. This remains an intake proposal,
+    # never a runtime permission or an extension of an existing Goal.
+    quantum = (10_000 if raw_estimate <= 100_000 else
+               50_000 if raw_estimate <= 500_000 else 100_000)
+    estimated = max(20_000, ((raw_estimate + quantum - 1) // quantum) * quantum)
     return estimated, "measured-last-turn-per-goal-proposal"
 
 
