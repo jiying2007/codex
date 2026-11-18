@@ -1,29 +1,24 @@
 {
-  "schema_version": 1,
-  "contract_version": "1.3",
+  "schema_version": 2,
+  "contract_version": "2.0",
   "status": "active",
-  "role": "thin-session-bootstrap",
+  "role": "thin-daily-session-bootstrap",
   "runtime_binding": "codex-cli",
   "owns": [
     "task_mode_resolution",
     "runtime_context_assembly",
     "provider_preflight_request",
-    "identity_ref_assembly",
-    "formal_execution_source_set_freeze",
-    "formal_work_run_identity_freeze",
-    "governance_escalation_provenance"
+    "identity_ref_assembly"
   ],
   "must_not_own": [
-    "digital_worker_domain_gate_semantics",
-    "digital_worker_verification_pass",
+    "domain_gate_semantics",
+    "project_verification_pass",
+    "release_approval",
     "knowledge_lifecycle",
-    "reusable_agent_skill_source_of_truth",
-    "cross_runtime_effectiveness_evaluation"
+    "reusable_agent_skill_source_of_truth"
   ],
   "resolution_precedence": [
     "explicit_mode",
-    "formal_signal",
-    "engineering_task_package",
     "governed_signal",
     "default_l0"
   ],
@@ -31,55 +26,19 @@
     "L0": {
       "name": "quick-assist",
       "default": true,
-      "knowledge_mode": "current-provider",
-      "digital_worker_run_required": false,
-      "digital_worker_contract_required": false,
-      "formal_evidence_required": false
+      "knowledge_mode": "current-provider"
     },
     "L1": {
       "name": "governed-engineering",
       "default": false,
-      "knowledge_mode": "current-provider",
-      "digital_worker_contract_required": false,
-      "formal_evidence_required": false
-    },
-    "L2": {
-      "name": "formal-evidence",
-      "default": false,
-      "knowledge_mode": "exact-pinned-provider",
-      "digital_worker_contract_required": true,
-      "formal_evidence_required": true,
-      "required_inputs": [
-        "full_40_hex_base_commit",
-        "digital_worker_exact_governance_identity",
-        "digital_worker_selected_domain_refs",
-        "digital_worker_selected_routing_refs",
-        "knowledge_provider_root",
-        "engineering_task_package_with_package_id_work_item_id_run_id_base_commit"
-      ]
+      "knowledge_mode": "current-provider"
     }
   },
   "provider_adapter": "scripts/knowledge-provider.sh",
-  "runtime_binding_contract": "manifests/integrations/digital-worker-runtime-binding.json",
-  "runtime_binding_contract_modes": ["L2"],
   "asset_provider_lock": "manifests/provider-locks/agent-dev-kit.json",
   "output_contract": {
-    "kind": "codex-session-bootstrap/v1",
+    "kind": "codex-session-bootstrap/v2",
     "contains_identity_refs_only": true,
-    "formal_identity_fields": [
-      "work_identity",
-      "digital_worker.governance_identity",
-      "execution_source_set.identity",
-      "execution_source_set.materials.engineering",
-      "session_bootstrap_identity",
-      "governance_escalation"
-    ],
-    "runtime_receipt_handoff": {
-      "schema": "schemas/runtime-execution-receipt.v2.schema.json",
-      "work_item_id_from": "work_identity.work_item_id",
-      "run_id_from": "work_identity.run_id",
-      "execution_source_set_identity_from": "execution_source_set.identity"
-    },
     "forbidden_claims": [
       "verification_pass",
       "domain_gate_pass",
@@ -87,18 +46,8 @@
     ]
   },
   "rules": {
-    "daily_modes_do_not_load_digital_worker_binding": true,
     "project_acceptance_remains_external": true,
     "explicit_conflicts_fail_closed": true,
-    "formal_mode_requires_exact_inputs": true,
-    "formal_mode_requires_exact_digital_worker_governance_identity": true,
-    "formal_mode_requires_authoritative_work_run_identity_from_engineering_task_package": true,
-    "formal_engineering_task_package_base_commit_must_match_requested_base_commit": true,
-    "formal_execution_source_set_is_runtime_frozen_from_exact_refs": true,
-    "formal_execution_source_set_binds_work_item_run_and_package_identity": true,
-    "runtime_receipt_v2_must_reuse_frozen_work_run_and_source_set_identity": true,
-    "l1_to_l2_requires_new_bootstrap_and_execution_source_set": true,
-    "l1_context_remains_provisional_and_is_never_auto_promoted": true,
     "runtime_local_readiness_is_not_domain_readiness": true,
     "knowledge_provider_unavailable_is_not_pass": true,
     "bootstrap_does_not_write_knowledge": true,

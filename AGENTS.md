@@ -4,7 +4,7 @@
 
 ## 1. 路由与执行
 - 默认 adk-first、`default`；外部参考只用于 intake/设计证据，不进入 runtime profile、workflow 或 fallback。
-- Digital Worker 不是日常前置依赖；L0/L1 直接使用 CLI + ADK，任务/测试/审查由项目验收；L2 显式选择后仍严格阻断缺项。
+- 日常只采用 CLI + ADK + Knowledge Provider + 项目 Git/CI；旧 Formal L2 已退役，旧参数和模式必须拒绝，不能自动降级。任务、测试和发布仍由项目验收。
 - 小任务直接实现验证；非平凡任务冻结目标、边界、风险、验收与阻塞；长任务用 `adk-planning-execution-loop`。
 - 每场景仅一个 primary skill；需求、拆解、调试、review、完成验证使用对应 `adk-*`，收尾用 `session-wrap`。
 - 上游 Skill 命令/路径仅对源仓有效；跨项目核实入口，不复制发布规则或知识目录。

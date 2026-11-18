@@ -9,7 +9,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-BINDING = ROOT / "manifests/integrations/digital-worker-runtime-binding.json"
 POLICY_SOURCE = ROOT / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
 ADK = ROOT / "manifests/provider-locks/agent-dev-kit.json"
 RUNTIME = ROOT / "manifests/execution_policy.json"
@@ -90,74 +89,61 @@ def validate_runtime_source(runtime: dict[str, object]) -> None:
             "runtime config validation must use the same canonical source")
 
 
-def validate_receipt_v2(receipt: dict[str, object], binding: dict[str, object]) -> None:
-    contract = binding.get("execution_receipt_contract")
-    require(contract == {
-        "schema": "schemas/runtime-execution-receipt.v2.schema.json",
-        "schema_version": 2,
-        "identity_model": "execution-source-set-bound",
-        "legacy_v1_schema": "schemas/runtime-execution-receipt.schema.json",
-        "legacy_v1_status": "historical-read-only",
-    }, "runtime execution receipt contract drift")
-    require(receipt.get("additionalProperties") is False, "receipt v2 must be closed schema")
-    required = receipt.get("required")
-    require(isinstance(required, list), "receipt v2 required fields missing")
-    for field in ("execution_source_set_identity", "digital_worker_governance_identity", "runtime_binding", "agent_assets"):
-        require(field in required, f"receipt v2 must require {field}")
-    props = receipt.get("properties")
-    require(isinstance(props, dict), "receipt v2 properties missing")
-    require("asset_bundle_hash" not in json.dumps(props, sort_keys=True), "receipt v2 must not use retired asset_bundle_hash")
+def validate_historical_receipt_schema(receipt: dict[str, object]) -> None:
+    # Frozen v2 receipts may still be read as historical evidence, but no new
+    # Digital Worker L2 sessions can be bootstrapped or authorized.
+    require(receipt.get("additionalProperties") is False, "historical receipt schema must stay closed")
+    fields = receipt.get("required")
+    require(isinstance(fields, list), "historical receipt required fields missing")
+    for field in ("execution_source_set_identity", "digital_worker_governance_identity",
+                  "runtime_binding", "agent_assets"):
+        require(field in fields, f"historical receipt schema lost {field}")
     text = RECEIPT_V2.read_text(encoding="utf-8")
-    for forbidden_claim in ("verification_pass", "release_ready", "domain_gate_pass"):
-        require(forbidden_claim in text, f"receipt v2 must explicitly forbid {forbidden_claim}")
-
+    for claim in ("verification_pass", "release_ready", "domain_gate_pass"):
+        require(claim in text, f"historical receipt does not forbid {claim}")
 
 def main() -> None:
-    for path in [BINDING, ADK, POLICY_SOURCE, RUNTIME, HUB, RECEIPT_V2, RECEIPT_V1, ADAPTER, AGENTS]:
+    for path in [ADK, POLICY_SOURCE, RUNTIME, HUB, RECEIPT_V2, RECEIPT_V1, ADAPTER, AGENTS,
+                 ROOT / "manifests/session_bootstrap.json"]:
         require(path.is_file(), f"missing runtime binding asset: {path.relative_to(ROOT)}")
-    binding = json.loads(BINDING.read_text(encoding="utf-8"))
     adk = json.loads(ADK.read_text(encoding="utf-8"))
     runtime = json.loads(RUNTIME.read_text(encoding="utf-8"))
     hub = json.loads(HUB.read_text(encoding="utf-8"))
+    bootstrap = json.loads((ROOT / "manifests/session_bootstrap.json").read_text(encoding="utf-8"))
     receipt_v2 = json.loads(RECEIPT_V2.read_text(encoding="utf-8"))
-
-    require(binding["schema_version"] == 2 and binding["contract_version"] == "2.1", "Codex runtime binding schema drift")
-    require(binding["status"] == "active", "Codex runtime binding must be active")
-    require(binding["role"] == "codex-runtime-distribution-and-host-integration", "Codex role drift")
-    require(binding["runtime_target"] == "codex-cli", "runtime target drift")
-    require(binding["source_binding"] == {
-        "provider_repository": "jiying2007/agent-dev-kit",
-        "release_version": ADK_RELEASE["version"],
-        "provider_commit": ADK_RELEASE["provider_commit"],
-        "asset_profile": "embedded-fullstack",
-        "identity_mode": "exact-release-source-blobs",
-    }, "runtime source binding drift")
-    require(binding["readiness"] == "SOURCE_SET_BOUND", "runtime source binding readiness drift")
-    require(binding["gate_semantics"]["runtime_success_implies_domain_verification_pass"] is False, "runtime must not claim domain PASS")
-    require(binding["gate_semantics"]["runtime_release_gate_implies_product_release_readiness"] is False, "runtime must not claim product release readiness")
-    require("cross_runtime_effectiveness_evaluation" in binding["must_not_own"], "cross-runtime eval must remain outside Codex binding")
+    require(bootstrap.get("contract_version") == "2.0" and
+            set(bootstrap.get("modes", {})) == {"L0", "L1"} and
+            bootstrap.get("status") == "active",
+            "active bootstrap contract must support L0/L1 only")
+    require("digital-worker" not in json.dumps(bootstrap, sort_keys=True).lower() and
+            "digital_worker" not in json.dumps(bootstrap, sort_keys=True).lower(),
+            "retired Digital Worker must not be an active runtime contract")
 
     validate_adk_lock(adk)
     validate_runtime_source(runtime)
-    validate_receipt_v2(receipt_v2, binding)
+    validate_historical_receipt_schema(receipt_v2)
 
     require(hub["repository"] == "jiying2007/knowledge-hub", "Knowledge Hub canonical repository required")
     require(re.fullmatch(r"[0-9a-f]{40}", hub["provider_commit"]) is not None, "Hub provider commit must be exact")
-    require(hub["rules"]["consumer_must_not_depend_on_provider_internal_temp_paths"] is True, "Hub internal paths must not be contract")
+    require(hub["rules"]["consumer_must_not_depend_on_provider_internal_temp_paths"] is True,
+            "Hub internal paths must not be contract")
     require(hub.get("protocol_version") == 4, "Hub protocol must be v4")
     require(exact_sha(hub.get("source_manifest_sha256"), 64), "Hub executable source manifest must be exact")
-    require("tools.codex_assets.knowledge_provider_adapter" in ADAPTER.read_text(encoding="utf-8"), "shell must forward to sole adapter module")
+    require("tools.codex_assets.knowledge_provider_adapter" in ADAPTER.read_text(encoding="utf-8"),
+            "shell must forward to sole adapter module")
     adapter = PROVIDER_MODULE.read_text(encoding="utf-8")
-    for token in ["knowledge-provider.sh", "knowledge-evidence-pack.sh", "knowledge-action-check.sh", "knowledge-proposal-route.sh", "knowledge-activity.sh", "BLOCKED", "UNKNOWN", "verify_source"]:
+    for token in ["knowledge-provider.sh", "knowledge-evidence-pack.sh",
+                  "knowledge-action-check.sh", "knowledge-proposal-route.sh",
+                  "knowledge-activity.sh", "BLOCKED", "UNKNOWN", "verify_source"]:
         require(token in adapter, f"adapter missing surface: {token}")
     require(".tmp/activity/receipts" not in adapter, "adapter must not bind Hub internal receipt path")
-    require(".tmp/activity/receipts" not in AGENTS.read_text(encoding="utf-8"), "AGENTS must not bind Hub internal receipt path")
-
-    print("runtime binding validation PASS")
+    require(".tmp/activity/receipts" not in AGENTS.read_text(encoding="utf-8"),
+            "AGENTS must not bind Hub internal receipt path")
+    print("standalone Codex runtime binding PASS")
     print(f"adk_version={adk['version']}")
     print(f"adk_commit={adk['provider_commit']}")
-    print("runtime_modules=contracts,decision,reducer,package")
-    print(f"runtime_readiness={binding['readiness']}")
+    print("runtime_readiness=SOURCE_SET_BOUND")
+    print("bootstrap_modes=L0,L1")
 
 
 if __name__ == "__main__":

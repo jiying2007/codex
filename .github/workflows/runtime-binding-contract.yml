@@ -163,7 +163,6 @@ jobs:
           retention-days: 14
       - name: Validate JSON syntax
         run: |
-          python -m json.tool manifests/integrations/digital-worker-runtime-binding.json >/dev/null
           python -m json.tool manifests/provider-locks/agent-dev-kit.json >/dev/null
           python -m json.tool manifests/provider-locks/knowledge-hub.json >/dev/null
           python -m json.tool manifests/agents.json >/dev/null
