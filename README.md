@@ -349,7 +349,7 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 ```bash
 rtk python3 -m tools.codex_assets execution-policy snapshot
 rtk python3 -m tools.codex_assets execution-policy watch
-rtk python3 -m tools.codex_assets execution-policy goal start --goal-id <id> --token-budget <n> --time-budget-seconds <n> --success-criterion <id> --required-evidence <id> --open-items <n> --task-mode implementation --request-sha256 <sha256> --routing-decision-sha256 <sha256> --authority-id digital-worker --decision-id <decision-id> --source-id digital-worker --source-version <version>
+rtk python3 -m tools.codex_assets execution-policy goal start --goal-id <id> --token-budget <n> --time-budget-seconds <n> --success-criterion <id> --required-evidence <id> --open-items <n> --task-mode implementation --request-sha256 <sha256> --routing-decision-sha256 <sha256> --authority-id project-owner --decision-id <decision-id> --source-id project-issue --source-version <version>
 rtk python3 -m tools.codex_assets execution-policy progress --revision <n>
 rtk python3 -m tools.codex_assets execution-policy goal update --open-items <n> [--token-budget <n>] [--time-budget-seconds <n>]
 rtk python3 -m tools.codex_assets execution-policy heartbeat

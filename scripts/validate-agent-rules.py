@@ -24,7 +24,7 @@ REQUIRED = (
     "jiying2007/agent-dev-kit",
     "exact provider commit",
     "Execution Policy",
-    "Digital Worker 不是日常前置依赖",
+    "旧 Formal L2 已退役",
     "rtk bash ~/codex/scripts/codex-policy.sh gate --event final",
     "CLI 自动读取当前线程",
 )
