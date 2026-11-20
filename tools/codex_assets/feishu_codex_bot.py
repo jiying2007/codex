@@ -157,6 +157,7 @@ class RepositoryPolicy:
     artifact_extensions: FrozenSet[str]
     artifact_max_bytes: int
     verification_commands: Tuple[Tuple[str, ...], ...]
+    agent_allowed_modes: FrozenSet[str] = frozenset()
 
     @property
     def edit_enabled(self) -> bool:
@@ -186,6 +187,7 @@ class BotConfig:
     isolation_bin: str = "bwrap"
     deny_read_paths: Tuple[pathlib.Path, ...] = ()
     isolation_write_paths: Tuple[pathlib.Path, ...] = ()
+    agent_intake_enabled: bool = False
 
     @classmethod
     def from_values(cls, values: Mapping[str, str], default_workdir: pathlib.Path) -> "BotConfig":
@@ -219,6 +221,9 @@ class BotConfig:
         repositories_raw = payload.get("repositories")
         if not isinstance(repositories_raw, dict) or not repositories_raw:
             raise FeishuCodexError("策略 repositories 必须是非空对象")
+        agent_intake_enabled = payload.get("agent_intake_enabled", False)
+        if not isinstance(agent_intake_enabled, bool):
+            raise FeishuCodexError("agent_intake_enabled 必须是布尔值")
         repositories: Dict[str, RepositoryPolicy] = {}
         for alias, item in repositories_raw.items():
             if not isinstance(alias, str) or not ALIAS_PATTERN.fullmatch(alias):
@@ -235,6 +240,12 @@ class BotConfig:
             modes = frozenset(str(mode).strip() for mode in modes_raw)
             if not modes.issubset(SUPPORTED_MODES):
                 raise FeishuCodexError(f"仓库 {alias} 包含不支持的模式")
+            agent_modes_raw = item.get("agent_allowed_modes", [])
+            if not isinstance(agent_modes_raw, list) or not all(isinstance(x, str) for x in agent_modes_raw):
+                raise FeishuCodexError(f"仓库 {alias} agent_allowed_modes 必须是字符串数组")
+            agent_modes = frozenset(agent_modes_raw)
+            if not agent_modes.issubset(modes):
+                raise FeishuCodexError(f"仓库 {alias} Agent 模式超出 allowed_modes")
             edit_strategy = str(item.get("edit_strategy", "in_place")).strip().lower()
             if edit_strategy not in SUPPORTED_EDIT_STRATEGIES:
                 raise FeishuCodexError(
@@ -259,6 +270,8 @@ class BotConfig:
                     raise FeishuCodexError(f"仓库 {alias} worktree_root 不能位于源工作区内")
             if "edit" in modes and edit_strategy == "worktree" and worktree_root is None:
                 raise FeishuCodexError(f"仓库 {alias} 启用 worktree edit 时必须配置 worktree_root")
+            if "edit" in agent_modes and edit_strategy != "worktree":
+                raise FeishuCodexError(f"仓库 {alias} Agent edit 必须使用隔离 worktree")
             commit_default = edit_strategy == "worktree"
             commit_raw = item.get("commit_enabled", commit_default)
             if not isinstance(commit_raw, bool):
@@ -334,6 +347,7 @@ class BotConfig:
                 artifact_extensions=artifact_extensions,
                 artifact_max_bytes=artifact_max_bytes,
                 verification_commands=tuple(verification_commands),
+                agent_allowed_modes=agent_modes,
             )
 
         default_repo = str(payload.get("default_repo", "")).strip()
@@ -388,6 +402,7 @@ class BotConfig:
             isolation_bin=str(payload.get("isolation_bin", "bwrap")).strip() or "bwrap",
             deny_read_paths=deny_read_paths,
             isolation_write_paths=isolation_write_paths,
+            agent_intake_enabled=agent_intake_enabled,
         )
 
     @property
@@ -801,6 +816,66 @@ class StateStore:
                 (int(time.time()), task_id),
             )
             return result.rowcount == 1
+
+    def create_agent_task(
+        self, message_id: str, sender: str, repository: str, mode: str,
+        input_digest: str, queue_limit: int,
+    ) -> Tuple[int, bool]:
+        """Atomically enforce queue budget and deduplicate the same local request."""
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            old = connection.execute(
+                "SELECT id,sender_open_id,repository,mode FROM tasks WHERE message_id=?",
+                (message_id,),
+            ).fetchone()
+            if old is not None:
+                previous = connection.execute(
+                    "SELECT value FROM task_sources WHERE task_id=? AND kind='agent-request-sha256'",
+                    (old["id"],),
+                ).fetchone()
+                if (old["sender_open_id"] != sender or old["repository"] != repository
+                        or old["mode"] != mode or previous is None
+                        or previous["value"] != input_digest):
+                    raise FeishuCodexError("Agent 幂等键复用但任务内容不同")
+                return int(old["id"]), False
+            count = connection.execute(
+                "SELECT COUNT(*) FROM tasks WHERE status='queued'"
+            ).fetchone()[0]
+            if count >= queue_limit:
+                raise FeishuCodexError("任务队列已满")
+            now = int(time.time())
+            cursor = connection.execute(
+                "INSERT INTO tasks(message_id,sender_open_id,repository,mode,status,created_at,updated_at) "
+                "VALUES (?,?,?,?,'queued',?,?)",
+                (message_id, sender, repository, mode, now, now),
+            )
+            task_id = int(cursor.lastrowid)
+            connection.execute(
+                "INSERT INTO task_sources(task_id,kind,value) VALUES (?,'agent-request-sha256',?)",
+                (task_id, input_digest),
+            )
+            return task_id, True
+
+    def agent_task_detail(self, task_id: int, sender: str) -> Optional[Dict[str, Any]]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT tasks.id,tasks.repository,tasks.mode,tasks.status,tasks.error_kind,"
+                "tasks.updated_at,COALESCE(task_results.branch_name,'') AS branch_name,"
+                "COALESCE(task_results.commit_hash,'') AS commit_hash "
+                "FROM tasks LEFT JOIN task_results ON task_results.task_id=tasks.id "
+                "WHERE tasks.id=? AND tasks.sender_open_id=?",
+                (task_id, sender),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def cancel_agent_queued(self, task_id: int, sender: str) -> bool:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "UPDATE tasks SET status='canceled',error_kind='AgentCancel',updated_at=? "
+                "WHERE id=? AND sender_open_id=? AND status='queued'",
+                (int(time.time()), task_id, sender),
+            )
+            return cursor.rowcount == 1
 
     def cancel_queued(self, sender: str) -> int:
         with self._connect() as connection:
@@ -1628,9 +1703,14 @@ class FeishuCodexBot:
                 or not job.task.strip() or len(job.task) > self.config.max_prompt_chars):
             raise SpoolError("queued task identity mismatch")
         repository = self.config.repositories.get(job.repository)
-        if (repository is None or job.mode not in repository.allowed_modes
-                or not self.config.sender_allowed(job.sender_open_id, repository)):
+        if repository is None or job.mode not in repository.allowed_modes:
             raise SpoolError("queued task no longer authorized by policy")
+        if job.sender_open_id.startswith("agent:"):
+            if (not self.config.agent_intake_enabled
+                    or job.mode not in repository.agent_allowed_modes):
+                raise SpoolError("agent task is no longer authorized")
+        elif not self.config.sender_allowed(job.sender_open_id, repository):
+            raise SpoolError("queued task sender is no longer authorized")
         if job.artifact:
             ArtifactManager.validate_reference(repository, job.artifact)
         return job
@@ -1703,13 +1783,13 @@ class FeishuCodexBot:
 
     def _send_safe(self, chat_id: str, text: str, message_id: str = "") -> None:
         try:
-            self.transport.send_text(chat_id, text, message_id)
+            self.transport.send_text(chat_id, text, "" if message_id.startswith("agent:") else message_id)
         except FeishuCodexError:
             pass
 
     def _send_chunks(self, chat_id: str, text: str, message_id: str = "") -> None:
         for chunk in split_reply(text, self.config.reply_chunk_chars):
-            self.transport.send_text(chat_id, chunk, message_id)
+            self.transport.send_text(chat_id, chunk, "" if message_id.startswith("agent:") else message_id)
 
     def on_message(self, data: Any) -> None:
         try:
