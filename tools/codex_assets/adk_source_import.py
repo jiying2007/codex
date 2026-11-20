@@ -516,19 +516,20 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         item["imported_at"] = imported_at
     _write_json(agents_path, agents)
 
-    source_blobs = {}
-    for filename in POLICY_FILES:
-        source = provider_root / "src/agent_dev_kit/execution_policy" / filename
-        destination = root / "tools/codex_assets/execution_policy" / filename
-        shutil.copy2(source, destination)
-        source_blobs[filename] = _blob(destination.read_bytes())
-    policy_path = root / "manifests/execution_policy.json"
-    policy = _json(policy_path)
-    baseline = policy["engine"]["behavior_baseline"]
-    baseline["version"] = version
-    baseline["commit"] = commit
-    baseline["source_blobs"] = source_blobs
-    _write_json(policy_path, policy)
+    if policy_mode == "replace-with-provider":
+        source_blobs = {}
+        for filename in POLICY_FILES:
+            source = provider_root / "src/agent_dev_kit/execution_policy" / filename
+            destination = root / "tools/codex_assets/execution_policy" / filename
+            shutil.copy2(source, destination)
+            source_blobs[filename] = _blob(destination.read_bytes())
+        policy_path = root / "manifests/execution_policy.json"
+        policy = _json(policy_path)
+        baseline = policy["engine"]["behavior_baseline"]
+        baseline["version"] = version
+        baseline["commit"] = commit
+        baseline["source_blobs"] = source_blobs
+        _write_json(policy_path, policy)
 
     lock_path = root / "manifests/provider-locks/agent-dev-kit.json"
     lock = _json(lock_path)
