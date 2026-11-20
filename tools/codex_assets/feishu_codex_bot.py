@@ -33,6 +33,10 @@ class TaskCanceled(FeishuCodexError):
     pass
 
 
+class CodexOutcomeUnknown(FeishuCodexError):
+    """A model request may have been charged or produced unobserved effects."""
+
+
 SECRET_ENV_KEYS = {
     "FEISHU_APP_SECRET",
     "FEISHU_TENANT_ACCESS_TOKEN",
@@ -1267,6 +1271,48 @@ class WorktreeManager:
         self._git(repository.path, ["worktree", "add", "-b", branch, str(worktree), repository.base_ref])
         return worktree, branch
 
+    def _check_safe_stage(self, working_directory: pathlib.Path) -> None:
+        """Conservative defense before an unattended git add -A.
+
+        Filename checks are not a universal secret scanner. Never log contents
+        or stage unknown inputs when a file's type, size or path is suspicious.
+        """
+        untracked = self._git(
+            working_directory, ["ls-files", "--others", "--exclude-standard", "-z"]
+        )
+        modified = self._git(
+            working_directory, ["diff", "--name-only", "-z", "HEAD", "--"]
+        )
+        untracked_names = set(path for path in untracked.split("\0") if path)
+        candidates = untracked_names | set(path for path in modified.split("\0") if path)
+        if len(candidates) > 1000:
+            raise FeishuCodexError("待提交文件数量过多，需要人工核对；未执行 git add")
+        for relative in candidates:
+            path = pathlib.PurePosixPath(relative)
+            name = path.name.lower()
+            parts = {part.lower() for part in path.parts}
+            sensitive = (
+                name == ".env" or name.startswith(".env.")
+                or name in {
+                    "id_rsa", "id_ed25519", "auth.json", "credentials.json",
+                    "secrets.yaml", ".git-credentials", ".netrc",
+                }
+                or name.endswith((".pem", ".p12", ".pfx", ".key"))
+                or bool(parts & {".ssh", ".aws", ".gnupg", ".codex"})
+            )
+            if path.is_absolute() or ".." in path.parts or sensitive:
+                raise FeishuCodexError("待提交内容包含敏感名称或异常路径；未执行 git add")
+            if relative in untracked_names:
+                try:
+                    meta = (working_directory / pathlib.Path(*path.parts)).lstat()
+                except OSError:
+                    raise FeishuCodexError("无法核对未跟踪文件；未执行 git add") from None
+                if (not stat.S_ISREG(meta.st_mode) or meta.st_nlink != 1
+                        or meta.st_size > 64 * 1024 * 1024):
+                    raise FeishuCodexError(
+                        "未跟踪文件不是普通独占小文件；未执行 git add"
+                    )
+
     def verify_and_commit(
         self,
         working_directory: pathlib.Path,
@@ -1297,6 +1343,7 @@ class WorktreeManager:
             return ""
         if repository.edit_strategy != "worktree":
             raise FeishuCodexError("in_place edit 禁止自动提交")
+        self._check_safe_stage(working_directory)
         self._git(working_directory, ["add", "-A"])
         self._git(working_directory, ["commit", "-m", f"feat(feishu): 完成任务{task_id}"])
         return self._git(working_directory, ["rev-parse", "HEAD"])
@@ -1397,7 +1444,7 @@ class CodexRunner:
                             process.wait(timeout=5)
                         except subprocess.TimeoutExpired:
                             process.kill()
-                        raise FeishuCodexError("Codex 任务执行超时")
+                        raise CodexOutcomeUnknown("Codex 执行超时；模型计费和外部效果未知，禁止自动重试")
             with self._lock:
                 canceled = job.task_id in self._canceled
                 self._canceled.discard(job.task_id)
@@ -1981,7 +2028,15 @@ class FeishuCodexBot:
                     print(f"[PASS] completed task={job.task_id} repo={job.repository}", flush=True)
             except TaskCanceled:
                 self.store.update_task(job.task_id, "canceled", "TaskCanceled")
-                self._send_safe(job.chat_id, "任务已取消。", job.message_id)
+                self._send_safe(job.chat_id, "任务已取消；如模型已运行，应核对可能产生的费用或外部效果。", job.message_id)
+            except CodexOutcomeUnknown:
+                if job.task_id:
+                    self.store.update_task(job.task_id, "unknown", "CodexOutcomeUnknown")
+                self._send_safe(
+                    job.chat_id,
+                    "Codex 执行结果未知；未自动重试。请核对本地改动、外部效果和模型费用。",
+                    job.message_id,
+                )
             except FeishuCodexError as exc:
                 if job.task_id:
                     self.store.update_task(job.task_id, "failed", type(exc).__name__)

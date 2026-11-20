@@ -976,6 +976,98 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertEqual("unknown", store.task_status(task_id))
 
 
+    def test_unattended_worktree_rejects_sensitive_untracked_before_staging(self) -> None:
+        repo_path = self.tmp / "sensitive-repo"
+        subprocess.run(["rtk", "git", "init", str(repo_path)], check=True, capture_output=True)
+        subprocess.run(
+            ["rtk", "git", "-C", str(repo_path), "-c", "user.name=Test",
+             "-c", "user.email=test@example.com", "commit", "--allow-empty", "-m", "start"],
+            check=True, capture_output=True,
+        )
+        self.policy["default_repo"] = "sensitive"
+        self.policy["repositories"]["sensitive"] = {
+            "path": str(repo_path),
+            "allowed_modes": ["edit"],
+            "edit_strategy": "worktree",
+            "worktree_root": str(self.tmp / "sensitive-worktrees"),
+            "verification_commands": [["git", "diff", "--check"]],
+        }
+        self.write_policy()
+        cfg = self.config()
+        manager = feishu_codex_bot.WorktreeManager(cfg)
+        isolated, _branch = manager.create(77, cfg.repository("sensitive"))
+        original = manager.snapshot(isolated)
+        private = isolated / ".env.local"
+        private.write_text("TOKEN=private-test-value\n", encoding="utf-8")
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "敏感"):
+            manager.verify_and_commit(isolated, cfg.repository("sensitive"), 77, original)
+        self.assertEqual("?? .env.local", manager._git(isolated, ["status", "--short"]))
+        self.assertEqual("", manager._git(isolated, ["diff", "--cached", "--name-only"]))
+
+    def test_unattended_stage_rejects_untracked_symlink_and_large_file(self) -> None:
+        manager = feishu_codex_bot.WorktreeManager(self.config())
+        with mock.patch.object(manager, "_git", side_effect=[
+            "external\n\0", "",  # untracked and modified
+        ]):
+            (self.tmp / "external").symlink_to(self.tmp / "missing-target")
+            with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "未跟踪文件"):
+                manager._check_safe_stage(self.tmp)
+        (self.tmp / "external").unlink()
+        (self.tmp / "large.dat").write_bytes(b"x")
+        with mock.patch.object(manager, "_git", side_effect=[
+            "large.dat\0", "",
+        ]), mock.patch.object(feishu_codex_bot.pathlib.Path, "lstat", autospec=True) as stat_call:
+            # Synthetic giant file; never allocate or read 64 MiB in a test.
+            stat_call.return_value.st_mode = feishu_codex_bot.stat.S_IFREG | 0o600
+            stat_call.return_value.st_nlink = 1
+            stat_call.return_value.st_size = 65 * 1024 * 1024
+            with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "未跟踪文件"):
+                manager._check_safe_stage(self.tmp)
+
+    def test_codex_timeout_is_unknown_not_normal_failure(self) -> None:
+        cfg = self.config()
+        runner = feishu_codex_bot.CodexRunner(cfg)
+        job = feishu_codex_bot.BotJob(
+            41, "om_timeout", "oc_target", "ou_owner", "task", "codex", "review", "检查问题"
+        )
+        process = FakeProcess()
+        process.communicate = mock.Mock(
+            side_effect=subprocess.TimeoutExpired(cmd=["codex"], timeout=0.5)
+        )
+        clock = [0]
+        def advanced_clock() -> float:
+            # Other Python internals can call the mocked clock too; a growing
+            # value avoids StopIteration and still makes the timeout deterministic.
+            clock[0] += 10000
+            return float(clock[0])
+        with mock.patch.object(
+            feishu_codex_bot.subprocess, "Popen", return_value=process,
+        ), mock.patch.object(feishu_codex_bot.time, "monotonic", side_effect=advanced_clock):
+            with self.assertRaises(feishu_codex_bot.CodexOutcomeUnknown):
+                runner.run(job)
+        self.assertTrue(process.terminated)
+
+    def test_worker_records_unknown_and_does_not_retry_timeout(self) -> None:
+        cfg = self.config()
+        store = feishu_codex_bot.StateStore(cfg.state_db)
+        task_id = store.create_task("om_unknown_1", "ou_owner", "codex", "review")
+        job = feishu_codex_bot.BotJob(
+            task_id, "om_unknown_1", "oc_target", "ou_owner",
+            "task", "codex", "review", "只读检查"
+        )
+        transport = mock.Mock()
+        transport.resolve_sources.return_value = ""
+        runner = mock.Mock()
+        runner.run.side_effect = feishu_codex_bot.CodexOutcomeUnknown("timeout")
+        bot = feishu_codex_bot.FeishuCodexBot(cfg, transport, runner, store)
+        bot.spool.put(task_id, bot._encode_job(job))
+        with mock.patch.object(bot.jobs, "get", side_effect=[job, SystemExit]), mock.patch.object(bot.jobs, "task_done"):
+            with self.assertRaises(SystemExit):
+                bot.worker()
+        self.assertEqual("unknown", store.task_status(task_id))
+        self.assertEqual(1, runner.run.call_count)
+
+
 def dataclass_values(command: feishu_codex_bot.ParsedCommand) -> object:
     return command.action, command.repository, command.mode, command.task
 

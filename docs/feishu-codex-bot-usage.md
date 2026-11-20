@@ -393,3 +393,9 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 ## 12. 其他 Agent 的可信本地 MCP 入口（默认关闭）
 
 入口见 [feishu-agent-mcp.md](feishu-agent-mcp.md)。该接口使用当前 Bot 私有 SQLite/任务 spool，不启动第二个执行器，也不提供公共 HTTP。必须在真实主机私有策略显式开启 `agent_intake_enabled` 和每个仓库的 `agent_allowed_modes`，默认全部关闭。启用不等于获得模型额度或生产部署资格。
+
+## 13. 无人值守结果与提交保护（2026-11-20）
+
+- Codex 模型运行发生超时，无法仅凭本机子进程退出证明费用或远端效果不存在；服务将任务记为 `unknown`，保留原现场并通知飞书，不自动再次调用模型。
+- 使用 `worktree + commit_enabled` 自动本地提交前，进行有界 Git 文件清单扫描；敏感名称（环境/密钥/认证文件）、异常未跟踪链接、超大文件或大量文件均拒绝暂存，留给人工检查。这是**保守防护**而非完整 secrets 检测器，仍不能替代人工审查及专用密钥扫描。
+- 权限、远程 Push/PR、模型费用和设备操作的授权条件不因这两个安全补丁改变。
