@@ -1,4 +1,4 @@
 interface:
-  display_name: "External Practice Absorption"
-  short_description: "Turn external articles and repos into governed local improvements"
+  display_name: "外部工程实践吸收"
+  short_description: "从外部文章和代码仓提炼可验证方法，审查来源与适用边界后形成候选。"
   default_prompt: "Use $external-practice-absorption to evaluate external material and convert durable lessons into local Codex assets."

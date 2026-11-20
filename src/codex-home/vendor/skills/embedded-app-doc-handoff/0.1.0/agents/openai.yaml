@@ -1,4 +1,4 @@
 interface:
-  display_name: "Embedded App Doc Handoff"
-  short_description: "Prepare independent embedded app docs, local skills, and clean handoff submit ranges"
+  display_name: "嵌入式应用文档交接"
+  short_description: "整理嵌入式应用的接口、结构和验收文档，明确独立交接范围及未决事项。"
   default_prompt: "Use $embedded-app-doc-handoff for app_ota/app_product_test style documentation handoff and submit-range cleanup; use adk commit/verification gates for commit or final evidence."

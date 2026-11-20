@@ -1,4 +1,4 @@
 interface:
-  display_name: "Embedded Product Readiness Gate"
-  short_description: "Separate source, deployment, dependency, HIL, and owner proof"
+  display_name: "嵌入式产品就绪门禁"
+  short_description: "分开核实源码、部署、依赖、硬件验证和负责人签核，不凭单次测试放行。"
   default_prompt: "Use $embedded-product-readiness-gate to classify embedded delivery evidence without overstating Host or SIL results."

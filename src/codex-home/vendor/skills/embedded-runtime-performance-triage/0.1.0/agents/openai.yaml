@@ -1,4 +1,4 @@
 interface:
-  display_name: "Embedded Runtime Performance"
-  short_description: "Triages embedded CPU, latency, and blocked-thread issues"
+  display_name: "嵌入式运行性能诊断"
+  short_description: "分析嵌入式 CPU、运行时延和阻塞线程，保留可比负载及实际观测数据。"
   default_prompt: "Use $embedded-runtime-performance-triage to investigate embedded runtime CPU, latency, or blocking."

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Embedded Low-Power Triage"
-  short_description: "Diagnose embedded suspend, wakeup, and reboot paths"
+  display_name: "低功耗与唤醒诊断"
+  short_description: "定位嵌入式休眠、唤醒与重启链路异常，区分配置、时钟和硬件原因。"
   default_prompt: "Use $embedded-low-power-wakeup-triage to diagnose an embedded suspend or unexpected wakeup issue."
