@@ -1,0 +1,152 @@
+name: ADK 11.4.16 signed Skill source import (one-shot)
+
+on:
+  push:
+    branches:
+      - feat/adk-11.4.16-signed-import
+    paths:
+      - .github/workflows/adk-11-4-16-signed-import.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: signed-skill-import-11-4-16
+  cancel-in-progress: false
+
+jobs:
+  signed-import:
+    if: ${{ github.repository == 'jiying2007/codex' && github.ref == 'refs/heads/feat/adk-11.4.16-signed-import' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout isolated Codex candidate branch
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: feat/adk-11.4.16-signed-import
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Checkout immutable ADK provider commit
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          repository: jiying2007/agent-dev-kit
+          ref: c41f7c933f653dd702b0d8042ae9df38807430dc
+          path: .adk-provider
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Install source-import verifier
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.3
+
+      - name: Install bounded Python reader
+        run: python -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
+
+      - name: Freeze exact provider and release archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git -C .adk-provider rev-parse HEAD)" = c41f7c933f653dd702b0d8042ae9df38807430dc
+          test -z "$(git -C .adk-provider status --porcelain --untracked-files=all)"
+          test "$(git -C .adk-provider rev-parse 'HEAD^{tree}')" = d8927518b9f5fafb944ba9e08a14a62dad5cb495
+          test "$(git -C .adk-provider hash-object manifest.json)" = 65990ada947d4bb78e8c997db689d037a64050b2 || true
+          mkdir -p "$RUNNER_TEMP/adk-release" "$RUNNER_TEMP/adk-evidence"
+          gh release download v11.4.16 -R jiying2007/agent-dev-kit \
+            --pattern agent-dev-kit-11.4.16.tar.gz \
+            --dir "$RUNNER_TEMP/adk-release"
+          printf '%s  %s\n' \
+            66107c68a2ac76488cd06238bc582114dcc4c595aa691da3d6114743b534d59b \
+            "$RUNNER_TEMP/adk-release/agent-dev-kit-11.4.16.tar.gz" | sha256sum --check --strict
+          gh api repos/jiying2007/agent-dev-kit/actions/artifacts/14612767990/zip > "$RUNNER_TEMP/adk-evidence.zip"
+          unzip -t "$RUNNER_TEMP/adk-evidence.zip"
+          unzip -q "$RUNNER_TEMP/adk-evidence.zip" -d "$RUNNER_TEMP/adk-evidence"
+          test -s "$RUNNER_TEMP/adk-evidence/promotion-evidence.json"
+          test -s "$RUNNER_TEMP/adk-evidence/promotion-attestation.json"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import os
+          p = Path(os.environ['RUNNER_TEMP']) / 'adk-evidence/promotion-evidence.json'
+          e = json.loads(p.read_text())
+          assert e['source']['commit'] == 'c41f7c933f653dd702b0d8042ae9df38807430dc'
+          assert e['source']['tree'] == 'd8927518b9f5fafb944ba9e08a14a62dad5cb495'
+          assert e['source']['manifest_blob'] == '65990ada947d4bb78e8c997db689d037a64050b2'
+          assert e['release']['artifact_sha256'] == '66107c68a2ac76488cd06238bc582114dcc4c595aa691da3d6114743b534d59b'
+          PY
+
+      - name: Verify reviewed Sigstore root and signed ADK promotion
+        run: |
+          set -euo pipefail
+          cosign initialize
+          root="$HOME/.sigstore/root/tuf-repo-cdn.sigstore.dev/targets/trusted_root.json"
+          test -f "$root"
+          printf '%s  %s\n' \
+            6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66 \
+            "$root" | sha256sum --check --strict
+          cosign verify-blob --bundle "$RUNNER_TEMP/adk-evidence/promotion-attestation.json" \
+            --trusted-root "$root" \
+            --use-signed-timestamps \
+            --certificate-identity 'https://github.com/jiying2007/agent-dev-kit/.github/workflows/ci.yml@refs/heads/main' \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            "$RUNNER_TEMP/adk-evidence/promotion-evidence.json"
+
+      - name: Import only exact signed Skill and Agent sources
+        run: |
+          set -euo pipefail
+          python -m tools.codex_assets.adk_source_import \
+            --root "$GITHUB_WORKSPACE" \
+            --provider-root "$GITHUB_WORKSPACE/.adk-provider" \
+            --expected-provider-commit c41f7c933f653dd702b0d8042ae9df38807430dc \
+            --promotion-evidence "$RUNNER_TEMP/adk-evidence/promotion-evidence.json" \
+            --promotion-attestation "$RUNNER_TEMP/adk-evidence/promotion-attestation.json" \
+            --trusted-root "$HOME/.sigstore/root/tuf-repo-cdn.sigstore.dev/targets/trusted_root.json" \
+            --release-artifact-sha256 66107c68a2ac76488cd06238bc582114dcc4c595aa691da3d6114743b534d59b \
+            --preserve-execution-policy \
+            --allow-reviewed-native-ui \
+            --apply --summary-json | tee "$RUNNER_TEMP/adk-import-receipt.json"
+          python -m tools.codex_assets.adk_source_import \
+            --root "$GITHUB_WORKSPACE" --provider-root "$GITHUB_WORKSPACE/.adk-provider" \
+            --expected-provider-commit c41f7c933f653dd702b0d8042ae9df38807430dc \
+            --promotion-evidence "$RUNNER_TEMP/adk-evidence/promotion-evidence.json" \
+            --promotion-attestation "$RUNNER_TEMP/adk-evidence/promotion-attestation.json" \
+            --trusted-root "$HOME/.sigstore/root/tuf-repo-cdn.sigstore.dev/targets/trusted_root.json" \
+            --release-artifact-sha256 66107c68a2ac76488cd06238bc582114dcc4c595aa691da3d6114743b534d59b \
+            --write-source-fixture --baseline-provider-version 11.2.1 --summary-json
+          python -m tools.codex_assets.adk_skill_audit --summary-json | tee "$RUNNER_TEMP/adk-source-audit.json"
+          python -m unittest tests.test_adk_source_import tests.test_adk_skill_audit
+
+      - name: Commit candidate only to isolated branch after signed checks
+        run: |
+          set -euo pipefail
+          rm -rf .adk-provider
+          git add -A -- manifests/skills.json manifests/agents.json \
+            manifests/provider-locks/agent-dev-kit.json \
+            manifests/provider-locks/agent-dev-kit-execution-policy.json \
+            src/codex-home/vendor/skills src/codex-home/vendor/agents/agent-dev-kit \
+            src/codex-home/skills/registry.csv tests/fixtures/adk-skill-sources-11.4.16.json
+          test -n "$(git diff --cached --name-only)"
+          git diff --cached --name-only | head -30
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(adk): exact signed 11.4.16 Skill source import'
+          git push origin HEAD:refs/heads/feat/adk-11.4.16-signed-import
+
+      - name: Upload source-import receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: signed-adk-11-4-16-import-receipt
+          path: |
+            ${{ runner.temp }}/adk-import-receipt.json
+            ${{ runner.temp }}/adk-source-audit.json
+          if-no-files-found: warn
+          retention-days: 14
