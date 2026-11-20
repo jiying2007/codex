@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · C/C++ 静态分析"
+  short_description: "运行适用的 C/C++ 编译器与静态检查并验证告警，不把工具退出码当缺陷证据。"

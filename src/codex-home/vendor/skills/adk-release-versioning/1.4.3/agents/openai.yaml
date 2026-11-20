@@ -1,3 +1,0 @@
-interface:
-  display_name: 'adk-release-versioning'
-  short_description: '版本策略、变更说明与发布基线'

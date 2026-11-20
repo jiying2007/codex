@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 长任务持续执行"
+  short_description: "按已批准计划推进真实代码、定向验证和断点恢复，不把轮询或计划当作完成。"

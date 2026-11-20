@@ -1,0 +1,5 @@
+interface:
+  display_name: "ADK · 跨团队交接"
+  short_description: "明确产品、研发和测试之间的交付责任与验收，不把文档签收当权限批准。"
+policy:
+  allow_implicit_invocation: false
