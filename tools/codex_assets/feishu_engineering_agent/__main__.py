@@ -16,15 +16,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="mandatory; never calls Codex")
     parser.add_argument("--allow-repo", action="append", default=[], metavar="ALIAS")
     parser.add_argument("--selected-repo", default="", metavar="ALIAS")
-    parser.add_argument("--text", required=True, help="non-sensitive local fixture only")
+    parser.add_argument("--text", default="", help="non-sensitive local fixture only")
+    parser.add_argument("--probe-runtime", action="store_true", help="no-model local Codex CLI/App Server help/version probe")
+    parser.add_argument("--codex-bin", default="codex", help="PATH command name, never an arbitrary shell expression")
     parser.add_argument("--provider", choices=("tapd", "feishu_project"))
     parser.add_argument("--workspace")
     parser.add_argument("--item-kind", choices=("requirement", "defect"))
     parser.add_argument("--item-id")
     try:
         args = parser.parse_args(argv)
+        if args.probe_runtime:
+            if (args.dry_run or args.text or args.allow_repo or args.selected_repo
+                    or args.provider or args.workspace or args.item_kind or args.item_id):
+                parser.error("--probe-runtime must be an independent no-model command")
+            from .sessions import probe_local_app_server
+            result = probe_local_app_server(args.codex_bin)
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+            return 0 if result["available"] else 3
         if not args.dry_run:
             parser.error("--dry-run is required; no production execution entrypoint exists")
+        if not args.text:
+            parser.error("--text is required for --dry-run")
         event = InboundEvent(
             source="offline_fixture",
             tenant="offline", chat="preview", actor="fixture",

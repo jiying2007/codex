@@ -1744,12 +1744,19 @@ class FeishuTransport:
             return f"- log={source.value}：消息内容={content}"
         return f"- {source.kind}={source.value}：引用已记录；当前未配置该产品的正文读取连接器。"
 
-    def start(self, callback: Callable[[Any], None]) -> None:
-        handler = (
+    def start(
+        self, callback: Callable[[Any], None],
+        card_callback: Optional[Callable[[Any], Any]] = None,
+    ) -> None:
+        # The optional callback is registered on the EXISTING single WS consumer.
+        # Default None preserves production Bot behaviour and model-cost policy.
+        builder = (
             self.lark.EventDispatcherHandler.builder("", "")
             .register_p2_im_message_receive_v1(callback)
-            .build()
         )
+        if card_callback is not None:
+            builder = builder.register_p2_card_action_trigger(card_callback)
+        handler = builder.build()
         client = self.lark.ws.Client(
             self.config.app_id,
             self.config.app_secret,

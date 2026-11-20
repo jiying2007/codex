@@ -20,3 +20,10 @@ Every reported PASS must include exact SHA, command+exit, time, environment, sou
 
 ## Next exact-HEAD receipt requirements
 The additional offline tests in `tests/test_feishu_engineering_workflows.py` cover card signatures/replay/actor/message/expiry, run transitions/independent QA, Codex exact session and budget gates, and TAPD/Meegle source validation. They are **not counted as passed** until this PR's new commit CI completes. The 9/9 prior checks apply only to the prior SHA. Real Feishu, deployed App Server, tenant API, PR publication, QA and production cutover are separately marked unverified regardless of CI.
+
+## Channel and protocol regression cases
+- Same existing WebSocket consumer, optional callback disabled by default.
+- Official `card.action.trigger` callback schema has `event.host` and `event.context`, not top-level fields.
+- Interactive send records `sending` before I/O; lost receipt becomes UNKNOWN without resend.
+- No-model `--probe-runtime` success/failure paths and invalid combined arguments.
+- All new checks require a fresh exact-SHA CI receipt. They do not qualify real callbacks or tenant permissions.

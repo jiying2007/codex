@@ -149,10 +149,11 @@ def accept_callback(
         raise IntakeRejected("invalid callback envelope")
     header = payload.get("header")
     event = payload.get("event")
-    context = payload.get("context")
+    context = event.get("context") if isinstance(event, dict) else None
     if not all(isinstance(x, dict) for x in (header, event, context)):
         raise IntakeRejected("missing card callback identity")
-    if (header.get("event_type") != "card.action.trigger"
+    if (payload.get("schema") != "2.0"
+            or header.get("event_type") != "card.action.trigger"
             or header.get("app_id") != app_id
             or not isinstance(header.get("token"), str)
             or not hmac.compare_digest(header["token"], verification_token)):
@@ -180,7 +181,7 @@ def accept_callback(
     _check_id(context.get("open_chat_id"), "open_chat_id")
     _check_id(context.get("open_message_id"), "open_message_id")
     if (operator["tenant_key"] != header["tenant_key"]
-            or payload.get("host") != "im_message"):
+            or event.get("host") != "im_message"):
         raise IntakeRejected("callback tenant or host mismatch")
     scope = {
         k: value[k] for k in required if k != "sig"

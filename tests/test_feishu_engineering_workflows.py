@@ -116,9 +116,9 @@ class EngineeringRunContractTest(unittest.TestCase):
             "event": {
                 "operator": {"open_id": actor, "tenant_key": tenant},
                 "action": {"tag": "button", "value": copy.deepcopy(button)},
+                "host": "im_message",
+                "context": {"open_message_id": message_id, "open_chat_id": chat},
             },
-            "host": "im_message",
-            "context": {"open_message_id": message_id, "open_chat_id": chat},
         }
 
     def accept(self, callback, now=NOW):
