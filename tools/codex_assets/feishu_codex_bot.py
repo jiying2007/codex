@@ -193,6 +193,9 @@ class BotConfig:
     isolation_write_paths: Tuple[pathlib.Path, ...] = ()
     agent_intake_enabled: bool = False
     manual_workitems_enabled: bool = False  # requires no Feishu Project/TAPD API
+    engineering_cards_enabled: bool = False
+    card_verification_token: str = ""
+    card_signing_key_hex: str = ""
 
     @classmethod
     def from_values(cls, values: Mapping[str, str], default_workdir: pathlib.Path) -> "BotConfig":
@@ -232,6 +235,20 @@ class BotConfig:
         manual_workitems_enabled = payload.get("manual_workitems_enabled", False)
         if not isinstance(manual_workitems_enabled, bool):
             raise FeishuCodexError("manual_workitems_enabled 必须是布尔值")
+        cards_enabled = payload.get("engineering_cards_enabled", False)
+        if not isinstance(cards_enabled, bool):
+            raise FeishuCodexError("engineering_cards_enabled 必须是布尔值")
+        token = values.get("FEISHU_CARD_VERIFICATION_TOKEN", "").strip()
+        signing_hex = values.get("FEISHU_CARD_SIGNING_KEY_HEX", "").strip()
+        if cards_enabled:
+            if not manual_workitems_enabled or len(token) < 8:
+                raise FeishuCodexError("卡片必须启用工作项登记并配置私有 Verification Token")
+            try:
+                key_bytes = bytes.fromhex(signing_hex)
+            except ValueError as exc:
+                raise FeishuCodexError("卡片签名密钥格式无效") from exc
+            if len(key_bytes) < 32:
+                raise FeishuCodexError("卡片签名密钥至少需要 32 字节")
         repositories: Dict[str, RepositoryPolicy] = {}
         for alias, item in repositories_raw.items():
             if not isinstance(alias, str) or not ALIAS_PATTERN.fullmatch(alias):
@@ -412,6 +429,9 @@ class BotConfig:
             isolation_write_paths=isolation_write_paths,
             agent_intake_enabled=agent_intake_enabled,
             manual_workitems_enabled=manual_workitems_enabled,
+            engineering_cards_enabled=cards_enabled,
+            card_verification_token=token if cards_enabled else "",
+            card_signing_key_hex=signing_hex if cards_enabled else "",
         )
 
     @property
@@ -1793,6 +1813,21 @@ class FeishuCodexBot:
             if manual_db == config.state_db:
                 raise FeishuCodexError("manual WorkItem DB must differ from legacy Bot DB")
             self._manual_service = ManualWorkItemService(manual_db)
+        self._card_publisher = None
+        if config.engineering_cards_enabled:
+            if (self._manual_service is None
+                    or not config.card_verification_token
+                    or len(bytes.fromhex(config.card_signing_key_hex)) < 32):
+                raise FeishuCodexError("卡片仅可在私有凭据和手工工作项登记均启用后使用")
+            from .feishu_engineering_agent.channel import (
+                CardPublisher, send_interactive_via_existing_transport,
+            )
+            self._card_publisher = CardPublisher(
+                self._manual_service.store,
+                lambda chat, card: send_interactive_via_existing_transport(
+                    self.transport, chat, card,
+                ),
+            )
 
     @staticmethod
     def _encode_job(job: BotJob) -> Dict[str, Any]:
@@ -1924,6 +1959,25 @@ class FeishuCodexBot:
             reply = "工作项登记异常，未执行模型或远端操作。"
         if reply is not None:
             self._send_safe(inbound.chat, reply, inbound.event_id)
+        # A card is strictly optional and only sent for a newly registered
+        # Run. The original text command remains independently usable.
+        if (self._card_publisher is not None and reply
+                and reply.startswith("已登记工作项引用")
+                and "AgentRun：" in reply):
+            try:
+                import uuid
+                from .feishu_engineering_agent.cards import register_card
+                run_id = reply.split("AgentRun：", 1)[1].split("\n", 1)[0]
+                self._manual_service.store.get_run(run_id, inbound)
+                card_id = uuid.uuid4().hex
+                register_card(self._manual_service.store, run_id, card_id)
+                self._card_publisher.send_registered_card(
+                    card_id, bytes.fromhex(self.config.card_signing_key_hex),
+                )
+            except Exception as exc:
+                # Feishu delivery may have succeeded despite a lost receipt.
+                # Never retry a card send or start any model as a fallback.
+                print(f"[WARN] card_delivery_unknown kind={type(exc).__name__}", flush=True)
 
     def _try_manual_workitem(self, data: Any) -> bool:
         """Consume reserved /wi commands *before* legacy Codex job intake.
@@ -2208,7 +2262,19 @@ class FeishuCodexBot:
         for index in range(self.config.worker_count):
             threading.Thread(target=self.worker, name=f"feishu-codex-worker-{index + 1}", daemon=True).start()
         threading.Thread(target=self._poll_pending, name="feishu-codex-pending", daemon=True).start()
-        self.transport.start(self.on_message)
+        if self.config.engineering_cards_enabled:
+            from .feishu_engineering_agent.channel import (
+                make_single_consumer_card_callback,
+            )
+            callback = make_single_consumer_card_callback(
+                self._manual_service.store,
+                self.config.card_verification_token,
+                self.config.app_id,
+                bytes.fromhex(self.config.card_signing_key_hex),
+            )
+            self.transport.start(self.on_message, callback)
+        else:
+            self.transport.start(self.on_message)
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:

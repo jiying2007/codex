@@ -1,66 +1,58 @@
-# Feishu Engineering Agent — Tasks
-Status is evidence based. This file is planning, not proof of implementation.
+# Feishu Engineering Agent — SDD 代码落地清单
+Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 
-## TASK-000 Brainstorm and SDD freeze
-[x] Read production first-generation Bot and AGENTS constraints.
-[x] Compare patching 2200-line Bot / generic platform / rewrite thin core / rewrite runtime.
-[x] Verify official Feishu cards, Meegle/TAPD event and Codex native integration boundaries.
-[x] Freeze REQ-001..012, acceptance criteria, failure gates and cutover.
-[ ] Independent implementation/tenant review.
+**状态语义：** [x] = 源码和离线测试已编写，尚需用最终精确 SHA 的 CI 核验；[ ] = 本轮不执行的真实主机/企业权限/设备/业务验收。源码完成绝不等价生产验收。
 
-## TASK-001 First vertical slice (verified on original SHA)
-[ ] Implement safe natural-language router + explicit project selection; unknown intent clarifies.
-[ ] Implement typed WorkItemKey and no-auto-execute decision.
-[ ] Implement scoped user preference + event dedupe in offline temp SQLite with failure rollback.
-[ ] Create no-network no-model dry-run CLI; verify from non-repository cwd.
-[ ] Run Python 3.8, 3.11, 3.12 unit/full repository regression and record exact HEAD/run IDs.
-[ ] Review, merge only if CI and scope gates pass.
+## TASK-000 — 头脑风暴与规格
+[x] 取舍：薄业务核心 + 现有 Codex/ADK/Git/CI，不建设第二套 Runtime、PM、通用 Agent 图。
+[x] WorkItem 与 AgentRun 分离；飞书项目/TAPD 是原业务权威，不自动关闭。
+[x] 源码测试准入、远端 UNKNOWN 不重放、卡片及时 ACK 与单消费者的安全边界。
 
-## TASK-002 Feishu card/event adapter
-[ ] Test in a dedicated authorized Feishu app, no second live production consumer.
-[ ] Card 2.0 render/update, 3s ACK, callback identity and replay defense.
-[ ] Expired card, late callback, network failure and duplicate click cases.
+## TASK-001 — 确定性输入与来源身份
+[x] `routing.py`：中文命令、项目偏好、repo 白名单、写操作提案。
+[x] `models.py`/`store.py`：来源五元组、事务幂等、原输入不进 DB。
+[x] `manual_items.py`：无需企业 API 的 `/wi add|list|status|handoff`，仅记录来源与摘要哈希。
+[x] 本地 stdin CLI；`/wi attempt <sourceRun> <read|review|edit>` 创建独立待授权 Run。
+[ ] 实际用户/项目聊天身份与权限验证。
 
-## TASK-003 Session and run coordinator
-[ ] Validate deployed App Server capability without a paid turn.
-[ ] Exact actor/repo/host/CODEX_HOME/thread binding, no --last.
-[ ] Separate authorization for edits; fail closed on unknown model effect.
+## TASK-002 — 飞书卡片/文本交互
+[x] `cards.py`：Card JSON 2.0 签名、事件两种字段布局、有效期、去重、消息/操作者/租户绑定。
+[x] `actions.py`：卡片待处理请求归档、执行申请仅等待审批、启动前取消；运行中必须走精确 turn interrupt。
+[x] `channel.py`：同一既有 Lark transport 的发送入口；先持久化再远程发送，UNKNOWN 不盲重试。
+[x] 旧 Bot `engineering_cards_enabled=false`，无企业卡片权限时文本 `/wi` 正常使用；私有验证 Token/HMAC key 按需启用卡片。
+[ ] 真实 SDK 1.7.1 回调、桌面/手机、3 秒应答、卡片更新有效期测试。
 
-## TASK-004 WorkItem adapters
-[ ] One real Feishu Project requirement and one TAPD Bug read-only, with tenant/workspace permissions.
-[ ] No webhook until verified authenticated ingestion; no fixed polling cron.
+## TASK-003 — Codex 原生会话与有界执行
+[x] `sessions.py`：actor/tenant/chat/repo/host/CODEX_HOME/thread 精确绑定、resume/interrupt/turn 请求。
+[x] `appserver.py`：显式 host-qualified stdio initialize/initialized/thread resume/turn RPC；审批请求拒绝自动同意；不泄露 Feishu 凭据。
+[x] `workflow.py`：一 WorkItem 多 Run；精确范围、SDD 和外部费用授权 HMAC 后才可 queued。
+[x] `runtime_bridge.py`：turn/start 前存 effect receipt；ACK≠完成；turn/completed 关联验证；失败、重启/中断 UNKNOWN。
+[x] 模型调用默认禁用，不消耗 Codex/Work 共享额度。
+[ ] `vstrong100` 实测原生协议、精确 resume、实际审批、中断、资源/费用与会话恢复。
 
-## TASK-005 SDLC
-[ ] A real feature and a real Bug through brainstorming/SDD, implementation, PR/CI and independent QA.
-[ ] Cross-repo contract test + device evidence where applicable; no fake HIL PASS.
+## TASK-004 — 真实来源读取可选增强
+[x] `workitems.py`：TAPD Story/Bug + 飞书项目 Meegle 只读适配器，验证来源/空间/类型/版本。
+[x] `source_bridge.py`：权限不足返回用户提供未核验；权限具备才使用注入式 reader，保存版本哈希而非正文。
+[x] 无企业 API 时不阻断人工登记和研发交接。
+[ ] 一条真实飞书项目需求和一条 TAPD 缺陷的实际权限/数据核验。
+[ ] 真实企业 webhook 的官方身份与事件订阅联调（无权限则不启用）。
 
-## TASK-006 Production cutover
-[ ] Snapshot actual current service/systemd/DB/spool and unknown work with checksums.
-[ ] Verify restore/rollback and only one active event consumer.
-[ ] Separate permission/model billing/host smoke from CI results.
+## TASK-005 — 需求/Bug 交付与跨仓联调
+[x] `delivery.py`：一次性 PR 发布收据、可信只读 Git PR/CI 校验、独立签名 QA、AgentRun 完成≠原工单关闭。
+[x] `feedback.py`：无 API 时人工可复制回写；具备授权时仅一次性追加评论、不改工作项状态。
+[x] `contracts.py`：SoC/MCU 等跨仓版本化接口，逐仓 CI/协议哈希证据；不将 CI 冒充设备 HIL。
+[x] `test_feishu_engineering_end_to_end.py`：低风险 Feature + Bug 的 mock Codex/Git/QA 纵向合同验证。
+[ ] 一条真实 Feature、一个真实 Bug 的改代码/PR/CI/产品或 QA 验收。
+[ ] 如涉及设备：实际板卡、固件、联调/HIL；不由假数据替代。
 
-**No Codex/ChatGPT Work quota, new scheduled tasks or external writes authorized by this document.**
+## TASK-006 — 主机迁移/故障回滚
+[x] `migration.py`：原 Bot SQLite WAL 一致性备份、spool/私有策略文件校验、SHA-256 清单、隔离恢复演练。
+[x] `migration_cli.py`：只读 inspect、显式 paused-consumer backup、独立 rehearse；不自动修改线上服务。
+[x] cutover_gate 必须有旧消费者停止、独占锁、回调/运行时资格、备份恢复证据；默认不能通过。
+[x] 不新建定时巡检、第二消费者或未经确认的常驻服务。
+[ ] `vstrong100` 原 Bot 系统服务/真实回滚操作、验收、单消费者切换与故障演练。
 
-## Evidence checkpoint: offline implementation extension
-- TASK-001 source and 9/9 CI checks previously passed at `5f2ca425fc92ccb7c70b7d0e94fe30237915f4f0`; merging remains a separate decision.
-- TASK-002: Card rendering and signed callback storage implemented for offline tests. Real card send/update/3-second callback on Feishu desktop and mobile **open**.
-- TASK-003: exact session records and RPC planning implemented for offline tests. vstrong100 App Server handshake/resume/approval/interrupt **open**; no model quota used.
-- TASK-004: API read adapters and fail-closed responses implemented with injected transports. Tenant authorization and real one requirement/one bug read **open**.
-- TASK-005: run state/evidence contracts implemented; real feature and Bug PR/CI and independent QA **open**.
-- TASK-006: **not started**; no production service/config, consumer or private DB touched.
-
-## No-enterprise-API path (implementation increment)
-- [x] Implement strict `/wi` WorkItem manual registration/list/status with digest-only summary retention and exact provider/tenant/workspace/kind/item ID.
-- [x] Implement private transactional source receipt + independent AgentRun in `manual_items.py`; replay is no-op, conflict fails closed, and repo permissions are rechecked.
-- [x] Extend the **same** existing Bot handler under disabled-by-default `manual_workitems_enabled`; reserved `/wi` never becomes a Codex prompt when disabled.
-- [x] Add no-API local stdin CLI; no provider credentials, card callback or model turn needed.
-- [ ] Verify new code and tests on exact GitHub Actions SHA.
-- [ ] Enable and validate a single existing Feishu Bot's real message receive/reply with trusted tenant ID, using a redacted low-risk workitem (if already permitted).
-- [ ] If bot message scopes are unavailable, verify local CLI on vstrong100 without connecting Feishu.
-- [ ] Real PR/CI, independent source-system QA, production cutover and App Server qualification remain separately unverified.
-
-## Current no-API delivery bridge
-- [x] Add `/wi handoff` for scoped, deterministic no-model requirement vs Bug development briefs.
-- [x] Keep latest source description in reply only; no new persistence or second system.
-- [x] Add negative tests for owner/repo/tenant isolation, invalid IDs and blocked runs; Bot text-only route does not enqueue models.
-- [ ] Exact-HEAD CI validation, code review, and real authorized host smoke still required.
+## 项目资源边界
+- 不使用 Codex/Work 共享模型额度，不创建新定时任务。
+- CI 单元测试为离线假传输；真实企业 API、Git 写、设备操作在本轮保持关闭。
+- 下一阶段集中进行 TASK-002/003/004/005/006 的现场验证；基线的 TASK-001 必须与最新 HEAD 同步校验。

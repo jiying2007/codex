@@ -30,7 +30,8 @@ _HELP = (
     "/wi add feishu_project 需求 <空间ID> <工作项ID> [repo=仓库别名] | 需求与验收描述\n"
     "/wi list 最近登记；/wi status <完整Run ID> 查询状态\n"
     "/wi handoff <完整Run ID> | 当前问题描述、验收要求及复现信息\n"
-    "/wi help 查看帮助；handoff 只生成可复制的研发交接说明，不自动运行 Codex。"
+    "/wi attempt <来源Run ID> <read|review|edit> | 本次研发范围\n"
+    "/wi help；attempt 只创建待授权执行记录，不自动调用 Codex。"
 )
 
 
@@ -41,6 +42,7 @@ class ManualCommand:
     repo: str = ""
     summary: str = ""
     run_id: str = ""
+    mode: str = ""
 
 
 def is_manual_command(text: str) -> bool:
@@ -71,6 +73,15 @@ def parse_manual_command(text: str, tenant: str, default_repo: str) -> ManualCom
                 raise IntakeRejected("handoff needs bounded current context")
             return ManualCommand("handoff", summary=current, run_id=tokens[2])
         raise IntakeRejected("status forbids extra text, handoff requires a | summary")
+    if action == "attempt" and len(tokens) == 4 and delimiter:
+        if not _RUN_ID.fullmatch(tokens[2]) or tokens[3] not in ("read", "review", "edit"):
+            raise IntakeRejected("attempt requires exact source Run ID and mode")
+        current = summary.strip()
+        if (not current or len(current) > 4000
+                or any(ord(x) < 32 and x not in "\n\t" for x in current)):
+            raise IntakeRejected("attempt needs a bounded explicit development scope")
+        return ManualCommand("attempt", run_id=tokens[2], mode=tokens[3],
+                             summary=current)
     if action != "add" or len(tokens) not in (6, 7) or not delimiter:
         raise IntakeRejected("invalid /wi syntax; send /wi help")
     provider = _PROVIDERS.get(tokens[2].lower())
@@ -159,6 +170,20 @@ class ManualWorkItemService:
                 "相关仓库或 SoC/MCU 跨仓接口应写明版本化契约与各自验证证据。\n"
                 "代码写入、模型额度、Git 发布及设备操作仍需各自单独批准。"
                 "不得把 CI 通过视为产品/测试验收，也不得自动关闭原工作项。"
+            )
+        if cmd.action == "attempt":
+            from .workflow import EngineeringWorkflow
+            outcome = EngineeringWorkflow(self.store).create_attempt(
+                cmd.run_id, event, cmd.mode, authorized,
+            )
+            return (
+                "已建立独立研发 AgentRun（未执行）：\n"
+                + "来源Run：" + cmd.run_id + "\n"
+                + "新Run：" + outcome["run_id"] + "\n"
+                + "模式：" + cmd.mode + "；状态：proposed\n"
+                + "本次范围（仅用于当前回复，未持久化）：" + cmd.summary + "\n"
+                + "仍需可信审批方签署精确任务范围、模型额度与执行权限；"
+                + "机器人消息不能直接审批或启动模型。"
             )
         if cmd.action == "list":
             with contextlib.closing(self.store._connect()) as db:

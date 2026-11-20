@@ -158,7 +158,19 @@ def accept_callback(
         raise IntakeRejected("invalid callback envelope")
     header = payload.get("header")
     event = payload.get("event")
-    context = event.get("context") if isinstance(event, dict) else None
+    # The published callback examples include both top-level and nested
+    # context/host layouts. Accept either without ambiguous conflicting values.
+    nested_context = event.get("context") if isinstance(event, dict) else None
+    outer_context = payload.get("context")
+    if (nested_context is not None and outer_context is not None
+            and nested_context != outer_context):
+        raise IntakeRejected("ambiguous card callback context")
+    context = nested_context if nested_context is not None else outer_context
+    nested_host = event.get("host") if isinstance(event, dict) else None
+    outer_host = payload.get("host")
+    if nested_host is not None and outer_host is not None and nested_host != outer_host:
+        raise IntakeRejected("ambiguous card callback host")
+    host = nested_host if nested_host is not None else outer_host
     if not all(isinstance(x, dict) for x in (header, event, context)):
         raise IntakeRejected("missing card callback identity")
     if (payload.get("schema") != "2.0"
@@ -190,7 +202,7 @@ def accept_callback(
     _check_id(context.get("open_chat_id"), "open_chat_id")
     _check_id(context.get("open_message_id"), "open_message_id")
     if (operator["tenant_key"] != header["tenant_key"]
-            or event.get("host") != "im_message"):
+            or host != "im_message"):
         raise IntakeRejected("callback tenant or host mismatch")
     scope = {
         k: value[k] for k in required if k != "sig"
