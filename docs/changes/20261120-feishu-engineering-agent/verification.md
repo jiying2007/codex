@@ -1,76 +1,53 @@
-# Feishu Engineering Agent — Verification plan
+# Feishu Engineering Agent — 源码验证与集中现场验收
 
-| VERIFY | Test/observation | Status |
-|---|---|---|
-| 001 | Natural Chinese intent/unknown/bad whitespace/malformed command, no subprocess | pending CI |
-| 002 | Different tenant/chat/user project scopes, unauthorized alias rejected | pending CI |
-| 003 | Typed provider+tenant+workspace+type+id identity, cross-space collision negatives | pending CI |
-| 004 | Write proposal requires approval, continue/cancel exact ID, no model call | pending CI |
-| 005 | BEGIN IMMEDIATE dedupe, conflicting event digest fail closed, no raw prompt stored | pending CI |
-| 006 | Real card callback within 3 sec, retry/wrong user/expiry | not performed |
-| 007 | Exact Codex thread/host/user resume and approved budget | not performed |
-| 008 | Real scoped Feishu Project and TAPD WorkItem API read | not performed |
-| 009 | One feature and one Bug actual PR/CI/QA; devices separately | not performed |
-| 010 | Remote UNKNOWN/outbox replay fault injection and recovery | not performed |
-| 011 | vstrong100 single Bot consumer live migration and backup restore | not performed |
-| 012 | Explicit runtime cost identity and per-scope approval | not performed |
+日期：2026-11-20。范围：个人和 2–8 人研发团队；复用现有飞书 Bot、Codex 原生运行时、ADK、Git/CI。**不使用产品版本标签。**
 
-Current PR source/CI may prove only VERIFY-001..005. CI success is NOT evidence of real Feishu, card, App Server, billing, project API, GitHub PR publication, device HIL or QA.
-Every reported PASS must include exact SHA, command+exit, time, environment, source reference and checked scope.
+## 证据分级
 
-## Next exact-HEAD receipt requirements
-The additional offline tests in `tests/test_feishu_engineering_workflows.py` cover card signatures/replay/actor/message/expiry, run transitions/independent QA, Codex exact session and budget gates, and TAPD/Meegle source validation. They are **not counted as passed** until this PR's new commit CI completes. The 9/9 prior checks apply only to the prior SHA. Real Feishu, deployed App Server, tenant API, PR publication, QA and production cutover are separately marked unverified regardless of CI.
+- **SOURCE PASS**：精确提交 SHA 上的离线测试、Python 3.8/3.11/3.12 全量回归、安装/回滚门禁成功。只说明代码合同通过。
+- **HOST PASS**：目标主机 `vstrong100` 的实际二进制、私有配置、单消费者、协议、权限和恢复过程可重复验证。
+- **DELIVERY PASS**：真实需求与缺陷完成代码、PR/CI 和独立 QA；需要设备时另有真实 HIL 证据。
+- **WORKITEM CLOSED**：仅当飞书项目或 TAPD 原业务负责人按照源系统流程关闭，才可声明。AgentRun 的 completed 不等于它。
 
-## Channel and protocol regression cases
-- Same existing WebSocket consumer, optional callback disabled by default.
-- Card callbacks accept either top-level or event-nested host/context only when identities agree; conflicting or missing fields fail closed.
-- Interactive send records `sending` before I/O; lost receipt becomes UNKNOWN without resend.
-- No-model `--probe-runtime` success/failure paths and invalid combined arguments.
-- All new checks require a fresh exact-SHA CI receipt. They do not qualify real callbacks or tenant permissions.
+本文件是**验收契约**，不是已执行的现场验收报告。具体绿色结论须绑定单一 HEAD 的工作流、环境、步骤退出码与证据引用；不可沿用其他 SHA 的绿灯。
 
-## No-enterprise-API regression (new coverage)
-- `test_feishu_engineering_manual_items.py`: strict manual parsing, real provider identity isolation, read-only status/list, user/tenant/chat/repo isolation, SQLite 0600/no raw prompt, atomic duplicate/conflict receipt, local CLI stdin without an SDK or API.
-- `test_feishu_engineering_manual_bot.py`: optional same-consumer message interception, disabled mode never reaches Codex gate, bad tenant/actor/chat or repo is denied, old non-`/wi` intake unchanged, legacy queue has no new jobs.
-- These offline tests **cannot** prove enterprise tenant permissions, SDK message-event header shape on vstrong100, a real Lark send, or any QA/PR success. Record their exact successful workflow run IDs only after current HEAD CI.
+## SDD 源码矩阵
 
-Manual message rate-limit negative test: six unique `/wi add` events under default 5-per-window must create only five proposed runs, never a legacy queued/model job.
+| 阶段 | 已实现的代码合同 | 离线负向测试重点 | 现场门禁 |
+|---|---|---|---|
+| TASK-001 | 中文路由、项目与用户隔离、WorkItem 来源身份、原子事件收据、无 API `/wi add|list|status|handoff|attempt` | 重复事件、身份冲突、撤权、无模型调用、正文不进 DB | 已授权飞书消息或本地 CLI |
+| TASK-002 | 可选 Card JSON 2.0、HMAC、事件身份和消息绑定、过期/重放保护、卡片请求持久化 | 同一回调的上下文冲突、他人点击、重复/迟到、发送结果 UNKNOWN | 飞书桌面/手机，SDK 和 3 秒响应 |
+| TASK-003 | 精确 Codex host/repo/CODEX_HOME/thread、独立签名授权、原生 initialize/resume/turn/interrupt、持久 effect 收据 | 伪造或延长授权、无权限模型启动、乱序通知、费用/远端结果不明不重放 | 主机 App Server 协议、审批、额度和中断恢复 |
+| TASK-004 | TAPD/飞书项目可选只读读取；手工来源标记未核验；版本哈希不存正文 | 403/404、源身份与版本冲突、撤权后不得读取 | 真实一条需求、一条缺陷；无权限可走人工路径 |
+| TASK-005 | 独立 Run、多仓版本化接口、GitHub PR/CI 可选适配、一次性发布、签名 QA、人工反馈 | 不同 PR/CI/QA SHA 不可拼接；CI 不等于 QA/HIL；外部写 UNKNOWN 不重放 | 真实 Feature 和 Bug PR/CI/QA；涉及设备时实际 HIL |
+| TASK-006 | WAL 一致性备份、私有 spool/策略校验、哈希清单、隔离恢复演练、单消费者 cutover gate | 损坏备份、权限/符号链接、恢复不一致和重复消费者 | `vstrong100` 暂停旧服务、真实备份/恢复/回滚 |
 
-Additional regression: the Feishu message listener enqueues at most one bounded manual-intake worker and returns before SQLite I/O; the test invokes the captured worker separately to prove no synchronous database transaction or Codex job inside the event callback.
+源码关键测试入口：`tests/test_feishu_engineering_agent.py`、`test_feishu_engineering_manual_items.py`、`test_feishu_engineering_manual_bot.py`、`test_feishu_engineering_workflow.py`、`test_feishu_engineering_workflows.py`、`test_feishu_engineering_native.py`、`test_feishu_engineering_cards_complete.py`、`test_feishu_engineering_channel.py`、`test_feishu_engineering_source_bridge.py`、`test_feishu_engineering_contracts.py`、`test_feishu_engineering_delivery.py`、`test_feishu_engineering_github_adapter.py`、`test_feishu_engineering_end_to_end.py`、`test_feishu_engineering_migration.py`。
 
-## VERIFY-017/018 (offline tests; not field qualification)
-- Manual WorkItem `handoff` includes current supplied acceptance but no new Run/receipt or prompt storage.
-- Different tenant, chat, actor or no-longer-authorized repository cannot read handoff; UNKNOWN/CANCELED/BLOCKED cannot be handed off.
-- Requirement handoff suggests brainstorming/SDD, defect handoff prioritizes reproduction/negative testing; neither auto-launches Codex, Git, card or API.
-- Bot no-API reply uses existing authorized text route and retains a zero-model-call invariant. Validate on exact new SHA before marking PASS.
+### 一次性源码验收命令
 
-## Consolidated offline verification matrix
-All new tests use in-memory/mock transports, private temporary SQLite files and no model/Feishu/TAPD/Git network credentials.
+```bash
+python -m unittest discover -s tests -p 'test_feishu_engineering*.py' -v
+python -m tools.codex_assets.feishu_engineering_agent --dry-run \
+  --allow-repo robot-app --selected-repo robot-app --text '分析 sensor 初始化'
+python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
+```
 
-| Test file | Contract |
-|---|---|
-| `test_feishu_engineering_native.py` | initialize/initialized, exact thread, turn ACK≠completed, bad actor/home, no implicit budget, interrupt/UNKNOWN, tool approval refusal |
-| `test_feishu_engineering_delivery.py` | one-shot PR, trusted PR/CI, independent QA HMAC, original WorkItem remains open, optional source comment/UNKNOWN |
-| `test_feishu_engineering_cards_complete.py` | both documented callback layouts, conflict fail-closed, request vs grant separation, pre-run cancel, existing Bot opt-in |
-| `test_feishu_engineering_workflow.py` | source WorkItem → several separate Run attempts, event idempotence, signed SDD/billing/repo scope, disabled model by default |
-| `test_feishu_engineering_contracts.py` | immutable multi-repo version, per-participant verification, no fake device/HIL |
-| `test_feishu_engineering_source_bridge.py` | optional provider read, exact identity/version, no raw provider body persisted |
-| `test_feishu_engineering_migration.py` | SQLite/spool/policy private backup, checksum tamper, restore rehearsal, fail-closed cutover |
-| `test_feishu_engineering_end_to_end.py` | mock Feature + Bug from source registration through native turn, PR/CI, independent QA and human-owned source acceptance |
+`--probe-runtime` 只执行 `codex --version` 与 `codex app-server --help`；运行在 CI 时不能代表 `vstrong100`。仓库完整门禁另见 `.github/workflows/full-regression.yml`、`runtime-binding-contract.yml`、`profile-context-contract.yml`，以最终提交的 9/9 job 结果为准。
 
-Required offline CI: Python 3.8/3.11/3.12 full repository tests, profile context, runtime binding, pre-apply, isolated apply/no-op/rollback on **exact** final HEAD. No offline test is evidence of paid Codex behavior, live app-server protocol, tenant permissions, actual Git publication, SoC/MCU HIL or independent product/test closure.
+## 集中现场验证顺序
 
-**Centralized field campaign, to be scheduled after code integration:** (1) vstrong100 host and Codex version/identity/charge; (2) real Feishu message/card permissions & callback timing; (3) TAPD/Meegle optional read; (4) one Feature + one Bug actual Git/CI/QA; (5) one multi-repo contract + device proof when relevant; (6) single-consumer migration/rollback. For any inaccessible API, record a blocked gate with an explicit manual path, not fabricated PASS.
+1. **主机基线与回滚锚点**：查看实际 Bot systemd/锁/队列/WAL/spool/私有配置，记录权限与脱敏哈希，先做独立备份和临时恢复演练。严禁启动第二个消费者。
+2. **最低权限文本交互**：如现有 Bot 已获消息权限，在同一 Bot 测 `/wi help → add → handoff → attempt → status`；没有消息权限则先用本地 stdin CLI。两条路径均不需要飞书项目企业 API。
+3. **可选卡片**：仅在应用授权后开启测试开关。核查 Card 2.0 在手机和桌面端的实际签名、事件字段、幂等、过期与快速 ACK。不可据此授予写代码或模型权限。
+4. **真实 Codex 能力**：核对目标主机的版本与 `codex app-server generate-json-schema`（无模型），对照请求字段与沙箱权限；测试 exact thread resume/turn 事件/interrupt。模型回合须先取得独立额度与身份授权，不消耗被禁用的共享额度。
+5. **外部工作项**：有 TAPD/飞书项目 API 权限才做只读拉取和身份版本核验；无权限仅记录 `user_supplied_unverified`，不使用网页 cookie/模拟权限，也不阻塞内部代码开发。
+6. **真实研发交付**：一条低风险需求、一条低风险 Bug，通过 SDD、独立允许的 Codex 实现、草稿 PR、精确 SHA 的 CI 和独立产品/测试 QA。跨仓协议逐仓同版本验证，实际板卡联调单独提供 HIL 证据。
+7. **唯一生产消费者切换**：前述回滚、权限与现场门禁通过后，人工执行服务切换并证明唯一监听者、任务恢复及故障回退。源工作项的最终关闭仍由其业务负责人操作。
 
-- `test_feishu_engineering_github_adapter.py`: fixed GitHub API origin, repo/ref/head identity, PR draft POST only after remote branch proof, independent read-only PR/CI results, no default remote writes. PR and source-comment unsigned effect negatives verified in delivery test. Real GitHub publishing requires live host access and separate permission; no source-side field proof is inferred.
+## 不可越过的边界
 
-## P0 exact-SHA negative regressions (source-only)
-- Confirm a PR at SHA A + CI at SHA B is rejected even when each remote observer separately reports success; QA's correctly signed attestation at SHA B is rejected when the pinned delivery SHA is A. Published head and later source proof must also agree.
-- Confirm read/review native turns can finish at their own terminal event with no forced PR/CI/QA, but edit attempts cannot complete before matching PR/CI and independent QA.
-- Confirm a forged in-memory RuntimeGrant cannot start an actual native model turn without a durable, independently signed WorkItem execution approval receipt; replay after Run started cannot mint another grant.
-- Confirm app-server terminal notification sent before turn-start ACK is queued for later exact-thread reconciliation. Notification queue overflow blocks subsequent RPC instead of dropping evidence.
-- Confirm source workitem replay cannot switch to another source Run and current repository access revocation blocks provider reading before any API I/O.
-These tests must pass under the exact final HEAD across Python 3.8, 3.11 and 3.12; actual network/model/Feishu/device evidence remains pending field verification.
-
-- Verify exact Codex app-server v2 `turn/start` input contains `text_elements: []`, and read-only/workspace-write `sandboxPolicy` supplies all required properties; this is a source-schema assertion, not live protocol proof. The vstrong100-installed version's generated JSON Schema and live handshake remain separate gates.
-
-- Negative test: a valid queued WorkItem with a real signed approval cannot dispatch a model turn using a fabricated RuntimeGrant whose expiry has been extended beyond the persisted signed receipt; no native sender invocation or Run state change is permitted.
+- 不自动使用 Codex/ChatGPT Work 共享模型额度，不创建定时巡检或第二套 Agent Runtime。
+- 数据库、卡片和聊天不作为飞书项目/TAPD 的业务权威；GitHub Issue 不是需求/缺陷主入口。
+- 外部 PR、评论、模型执行、部署/烧录、合并分别验证作用域和授权。远端结果不明时先核对，不盲重试。
+- **没有 SOURCE PASS 不进入集中现场验证；SOURCE PASS 不等于 HOST/DELIVERY/WORKITEM PASS。**
