@@ -149,7 +149,8 @@ def make_single_consumer_card_callback(
             receipt = accept_callback(
                 store, envelope, verification_token, app_id, signing_key,
             )
-            response = card_ack(receipt)
+            view = render_card(store, receipt["card_id"], signing_key)
+            response = card_ack(receipt, view)
         except (IntakeRejected, ValueError, TypeError, KeyError):
             response = {
                 "toast": {"type": "warning", "content": "操作未通过验证或卡片已过期"}

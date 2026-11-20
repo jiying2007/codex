@@ -65,7 +65,7 @@ def register_card(store: RunStore, run_id: str, card_id: str, now: Optional[int]
             click_key TEXT PRIMARY KEY, content_hash TEXT NOT NULL,
             card_id TEXT NOT NULL, revision INTEGER NOT NULL,
             action TEXT NOT NULL, recorded_at INTEGER NOT NULL,
-            handled_at INTEGER, UNIQUE(card_id, revision)
+            handled_at INTEGER
         )""")
         db.execute(
             "INSERT INTO fea_cards "
@@ -106,13 +106,22 @@ def render_card(store: RunStore, card_id: str, signing_key: bytes,
     when = int(time.time()) if now is None else int(now)
     if when >= card["expires_at"]:
         raise IntakeRejected("card expired, create and bind a new card")
+    with contextlib.closing(store._connect()) as db:
+        pending = db.execute(
+            "SELECT 1 FROM fea_card_actions WHERE card_id=? "
+            "AND action IN ('request_execution','request_cancel') "
+            "AND handled_at IS NULL LIMIT 1",
+            (card_id,),
+        ).fetchone() is not None
     actions = ("status",)
-    if run["status"] not in ("completed", "failed", "blocked", "canceled"):
+    if (not pending and run["status"] not in
+            ("completed", "failed", "blocked", "canceled", "unknown")):
         actions = ("status", "request_execution", "request_cancel")
     elements = [{
         "tag": "markdown",
         "content": "**仓库**：" + run["repo"] + "\n**执行状态**：" + run["status"]
-                   + "\n**任务 ID**：" + run["run_id"],
+                   + "\n**任务 ID**：" + run["run_id"]
+                   + ("\n**操作申请**：已记录，待执行端校验" if pending else ""),
     }]
     for action in actions:
         value = {
@@ -213,7 +222,8 @@ def accept_callback(
                     raise EventConflict("card event ID reused for different action")
                 db.rollback()
                 return {"accepted": False, "duplicate": True,
-                        "action": previous["action"], "run_id": value["run_id"]}
+                        "action": previous["action"], "run_id": value["run_id"],
+                        "card_id": value["card_id"]}
             row = db.execute(
                 "SELECT * FROM fea_cards WHERE card_id=?", (value["card_id"],),
             ).fetchone()
@@ -236,6 +246,15 @@ def accept_callback(
                 run["status"] in ("completed", "failed", "blocked", "canceled", "unknown")
             ):
                 raise IntakeRejected("action unavailable in current run state")
+            if value["action"] != "status":
+                prior_mutation = db.execute(
+                    "SELECT 1 FROM fea_card_actions WHERE card_id=? "
+                    "AND revision=? AND action IN "
+                    "('request_execution','request_cancel') LIMIT 1",
+                    (value["card_id"], value["revision"]),
+                ).fetchone()
+                if prior_mutation is not None:
+                    raise IntakeRejected("card revision action already accepted")
             db.execute(
                 "INSERT INTO fea_card_actions "
                 "(click_key,content_hash,card_id,revision,action,recorded_at) "
@@ -243,10 +262,11 @@ def accept_callback(
                 (click_key, content_hash, value["card_id"], value["revision"],
                  value["action"], when),
             )
-            db.execute(
-                "UPDATE fea_cards SET revision=revision+1 WHERE card_id=?",
-                (value["card_id"],),
-            )
+            if value["action"] != "status":
+                db.execute(
+                    "UPDATE fea_cards SET revision=revision+1 WHERE card_id=?",
+                    (value["card_id"],),
+                )
             db.commit()
         except sqlite3.IntegrityError as exc:
             db.rollback()
@@ -255,18 +275,22 @@ def accept_callback(
             db.rollback()
             raise
     return {"accepted": True, "duplicate": False,
-            "action": value["action"], "run_id": value["run_id"]}
+            "action": value["action"], "run_id": value["run_id"],
+            "card_id": value["card_id"], "run_status": run["status"]}
 
 
-def card_ack(receipt: Mapping[str, Any]) -> dict:
+def card_ack(receipt: Mapping[str, Any], card: Optional[dict] = None) -> dict:
     """A bounded synchronous toast; no claim that the action ran."""
-    return {
-        "toast": {
-            "type": "info",
-            "content": ("请求已记录，等待执行端核验"
-                        if receipt["accepted"] else "重复操作已忽略"),
-        },
-    }
+    if not receipt["accepted"]:
+        message = "重复操作已忽略"
+    elif receipt["action"] == "status":
+        message = "当前执行状态：" + receipt.get("run_status", "unknown")
+    else:
+        message = "请求已记录，等待执行端核验"
+    answer = {"toast": {"type": "info", "content": message}}
+    if card is not None:
+        answer["card"] = {"type": "raw", "data": card}
+    return answer
 
 
 def pending_actions(store: RunStore, limit: int = 20) -> list:

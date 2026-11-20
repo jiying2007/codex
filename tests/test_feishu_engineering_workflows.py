@@ -141,6 +141,18 @@ class EngineeringRunContractTest(unittest.TestCase):
         self.assertIn("等待执行端", card_ack(receipt)["toast"]["content"])
         self.assertEqual("proposed", self.store.get_run(run)["status"])
         self.assertEqual(1, len(pending_actions(self.store)))
+        # Pending mutation hides further execution/cancel buttons until reconciled.
+        refreshed = render_card(self.store, "card_1", KEY, now=NOW)
+        self.assertEqual(
+            ["status"],
+            [b["behaviors"][0]["value"]["action"]
+             for b in refreshed["body"]["elements"] if b["tag"] == "button"],
+        )
+        ack = card_ack(receipt, refreshed)
+        self.assertEqual("raw", ack["card"]["type"])
+        self.assertEqual("2.0", ack["card"]["data"]["schema"])
+        with self.assertRaises(IntakeRejected):
+            self.accept(self.callback(action["behaviors"][0]["value"], event_id="evt_2"))
 
     def test_duplicate_click_is_idempotent_distinct_event_stale(self):
         run = self.run_id()
@@ -149,9 +161,13 @@ class EngineeringRunContractTest(unittest.TestCase):
         click = self.callback(button["behaviors"][0]["value"])
         self.assertTrue(self.accept(click)["accepted"])
         self.assertTrue(self.accept(click)["duplicate"])
-        with self.assertRaises(IntakeRejected):
-            self.accept(self.callback(button["behaviors"][0]["value"], event_id="evt_2"))
-        self.assertEqual(1, len(pending_actions(self.store)))
+        # The status action is read-only; a new click may ask again without
+        # consuming the card revision or disabling unrelated buttons.
+        second = self.accept(
+            self.callback(button["behaviors"][0]["value"], event_id="evt_2")
+        )
+        self.assertTrue(second["accepted"])
+        self.assertEqual(2, len(pending_actions(self.store)))
 
     def test_card_event_conflict_wrong_user_wrong_message_bad_signature(self):
         run = self.run_id()
@@ -173,10 +189,23 @@ class EngineeringRunContractTest(unittest.TestCase):
         good = self.callback(value)
         self.accept(good)
         # Signed but distinct valid value with same event ID conflicts.
+        # A different, valid signed action reusing the same event id is conflict,
+        # even when the original action was a read-only status click.
         new_value = render_card(self.store, "card_1", KEY, now=NOW)[
-            "body"]["elements"][1]["behaviors"][0]["value"]
+            "body"]["elements"][2]["behaviors"][0]["value"]
         with self.assertRaises(EventConflict):
             self.accept(self.callback(new_value))
+
+    def test_provider_callback_fields_must_be_nested_in_event(self):
+        run = self.run_id()
+        self.make_card(run)
+        value = render_card(self.store, "card_1", KEY, now=NOW)[
+            "body"]["elements"][1]["behaviors"][0]["value"]
+        malformed = self.callback(value)
+        malformed["context"] = malformed["event"].pop("context")
+        malformed["host"] = malformed["event"].pop("host")
+        with self.assertRaises(IntakeRejected):
+            self.accept(malformed)
 
     def test_expiry_and_message_rebinding_denied(self):
         run = self.run_id()
