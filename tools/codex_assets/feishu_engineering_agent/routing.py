@@ -52,6 +52,8 @@ def route_message(
         return Decision("status", reason="control_only")
     if message.lower() in ("/repo", "/project", "当前项目", "我的项目"):
         return Decision("show_project", repo=selected_repo, reason="control_only")
+    if message.lower() in ("/repo reset", "/project reset", "清除项目", "重置项目"):
+        return Decision("reset_project", reason="control_only")
 
     match = _SWITCH.fullmatch(message)
     if match:
