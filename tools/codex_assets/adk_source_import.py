@@ -37,10 +37,12 @@ class ImportError(ValueError):
 
 POLICY_FILES = ("__init__.py", "contracts.py", "decision.py", "reducer.py")
 TRUSTED_ROOT_SHA256 = "6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66"
+INDEPENDENT_POLICY_LOCK = "manifests/provider-locks/agent-dev-kit-execution-policy.json"
 PROTECTED_PREFIXES = (
     "manifests/skills.json",
     "manifests/agents.json",
     "manifests/provider-locks/agent-dev-kit.json",
+    INDEPENDENT_POLICY_LOCK,
     "manifests/execution_policy.json",
     "src/codex-home/vendor/skills/",
     "src/codex-home/vendor/agents/agent-dev-kit/",
@@ -77,6 +79,55 @@ def _check_target_clean(root: Path) -> None:
         path = line[3:].split(" -> ")[-1]
         if any(path == prefix or path.startswith(prefix) for prefix in PROTECTED_PREFIXES):
             raise ImportError(f"import target has pre-existing changes: {path}")
+
+def _independent_policy_snapshot(root: Path) -> dict[str, Any]:
+    """Validate the installed independent policy before a skills-only source upgrade.
+
+    The policy source stays pinned to the earlier Python-compatible version;
+    only the independent lock's *consumer* pointer may advance after a signed
+    upstream import. Git blob checks prevent relabeling modified policy code.
+    """
+    lock_path = root / INDEPENDENT_POLICY_LOCK
+    original = lock_path.read_bytes()
+    value = _json(lock_path)
+    provider = _json(root / "manifests/provider-locks/agent-dev-kit.json")
+    engine = _json(root / "manifests/execution_policy.json").get("engine", {})
+    baseline = engine.get("behavior_baseline") if isinstance(engine, dict) else None
+    source = value.get("source")
+    consumer = value.get("consumer")
+    if (value.get("schema") != "codex-execution-policy-source-lock/v1"
+            or value.get("boundary") != "independent-exact-policy-source"
+            or not all(isinstance(x, dict) for x in (source, consumer, baseline))
+            or provider.get("schema") != "codex-provider-lock/v3"):
+        raise ImportError("independent execution policy lock has invalid schema")
+    expected_consumer = {
+        "repository": REPOSITORY,
+        "version": provider.get("version"),
+        "commit": provider.get("provider_commit"),
+        "tree": provider.get("provider_tree"),
+        "manifest_blob": provider.get("manifest_blob"),
+        "release_tag": provider.get("release_tag"),
+        "release_artifact": provider.get("release_artifact"),
+    }
+    if consumer != expected_consumer:
+        raise ImportError("independent execution policy consumer differs from current provider lock")
+    if (source.get("repository") != REPOSITORY
+            or source.get("version") != baseline.get("version")
+            or source.get("commit") != baseline.get("commit")
+            or baseline.get("repository") != REPOSITORY
+            or source.get("release_tag") != "v" + str(source.get("version"))):
+        raise ImportError("independent execution policy source identity drift")
+    blobs = baseline.get("source_blobs")
+    if not isinstance(blobs, dict) or set(blobs) != set(POLICY_FILES):
+        raise ImportError("independent execution policy file inventory drift")
+    for filename in POLICY_FILES:
+        path = root / "tools/codex_assets/execution_policy" / filename
+        expected = blobs[filename]
+        if (path.is_symlink() or not path.is_file()
+                or not isinstance(expected, str) or re.fullmatch(r"[0-9a-f]{40}", expected) is None
+                or _blob(path.read_bytes()) != expected):
+            raise ImportError("independent execution policy source file differs from frozen identity")
+    return {"lock": value, "sha256": hashlib.sha256(original).hexdigest()}
 
 
 def _skill_version(path: Path) -> str:
