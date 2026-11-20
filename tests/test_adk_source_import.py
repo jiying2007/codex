@@ -98,11 +98,13 @@ class AdkSourceImportTests(unittest.TestCase):
                 subprocess.CompletedProcess([], 0, stdout="Verified OK", stderr="")))
             yield verifier
 
-    def make_plan(self, *, allow_reviewed_native_ui: bool = False):
+    def make_plan(self, *, allow_reviewed_native_ui: bool = False,
+                  preserve_execution_policy: bool = False):
         return importer.plan(self.root, self.provider, self.provider_state["commit"],
                              Path(self.temp.name) / "unused-evidence", Path(self.temp.name) / "unused-attestation",
                              self.trusted_root, "d" * 64,
-                             allow_reviewed_native_ui=allow_reviewed_native_ui)
+                             allow_reviewed_native_ui=allow_reviewed_native_ui,
+                             preserve_execution_policy=preserve_execution_policy)
 
     def snapshot(self):
         return {p.relative_to(self.root).as_posix(): p.read_bytes()
@@ -403,6 +405,103 @@ class AdkSourceImportTests(unittest.TestCase):
         self.assertEqual(item["vendor_rel"], self.record["vendor_rel"])
         directory = self.root / "src/codex-home" / item["vendor_rel"]
         self.assertEqual((directory / "README.md").read_text(), self.readme("1.0.0", "b" * 40))
+
+    def _bind_independent_policy(self) -> dict:
+        """Freeze one old release and independent Python-compatible policy fixture."""
+        provider = {
+            "schema": "codex-provider-lock/v3",
+            "version": "1.0.0", "provider_commit": self.old_commit,
+            "provider_tree": "b" * 40, "manifest_blob": "c" * 40,
+            "release_tag": "v1.0.0",
+            "release_artifact": {"name": "agent-dev-kit-1.0.0.tar.gz", "sha256": "d" * 64},
+        }
+        self.write(self.root / "manifests/provider-locks/agent-dev-kit.json", json.dumps(provider))
+        blobs = {}
+        for filename in importer.POLICY_FILES:
+            path = self.root / "tools/codex_assets/execution_policy" / filename
+            self.write(path, "# frozen Python-compatible policy " + filename + "\n")
+            blobs[filename] = _blob(path.read_bytes())
+        baseline = {
+            "repository": importer.REPOSITORY, "version": "8.2.0",
+            "commit": "e" * 40, "source_blobs": blobs,
+        }
+        self.write(self.root / "manifests/execution_policy.json",
+                   json.dumps({"engine": {"behavior_baseline": baseline}}))
+        lock = {
+            "schema": "codex-execution-policy-source-lock/v1",
+            "boundary": "independent-exact-policy-source",
+            "source": {"repository": importer.REPOSITORY, "version": "8.2.0",
+                       "commit": "e" * 40, "release_tag": "v8.2.0"},
+            "consumer": {"repository": importer.REPOSITORY,
+                         "version": provider["version"], "commit": provider["provider_commit"],
+                         "tree": provider["provider_tree"], "manifest_blob": provider["manifest_blob"],
+                         "release_tag": provider["release_tag"],
+                         "release_artifact": provider["release_artifact"]},
+        }
+        self.write(self.root / importer.INDEPENDENT_POLICY_LOCK, json.dumps(lock))
+        return lock
+
+    def test_signed_skills_only_import_preserves_independent_policy_source(self) -> None:
+        original_lock = self._bind_independent_policy()
+        files = {name: (self.root / "tools/codex_assets/execution_policy" / name).read_bytes()
+                 for name in importer.POLICY_FILES}
+        original_policy = (self.root / "manifests/execution_policy.json").read_bytes()
+        with self.boundaries():
+            result = self.make_plan(preserve_execution_policy=True)
+            self.assertEqual(result["policy_mode"], "preserve-independent")
+            importer.apply(self.root, self.provider, result)
+        lock = json.loads((self.root / importer.INDEPENDENT_POLICY_LOCK).read_text())
+        self.assertEqual(lock["source"], original_lock["source"])
+        self.assertEqual(lock["consumer"]["commit"], self.provider_state["commit"])
+        self.assertEqual(lock["consumer"]["version"], "7.13.0")
+        self.assertEqual((self.root / "manifests/execution_policy.json").read_bytes(), original_policy)
+        for name, content in files.items():
+            self.assertEqual((self.root / "tools/codex_assets/execution_policy" / name).read_bytes(), content)
+        old_dir = self.root / "src/codex-home/vendor/skills/adk-example/1.0.0"
+        self.assertFalse(old_dir.exists())
+        self.assertTrue((self.root / "src/codex-home/vendor/skills/adk-example/1.1.0/SKILL.md").is_file())
+        importer._independent_policy_snapshot(self.root)
+
+    def test_skills_only_preflight_rejects_changed_policy_source_without_writes(self) -> None:
+        self._bind_independent_policy()
+        policy_file = self.root / "tools/codex_assets/execution_policy/decision.py"
+        self.write(policy_file, "# unauthorized mutation\n")
+        before = self.snapshot()
+        with self.boundaries(), self.assertRaisesRegex(importer.ImportError, "source file differs"):
+            self.make_plan(preserve_execution_policy=True)
+        self.assertEqual(before, self.snapshot())
+
+    def test_skills_only_rejects_stale_policy_lock_before_import_writes(self) -> None:
+        self._bind_independent_policy()
+        with self.boundaries():
+            result = self.make_plan(preserve_execution_policy=True)
+            lock = self.root / importer.INDEPENDENT_POLICY_LOCK
+            raw = json.loads(lock.read_text())
+            raw["source"]["release_tag"] = "v9.9.9"
+            self.write(lock, json.dumps(raw))
+            before = self.snapshot()
+            with self.assertRaisesRegex(importer.ImportError, "source identity drift"):
+                importer.apply(self.root, self.provider, result)
+            self.assertEqual(before, self.snapshot())
+
+    def test_skills_only_rejects_unrecognized_policy_mode_before_writes(self) -> None:
+        self._bind_independent_policy()
+        with self.boundaries():
+            result = self.make_plan(preserve_execution_policy=True)
+            result["policy_mode"] = "skip-all-policy-checks"
+            before = self.snapshot()
+            with self.assertRaisesRegex(importer.ImportError, "unknown execution policy import mode"):
+                importer.apply(self.root, self.provider, result)
+            self.assertEqual(before, self.snapshot())
+
+    def test_source_fixture_requires_frozen_exact_prior_version(self) -> None:
+        for version in ("", "11.2", "../11.2.1", "11.2.1/../../", "v11.2.1"):
+            with self.subTest(version=version), self.assertRaisesRegex(importer.ImportError, "SemVer"):
+                importer.write_source_fixture(self.root, self.provider,
+                                             self.provider_state["commit"], version)
+        with self.assertRaisesRegex(importer.ImportError, "unavailable"):
+            importer.write_source_fixture(self.root, self.provider,
+                                         self.provider_state["commit"], "11.2.1")
 
     def test_changed_skill_without_version_advance_still_rejected(self) -> None:
         self.provider_state = self.upgrade_provider("1.0.0", "7.13.0", "b" * 40)

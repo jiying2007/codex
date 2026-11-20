@@ -37,10 +37,12 @@ class ImportError(ValueError):
 
 POLICY_FILES = ("__init__.py", "contracts.py", "decision.py", "reducer.py")
 TRUSTED_ROOT_SHA256 = "6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66"
+INDEPENDENT_POLICY_LOCK = "manifests/provider-locks/agent-dev-kit-execution-policy.json"
 PROTECTED_PREFIXES = (
     "manifests/skills.json",
     "manifests/agents.json",
     "manifests/provider-locks/agent-dev-kit.json",
+    INDEPENDENT_POLICY_LOCK,
     "manifests/execution_policy.json",
     "src/codex-home/vendor/skills/",
     "src/codex-home/vendor/agents/agent-dev-kit/",
@@ -77,6 +79,55 @@ def _check_target_clean(root: Path) -> None:
         path = line[3:].split(" -> ")[-1]
         if any(path == prefix or path.startswith(prefix) for prefix in PROTECTED_PREFIXES):
             raise ImportError(f"import target has pre-existing changes: {path}")
+
+def _independent_policy_snapshot(root: Path) -> dict[str, Any]:
+    """Validate the installed independent policy before a skills-only source upgrade.
+
+    The policy source stays pinned to the earlier Python-compatible version;
+    only the independent lock's *consumer* pointer may advance after a signed
+    upstream import. Git blob checks prevent relabeling modified policy code.
+    """
+    lock_path = root / INDEPENDENT_POLICY_LOCK
+    original = lock_path.read_bytes()
+    value = _json(lock_path)
+    provider = _json(root / "manifests/provider-locks/agent-dev-kit.json")
+    engine = _json(root / "manifests/execution_policy.json").get("engine", {})
+    baseline = engine.get("behavior_baseline") if isinstance(engine, dict) else None
+    source = value.get("source")
+    consumer = value.get("consumer")
+    if (value.get("schema") != "codex-execution-policy-source-lock/v1"
+            or value.get("boundary") != "independent-exact-policy-source"
+            or not all(isinstance(x, dict) for x in (source, consumer, baseline))
+            or provider.get("schema") != "codex-provider-lock/v3"):
+        raise ImportError("independent execution policy lock has invalid schema")
+    expected_consumer = {
+        "repository": REPOSITORY,
+        "version": provider.get("version"),
+        "commit": provider.get("provider_commit"),
+        "tree": provider.get("provider_tree"),
+        "manifest_blob": provider.get("manifest_blob"),
+        "release_tag": provider.get("release_tag"),
+        "release_artifact": provider.get("release_artifact"),
+    }
+    if consumer != expected_consumer:
+        raise ImportError("independent execution policy consumer differs from current provider lock")
+    if (source.get("repository") != REPOSITORY
+            or source.get("version") != baseline.get("version")
+            or source.get("commit") != baseline.get("commit")
+            or baseline.get("repository") != REPOSITORY
+            or source.get("release_tag") != "v" + str(source.get("version"))):
+        raise ImportError("independent execution policy source identity drift")
+    blobs = baseline.get("source_blobs")
+    if not isinstance(blobs, dict) or set(blobs) != set(POLICY_FILES):
+        raise ImportError("independent execution policy file inventory drift")
+    for filename in POLICY_FILES:
+        path = root / "tools/codex_assets/execution_policy" / filename
+        expected = blobs[filename]
+        if (path.is_symlink() or not path.is_file()
+                or not isinstance(expected, str) or re.fullmatch(r"[0-9a-f]{40}", expected) is None
+                or _blob(path.read_bytes()) != expected):
+            raise ImportError("independent execution policy source file differs from frozen identity")
+    return {"lock": value, "sha256": hashlib.sha256(original).hexdigest()}
 
 
 def _skill_version(path: Path) -> str:
@@ -243,7 +294,8 @@ def _local_readme_identities(root: Path, manifest: dict[str, Any],
 
 def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
          attestation_path: Path, trusted_root: Path, artifact_sha256: str,
-         *, allow_reviewed_native_ui: bool = False) -> dict[str, Any]:
+         *, allow_reviewed_native_ui: bool = False,
+         preserve_execution_policy: bool = False) -> dict[str, Any]:
     root = root.resolve()
     provider_root = provider_root.resolve()
     provider = _provider(provider_root, commit)
@@ -267,6 +319,7 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
     if verifier.returncode or "Verified OK" not in verifier.stdout + verifier.stderr:
         raise ImportError("Sigstore promotion verification failed")
     _check_target_clean(root)
+    independent_policy = _independent_policy_snapshot(root) if preserve_execution_policy else None
     report = audit(root, provider_root, commit)
     if report["status"] != "consistent" or report["candidate"]["blocked_skills"]:
         raise ImportError("ADK source audit is not consistent")
@@ -339,6 +392,8 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
         "manifest_blob": provider["tracked"]["manifest.json"]["blob"],
         "version": provider["version"], "artifact_sha256": artifact_sha256,
         "trusted_root_sha256": TRUSTED_ROOT_SHA256,
+        "policy_mode": "preserve-independent" if preserve_execution_policy else "replace-with-provider",
+        "independent_policy_sha256": independent_policy["sha256"] if independent_policy else None,
         "skill_count": len(changes), "changed_skills": [x["name"] for x in changes if x["changed"] or x["added"]],
         "agent_count": len(agent_names), "skills": changes,
     }
@@ -354,6 +409,15 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
     skills = _json(skills_path)
     by_name = {item["name"]: item for item in skills["skills"]}
     old_identities = _local_readme_identities(root, skills)
+    policy_mode = result.get("policy_mode", "replace-with-provider")
+    if policy_mode not in ("preserve-independent", "replace-with-provider"):
+        raise ImportError("unknown execution policy import mode")
+    independent = None
+    if policy_mode == "preserve-independent":
+        _check_target_clean(root)
+        independent = _independent_policy_snapshot(root)
+        if independent["sha256"] != result.get("independent_policy_sha256"):
+            raise ImportError("independent policy source changed since signed plan")
     for change in result["skills"]:
         item = by_name[change["name"]]
         if (item["version"] != change["old_version"]
@@ -431,6 +495,7 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
 
     agents_path = root / "manifests/agents.json"
     agents = _json(agents_path)
+    retired_agent_files: list[Path] = []
     for item in agents["agents"]:
         if item.get("source_kind") != "vendor" or item.get("source_repo") != REPOSITORY:
             continue
@@ -442,6 +507,8 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         if old.read_bytes() != (provider_root / source).read_bytes():
             raise ImportError("Agent source changed and requires separate review: {}".format(item["name"]))
         shutil.copy2(provider_root / source, destination)
+        if destination != old and policy_mode == "preserve-independent":
+            retired_agent_files.append(old)
         item["version"] = version
         item["vendor_rel"] = destination_rel
         item["source_ref"] = commit
@@ -449,19 +516,20 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         item["imported_at"] = imported_at
     _write_json(agents_path, agents)
 
-    source_blobs = {}
-    for filename in POLICY_FILES:
-        source = provider_root / "src/agent_dev_kit/execution_policy" / filename
-        destination = root / "tools/codex_assets/execution_policy" / filename
-        shutil.copy2(source, destination)
-        source_blobs[filename] = _blob(destination.read_bytes())
-    policy_path = root / "manifests/execution_policy.json"
-    policy = _json(policy_path)
-    baseline = policy["engine"]["behavior_baseline"]
-    baseline["version"] = version
-    baseline["commit"] = commit
-    baseline["source_blobs"] = source_blobs
-    _write_json(policy_path, policy)
+    if policy_mode == "replace-with-provider":
+        source_blobs = {}
+        for filename in POLICY_FILES:
+            source = provider_root / "src/agent_dev_kit/execution_policy" / filename
+            destination = root / "tools/codex_assets/execution_policy" / filename
+            shutil.copy2(source, destination)
+            source_blobs[filename] = _blob(destination.read_bytes())
+        policy_path = root / "manifests/execution_policy.json"
+        policy = _json(policy_path)
+        baseline = policy["engine"]["behavior_baseline"]
+        baseline["version"] = version
+        baseline["commit"] = commit
+        baseline["source_blobs"] = source_blobs
+        _write_json(policy_path, policy)
 
     lock_path = root / "manifests/provider-locks/agent-dev-kit.json"
     lock = _json(lock_path)
@@ -475,7 +543,37 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         "sha256": result["artifact_sha256"],
     }
     _write_json(lock_path, lock)
+    if independent is not None:
+        policy_lock = independent["lock"]
+        policy_lock["consumer"] = {
+            "repository": REPOSITORY, "version": version, "commit": commit,
+            "tree": result["provider_tree"], "manifest_blob": result["manifest_blob"],
+            "release_tag": "v" + version,
+            "release_artifact": lock["release_artifact"],
+        }
+        _write_json(root / INDEPENDENT_POLICY_LOCK, policy_lock)
     refresh_local_readmes(root, provider_root, commit, old_identities=old_identities)
+    if independent is not None:
+        # Retire only versioned, fully source-checked directories in the
+        # isolated candidate after all source projections have passed.
+        for change in result["skills"]:
+            if change["old_rel"] != change["new_rel"]:
+                previous = root / "src/codex-home" / change["old_rel"]
+                if previous.is_symlink() or not previous.is_dir():
+                    raise ImportError("retired Skill directory identity changed")
+                shutil.rmtree(previous)
+        for previous in retired_agent_files:
+            if previous.is_symlink() or not previous.is_file():
+                raise ImportError("retired Agent file identity changed")
+            previous.unlink()
+            if not any(previous.parent.iterdir()):
+                previous.parent.rmdir()
+        # Release exactly one old Agent-version tree after its expected files
+        # have been retired, without touching any unrelated vendor path.
+        for parent in sorted({p.parent.parent for p in retired_agent_files}):
+            if parent.is_dir() and not any(parent.iterdir()):
+                parent.rmdir()
+        _independent_policy_snapshot(root)
 
 
 def refresh_local_readmes(root: Path, provider_root: Path, commit: str, *,
@@ -522,13 +620,19 @@ def refresh_local_readmes(root: Path, provider_root: Path, commit: str, *,
     return changed
 
 
-def write_source_fixture(root: Path, provider_root: Path, commit: str) -> Path:
+def write_source_fixture(root: Path, provider_root: Path, commit: str, baseline_version: str) -> Path:
     """Freeze independently read upstream Git trees for consumer regressions."""
     root = root.resolve()
     provider_root = provider_root.resolve()
-    provider = _provider(provider_root, commit)
-    old_path = root / "tests/fixtures/adk-skill-sources-7.0.31.json"
+    if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", baseline_version) is None:
+        raise ImportError("baseline provider version must be exact SemVer")
+    old_path = root / "tests/fixtures" / f"adk-skill-sources-{baseline_version}.json"
+    if old_path.is_symlink() or not old_path.is_file():
+        raise ImportError("frozen prior-source fixture is unavailable")
     old = _json(old_path)
+    if old.get("release") != "v" + baseline_version or not isinstance(old.get("skills"), dict):
+        raise ImportError("frozen prior-source fixture has incompatible identity")
+    provider = _provider(provider_root, commit)
     current = _json(root / "manifests/skills.json")
     selected = {item["name"]: item for item in current["skills"]
                 if item.get("enabled") is True and item.get("name", "").startswith("adk-")}
@@ -548,9 +652,15 @@ def write_source_fixture(root: Path, provider_root: Path, commit: str) -> Path:
             raise ImportError(f"Skill mapping needs review: {name}")
         vendor = root / "src/codex-home" / item["vendor_rel"]
         installed = _tree(vendor)
+        native_ui = provider_root / PurePosixPath(item["source_path"]).parent / "agents/openai.yaml"
+        if native_ui.is_file() and "agents/openai.yaml" not in upstream:
+            raise ImportError("unreviewed native UI file")
+        openai_source = yaml.safe_load(native_ui.read_text(encoding="utf-8")) if native_ui.is_file() else None
+        if openai_source is not None and not isinstance(openai_source, dict):
+            raise ImportError("invalid upstream native UI")
         fixture["skills"][name] = {
             "installed_license_blob": installed["LICENSE"]["blob"],
-            "openai_source": old_item["openai_source"],
+            "openai_source": openai_source,
             "profiles": old_item["profiles"],
             "source_path": item["source_path"],
             "target_rel": old_item["target_rel"],
@@ -575,7 +685,11 @@ def main() -> int:
     parser.add_argument("--release-artifact-sha256", required=True)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--write-source-fixture", action="store_true")
+    parser.add_argument("--baseline-provider-version", default="",
+                        help="Frozen prior-source version for explicit fixture promotion")
     parser.add_argument("--refresh-distribution-metadata", action="store_true")
+    parser.add_argument("--preserve-execution-policy", action="store_true",
+                        help="Skills/Agents-only exact import; keep existing independent policy source")
     parser.add_argument("--allow-reviewed-native-ui", action="store_true",
                         help="Explicitly accept signed, non-escalating Chinese UI source metadata")
     parser.add_argument("--summary-json", action="store_true")
@@ -590,13 +704,15 @@ def main() -> int:
         if args.write_source_fixture:
             if args.apply:
                 raise ImportError("fixture generation and source import must be separate operations")
-            destination = write_source_fixture(args.root, args.provider_root, args.expected_provider_commit)
+            destination = write_source_fixture(args.root, args.provider_root,
+                                               args.expected_provider_commit, args.baseline_provider_version)
             print(json.dumps({"status": "fixture-written", "path": str(destination)}))
             return 0
         result = plan(args.root, args.provider_root, args.expected_provider_commit,
                       args.promotion_evidence, args.promotion_attestation, args.trusted_root,
                       args.release_artifact_sha256,
-                      allow_reviewed_native_ui=args.allow_reviewed_native_ui)
+                      allow_reviewed_native_ui=args.allow_reviewed_native_ui,
+                      preserve_execution_policy=args.preserve_execution_policy)
         if args.apply:
             apply(args.root, args.provider_root, result)
             result["status"] = "applied-not-verified"

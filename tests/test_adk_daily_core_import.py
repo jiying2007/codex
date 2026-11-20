@@ -16,15 +16,22 @@ from tools.codex_assets.skill_catalog import search_skills
 from tests import test_adk_skill_audit as audit_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_COMMIT = "a5ba89065b163594571cc673dd436a23524725a6"
-# The immutable v11.2.1 golden is a separately captured provider Git-tree fixture.
-# Keep the original v8.2.0 fixture for historical verification, not current routing.
-GOLDEN = json.loads((ROOT / "tests/fixtures/adk-skill-sources-11.2.1.json").read_text(encoding="utf-8"))
+# The immutable, separately recorded upstream fixture follows the provider
+# lock. Historical release fixtures remain immutable and are never rewritten.
+PROVIDER = json.loads((ROOT / "manifests/provider-locks/agent-dev-kit.json").read_text())
+SOURCE_COMMIT = PROVIDER["provider_commit"]
+SOURCE_VERSION = PROVIDER["version"]
+GOLDEN = json.loads((ROOT / f"tests/fixtures/adk-skill-sources-{SOURCE_VERSION}.json").read_text(encoding="utf-8"))
 assert GOLDEN["provider_commit"] == SOURCE_COMMIT
+QUERIES = {"adk-runtime-router": "技能路由",
+           "adk-code-review-loop": "独立代码审查",
+           "adk-verification-before-completion": "准备完成"}
 EXPECTED = {
-    "adk-runtime-router": ("2.1.3", "ce003460bbccf7d6940c2f69c9c7f7404834c8ae", _digest(GOLDEN["skills"]["adk-runtime-router"]["tree"]), 2, "技能路由"),
-    "adk-code-review-loop": ("1.7.3", "9d62e8a1ef0d96a5618313f0c5151f6ad3d65682", _digest(GOLDEN["skills"]["adk-code-review-loop"]["tree"]), 5, "独立代码审查"),
-    "adk-verification-before-completion": ("1.8.1", "a10504bb730e61d09bf65102a750b99950181d30", _digest(GOLDEN["skills"]["adk-verification-before-completion"]["tree"]), 2, "准备完成"),
+    name: (GOLDEN["skills"][name]["version"],
+           GOLDEN["skills"][name]["tree"]["SKILL.md"]["blob"],
+           _digest(GOLDEN["skills"][name]["tree"]),
+           len(GOLDEN["skills"][name]["tree"]), query)
+    for name, query in QUERIES.items()
 }
 
 
@@ -82,7 +89,7 @@ class DailyCoreImportTests(unittest.TestCase):
                 self.assertEqual(record["version"], version)
                 self.assertEqual(record["source_repo"], "jiying2007/agent-dev-kit")
                 self.assertEqual(record["source_ref"], SOURCE_COMMIT)
-                self.assertEqual(record["source_release"], "v11.2.1")
+                self.assertEqual(record["source_release"], "v" + SOURCE_VERSION)
                 self.assertEqual(record["source_path"], f"skills/{name}/SKILL.md")
                 self.assertEqual(record["source_blob"], blob)
                 self.assertEqual(record["source_tree_sha256"], digest)

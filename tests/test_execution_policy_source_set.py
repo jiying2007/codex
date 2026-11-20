@@ -32,8 +32,8 @@ class ExecutionPolicySourceSetTest(unittest.TestCase):
         for filename, expected in SOURCE_BLOBS.items():
             self.assertEqual(expected, git_blob_sha(directory / filename))
         provider = json.loads((ROOT / "manifests/provider-locks/agent-dev-kit.json").read_text())
-        self.assertEqual("11.2.1", provider["version"])
-        self.assertEqual("a5ba89065b163594571cc673dd436a23524725a6", provider["provider_commit"])
+        self.assertRegex(provider["version"], r"^[0-9]+\.[0-9]+\.[0-9]+$")
+        self.assertRegex(provider["provider_commit"], r"^[0-9a-f]{40}$")
         behavior=json.loads((ROOT/"manifests/execution_policy.json").read_text())["engine"]["behavior_baseline"]
         self.assertEqual("8.2.0", behavior["version"])
         self.assertEqual("22e6c790d1ed191cecc3083dc001a6ccfed264f6", behavior["commit"])
