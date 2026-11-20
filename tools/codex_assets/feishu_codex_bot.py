@@ -192,6 +192,7 @@ class BotConfig:
     deny_read_paths: Tuple[pathlib.Path, ...] = ()
     isolation_write_paths: Tuple[pathlib.Path, ...] = ()
     agent_intake_enabled: bool = False
+    manual_workitems_enabled: bool = False  # requires no Feishu Project/TAPD API
 
     @classmethod
     def from_values(cls, values: Mapping[str, str], default_workdir: pathlib.Path) -> "BotConfig":
@@ -228,6 +229,9 @@ class BotConfig:
         agent_intake_enabled = payload.get("agent_intake_enabled", False)
         if not isinstance(agent_intake_enabled, bool):
             raise FeishuCodexError("agent_intake_enabled 必须是布尔值")
+        manual_workitems_enabled = payload.get("manual_workitems_enabled", False)
+        if not isinstance(manual_workitems_enabled, bool):
+            raise FeishuCodexError("manual_workitems_enabled 必须是布尔值")
         repositories: Dict[str, RepositoryPolicy] = {}
         for alias, item in repositories_raw.items():
             if not isinstance(alias, str) or not ALIAS_PATTERN.fullmatch(alias):
@@ -407,6 +411,7 @@ class BotConfig:
             deny_read_paths=deny_read_paths,
             isolation_write_paths=isolation_write_paths,
             agent_intake_enabled=agent_intake_enabled,
+            manual_workitems_enabled=manual_workitems_enabled,
         )
 
     @property
@@ -1779,6 +1784,13 @@ class FeishuCodexBot:
         self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         self._scheduled: Set[int] = set()
         self._schedule_lock = threading.Lock()
+        self._manual_service = None
+        if config.manual_workitems_enabled:
+            from .feishu_engineering_agent.manual_items import ManualWorkItemService
+            # Separate 0600 SQLite file, never the legacy task DB/WAL/spool.
+            self._manual_service = ManualWorkItemService(
+                config.state_db.with_name("feishu-engineering-agent.sqlite3")
+            )
 
     @staticmethod
     def _encode_job(job: BotJob) -> Dict[str, Any]:
@@ -1891,8 +1903,69 @@ class FeishuCodexBot:
         for chunk in split_reply(text, self.config.reply_chunk_chars):
             self.transport.send_text(chat_id, chunk, "" if message_id.startswith("agent:") else message_id)
 
+    def _try_manual_workitem(self, data: Any) -> bool:
+        """Consume reserved /wi commands *before* legacy Codex job intake.
+
+        The sender and tenant come from the trusted SDK event, never user text.
+        This endpoint performs no API read, model call, Git write or card send.
+        """
+        from .feishu_engineering_agent.manual_items import is_manual_command
+        from .feishu_engineering_agent.models import InboundEvent, IntakeRejected
+        event = getattr(data, "event", None)
+        message = getattr(event, "message", None)
+        chat_id = str(getattr(message, "chat_id", "") or "")
+        if (chat_id != self.config.target_chat_id
+                or str(getattr(message, "message_type", "") or "") != "text"):
+            return False
+        try:
+            mentions = getattr(message, "mentions", None) or []
+            keys = [str(getattr(x, "key", "") or "") for x in mentions]
+            body = extract_text(str(getattr(message, "content", "") or ""), keys)
+        except FeishuCodexError:
+            return False
+        if not is_manual_command(body):
+            return False
+
+        message_id = str(getattr(message, "message_id", "") or "")
+        sender = getattr(getattr(event, "sender", None), "sender_id", None)
+        actor = str(getattr(sender, "open_id", "") or "")
+        allowed = {
+            alias for alias, policy in self.config.repositories.items()
+            if self.config.sender_allowed(actor, policy)
+        }
+        if not actor or not allowed:
+            return True  # unauthorized sender receives no task state or reply
+        if not self.config.manual_workitems_enabled or self._manual_service is None:
+            reply = "工作项人工登记未启用；管理员可设置 manual_workitems_enabled，或在本地使用 --manual。不会启动 Codex。"
+        else:
+            header = getattr(data, "header", None)
+            tenant = str(getattr(header, "tenant_key", "") or "")
+            if not tenant:
+                reply = "工作项登记被拒绝：当前消息未提供可验证的租户标识。"
+            else:
+                try:
+                    inbound = InboundEvent(
+                        "feishu_message", tenant, chat_id, actor, message_id, body,
+                    )
+                    reply = self._manual_service.handle(
+                        inbound, self.gate.default_repository(actor), allowed,
+                    )
+                except (IntakeRejected, ValueError):
+                    reply = "工作项命令被拒绝：格式、来源、权限或消息身份校验失败。请发送 /wi help。"
+                except (OSError, sqlite3.DatabaseError):
+                    reply = "工作项状态库不可用：未执行任何模型或远端操作。"
+        if reply is not None:
+            threading.Thread(
+                target=self._send_safe,
+                args=(chat_id, reply, message_id),
+                daemon=True,
+            ).start()
+        return True
+
     def on_message(self, data: Any) -> None:
         try:
+            if self._try_manual_workitem(data):
+                return
             job = self.gate.accept(data)
             if job is None:
                 return
@@ -1956,6 +2029,7 @@ class FeishuCodexBot:
             "/repo reset 恢复系统默认项目\n"
             "/status 查看任务状态\n"
             "/cancel 取消本人排队中或运行中的任务\n"
+            "/wi help 查看无企业项目 API 的需求/缺陷人工登记（需管理员启用）\n"
             f"系统默认项目：{self.config.default_repo}\n"
             f"仓库别名：{repositories}"
         )

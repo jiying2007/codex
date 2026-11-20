@@ -48,3 +48,13 @@ Status is evidence based. This file is planning, not proof of implementation.
 - TASK-004: API read adapters and fail-closed responses implemented with injected transports. Tenant authorization and real one requirement/one bug read **open**.
 - TASK-005: run state/evidence contracts implemented; real feature and Bug PR/CI and independent QA **open**.
 - TASK-006: **not started**; no production service/config, consumer or private DB touched.
+
+## No-enterprise-API path (implementation increment)
+- [x] Implement strict `/wi` WorkItem manual registration/list/status with digest-only summary retention and exact provider/tenant/workspace/kind/item ID.
+- [x] Implement private transactional source receipt + independent AgentRun in `manual_items.py`; replay is no-op, conflict fails closed, and repo permissions are rechecked.
+- [x] Extend the **same** existing Bot handler under disabled-by-default `manual_workitems_enabled`; reserved `/wi` never becomes a Codex prompt when disabled.
+- [x] Add no-API local stdin CLI; no provider credentials, card callback or model turn needed.
+- [ ] Verify new code and tests on exact GitHub Actions SHA.
+- [ ] Enable and validate a single existing Feishu Bot's real message receive/reply with trusted tenant ID, using a redacted low-risk workitem (if already permitted).
+- [ ] If bot message scopes are unavailable, verify local CLI on vstrong100 without connecting Feishu.
+- [ ] Real PR/CI, independent source-system QA, production cutover and App Server qualification remain separately unverified.

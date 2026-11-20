@@ -29,3 +29,43 @@ Codex shared/Work quota remains prohibited without separate fresh authorization.
 ## Remaining integration work
 
 The live Bot's message handler still follows its existing intake/queue and `FeishuCodexBot.start` still calls `transport.start(self.on_message)`; **the new card callback is not yet activated**. The real integration requires a guarded configuration flag, deployment-managed credential, trusted event identity adapter, effects/outbox dispatcher and a checked rollback plan. Do not silently switch the production consumer or mark C1–C5 complete.
+
+## No enterprise API / no card permission: minimum viable operator path
+
+**Feishu Project enterprise API is optional.** If the preexisting application bot can already receive and reply to messages, enable only `manual_workitems_enabled: true` in its existing private 0600 policy *after backing up the Bot's live state*. Keep `agent_intake_enabled` and model/card integrations unchanged. The same legacy WebSocket consumes `/wi` message commands, replies as text, and never asks the Project/TAPD API for data. It creates only an independent 0600 `feishu-engineering-agent.sqlite3` alongside the Bot state DB. Disabled mode safely rejects `/wi` without invoking Codex.
+
+Examples (text commands in the **already-authorized** Feishu Bot chat):
+
+```text
+/wi help
+/wi add tapd 缺陷 10104801 123456 repo=robot-app | 复现：低速回充过流；预期：不会误触发；请先评估
+/wi add feishu_project 需求 project123 98765 repo=robot-app | 提升传感器初始化恢复；验收：断电重试正常
+/wi list
+/wi status <完整32字符AgentRun ID>
+```
+
+If `repo=` is omitted, the existing user's selected/default repository applies, still constrained by the sender's current allowlist. Input summary is **not persisted** (only hash, source message ID and WorkItem identity); paste fresh current requirement/bug context when separately asking for authorized Codex analysis/edit. `/wi add` only creates a proposed AgentRun and **does not** authorize a Codex call, code write, PR, QA or source-system closure. A missing trustworthy tenant identity in the actual SDK message must fail closed, not invent a tenant.
+
+If **all Feishu app messaging scopes are unavailable**, a custom webhook bot cannot read incoming user chat or provide interactive cards. Use a Linux host-local CLI with no Feishu connection (type the command on stdin, finish with EOF; do not put sensitive summary on argv):
+
+```bash
+python -m tools.codex_assets.feishu_engineering_agent --manual \
+  --db /absolute/private/feishu-engineering-agent.sqlite3 \
+  --event-id local_bug_001 --allow-repo robot-app --selected-repo robot-app
+```
+
+Then enter `/wi add tapd 缺陷 10104801 123456 repo=robot-app | <完整问题与验收摘要>` on stdin. Repeat the same event ID + content only to check idempotency; use a new unique event ID for another command. `--manual` works only with the local UID's private SQLite file and never invokes Feishu or Codex. The filesystem directory must be privately owned and protected; do not use the existing Bot DB as `--db`.
+
+| Gate | Minimal no-API mode | Extra API/card privilege |
+|---|---|---|
+| WorkItem intake | Local CLI or existing Bot text `/wi` | Project/TAPD read-only adapter optional |
+| Run status | `/wi list`, `/wi status` | Card JSON 2.0 optional |
+| Session | No model call in intake; independently authorized Codex CLI remains available | App Server exact-thread continuity requires host qualification |
+| QA | Human verifies original requirement/bug in source system | Provider status update only after explicit policy/permission |
+| Cutover | Do not replace old Bot/consumer without backup/restore | Same single-consumer invariant |
+
+This changes the earlier C3 gate: **manual/source-provenance accuracy and access-control evidence** is required for the no-API path. Actual Project/TAPD API read is an independent optional enhancement, not a no-API launch blocker. A real low-risk message test still requires the existing authorized bot; all provider/source-system closure remains human-owned.
+
+Sources for capability limits:
+- https://open.feishu.cn/document/home/introduction-to-scope-and-authorization/overview
+- https://open.feishu.cn/document/client-docs/bot-v3/bot-overview

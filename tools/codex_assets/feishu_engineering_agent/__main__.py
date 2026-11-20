@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import pathlib
+import sys
 from typing import Optional, Sequence
 
 from .models import InboundEvent, IntakeRejected, WorkItemKey
@@ -23,8 +26,43 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--workspace")
     parser.add_argument("--item-kind", choices=("requirement", "defect"))
     parser.add_argument("--item-id")
+    parser.add_argument("--manual", action="store_true",
+                        help="no-API, local-only WorkItem registration from stdin")
+    parser.add_argument("--db", default="",
+                        help="absolute, private SQLite file path for --manual only")
+    parser.add_argument("--event-id", default="",
+                        help="caller-generated unique local command receipt ID")
     try:
         args = parser.parse_args(argv)
+        if args.manual:
+            if (args.dry_run or args.probe_runtime or args.text or args.provider
+                    or args.workspace or args.item_kind or args.item_id
+                    or args.codex_bin != "codex"):
+                parser.error("--manual cannot be mixed with preview/probe/source options")
+            if not args.db or not args.event_id or not args.allow_repo:
+                parser.error("--manual requires --db, --event-id and --allow-repo")
+            if not pathlib.Path(args.db).is_absolute():
+                parser.error("--db must be an absolute private path")
+            command = sys.stdin.read(12001)
+            if not command or len(command) > 12000:
+                parser.error("--manual expects a bounded /wi command from stdin")
+            from .manual_items import ManualWorkItemService
+            event = InboundEvent(
+                source="offline_fixture", tenant="local", chat="terminal",
+                actor="uid_" + str(os.getuid()), event_id=args.event_id,
+                text=command,
+            )
+            result = ManualWorkItemService(args.db).handle(
+                event, args.selected_repo, args.allow_repo,
+            )
+            print(json.dumps({
+                "reply": result or "duplicate_event_ignored",
+                "source_level": "user_supplied_unverified",
+                "model_invoked": False, "external_api_accessed": False,
+            }, ensure_ascii=False, sort_keys=True))
+            return 0
+        if args.db or args.event_id:
+            parser.error("--db and --event-id are only for --manual")
         if args.probe_runtime:
             if (args.dry_run or args.text or args.allow_repo or args.selected_repo
                     or args.provider or args.workspace or args.item_kind or args.item_id):

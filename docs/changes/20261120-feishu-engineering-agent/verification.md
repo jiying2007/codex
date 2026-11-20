@@ -27,3 +27,8 @@ The additional offline tests in `tests/test_feishu_engineering_workflows.py` cov
 - Interactive send records `sending` before I/O; lost receipt becomes UNKNOWN without resend.
 - No-model `--probe-runtime` success/failure paths and invalid combined arguments.
 - All new checks require a fresh exact-SHA CI receipt. They do not qualify real callbacks or tenant permissions.
+
+## No-enterprise-API regression (new coverage)
+- `test_feishu_engineering_manual_items.py`: strict manual parsing, real provider identity isolation, read-only status/list, user/tenant/chat/repo isolation, SQLite 0600/no raw prompt, atomic duplicate/conflict receipt, local CLI stdin without an SDK or API.
+- `test_feishu_engineering_manual_bot.py`: optional same-consumer message interception, disabled mode never reaches Codex gate, bad tenant/actor/chat or repo is denied, old non-`/wi` intake unchanged, legacy queue has no new jobs.
+- These offline tests **cannot** prove enterprise tenant permissions, SDK message-event header shape on vstrong100, a real Lark send, or any QA/PR success. Record their exact successful workflow run IDs only after current HEAD CI.

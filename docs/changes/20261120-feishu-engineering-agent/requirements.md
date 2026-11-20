@@ -39,3 +39,10 @@ Pure deterministic no-model router, typed WorkItem identity, isolated SQLite eve
 - TASK-004 code: injected read-only TAPD GET stories/bugs and Meegle plugin-scoped query; typed source snapshot and version check; **no tenant credentials or real source response yet**.
 - TASK-005 code: separate WorkItem/AgentRun ledger, immutable evidence references, guarded transitions, independent QA proof requirement; **no real feature or bug PR/CI/QA evidence**.
 - TASK-006 deliberately unmodified: production Bot remains the only active consumer.
+
+## Offline/manual acceptance (no Feishu Project enterprise API)
+ACC-013: `/wi add <provider> <kind> <workspace> <item_id> [repo=<alias>] | <summary>` registers a source-keyed AgentRun, independent of provider API and without launching a Codex turn. WorkItem metadata is marked `user_supplied_unverified`; only a SHA-256 of the user summary and original message ID are retained, not raw business text.
+ACC-014: Duplicate Feishu deliveries must not create duplicate runs. Event identity collision with different content is rejected, and only the same actor+tenant+chat and currently allowlisted repository can read status. No model or external API is called in status/list/add.
+ACC-015: The existing Bot recognizes the reserved `/wi` command **before** its Codex intake; disabled-by-default mode returns a safe text instruction instead of passing command text into Codex. Missing trusted tenant identity fails closed. Existing non-`/wi` messages retain their original processing.
+ACC-016: A local `--manual` stdin CLI allows registering and querying the same model without any Feishu API. The local DB must be private; command text must not be supplied through process arguments. Cards are optional UX only; text replies provide the minimum viable interface. Provider API or card permission absence is not interpreted as provider status.
+NOTE: These criteria extend REQ-008 without replacing its optional real read-only adapter. They are offline implementation criteria, not field acceptance.
