@@ -494,6 +494,15 @@ class AdkSourceImportTests(unittest.TestCase):
                 importer.apply(self.root, self.provider, result)
             self.assertEqual(before, self.snapshot())
 
+    def test_source_fixture_requires_frozen_exact_prior_version(self) -> None:
+        for version in ("", "11.2", "../11.2.1", "11.2.1/../../", "v11.2.1"):
+            with self.subTest(version=version), self.assertRaisesRegex(importer.ImportError, "SemVer"):
+                importer.write_source_fixture(self.root, self.provider,
+                                             self.provider_state["commit"], version)
+        with self.assertRaisesRegex(importer.ImportError, "unavailable"):
+            importer.write_source_fixture(self.root, self.provider,
+                                         self.provider_state["commit"], "11.2.1")
+
     def test_changed_skill_without_version_advance_still_rejected(self) -> None:
         self.provider_state = self.upgrade_provider("1.0.0", "7.13.0", "b" * 40)
         path = self.provider / "skills/adk-example/SKILL.md"
