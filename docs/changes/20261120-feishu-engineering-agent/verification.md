@@ -32,3 +32,5 @@ The additional offline tests in `tests/test_feishu_engineering_workflows.py` cov
 - `test_feishu_engineering_manual_items.py`: strict manual parsing, real provider identity isolation, read-only status/list, user/tenant/chat/repo isolation, SQLite 0600/no raw prompt, atomic duplicate/conflict receipt, local CLI stdin without an SDK or API.
 - `test_feishu_engineering_manual_bot.py`: optional same-consumer message interception, disabled mode never reaches Codex gate, bad tenant/actor/chat or repo is denied, old non-`/wi` intake unchanged, legacy queue has no new jobs.
 - These offline tests **cannot** prove enterprise tenant permissions, SDK message-event header shape on vstrong100, a real Lark send, or any QA/PR success. Record their exact successful workflow run IDs only after current HEAD CI.
+
+Manual message rate-limit negative test: six unique `/wi add` events under default 5-per-window must create only five proposed runs, never a legacy queued/model job.

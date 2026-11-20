@@ -120,6 +120,18 @@ class ManualWorkItemBotBridgeTest(unittest.TestCase):
         self.assertIn("被拒绝", self.transport.send_text.call_args.args[1])
         self.runner.run.assert_not_called()
 
+    def test_chat_workitem_operations_are_bounded_by_independent_rate_limit(self):
+        bot = self.bot(True)
+        with self.immediate_threads(), mock.patch.object(
+            bot.gate, "accept", side_effect=AssertionError("legacy gate reached")
+        ):
+            for index in range(6):
+                bot.on_message(self.event(msg_id="om_" + str(index)))
+        self.assertIn("过于频繁", self.transport.send_text.call_args.args[1])
+        with sqlite3.connect(str(self.root / "feishu-engineering-agent.sqlite3")) as db:
+            self.assertEqual(5, db.execute("SELECT COUNT(*) FROM fea_runs").fetchone()[0])
+        self.runner.run.assert_not_called()
+
     def test_nonmanual_input_uses_original_gate(self):
         bot = self.bot(True)
         with mock.patch.object(bot.gate, "accept", return_value=None) as gate:

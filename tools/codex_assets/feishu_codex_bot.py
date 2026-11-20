@@ -1779,6 +1779,7 @@ class FeishuCodexBot:
         self.store = store
         self.gate = MessageGate(config, store)
         self.limiter = RateLimiter(config.rate_limit_count, config.rate_limit_window_sec)
+        self.manual_limiter = RateLimiter(config.rate_limit_count, config.rate_limit_window_sec)
         self.jobs: queue.Queue = queue.Queue(maxsize=config.queue_size)
         self.repo_locks = {alias: threading.Lock() for alias in config.repositories}
         self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
@@ -1937,6 +1938,8 @@ class FeishuCodexBot:
             return True  # unauthorized sender receives no task state or reply
         if not self.config.manual_workitems_enabled or self._manual_service is None:
             reply = "工作项人工登记未启用；管理员可设置 manual_workitems_enabled，或在本地使用 --manual。不会启动 Codex。"
+        elif not self.manual_limiter.allow(actor):
+            reply = "工作项操作过于频繁，请稍后重试；未执行任何模型或外部操作。"
         else:
             header = getattr(data, "header", None)
             tenant = str(getattr(header, "tenant_key", "") or "")
