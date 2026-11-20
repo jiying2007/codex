@@ -389,3 +389,7 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 ```
 
 本机凭据、策略、SQLite 和锁文件均在 `mcp/secrets/`，默认被 Git 忽略。不要删除用户数据；需要清理或重建状态库时必须单独确认。
+
+## 12. 其他 Agent 的可信本地 MCP 入口（默认关闭）
+
+入口见 [feishu-agent-mcp.md](feishu-agent-mcp.md)。该接口使用当前 Bot 私有 SQLite/任务 spool，不启动第二个执行器，也不提供公共 HTTP。必须在真实主机私有策略显式开启 `agent_intake_enabled` 和每个仓库的 `agent_allowed_modes`，默认全部关闭。启用不等于获得模型额度或生产部署资格。
