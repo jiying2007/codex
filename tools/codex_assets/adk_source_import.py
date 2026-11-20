@@ -294,7 +294,8 @@ def _local_readme_identities(root: Path, manifest: dict[str, Any],
 
 def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
          attestation_path: Path, trusted_root: Path, artifact_sha256: str,
-         *, allow_reviewed_native_ui: bool = False) -> dict[str, Any]:
+         *, allow_reviewed_native_ui: bool = False,
+         preserve_execution_policy: bool = False) -> dict[str, Any]:
     root = root.resolve()
     provider_root = provider_root.resolve()
     provider = _provider(provider_root, commit)
@@ -318,6 +319,7 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
     if verifier.returncode or "Verified OK" not in verifier.stdout + verifier.stderr:
         raise ImportError("Sigstore promotion verification failed")
     _check_target_clean(root)
+    independent_policy = _independent_policy_snapshot(root) if preserve_execution_policy else None
     report = audit(root, provider_root, commit)
     if report["status"] != "consistent" or report["candidate"]["blocked_skills"]:
         raise ImportError("ADK source audit is not consistent")
@@ -390,6 +392,8 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
         "manifest_blob": provider["tracked"]["manifest.json"]["blob"],
         "version": provider["version"], "artifact_sha256": artifact_sha256,
         "trusted_root_sha256": TRUSTED_ROOT_SHA256,
+        "policy_mode": "preserve-independent" if preserve_execution_policy else "replace-with-provider",
+        "independent_policy_sha256": independent_policy["sha256"] if independent_policy else None,
         "skill_count": len(changes), "changed_skills": [x["name"] for x in changes if x["changed"] or x["added"]],
         "agent_count": len(agent_names), "skills": changes,
     }
@@ -405,6 +409,15 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
     skills = _json(skills_path)
     by_name = {item["name"]: item for item in skills["skills"]}
     old_identities = _local_readme_identities(root, skills)
+    policy_mode = result.get("policy_mode", "replace-with-provider")
+    if policy_mode not in ("preserve-independent", "replace-with-provider"):
+        raise ImportError("unknown execution policy import mode")
+    independent = None
+    if policy_mode == "preserve-independent":
+        _check_target_clean(root)
+        independent = _independent_policy_snapshot(root)
+        if independent["sha256"] != result.get("independent_policy_sha256"):
+            raise ImportError("independent policy source changed since signed plan")
     for change in result["skills"]:
         item = by_name[change["name"]]
         if (item["version"] != change["old_version"]
@@ -482,6 +495,7 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
 
     agents_path = root / "manifests/agents.json"
     agents = _json(agents_path)
+    retired_agent_files: list[Path] = []
     for item in agents["agents"]:
         if item.get("source_kind") != "vendor" or item.get("source_repo") != REPOSITORY:
             continue
@@ -493,6 +507,8 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         if old.read_bytes() != (provider_root / source).read_bytes():
             raise ImportError("Agent source changed and requires separate review: {}".format(item["name"]))
         shutil.copy2(provider_root / source, destination)
+        if destination != old and policy_mode == "preserve-independent":
+            retired_agent_files.append(old)
         item["version"] = version
         item["vendor_rel"] = destination_rel
         item["source_ref"] = commit
