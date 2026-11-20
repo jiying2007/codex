@@ -213,7 +213,10 @@ def probe_local_app_server(executable: str = "codex", timeout: int = 5) -> dict:
         try:
             process = subprocess.run(
                 argv, check=False, capture_output=True, text=True,
-                timeout=timeout, env=os.environ.copy(),
+                timeout=timeout,
+                env={k: v for k, v in os.environ.items()
+                     if k in ("PATH", "HOME", "LANG", "LC_ALL", "LC_CTYPE",
+                              "TERM", "CODEX_HOME")},
             )
         except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as exc:
             return {"available": False, "failed_step": key,

@@ -273,13 +273,22 @@ class EngineeringRunContractTest(unittest.TestCase):
             "tools.codex_assets.feishu_engineering_agent.sessions.subprocess.run",
             return_value=fake,
         ) as called:
-            result = probe_local_app_server()
+            with mock.patch.dict("os.environ", {
+                "FEISHU_APP_SECRET": "fixture-secret-not-for-codex",
+                "FEISHU_TENANT_ACCESS_TOKEN": "fixture-token-not-for-codex",
+            }):
+                result = probe_local_app_server()
         self.assertTrue(result["available"])
         self.assertFalse(result["qualified_for_model_calls"])
         self.assertEqual(
             [["codex", "--version"], ["codex", "app-server", "--help"]],
             [c.args[0] for c in called.call_args_list],
         )
+        self.assertTrue(all(
+            "FEISHU_APP_SECRET" not in c.kwargs["env"]
+            and "FEISHU_TENANT_ACCESS_TOKEN" not in c.kwargs["env"]
+            for c in called.call_args_list
+        ))
 
 
 class ReadOnlyProviderTest(unittest.TestCase):
