@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import sqlite3
 import subprocess
 import tempfile
 import types
@@ -326,6 +327,57 @@ class FeishuCodexBotTest(unittest.TestCase):
                 self.event(message_id="om_3", open_id="ou_other")
             )
         )
+
+    def test_feishu_task_dedupe_and_task_identity_are_atomic(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        event = self.event(message_id="om_atomic_1")
+        job = feishu_codex_bot.MessageGate(config, store).accept(event)
+        self.assertIsNotNone(job)
+        with store._connect() as conn:
+            messages = conn.execute(
+                "SELECT message_id FROM messages WHERE message_id='om_atomic_1'"
+            ).fetchall()
+            tasks = conn.execute(
+                "SELECT id,status FROM tasks WHERE message_id='om_atomic_1'"
+            ).fetchall()
+            sources = conn.execute(
+                "SELECT kind,value FROM task_sources WHERE task_id=?", (job.task_id,)
+            ).fetchall()
+        self.assertEqual(1, len(messages))
+        self.assertEqual(1, len(tasks))
+        self.assertEqual("queued", tasks[0]["status"])
+        self.assertEqual([("message", "om_atomic_1")],
+                         [(row["kind"], row["value"]) for row in sources])
+        another = feishu_codex_bot.MessageGate(
+            config, feishu_codex_bot.StateStore(config.state_db)
+        )
+        self.assertIsNone(another.accept(event))
+        with store._connect() as conn:
+            self.assertEqual(1, conn.execute(
+                "SELECT COUNT(*) FROM tasks WHERE message_id='om_atomic_1'"
+            ).fetchone()[0])
+
+    def test_feishu_event_claim_rolls_back_when_task_insertion_fails(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        # Simulate the legacy crash-window database state: tasks already has
+        # this ID, but messages has no deduplication receipt yet.
+        store.create_task("om_orphan", "ou_owner", "codex", "review")
+        with self.assertRaises(sqlite3.IntegrityError):
+            store.create_message_task(
+                "om_orphan", "ou_owner", "codex", "review",
+                (feishu_codex_bot.SourceRef("message", "om_orphan"),),
+            )
+        with store._connect() as conn:
+            receipt = conn.execute(
+                "SELECT COUNT(*) FROM messages WHERE message_id='om_orphan'"
+            ).fetchone()[0]
+            task_count = conn.execute(
+                "SELECT COUNT(*) FROM tasks WHERE message_id='om_orphan'"
+            ).fetchone()[0]
+        self.assertEqual(0, receipt)
+        self.assertEqual(1, task_count)
 
     def test_state_store_tracks_status_and_cancels_queued_tasks(self) -> None:
         store = feishu_codex_bot.StateStore(self.config().state_db)
