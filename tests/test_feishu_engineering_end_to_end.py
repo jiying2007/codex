@@ -101,10 +101,14 @@ class FullWorkflowTest(unittest.TestCase):
             "pr_id": "pr_" + suffix, "head_sha": SHA,
             "repo_full_name": "team/" + repo,
         })
+        publication_sig = self.delivery.sign_publication(
+            publication_grant, KEY,
+        )
         submitted = self.delivery.publish_once(
             child_id, action, publication_grant, "team/" + repo, SHA,
-            "feat_" + suffix, fake_publisher,
+            "refs/heads/feat_" + suffix, fake_publisher,
             remote_write_enabled=True,
+            approval_signature=publication_sig, private_approval_key=KEY,
         )
         self.assertEqual("acknowledged_not_verified", submitted["publication"])
         for evidence_type, reference in (

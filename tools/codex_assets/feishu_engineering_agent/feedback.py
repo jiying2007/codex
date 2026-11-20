@@ -6,6 +6,9 @@ handoff is produced for the original product/test owner to paste manually.
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import hmac
+import json
 import sqlite3
 import time
 from typing import Callable, Mapping, Optional
@@ -54,11 +57,31 @@ class SourceFeedback:
             "此文字不代表产品/测试已验收；请原系统负责人复核并按业务流程决定是否关闭。"
         )
 
+    @staticmethod
+    def sign_feedback(run: Mapping, event: InboundEvent,
+                      source_revision: str, approval_ref: str,
+                      secret: bytes) -> str:
+        """Signed by independent source-write policy, never by user chat."""
+        if not isinstance(secret, bytes) or len(secret) < 32:
+            raise IntakeRejected("source comment approval key unavailable")
+        payload = [
+            run["run_id"], event.tenant, event.chat, event.actor, run["repo"],
+            run["provider"], run["workspace"], run["kind"], run["item_id"],
+            source_revision, approval_ref,
+        ]
+        return hmac.new(
+            secret,
+            json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+
     def post_once(
         self, run_id: str, event: InboundEvent,
         source_revision: str, approval_ref: str,
         writer: Callable[[dict], Mapping[str, str]],
         remote_write_enabled: bool = False,
+        approval_signature: str = "",
+        private_approval_key: bytes = b"",
     ) -> dict:
         """An explicit source-comment-only write; never changes WorkItem status."""
         run = self.store.get_run(run_id, event)
@@ -70,6 +93,13 @@ class SourceFeedback:
             raise IntakeRejected("source feedback requires linked verified work")
         _check_id(source_revision, "source_revision")
         _check_id(approval_ref, "approval_ref")
+        if (not isinstance(approval_signature, str)
+                or not hmac.compare_digest(
+                    approval_signature,
+                    self.sign_feedback(run, event, source_revision, approval_ref,
+                                       private_approval_key),
+                )):
+            raise IntakeRejected("independent source-comment approval required")
         now = int(time.time())
         with contextlib.closing(self.store._connect()) as db:
             db.execute("BEGIN IMMEDIATE")

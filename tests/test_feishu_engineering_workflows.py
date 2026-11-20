@@ -196,16 +196,24 @@ class EngineeringRunContractTest(unittest.TestCase):
         with self.assertRaises(EventConflict):
             self.accept(self.callback(new_value))
 
-    def test_provider_callback_fields_must_be_nested_in_event(self):
+    def test_provider_callback_layouts_are_supported_but_conflicts_denied(self):
         run = self.run_id()
         self.make_card(run)
         value = render_card(self.store, "card_1", KEY, now=NOW)[
             "body"]["elements"][1]["behaviors"][0]["value"]
-        malformed = self.callback(value)
-        malformed["context"] = malformed["event"].pop("context")
-        malformed["host"] = malformed["event"].pop("host")
+        top_level = self.callback(value)
+        top_level["context"] = top_level["event"].pop("context")
+        top_level["host"] = top_level["event"].pop("host")
+        self.assertTrue(self.accept(top_level)["accepted"])
+        conflicting = self.callback(value, event_id="evt_conflicting")
+        conflicting["context"] = {"open_chat_id": "oc_other",
+                                  "open_message_id": "om_card"}
         with self.assertRaises(IntakeRejected):
-            self.accept(malformed)
+            self.accept(conflicting)
+        conflicting_host = self.callback(value, event_id="evt_conflicting_host")
+        conflicting_host["host"] = "not_im_message"
+        with self.assertRaises(IntakeRejected):
+            self.accept(conflicting_host)
 
     def test_expiry_and_message_rebinding_denied(self):
         run = self.run_id()

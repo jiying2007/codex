@@ -425,3 +425,11 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 ### 无企业 API：从登记到研发交接
 
 `/wi add` 返回的完整 `AgentRun` ID 可以用于 `/wi handoff <RunID> | 最新需求/复现/验收信息`。机器人会返回按需求或缺陷分类的**只读研发交接草稿**，包括仓库、工作项身份、SDD 或复现/负向测试方向；不会启动模型或自动执行代码。旧 Codex 执行仍需独立授权，操作人再在本地 Codex CLI/既有研发渠道明确发起。交接内容不存入新 SQLite，工作项原系统的权限和最终 QA/关闭仍归产品、测试负责人。
+
+## SDD 代码批次：工作项到独立 AgentRun 与可选卡片
+
+`/wi add` 仅登记来源工作项；`/wi handoff` 仅输出只读研发交接草稿；`/wi attempt <原始RunID> <read|review|edit> | 本次范围和验收` 仅新建一个 `proposed` 的独立 Run。三者都不会自动执行模型。实际排队/执行必须经过外部签名 SDD+范围+仓库+费用门禁，并在真实 Codex 主机上独立验证。原来的 `mode=edit` 命令仍按旧 Bot 权限运行，不会自动获得新 WorkItem 的签名授权。
+
+卡片交互为可选开关 `engineering_cards_enabled=false`，不是企业 API 无权限场景的前置条件；需私有环境中的 `FEISHU_CARD_VERIFICATION_TOKEN` 和 `FEISHU_CARD_SIGNING_KEY_HEX`，且 `manual_workitems_enabled=true`。回调只记录待审批请求和状态，不是模型权限，切忌在未通过真实 SDK/应用权限试验时打开生产开关。
+
+迁移、离线回滚演练、安全边界及验收门禁详见 `docs/changes/20261120-feishu-engineering-agent/pilot.md`。当前代码实施并不代表已经在 vstrong100 部署、授权收费或完成真实产品/QA 测试。

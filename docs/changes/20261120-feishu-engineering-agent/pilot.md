@@ -79,3 +79,33 @@ Once `/wi add` replies with an exact `AgentRun` identifier, send this in the sam
 ```
 
 Or use the same `/wi handoff` input on the local `--manual` stdin CLI with a **new** `--event-id` (the original ID is for idempotency, not for a different command). It returns a copyable, source-linked, read-only SDD/bug-analysis brief **without** invoking Codex. When actually ready to develop, the engineer starts or resumes an independently authorized Codex CLI session in the target allowlisted repository and supplies fresh source context. The run remains `proposed` until independently verified work/evidence is recorded; no automatic QA closure or CI PASS is claimed.
+
+## Source implementation prepared: operator-facing invocation
+
+**Text mode (no enterprise API):** `/wi add` → `/wi handoff <RunID> | ...` → `/wi attempt <sourceRunID> edit | scope/acceptance`. The attempt is **proposed**, not executed. A trusted host policy issuer must separately sign an `ExecutionApproval` containing actor, tenant, chat, repository, mode, reviewed SDD, billing identity and expiry. A Codex model turn cannot be triggered directly by this chat command.
+
+**Optional interactive card (same existing Bot only):** keep `engineering_cards_enabled=false` unless the authorized Feishu app has been configured for Card 2.0 callback. To enable in private, existing Bot policy must have `manual_workitems_enabled=true` plus `engineering_cards_enabled=true` and the service's **private** environment must contain `FEISHU_CARD_VERIFICATION_TOKEN` and `FEISHU_CARD_SIGNING_KEY_HEX` (>=32 random bytes encoded as hex). These are never committed. Validate actual SDK compatibility and 3-second ACK before the unique Bot is restarted; cards never grant model access.
+
+**Local migration prep (no model/network calls):**
+
+```bash
+python -m tools.codex_assets.feishu_engineering_agent.migration_cli inspect \
+  --db /absolute/private/feishu-codex-state.sqlite3 \
+  --spool /absolute/private/feishu-pending-jobs
+
+# Only after operator confirms the old Bot consumer is paused:
+python -m tools.codex_assets.feishu_engineering_agent.migration_cli backup \
+  --db /absolute/private/feishu-codex-state.sqlite3 \
+  --spool /absolute/private/feishu-pending-jobs \
+  --private-policy /absolute/private/bot.json \
+  --backup-dir /absolute/new/private-backup-folder --consumer-paused
+
+python -m tools.codex_assets.feishu_engineering_agent.migration_cli rehearse \
+  --backup-dir /absolute/new/private-backup-folder
+```
+
+Paths are placeholders, not discovered production paths. The backup intentionally contains **sensitive private files** and must remain 0700/0600, outside Git or chat uploads. The tool neither stops a service nor creates a second Feishu listener; the operator must prove the systemd/lock single-consumer gate and verify the actual restore/restart separately.
+
+**Future authorized SDK/API tests:** `SourceReconciler` requires a verified tenant-scoped reader; absent the API it returns `user_supplied_unverified`. `DeliveryCoordinator` uses an independent observer of PR/CI, short-lived explicitly approved PR publishing and a separate QA signer; source feedback is comment-only and optional. Explicit host verification is mandatory before promoting any of these source-level entrypoints.
+
+**Optional concrete GitHub adapter:** `GitHubForge` takes an approved repository alias/full name, an injected `GitHubTransport` (fixed HTTPS API host, private token), an approved base branch and a disabled-by-default remote write switch. It verifies an already-pushed exact branch SHA and only then prepares a draft PR (not push or merge); `DeliveryCoordinator` independently requires a valid signed `PublicationGrant` and persists a remote effect receipt first. Read-only PR and CI observation each requires source SHA identity and completed CI status. GitLab or an internal forge may implement the same injected contract without changing WorkItem identity; no GitHub Issues are created. Private GitHub tokens, QA attestation HMAC keys, Feishu/TAPD creds and model billing identities must not be placed in repository config, chat or Codex child environment.

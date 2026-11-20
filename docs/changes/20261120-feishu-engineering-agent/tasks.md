@@ -56,3 +56,8 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 - 不使用 Codex/Work 共享模型额度，不创建新定时任务。
 - CI 单元测试为离线假传输；真实企业 API、Git 写、设备操作在本轮保持关闭。
 - 下一阶段集中进行 TASK-002/003/004/005/006 的现场验证；基线的 TASK-001 必须与最新 HEAD 同步校验。
+
+## 完整 GitHub PR/CI 适配（源码）
+[x] `github_adapter.py`：固定 `api.github.com` 和仓库白名单的只读 PR/Actions 观察；经独立签名授权后为已存在的精确远端分支创建草稿 PR，不负责 Git push、merge 或 GitHub Issue。
+[x] PR 发布与原工作项评论分别验证私有签名授权；无签名/失效凭据/写权限默认关闭。
+[ ] 现场 GitHub/GitLab/Git Forge 具体权限及真实 PR/CI 读取和发布必须集中实证。

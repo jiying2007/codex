@@ -42,3 +42,23 @@ Additional regression: the Feishu message listener enqueues at most one bounded 
 - Different tenant, chat, actor or no-longer-authorized repository cannot read handoff; UNKNOWN/CANCELED/BLOCKED cannot be handed off.
 - Requirement handoff suggests brainstorming/SDD, defect handoff prioritizes reproduction/negative testing; neither auto-launches Codex, Git, card or API.
 - Bot no-API reply uses existing authorized text route and retains a zero-model-call invariant. Validate on exact new SHA before marking PASS.
+
+## Consolidated offline verification matrix
+All new tests use in-memory/mock transports, private temporary SQLite files and no model/Feishu/TAPD/Git network credentials.
+
+| Test file | Contract |
+|---|---|
+| `test_feishu_engineering_native.py` | initialize/initialized, exact thread, turn ACK≠completed, bad actor/home, no implicit budget, interrupt/UNKNOWN, tool approval refusal |
+| `test_feishu_engineering_delivery.py` | one-shot PR, trusted PR/CI, independent QA HMAC, original WorkItem remains open, optional source comment/UNKNOWN |
+| `test_feishu_engineering_cards_complete.py` | both documented callback layouts, conflict fail-closed, request vs grant separation, pre-run cancel, existing Bot opt-in |
+| `test_feishu_engineering_workflow.py` | source WorkItem → several separate Run attempts, event idempotence, signed SDD/billing/repo scope, disabled model by default |
+| `test_feishu_engineering_contracts.py` | immutable multi-repo version, per-participant verification, no fake device/HIL |
+| `test_feishu_engineering_source_bridge.py` | optional provider read, exact identity/version, no raw provider body persisted |
+| `test_feishu_engineering_migration.py` | SQLite/spool/policy private backup, checksum tamper, restore rehearsal, fail-closed cutover |
+| `test_feishu_engineering_end_to_end.py` | mock Feature + Bug from source registration through native turn, PR/CI, independent QA and human-owned source acceptance |
+
+Required offline CI: Python 3.8/3.11/3.12 full repository tests, profile context, runtime binding, pre-apply, isolated apply/no-op/rollback on **exact** final HEAD. No offline test is evidence of paid Codex behavior, live app-server protocol, tenant permissions, actual Git publication, SoC/MCU HIL or independent product/test closure.
+
+**Centralized field campaign, to be scheduled after code integration:** (1) vstrong100 host and Codex version/identity/charge; (2) real Feishu message/card permissions & callback timing; (3) TAPD/Meegle optional read; (4) one Feature + one Bug actual Git/CI/QA; (5) one multi-repo contract + device proof when relevant; (6) single-consumer migration/rollback. For any inaccessible API, record a blocked gate with an explicit manual path, not fabricated PASS.
+
+- `test_feishu_engineering_github_adapter.py`: fixed GitHub API origin, repo/ref/head identity, PR draft POST only after remote branch proof, independent read-only PR/CI results, no default remote writes. PR and source-comment unsigned effect negatives verified in delivery test. Real GitHub publishing requires live host access and separate permission; no source-side field proof is inferred.

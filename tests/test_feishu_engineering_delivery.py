@@ -22,6 +22,8 @@ from tools.codex_assets.feishu_engineering_agent.state import RunStore
 
 SHA = "0123456789abcdef0123456789abcdef01234567"
 QA_SECRET = b"independent-qa-reviewer-private-key-32-bytes-required"
+GIT_SECRET = b"independent-Git-publication-review-key-32-bytes"
+SOURCE_SECRET = b"independent-source-comment-key-32-bytes-required"
 
 
 class DeliveryContractTest(unittest.TestCase):
@@ -50,10 +52,18 @@ class DeliveryContractTest(unittest.TestCase):
         )
 
     def publication(self, publisher, enabled=True):
+        grant = self.grant()
+        signed = self.delivery.sign_publication(grant, GIT_SECRET)
         return self.delivery.publish_once(
-            self.run, self.event, self.grant(), "jiying2007/robot-app", SHA,
-            "refs/heads/feat-test", publisher,
-            remote_write_enabled=enabled,
+            self.run, self.event, grant, "jiying2007/robot-app", SHA,
+            "refs/heads/feat-test", publisher, remote_write_enabled=enabled,
+            approval_signature=signed, private_approval_key=GIT_SECRET,
+        )
+
+    def feedback_signature(self):
+        return self.feedback.sign_feedback(
+            self.store.get_run(self.run), self.event, "version_1",
+            "approved_comment", SOURCE_SECRET,
         )
 
     def observer(self, kind, reference, success=True):
@@ -72,6 +82,25 @@ class DeliveryContractTest(unittest.TestCase):
             self.run, self.event, "ci", "github://actions/22", SHA,
             self.observer("ci", "github://actions/22"),
         )
+
+    def test_unsigned_remote_write_grants_never_reach_external_transport(self):
+        sender = mock.Mock()
+        grant = self.grant()
+        with self.assertRaises(IntakeRejected):
+            self.delivery.publish_once(
+                self.run, self.event, grant, "jiying2007/robot-app", SHA,
+                "refs/heads/feat-test", sender,
+                remote_write_enabled=True,
+            )
+        sender.assert_not_called()
+        self.verify_pr_ci()
+        self.delivery.advance_after_ci(self.run, self.event)
+        with self.assertRaises(IntakeRejected):
+            self.feedback.post_once(
+                self.run, self.event, "version_1", "approved_comment",
+                sender, remote_write_enabled=True,
+            )
+        sender.assert_not_called()
 
     def test_explicit_pr_publication_and_no_blind_replay(self):
         remote = mock.Mock(return_value={
@@ -169,6 +198,8 @@ class DeliveryContractTest(unittest.TestCase):
             self.feedback.post_once(
                 self.run, self.event, "version_1", "approved_comment",
                 writer, remote_write_enabled=True,
+                approval_signature=self.feedback_signature(),
+                private_approval_key=SOURCE_SECRET,
             )  # waiting_ci is not source feedback-ready
         writer.assert_not_called()
         self.verify_pr_ci()
@@ -176,6 +207,8 @@ class DeliveryContractTest(unittest.TestCase):
         posted = self.feedback.post_once(
             self.run, self.event, "version_1", "approved_comment",
             writer, remote_write_enabled=True,
+                approval_signature=self.feedback_signature(),
+                private_approval_key=SOURCE_SECRET,
         )
         self.assertFalse(posted["source_workitem_closed"])
         self.assertEqual("append_comment_only", writer.call_args.args[0]["operation"])
@@ -183,6 +216,8 @@ class DeliveryContractTest(unittest.TestCase):
             self.feedback.post_once(
                 self.run, self.event, "version_1", "approved_comment",
                 writer, remote_write_enabled=True,
+                approval_signature=self.feedback_signature(),
+                private_approval_key=SOURCE_SECRET,
             )
         writer.assert_called_once()
 
@@ -194,12 +229,16 @@ class DeliveryContractTest(unittest.TestCase):
             self.feedback.post_once(
                 self.run, self.event, "version_1", "approved_comment",
                 writer, remote_write_enabled=True,
+                approval_signature=self.feedback_signature(),
+                private_approval_key=SOURCE_SECRET,
             )
         self.assertEqual("unknown", self.feedback.recover_unknown(self.run, self.event))
         with self.assertRaises(IntakeRejected):
             self.feedback.post_once(
                 self.run, self.event, "version_1", "approved_comment",
                 writer, remote_write_enabled=True,
+                approval_signature=self.feedback_signature(),
+                private_approval_key=SOURCE_SECRET,
             )
         writer.assert_called_once()
 

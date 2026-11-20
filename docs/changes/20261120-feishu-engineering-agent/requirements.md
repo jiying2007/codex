@@ -50,3 +50,22 @@ NOTE: These criteria extend REQ-008 without replacing its optional real read-onl
 ## Read-only no-API handoff acceptance
 ACC-017: `/wi handoff <exact RunID> | <current context and acceptance>` returns one deterministic, actionable **text-only** Feature/Bug brief, with original provider/workspace/item ID, scoped repository and run ID. Feature uses brainstorming+SDD acceptance; Bug uses reproduction, negative tests and verification. The reply clearly says that Codex has **not** been run.
 ACC-018: The handoff only works for a manually registered, currently allowlisted run owned by the exact tenant/chat/actor; UNKNOWN/CANCELED/BLOCKED are denied. The latest context appears only in the immediate reply, never in SQLite. The handoff creates no new AgentRun, invokes no Codex/Feishu Project/TAPD API, and provides no Git, device, budget or source-closure approval. Real Codex execution remains a separate, expressly authorized path.
+
+## Implementation acceptance extension (SDD source contract)
+
+| REQ | Acceptance contract | Source module | Real-world field gate |
+|---|---|---|---|
+| REQ-013 | Manual WorkItem registration is not an implicit execution approval | `manual_items.py` | Feishu tenant message |
+| REQ-014 | One WorkItem may have many independently scoped Run attempts, and retries do not duplicate | `workflow.py` | Real Feature/Bug |
+| REQ-015 | Exact actor/tenant/chat/repo/mode, SDD review, billing grant signed by an independent host policy issuer | `workflow.py` | Billing/policy identity |
+| REQ-016 | Native thread/start/resume/turn/start/interrupt, no approval bypass; RPC/turn effect UNKNOWN never replayed | `appserver.py`, `runtime_bridge.py` | vstrong100 App Server |
+| REQ-017 | Cards are optional same-Bot consumer; both documented context layouts, signed actions and persistent receipts | `cards.py`, `actions.py`, `channel.py` | 3-sec ACK, mobile/desktop |
+| REQ-018 | WorkItem API optional: read only when tenant-authorized, strict source version/identity, no raw snapshot persistence | `source_bridge.py`, `workitems.py` | Meegle/TAPD account |
+| REQ-019 | PR writes require separate short-lived grant, once-only remote effect; Git/CI proof requires independent observer | `delivery.py` | PR/CI |
+| REQ-020 | QA cannot self-approve, independent private signed attestation is scoped to WorkItem+commit; no automated closure | `delivery.py`, `feedback.py` | Independent QA |
+| REQ-021 | Multi-repository versioned contract requires every participant's independent CI proof, device still separate | `contracts.py` | Cross-repo HIL |
+| REQ-022 | Legacy Bot WAL + spool + private policy backup/restore rehearsal and fail-closed cutover gate | `migration.py`, `migration_cli.py` | Real single-consumer switch |
+
+ACC-013..022 cannot be declared field-PASS from CI. The code can be merged behind disabled defaults without enabling any tenant scope, external write or paid model call. Exact source-level proof is recorded only after the new SHA's CI completes.
+
+ACC-023: Concrete GitHub REST adapter reads exact PR + CI evidence in a configured repository and may create a draft PR only with both an enabled trusted Git write transport and an independent short-lived HMAC-signed publication grant; remote head must equal the reviewed commit SHA. No push, merge, or GitHub Issue creation. Original WorkItem comment likewise requires its own independently scoped signed approval and never closes the source ticket. Real GitLab/enterprise forges retain provider-neutral adapter boundaries for later host qualification.

@@ -36,6 +36,10 @@ class PublicationGrant:
         for field in ("run_id", "actor", "repository", "approval_ref"):
             _check_id(getattr(self, field), field)
 
+    def canonical(self) -> bytes:
+        return json.dumps(dataclasses.asdict(self), sort_keys=True,
+                          separators=(",", ":")).encode("utf-8")
+
 
 class DeliveryCoordinator:
     """Evidence gate and one-shot Git publication under independent approval."""
@@ -60,6 +64,13 @@ class DeliveryCoordinator:
             """)
 
     @staticmethod
+    def sign_publication(grant: PublicationGrant, secret: bytes) -> str:
+        """Only the separate Git authorization issuer should sign this grant."""
+        if not isinstance(secret, bytes) or len(secret) < 32:
+            raise IntakeRejected("private Git approval key must be >=32 bytes")
+        return hmac.new(secret, grant.canonical(), hashlib.sha256).hexdigest()
+
+    @staticmethod
     def _sha(value: str) -> str:
         if (not isinstance(value, str) or len(value) != 40
                 or any(c not in "0123456789abcdef" for c in value)):
@@ -81,14 +92,22 @@ class DeliveryCoordinator:
         publisher: Callable[[dict], Mapping[str, Any]],
         remote_write_enabled: bool = False,
         now: Optional[int] = None,
+        approval_signature: str = "",
+        private_approval_key: bytes = b"",
     ) -> dict:
         """Create a PR exactly once; commit was produced and reviewed elsewhere."""
         run = self.store.get_run(run_id, event)
         when = int(time.time()) if now is None else int(now)
         if (not remote_write_enabled or grant.expires_at <= when
+                or grant.expires_at > when + 3600
                 or (grant.run_id, grant.actor, grant.repository) !=
                 (run_id, event.actor, run["repo"])):
             raise IntakeRejected("independent Git publication authorization required")
+        if (not isinstance(approval_signature, str)
+                or not hmac.compare_digest(
+                    approval_signature, self.sign_publication(grant, private_approval_key)
+                )):
+            raise IntakeRejected("signed independent PR publication grant required")
         if run["mode"] != "edit" or run["status"] != "waiting_ci":
             raise IntakeRejected("publication requires reviewed edited run")
         if not callable(publisher):
