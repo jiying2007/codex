@@ -34,3 +34,5 @@ The additional offline tests in `tests/test_feishu_engineering_workflows.py` cov
 - These offline tests **cannot** prove enterprise tenant permissions, SDK message-event header shape on vstrong100, a real Lark send, or any QA/PR success. Record their exact successful workflow run IDs only after current HEAD CI.
 
 Manual message rate-limit negative test: six unique `/wi add` events under default 5-per-window must create only five proposed runs, never a legacy queued/model job.
+
+Additional regression: the Feishu message listener enqueues at most one bounded manual-intake worker and returns before SQLite I/O; the test invokes the captured worker separately to prove no synchronous database transaction or Codex job inside the event callback.

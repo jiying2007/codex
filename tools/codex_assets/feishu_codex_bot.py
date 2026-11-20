@@ -1904,6 +1904,22 @@ class FeishuCodexBot:
         for chunk in split_reply(text, self.config.reply_chunk_chars):
             self.transport.send_text(chat_id, chunk, "" if message_id.startswith("agent:") else message_id)
 
+    def _run_manual_message(self, inbound: Any, actor: str,
+                            allowed: FrozenSet[str]) -> None:
+        """Run SQLite work off the Feishu WS callback thread (3s deadline)."""
+        try:
+            reply = self._manual_service.handle(
+                inbound, self.gate.default_repository(actor), allowed,
+            )
+        except (ValueError, sqlite3.DatabaseError, OSError) as exc:
+            print(f"[WARN] manual_workitem_denied kind={type(exc).__name__}", flush=True)
+            reply = "工作项登记未完成：格式、权限或状态库检查失败；没有执行模型或远端操作。"
+        except Exception as exc:
+            print(f"[ERROR] manual_workitem_failed kind={type(exc).__name__}", flush=True)
+            reply = "工作项登记异常，未执行模型或远端操作。"
+        if reply is not None:
+            self._send_safe(inbound.chat, reply, inbound.event_id)
+
     def _try_manual_workitem(self, data: Any) -> bool:
         """Consume reserved /wi commands *before* legacy Codex job intake.
 
@@ -1950,13 +1966,15 @@ class FeishuCodexBot:
                     inbound = InboundEvent(
                         "feishu_message", tenant, chat_id, actor, message_id, body,
                     )
-                    reply = self._manual_service.handle(
-                        inbound, self.gate.default_repository(actor), allowed,
-                    )
                 except (IntakeRejected, ValueError):
                     reply = "工作项命令被拒绝：格式、来源、权限或消息身份校验失败。请发送 /wi help。"
-                except (OSError, sqlite3.DatabaseError):
-                    reply = "工作项状态库不可用：未执行任何模型或远端操作。"
+                else:
+                    threading.Thread(
+                        target=self._run_manual_message,
+                        args=(inbound, actor, frozenset(allowed)),
+                        daemon=True,
+                    ).start()
+                    return True
         if reply is not None:
             threading.Thread(
                 target=self._send_safe,

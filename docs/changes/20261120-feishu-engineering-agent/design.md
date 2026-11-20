@@ -56,3 +56,6 @@ The feature is controlled by `manual_workitems_enabled=false` in the existing Bo
 The local `--manual --db /absolute/private.sqlite3 --event-id ID --allow-repo alias --selected-repo alias` command takes the `/wi` body exclusively from stdin; scope is the local Unix UID, not a spoofable requested actor. For work needing the original description after a restart, the user must provide current text again in an authorized development request; the prior summary is not stored. Source verification, approval to execute, PR/CI proof and independent QA are different gates.
 
 The optional message bridge also has an independent bounded per-sender limiter. A burst of authorized `/wi` submissions cannot bypass the legacy Bot's rate protection or enqueue paid Codex turns; rate-limit rejection is a text-only outcome.
+
+## Bounded chat event callback
+The reserved `/wi` handler validates sender, tenant and command prefix on the SDK callback thread but **dispatches its SQLite transaction to a bounded-rate daemon worker**. The listener can return before a SQLite busy timeout; the persistent unique receipt prevents duplicate Run creation under Feishu event replay. The worker sends only the resulting text reply. If work failed or remote reply delivery is unknown, no model/Git action is attempted. There is still one WebSocket consumer and no new polling process.

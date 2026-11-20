@@ -83,6 +83,19 @@ class ManualWorkItemBotBridgeTest(unittest.TestCase):
         with sqlite3.connect(str(self.root / "bot_state.sqlite3")) as conn:
             self.assertEqual(0, conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
 
+    def test_sqlite_intake_is_deferred_off_message_callback_thread(self):
+        bot = self.bot(True)
+        with mock.patch.object(legacy.threading, "Thread") as thread, mock.patch.object(
+            bot.gate, "accept", side_effect=AssertionError("legacy gate reached")
+        ):
+            bot.on_message(self.event())
+        self.assertEqual(1, thread.call_count)
+        self.transport.send_text.assert_not_called()
+        self.assertTrue(bot.jobs.empty())
+        self.runner.run.assert_not_called()
+        thread.call_args.kwargs["target"](*thread.call_args.kwargs["args"])
+        self.assertIn("AgentRun：", self.transport.send_text.call_args.args[1])
+
     def test_default_off_reserved_command_does_not_reach_codex(self):
         bot = self.bot(False)
         with self.immediate_threads(), mock.patch.object(
