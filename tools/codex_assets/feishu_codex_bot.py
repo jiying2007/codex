@@ -740,6 +740,38 @@ class StateStore:
             )
             return cursor.rowcount == 1
 
+    def create_message_task(
+        self, message_id: str, sender: str, repository: str,
+        mode: str, sources: Sequence[SourceRef] = (),
+    ) -> Optional[int]:
+        """Atomically consume the Feishu event and persist its task identity.
+
+        A crash during task/source insertion must not strand a dedupe receipt
+        without a corresponding queued task. Payload spooling remains a separate
+        fail-closed step: never infer that a missing prompt is safe to replay.
+        """
+        now = int(time.time())
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            claimed = connection.execute(
+                "INSERT OR IGNORE INTO messages(message_id,received_at) VALUES (?,?)",
+                (message_id, now),
+            )
+            if claimed.rowcount != 1:
+                return None
+            created = connection.execute(
+                "INSERT INTO tasks("
+                "message_id,sender_open_id,repository,mode,status,created_at,updated_at"
+                ") VALUES (?,?,?,?,'queued',?,?)",
+                (message_id, sender, repository, mode, now, now),
+            )
+            task_id = int(created.lastrowid)
+            connection.executemany(
+                "INSERT OR IGNORE INTO task_sources(task_id,kind,value) VALUES (?,?,?)",
+                [(task_id, source.kind, source.value) for source in sources],
+            )
+            return task_id
+
     def create_task(
         self,
         message_id: str,
@@ -1049,21 +1081,25 @@ class MessageGate:
             if command.mode != "edit":
                 raise FeishuCodexError("artifact 仅允许用于 edit 模式")
             ArtifactManager.validate_reference(repository, command.artifact)
-        if not self.store.claim_message(message_id):
-            return None
-        if command.action == "set_repo":
-            self.store.set_default_repository(open_id, repository.alias)
-        elif command.action == "reset_repo":
-            self.store.clear_default_repository(open_id)
         task_id = 0
         if command.action == "task":
-            task_id = self.store.create_task(
+            created = self.store.create_message_task(
                 message_id,
                 open_id,
                 repository.alias,
                 command.mode,
                 (SourceRef("message", message_id), *command.sources),
             )
+            if created is None:
+                return None
+            task_id = created
+        else:
+            if not self.store.claim_message(message_id):
+                return None
+            if command.action == "set_repo":
+                self.store.set_default_repository(open_id, repository.alias)
+            elif command.action == "reset_repo":
+                self.store.clear_default_repository(open_id)
         return BotJob(
             task_id=task_id,
             message_id=message_id,
