@@ -1034,9 +1034,15 @@ class FeishuCodexBotTest(unittest.TestCase):
         process.communicate = mock.Mock(
             side_effect=subprocess.TimeoutExpired(cmd=["codex"], timeout=0.5)
         )
+        clock = [0]
+        def advanced_clock() -> float:
+            # Other Python internals can call the mocked clock too; a growing
+            # value avoids StopIteration and still makes the timeout deterministic.
+            clock[0] += 10000
+            return float(clock[0])
         with mock.patch.object(
             feishu_codex_bot.subprocess, "Popen", return_value=process,
-        ), mock.patch.object(feishu_codex_bot.time, "monotonic", side_effect=[0.0, 1.0, 60.0]):
+        ), mock.patch.object(feishu_codex_bot.time, "monotonic", side_effect=advanced_clock):
             with self.assertRaises(feishu_codex_bot.CodexOutcomeUnknown):
                 runner.run(job)
         self.assertTrue(process.terminated)
