@@ -953,6 +953,29 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertEqual(0, bot.jobs.qsize())
 
 
+    def test_non_task_commands_can_queue_without_zero_id_collision(self) -> None:
+        config = self.config()
+        bot = feishu_codex_bot.FeishuCodexBot(
+            config, mock.Mock(), mock.Mock(), feishu_codex_bot.StateStore(config.state_db)
+        )
+        first = feishu_codex_bot.BotJob(0, "om_help", "oc_target", "ou_owner", "help", "codex", "explain", "")
+        second = feishu_codex_bot.BotJob(0, "om_status", "oc_target", "ou_owner", "status", "codex", "explain", "")
+        self.assertTrue(bot._schedule(first))
+        self.assertTrue(bot._schedule(second))
+        self.assertEqual(2, bot.jobs.qsize())
+
+    def test_poll_grace_does_not_race_with_new_incoming_task(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        task_id = store.create_task("om_grace", "ou_owner", "codex", "explain")
+        bot = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
+        bot.refill_pending()
+        self.assertEqual("queued", store.task_status(task_id))
+        self.assertEqual(0, bot.jobs.qsize())
+        bot.recover_pending()
+        self.assertEqual("unknown", store.task_status(task_id))
+
+
 def dataclass_values(command: feishu_codex_bot.ParsedCommand) -> object:
     return command.action, command.repository, command.mode, command.task
 

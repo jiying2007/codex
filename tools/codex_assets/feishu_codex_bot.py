@@ -774,7 +774,7 @@ class StateStore:
     def pending(self) -> List[Dict[str, Any]]:
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT id,message_id,sender_open_id,repository,mode,status "
+                "SELECT id,message_id,sender_open_id,repository,mode,status,created_at "
                 "FROM tasks WHERE status IN ('queued','running') ORDER BY id"
             ).fetchall()
         return [dict(row) for row in rows]
@@ -1637,13 +1637,14 @@ class FeishuCodexBot:
 
     def _schedule(self, job: BotJob) -> bool:
         with self._schedule_lock:
-            if job.task_id in self._scheduled:
+            if job.task_id and job.task_id in self._scheduled:
                 return True
             try:
                 self.jobs.put_nowait(job)
             except queue.Full:
                 return False
-            self._scheduled.add(job.task_id)
+            if job.task_id:
+                self._scheduled.add(job.task_id)
         return True
 
     def recover_pending(self) -> None:
@@ -1656,13 +1657,13 @@ class FeishuCodexBot:
                 f"任务 #{row['id']} 在服务重启时执行状态未知，未自动重试；请核对结果。",
                 row["message_id"],
             )
-        self.refill_pending()
+        self.refill_pending(startup=True)
         pending_ids = {row["id"] for row in self.store.pending()}
         for task_id in self.spool.ids():
             if task_id not in pending_ids:
                 self.spool.discard(task_id)
 
-    def refill_pending(self) -> None:
+    def refill_pending(self, *, startup: bool = False) -> None:
         for row in self.store.pending():
             if row["status"] != "queued":
                 continue
@@ -1671,6 +1672,19 @@ class FeishuCodexBot:
                     continue
             try:
                 job = self._decode_job(self.spool.get(row["id"]), row)
+            except FileNotFoundError:
+                # An event callback may have committed the DB row but not yet
+                # fsynced its private payload. Only a true restart may declare
+                # such a brand-new row missing immediately.
+                if not startup and int(time.time()) - int(row["created_at"]) < 30:
+                    continue
+                self.store.update_task(row["id"], "unknown", "QueuedPayloadUnavailable")
+                self._send_safe(
+                    self.config.target_chat_id,
+                    f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
+                    row["message_id"],
+                )
+                continue
             except (OSError, SpoolError, FeishuCodexError):
                 self.store.update_task(row["id"], "unknown", "QueuedPayloadUnavailable")
                 self._send_safe(
