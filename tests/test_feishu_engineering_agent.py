@@ -200,9 +200,6 @@ class EngineeringAgentIntakeTest(unittest.TestCase):
         root = pathlib.Path(__file__).resolve().parents[1]
         environ = dict(os.environ)
         environ["PYTHONPATH"] = str(root)
-        with mock.patch("subprocess.Popen") as _unused:
-            # subprocess.run uses Popen internally; release mock for actual dry-run.
-            pass
         result = subprocess.run(
             [
                 sys.executable, "-m", "tools.codex_assets.feishu_engineering_agent",

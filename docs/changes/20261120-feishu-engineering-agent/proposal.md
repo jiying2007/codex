@@ -11,6 +11,30 @@ Choose **strangler migration of the business core**: rewrite channel interaction
 | Rewrite thin domain + Feishu channels | Domain-first, testable, existing safety reused | Must prove cutover, owner and schema migration | **Select** |
 | Rebuild entire runtime/queue/runner | Uniformity | Reintroduces solved sandbox, credentials, UNKNOWN and duplicate-call bugs | Reject |
 
+## Decision registry / evidence status
+| ID | Choice and dependency | Status | Answer source and falsifier |
+|---|---|---|---|
+| D-01 | Replace business/channel core in Codex repository, keep single service | proposed | AI recommendation based on existing Bot source; falsify if isolation breaks vstrong100 migration |
+| D-02 | Original Feishu Project/TAPD remains WorkItem authority | confirmed as user constraint | Actual product/test work starts in those systems, not GitHub Issue |
+| D-03 | Card first, not streaming token UI | proposed | Official card limits; falsify with real phone/desktop user test |
+| D-04 | App Server vs exact-ID CLI resume | unresolved | Depends on actual deployed CLI capability and model budget approval |
+| D-05 | Read-only WorkItem adapter first; authenticated webhook later | proposed | Depends on real Meegle/TAPD tenant access and inbound network evidence |
+| D-06 | No unapproved shared Codex/Work quota; no autonomous model loops | confirmed as existing resource boundary | Any paid turn requires separate current authorization |
+
+## Canonical Change Contract
+REQ-001 → ADDED → natural-language ingress → ACC-001 → TASK-001 → VERIFY-001;
+REQ-002 → ADDED → scoped project context → ACC-002 → TASK-001 → VERIFY-002;
+REQ-003 → ADDED → typed external WorkItem identity → ACC-003 → TASK-001 → VERIFY-003;
+REQ-004 → ADDED → fail-closed proposal/approval → ACC-004 → TASK-001 → VERIFY-004;
+REQ-005 → ADDED → idempotent receipts → ACC-005 → TASK-001 → VERIFY-005;
+REQ-006 → ADDED → Feishu cards → ACC-006 → TASK-002 → VERIFY-006;
+REQ-007 → ADDED → exact Codex thread → ACC-007 → TASK-003 → VERIFY-007;
+REQ-008 → ADDED → Feishu Project and TAPD read-only adapters → ACC-008 → TASK-004 → VERIFY-008;
+REQ-009 → ADDED → Feature/Bug PR/CI/QA lifecycle → ACC-009 → TASK-005 → VERIFY-009;
+REQ-010 → ADDED → recovery/remote unknown outcomes → ACC-010 → TASK-005 → VERIFY-010;
+REQ-011 → MODIFIED → single-consumer Bot cutover → ACC-011 → TASK-006 → VERIFY-011;
+REQ-012 → ADDED → cost/runtime/device authorization → ACC-012 → TASK-006 → VERIFY-012.
+
 ## User-facing goal
 Chinese natural language, current project context, task card, exact continuous Codex thread. Real requirements and defects from Feishu Project or TAPD drive brainstorming, SDD, authorized implementation, PR/CI, real QA/device verification and feedback to the original work item. No need to duplicate a GitHub Issue.
 
