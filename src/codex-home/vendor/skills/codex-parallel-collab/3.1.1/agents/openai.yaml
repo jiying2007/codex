@@ -1,4 +1,4 @@
 interface:
-  display_name: "并行施工 Collab"
-  short_description: "Main Codex 深拆需求为 CSV TODO，调度并行 Codex 执行并汇总交付"
+  display_name: "Codex 并行协作"
+  short_description: "按依赖与写入边界拆分开发任务，协调独立执行与验证，不扩大已有授权。"
   default_prompt: "Use $codex-parallel-collab to produce a CSV TODO first, dispatch parallel subtasks with clear ownership, and deliver integrated verified results."

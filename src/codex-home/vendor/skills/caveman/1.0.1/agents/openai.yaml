@@ -1,4 +1,4 @@
 interface:
-  display_name: "Caveman"
-  short_description: "压缩表达风格，减少 token 开销"
+  display_name: "极简表达风格"
+  short_description: "减少冗余解释和不必要的输出，保留事实精度、关键风险和完成证据。"
   default_prompt: "Use $caveman for terse, technically accurate responses with minimal filler."
