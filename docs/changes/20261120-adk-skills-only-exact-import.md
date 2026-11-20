@@ -31,7 +31,7 @@ python3 -m tools.codex_assets.adk_source_import \
   --allow-reviewed-native-ui --preserve-execution-policy --summary-json
 ```
 
-核实计划确为 41 项、模式 `preserve-independent` 且无 removed/blocked 后，使用相同参数加 `--apply`。完成后运行独立 `--write-source-fixture`（对 exact provider checkout）、全部测试及 Codex build/plan/dry-run/rollback；提交受保护 PR。**不直接部署成员 HOME，不声称 Native UI 已通过**。
+核实计划确为 41 项、模式 `preserve-independent` 且无 removed/blocked 后，使用相同参数加 `--apply`。完成后运行独立 `--write-source-fixture --baseline-provider-version 11.2.1`（仅对 exact provider checkout）；拒绝从已退役的 7.0.31 Skill 集合猜测当前人口。完成新来源冻结夹具后运行全部测试及 Codex build/plan/dry-run/rollback，再提交受保护 PR。**不直接部署成员 HOME，不声称 Native UI 已通过**。
 
 ## 当前状态
 
