@@ -1,4 +1,4 @@
 interface:
-  display_name: "Windows GUI Release Orchestration"
-  short_description: "Build, validate, and troubleshoot Windows GUI tool release artifacts"
+  display_name: "Windows GUI 工具发布"
+  short_description: "构建、验证并排查 Windows 图形工具发布包，绑定签名、版本和回滚条件。"
   default_prompt: "Use $windows-gui-release-orchestration to plan, validate, or troubleshoot Windows GUI release artifacts and build-machine runs."

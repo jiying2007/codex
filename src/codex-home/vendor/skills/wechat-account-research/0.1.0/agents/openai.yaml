@@ -1,4 +1,4 @@
 interface:
-  display_name: "微信公众号账号研究归档"
-  short_description: "按账号、日期、主题批量检索、核验并归档微信公众号文章"
+  display_name: "公众号公开内容研究"
+  short_description: "按已选账号、日期及主题搜索核验公众号文章，保留链接和归档证据。"
   default_prompt: "Use $wechat-account-research to collect and metadata-archive recent articles from named WeChat public accounts."
