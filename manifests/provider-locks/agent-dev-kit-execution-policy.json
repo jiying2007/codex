@@ -15,14 +15,14 @@
   },
   "consumer": {
     "repository": "jiying2007/agent-dev-kit",
-    "version": "11.2.1",
-    "commit": "a5ba89065b163594571cc673dd436a23524725a6",
-    "tree": "9e679843c2f4b6d87a8ed8542029ca58abbbd437",
-    "manifest_blob": "8f11102cacb75663ea5861bff0edee094a078cab",
-    "release_tag": "v11.2.1",
+    "version": "11.4.16",
+    "commit": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+    "tree": "d8927518b9f5fafb944ba9e08a14a62dad5cb495",
+    "manifest_blob": "65990ada947d4bb78e8c997db689d037a64050b2",
+    "release_tag": "v11.4.16",
     "release_artifact": {
-      "name": "agent-dev-kit-11.2.1.tar.gz",
-      "sha256": "dfd7dbea35d52fa60aa45fc4e1ce8c3d689d7209dc2482fe4edfe13e998bad90"
+      "name": "agent-dev-kit-11.4.16.tar.gz",
+      "sha256": "66107c68a2ac76488cd06238bc582114dcc4c595aa691da3d6114743b534d59b"
     }
   }
 }

@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 供应链安全审查"
+  short_description: "核查外部代码或 Skill 的依赖、许可证和风险来源，不自动安装未验证内容。"

@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 离线 Core Dump 分析"
+  short_description: "匹配嵌入式 Core Dump、符号和 Build ID，定位崩溃而不编造完整调用栈。"

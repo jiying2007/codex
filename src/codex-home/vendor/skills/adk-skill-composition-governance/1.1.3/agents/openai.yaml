@@ -1,3 +1,0 @@
-interface:
-  display_name: 'adk-skill-composition-governance'
-  short_description: '治理技能组合、触发优先级、fallback 与弃用关系'

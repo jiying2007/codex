@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 嵌入式单元测试"
+  short_description: "针对 MCU、RTOS 或驱动补充分层单测，区分主机、模拟器与实际板端证据。"

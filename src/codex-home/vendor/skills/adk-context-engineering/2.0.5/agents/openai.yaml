@@ -1,0 +1,5 @@
+interface:
+  display_name: "ADK · 上下文工程"
+  short_description: "按任务阶段组织稳定规则、动态状态与按需证据，避免无关内容占用上下文。"
+policy:
+  allow_implicit_invocation: false
