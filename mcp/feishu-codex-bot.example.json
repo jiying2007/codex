@@ -11,7 +11,8 @@
         "explain",
         "review"
       ],
-      "allowed_open_ids": []
+      "allowed_open_ids": [],
+      "agent_allowed_modes": []
     },
     "llm_apps": {
       "path": "/absolute/path/to/llm_apps",
@@ -39,7 +40,8 @@
           "diff",
           "--check"
         ]
-      ]
+      ],
+      "agent_allowed_modes": []
     }
   },
   "deny_push_hooks_path": "/absolute/path/to/codex/mcp/git-hooks",
@@ -58,5 +60,6 @@
   "max_prompt_chars": 12000,
   "reply_chunk_chars": 3500,
   "state_db": "/absolute/path/to/mcp/secrets/feishu-codex-state.sqlite3",
-  "lock_file": "/absolute/path/to/mcp/secrets/feishu-codex-bot.lock"
+  "lock_file": "/absolute/path/to/mcp/secrets/feishu-codex-bot.lock",
+  "agent_intake_enabled": false
 }
