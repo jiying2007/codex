@@ -17,6 +17,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
         (self.tmp / ".git").mkdir()
         self.policy_path = self.tmp / "agent-config.json"
         self.policy = {
+            "schema_version": 1,
             "default_repo": "codex",
             "allowed_open_ids": ["ou_owner"],
             "repositories": {
