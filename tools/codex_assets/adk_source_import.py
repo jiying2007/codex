@@ -646,9 +646,15 @@ def write_source_fixture(root: Path, provider_root: Path, commit: str) -> Path:
             raise ImportError(f"Skill mapping needs review: {name}")
         vendor = root / "src/codex-home" / item["vendor_rel"]
         installed = _tree(vendor)
+        native_ui = provider_root / PurePosixPath(item["source_path"]).parent / "agents/openai.yaml"
+        if native_ui.is_file() and "agents/openai.yaml" not in upstream:
+            raise ImportError("unreviewed native UI file")
+        openai_source = yaml.safe_load(native_ui.read_text(encoding="utf-8")) if native_ui.is_file() else None
+        if openai_source is not None and not isinstance(openai_source, dict):
+            raise ImportError("invalid upstream native UI")
         fixture["skills"][name] = {
             "installed_license_blob": installed["LICENSE"]["blob"],
-            "openai_source": old_item["openai_source"],
+            "openai_source": openai_source,
             "profiles": old_item["profiles"],
             "source_path": item["source_path"],
             "target_rel": old_item["target_rel"],
@@ -674,6 +680,8 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--write-source-fixture", action="store_true")
     parser.add_argument("--refresh-distribution-metadata", action="store_true")
+    parser.add_argument("--preserve-execution-policy", action="store_true",
+                        help="Skills/Agents-only exact import; keep existing independent policy source")
     parser.add_argument("--allow-reviewed-native-ui", action="store_true",
                         help="Explicitly accept signed, non-escalating Chinese UI source metadata")
     parser.add_argument("--summary-json", action="store_true")
@@ -694,7 +702,8 @@ def main() -> int:
         result = plan(args.root, args.provider_root, args.expected_provider_commit,
                       args.promotion_evidence, args.promotion_attestation, args.trusted_root,
                       args.release_artifact_sha256,
-                      allow_reviewed_native_ui=args.allow_reviewed_native_ui)
+                      allow_reviewed_native_ui=args.allow_reviewed_native_ui,
+                      preserve_execution_policy=args.preserve_execution_policy)
         if args.apply:
             apply(args.root, args.provider_root, result)
             result["status"] = "applied-not-verified"
