@@ -152,6 +152,22 @@ class ManualWorkItemBotBridgeTest(unittest.TestCase):
         gate.assert_called_once()
         self.runner.run.assert_not_called()
 
+    def test_manual_state_must_not_reuse_legacy_bot_db(self):
+        config = legacy.BotConfig(
+            app_id="cli_test", app_secret="fixture-secret",
+            target_chat_id="oc_team", bot_name="研发助手",
+            repositories={"robot-app": self.policy}, default_repo="robot-app",
+            allowed_open_ids=frozenset({"ou_owner"}),
+            state_db=self.root / "feishu-engineering-agent.sqlite3",
+            lock_file=self.root / "bot.lock",
+            manual_workitems_enabled=True,
+        )
+        with self.assertRaisesRegex(legacy.FeishuCodexError, "must differ"):
+            legacy.FeishuCodexBot(
+                config, self.transport, self.runner,
+                legacy.StateStore(config.state_db),
+            )
+
     def test_flag_is_optional_and_invalid_type_is_denied(self):
         self.assertFalse(self.bot(False).config.manual_workitems_enabled)
         # Direct BotConfig construction follows the same default policy.

@@ -1789,9 +1789,10 @@ class FeishuCodexBot:
         if config.manual_workitems_enabled:
             from .feishu_engineering_agent.manual_items import ManualWorkItemService
             # Separate 0600 SQLite file, never the legacy task DB/WAL/spool.
-            self._manual_service = ManualWorkItemService(
-                config.state_db.with_name("feishu-engineering-agent.sqlite3")
-            )
+            manual_db = config.state_db.with_name("feishu-engineering-agent.sqlite3")
+            if manual_db == config.state_db:
+                raise FeishuCodexError("manual WorkItem DB must differ from legacy Bot DB")
+            self._manual_service = ManualWorkItemService(manual_db)
 
     @staticmethod
     def _encode_job(job: BotJob) -> Dict[str, Any]:
@@ -1907,13 +1908,17 @@ class FeishuCodexBot:
     def _run_manual_message(self, inbound: Any, actor: str,
                             allowed: FrozenSet[str]) -> None:
         """Run SQLite work off the Feishu WS callback thread (3s deadline)."""
+        from .feishu_engineering_agent.models import IntakeRejected
         try:
             reply = self._manual_service.handle(
                 inbound, self.gate.default_repository(actor), allowed,
             )
-        except (ValueError, sqlite3.DatabaseError, OSError) as exc:
+        except IntakeRejected as exc:
             print(f"[WARN] manual_workitem_denied kind={type(exc).__name__}", flush=True)
-            reply = "工作项登记未完成：格式、权限或状态库检查失败；没有执行模型或远端操作。"
+            reply = "工作项命令被拒绝：来源、权限、格式或工作项身份无效；没有执行模型。"
+        except (ValueError, sqlite3.DatabaseError, OSError) as exc:
+            print(f"[WARN] manual_workitem_store_failed kind={type(exc).__name__}", flush=True)
+            reply = "工作项状态库不可用：未执行模型或远端操作。"
         except Exception as exc:
             print(f"[ERROR] manual_workitem_failed kind={type(exc).__name__}", flush=True)
             reply = "工作项登记异常，未执行模型或远端操作。"
