@@ -163,6 +163,53 @@ def _format_only_native_metadata(local: Path, provider: Path) -> bool:
         return False
     return old == new
 
+def _reviewed_chinese_native_ui(local: Path, provider: Path, skill_name: str) -> bool:
+    """Bound signed-provider display migration; never silently widen invocation.
+
+    Caller must explicitly opt in AFTER the exact release source, CI and
+    attestation have been verified by plan(). This admits no executable
+    files, arbitrary policy, tool or dependency configuration.
+    """
+    if (local.is_symlink() or provider.is_symlink()
+            or not local.is_file() or not provider.is_file()
+            or local.stat().st_size > 32768 or provider.stat().st_size > 32768):
+        return False
+    try:
+        previous = yaml.safe_load(local.read_text(encoding="utf-8"))
+        candidate = yaml.safe_load(provider.read_text(encoding="utf-8"))
+    except (yaml.YAMLError, OSError, UnicodeError):
+        return False
+    if not isinstance(previous, dict) or not isinstance(candidate, dict):
+        return False
+    if set(candidate) - {"interface", "policy"}:
+        return False
+    interface = candidate.get("interface")
+    if (not isinstance(interface, dict)
+            or set(interface) - {"display_name", "short_description", "default_prompt"}):
+        return False
+    name = interface.get("display_name")
+    description = interface.get("short_description")
+    if (not isinstance(name, str) or not isinstance(description, str)
+            or not 3 <= len(name) <= 64 or not 25 <= len(description) <= 160
+            or re.search(r"[\u3400-\u9fff]", name) is None
+            or re.search(r"[\u3400-\u9fff]", description) is None):
+        return False
+    prompt = interface.get("default_prompt")
+    if prompt is not None and (not isinstance(prompt, str)
+                               or len(prompt) > 1024 or "$" + skill_name not in prompt):
+        return False
+    old_policy = previous.get("policy", {})
+    new_policy = candidate.get("policy", {})
+    if not isinstance(old_policy, dict) or not isinstance(new_policy, dict):
+        return False
+    if new_policy and (set(new_policy) != {"allow_implicit_invocation"}
+                       or new_policy.get("allow_implicit_invocation") is not False):
+        return False
+    if (old_policy.get("allow_implicit_invocation") is False
+            and new_policy.get("allow_implicit_invocation") is not False):
+        return False
+    return True
+
 
 def _local_readme_identities(root: Path, manifest: dict[str, Any],
                              expected: dict[str, dict[str, str]] | None = None) -> dict[str, dict[str, str]]:
@@ -195,7 +242,8 @@ def _local_readme_identities(root: Path, manifest: dict[str, Any],
 
 
 def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
-         attestation_path: Path, trusted_root: Path, artifact_sha256: str) -> dict[str, Any]:
+         attestation_path: Path, trusted_root: Path, artifact_sha256: str,
+         *, allow_reviewed_native_ui: bool = False) -> dict[str, Any]:
     root = root.resolve()
     provider_root = provider_root.resolve()
     provider = _provider(provider_root, commit)
@@ -239,17 +287,22 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
             raise ImportError(f"changed Skill did not advance its version: {row['name']}")
         upstream_tree = _candidate(provider_root, item["source_path"], provider)
         format_only_rebindings = {}
+        reviewed_native_ui_updates = {}
         for relative, binding in item.get("distribution_metadata", {}).items():
             declared = binding["source"]
             candidate = upstream_tree.get(relative)
             if declared != candidate:
                 local_metadata = root / "src/codex-home" / item["vendor_rel"] / relative
                 provider_metadata = provider_root / source / relative
-                if (relative != "agents/openai.yaml"
-                        or candidate is None
-                        or not _format_only_native_metadata(local_metadata, provider_metadata)):
+                if (relative == "agents/openai.yaml" and candidate is not None
+                        and _format_only_native_metadata(local_metadata, provider_metadata)):
+                    format_only_rebindings[relative] = candidate
+                elif (allow_reviewed_native_ui and new_version != old_version
+                      and relative == "agents/openai.yaml" and candidate is not None
+                      and _reviewed_chinese_native_ui(local_metadata, provider_metadata, row["name"])):
+                    reviewed_native_ui_updates[relative] = candidate
+                else:
                     raise ImportError(f"distribution metadata needs review: {row['name']}/{relative}")
-                format_only_rebindings[relative] = candidate
         new_rel = "vendor/skills/{}/{}".format(row["name"], new_version)
         new_dir = root / "src/codex-home" / new_rel
         if new_version != old_version and new_dir.exists():
@@ -262,6 +315,7 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
             "blob": target["entrypoint_blob"],
             "changed": target["changed"], "added": target["added"],
             "format_only_metadata_rebindings": format_only_rebindings,
+            "reviewed_native_ui_updates": reviewed_native_ui_updates,
         })
     agents = _json(root / "manifests/agents.json")
     agent_names = [item["name"] for item in agents["agents"]
@@ -316,8 +370,21 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         upstream = _candidate(provider_root, item["source_path"], _provider(provider_root, commit))
         metadata = item.get("distribution_metadata", {})
         requested_rebindings = change.get("format_only_metadata_rebindings", {})
+        reviewed_ui = change.get("reviewed_native_ui_updates", {})
         for relative, identity in upstream.items():
             if relative in metadata:
+                if relative in reviewed_ui:
+                    local_metadata = old_dir / relative
+                    provider_metadata = source_dir / relative
+                    if (relative != "agents/openai.yaml" or reviewed_ui[relative] != identity
+                            or change["new_version"] == change["old_version"]
+                            or not _reviewed_chinese_native_ui(local_metadata, provider_metadata, change["name"])):
+                        raise ImportError("reviewed native UI migration changed: {}".format(change["name"]))
+                    destination = new_dir / relative
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(provider_metadata, destination)
+                    metadata[relative] = {"source": identity, "installed": identity}
+                    continue
                 declared = metadata[relative]["source"]
                 if declared != identity:
                     local_metadata = old_dir / relative
@@ -509,6 +576,8 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--write-source-fixture", action="store_true")
     parser.add_argument("--refresh-distribution-metadata", action="store_true")
+    parser.add_argument("--allow-reviewed-native-ui", action="store_true",
+                        help="Explicitly accept signed, non-escalating Chinese UI source metadata")
     parser.add_argument("--summary-json", action="store_true")
     args = parser.parse_args()
     try:
@@ -526,7 +595,8 @@ def main() -> int:
             return 0
         result = plan(args.root, args.provider_root, args.expected_provider_commit,
                       args.promotion_evidence, args.promotion_attestation, args.trusted_root,
-                      args.release_artifact_sha256)
+                      args.release_artifact_sha256,
+                      allow_reviewed_native_ui=args.allow_reviewed_native_ui)
         if args.apply:
             apply(args.root, args.provider_root, result)
             result["status"] = "applied-not-verified"
