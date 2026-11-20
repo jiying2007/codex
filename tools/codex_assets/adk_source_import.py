@@ -620,13 +620,19 @@ def refresh_local_readmes(root: Path, provider_root: Path, commit: str, *,
     return changed
 
 
-def write_source_fixture(root: Path, provider_root: Path, commit: str) -> Path:
+def write_source_fixture(root: Path, provider_root: Path, commit: str, baseline_version: str) -> Path:
     """Freeze independently read upstream Git trees for consumer regressions."""
     root = root.resolve()
     provider_root = provider_root.resolve()
-    provider = _provider(provider_root, commit)
-    old_path = root / "tests/fixtures/adk-skill-sources-7.0.31.json"
+    if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", baseline_version) is None:
+        raise ImportError("baseline provider version must be exact SemVer")
+    old_path = root / "tests/fixtures" / f"adk-skill-sources-{baseline_version}.json"
+    if old_path.is_symlink() or not old_path.is_file():
+        raise ImportError("frozen prior-source fixture is unavailable")
     old = _json(old_path)
+    if old.get("release") != "v" + baseline_version or not isinstance(old.get("skills"), dict):
+        raise ImportError("frozen prior-source fixture has incompatible identity")
+    provider = _provider(provider_root, commit)
     current = _json(root / "manifests/skills.json")
     selected = {item["name"]: item for item in current["skills"]
                 if item.get("enabled") is True and item.get("name", "").startswith("adk-")}
@@ -679,6 +685,8 @@ def main() -> int:
     parser.add_argument("--release-artifact-sha256", required=True)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--write-source-fixture", action="store_true")
+    parser.add_argument("--baseline-provider-version", default="",
+                        help="Frozen prior-source version for explicit fixture promotion")
     parser.add_argument("--refresh-distribution-metadata", action="store_true")
     parser.add_argument("--preserve-execution-policy", action="store_true",
                         help="Skills/Agents-only exact import; keep existing independent policy source")
@@ -696,7 +704,8 @@ def main() -> int:
         if args.write_source_fixture:
             if args.apply:
                 raise ImportError("fixture generation and source import must be separate operations")
-            destination = write_source_fixture(args.root, args.provider_root, args.expected_provider_commit)
+            destination = write_source_fixture(args.root, args.provider_root,
+                                               args.expected_provider_commit, args.baseline_provider_version)
             print(json.dumps({"status": "fixture-written", "path": str(destination)}))
             return 0
         result = plan(args.root, args.provider_root, args.expected_provider_commit,
