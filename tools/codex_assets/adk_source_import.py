@@ -543,7 +543,37 @@ def apply(root: Path, provider_root: Path, result: dict[str, Any]) -> None:
         "sha256": result["artifact_sha256"],
     }
     _write_json(lock_path, lock)
+    if independent is not None:
+        policy_lock = independent["lock"]
+        policy_lock["consumer"] = {
+            "repository": REPOSITORY, "version": version, "commit": commit,
+            "tree": result["provider_tree"], "manifest_blob": result["manifest_blob"],
+            "release_tag": "v" + version,
+            "release_artifact": lock["release_artifact"],
+        }
+        _write_json(root / INDEPENDENT_POLICY_LOCK, policy_lock)
     refresh_local_readmes(root, provider_root, commit, old_identities=old_identities)
+    if independent is not None:
+        # Retire only versioned, fully source-checked directories in the
+        # isolated candidate after all source projections have passed.
+        for change in result["skills"]:
+            if change["old_rel"] != change["new_rel"]:
+                previous = root / "src/codex-home" / change["old_rel"]
+                if previous.is_symlink() or not previous.is_dir():
+                    raise ImportError("retired Skill directory identity changed")
+                shutil.rmtree(previous)
+        for previous in retired_agent_files:
+            if previous.is_symlink() or not previous.is_file():
+                raise ImportError("retired Agent file identity changed")
+            previous.unlink()
+            if not any(previous.parent.iterdir()):
+                previous.parent.rmdir()
+        # Release exactly one old Agent-version tree after its expected files
+        # have been retired, without touching any unrelated vendor path.
+        for parent in sorted({p.parent.parent for p in retired_agent_files}):
+            if parent.is_dir() and not any(parent.iterdir()):
+                parent.rmdir()
+        _independent_policy_snapshot(root)
 
 
 def refresh_local_readmes(root: Path, provider_root: Path, commit: str, *,
