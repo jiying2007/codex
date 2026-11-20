@@ -156,6 +156,19 @@ class NativeTurnTest(unittest.TestCase):
                 "SELECT COUNT(*) FROM fea_evidence WHERE run_id=?", (analysis,),
             ).fetchone()[0])
 
+    def test_grant_expiry_cannot_be_extended_after_signed_approval(self):
+        self.queue_run()
+        forged = RuntimeGrant(
+            self.run, "actor1", "robot-app", "edit",
+            self.grant.billing_source, self.grant.expires_at + 180,
+            self.grant.authorization_ref,
+        )
+        sender = mock.Mock()
+        with self.assertRaisesRegex(IntakeRejected, "persistent signed approval"):
+            self.dispatch(sender, grant=forged)
+        sender.assert_not_called()
+        self.assertEqual("queued", self.store.get_run(self.run)["status"])
+
     def test_forged_in_memory_runtime_grant_is_not_enough(self):
         # A caller can construct RuntimeGrant, but cannot use it without
         # a durable independently signed approval receipt.

@@ -72,3 +72,5 @@ Required offline CI: Python 3.8/3.11/3.12 full repository tests, profile context
 These tests must pass under the exact final HEAD across Python 3.8, 3.11 and 3.12; actual network/model/Feishu/device evidence remains pending field verification.
 
 - Verify exact Codex app-server v2 `turn/start` input contains `text_elements: []`, and read-only/workspace-write `sandboxPolicy` supplies all required properties; this is a source-schema assertion, not live protocol proof. The vstrong100-installed version's generated JSON Schema and live handshake remain separate gates.
+
+- Negative test: a valid queued WorkItem with a real signed approval cannot dispatch a model turn using a fabricated RuntimeGrant whose expiry has been extended beyond the persisted signed receipt; no native sender invocation or Run state change is permitted.

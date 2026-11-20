@@ -65,6 +65,7 @@ class EngineeringWorkflow:
                     approval_ref TEXT NOT NULL,
                     signed_digest TEXT NOT NULL,
                     billing_source TEXT NOT NULL,
+                    expires_at INTEGER NOT NULL,
                     authorized_at INTEGER NOT NULL
                 );
             """)
@@ -201,10 +202,10 @@ class EngineeringWorkflow:
                     raise IntakeRejected("attempt not in proposed state")
                 db.execute(
                     "INSERT INTO fea_run_approvals "
-                    "(run_id,approval_ref,signed_digest,billing_source,authorized_at)"
-                    " VALUES (?,?,?,?,?)",
+                    "(run_id,approval_ref,signed_digest,billing_source,"
+                    "expires_at,authorized_at) VALUES (?,?,?,?,?,?)",
                     (approval.run_id, approval.approval_ref, digest,
-                     approval.billing_source, when),
+                     approval.billing_source, approval.expires_at, when),
                 )
                 db.execute(
                     "UPDATE fea_runs SET status='queued',revision=revision+2,"

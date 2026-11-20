@@ -65,12 +65,14 @@ class NativeTurnCoordinator:
         # durably admitted by EngineeringWorkflow before any model effect.
         with contextlib.closing(self.store._connect()) as approval_db:
             receipt = approval_db.execute(
-                "SELECT approval_ref,billing_source FROM fea_run_approvals "
-                "WHERE run_id=?", (run_id,),
+                "SELECT approval_ref,billing_source,expires_at "
+                "FROM fea_run_approvals WHERE run_id=?", (run_id,),
             ).fetchone()
         if (receipt is None or grant is None
                 or receipt["approval_ref"] != grant.authorization_ref
-                or receipt["billing_source"] != grant.billing_source):
+                or receipt["billing_source"] != grant.billing_source
+                or receipt["expires_at"] != grant.expires_at
+                or receipt["expires_at"] <= int(time.time())):
             raise IntakeRejected("native Codex turn lacks persistent signed approval")
         # request_hash is only metadata; do not save prompt or model response.
         import hashlib

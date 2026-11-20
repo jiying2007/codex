@@ -69,3 +69,5 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [x] turn/completed 可能先于 turn/start ACK，原生事件缓冲并在有界溢出时 fail closed。
 [x] WorkItem 关联重放不能改绑来源，企业 API 可用时也重新检查当前仓库访问权限。
 [ ] 以上源码补丁仍需本次新 HEAD 全量 CI 才可标记为已验证；生产主机与真实模型/设备现场试验统一后移。
+
+[x] 模型执行授权收据保存签名时精确到期时间；真实分发不能通过手工扩大 RuntimeGrant 有效期，CI 负向测试无模型副作用。
