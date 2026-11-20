@@ -18,6 +18,7 @@ import threading
 import time
 from typing import Any, Callable, Deque, Dict, FrozenSet, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
+from .feishu_task_spool import TaskSpool, SpoolError
 from .feishu_documents import (
     ApplicationCredentials, DocumentReadError, DocumentReader, MAX_CONTEXT_CHARS, MAX_DOCUMENTS,
     MAX_RESPONSE_BYTES, links_in_text, parse_document_url,
@@ -769,6 +770,37 @@ class StateStore:
         with self._connect() as connection:
             row = connection.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
         return str(row["status"]) if row else "missing"
+
+    def pending(self) -> List[Dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id,message_id,sender_open_id,repository,mode,status,created_at "
+                "FROM tasks WHERE status IN ('queued','running') ORDER BY id"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def reconcile_abandoned_running(self) -> List[Dict[str, Any]]:
+        """Never replay attempts with possibly unobserved model/external effects."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id,message_id,sender_open_id,repository,mode,status "
+                "FROM tasks WHERE status='running' ORDER BY id"
+            ).fetchall()
+            connection.execute(
+                "UPDATE tasks SET status='unknown',error_kind='UnobservedServiceRestart',"
+                "updated_at=? WHERE status='running'",
+                (int(time.time()),),
+            )
+        return [dict(row) for row in rows]
+
+    def claim_queued(self, task_id: int) -> bool:
+        with self._connect() as connection:
+            result = connection.execute(
+                "UPDATE tasks SET status='running',updated_at=? "
+                "WHERE id=? AND status='queued'",
+                (int(time.time()), task_id),
+            )
+            return result.rowcount == 1
 
     def cancel_queued(self, sender: str) -> int:
         with self._connect() as connection:
@@ -1569,6 +1601,105 @@ class FeishuCodexBot:
         self.limiter = RateLimiter(config.rate_limit_count, config.rate_limit_window_sec)
         self.jobs: queue.Queue = queue.Queue(maxsize=config.queue_size)
         self.repo_locks = {alias: threading.Lock() for alias in config.repositories}
+        self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
+        self._scheduled: Set[int] = set()
+        self._schedule_lock = threading.Lock()
+
+    @staticmethod
+    def _encode_job(job: BotJob) -> Dict[str, Any]:
+        return dataclasses.asdict(job)
+
+    def _decode_job(self, payload: Mapping[str, Any], row: Mapping[str, Any]) -> BotJob:
+        data = dict(payload)
+        sources = data.get("sources", [])
+        if not isinstance(sources, list) or len(sources) > 16:
+            raise SpoolError("invalid queued task sources")
+        try:
+            data["sources"] = tuple(SourceRef(**item) for item in sources)
+            job = BotJob(**data)
+        except (TypeError, ValueError) as exc:
+            raise SpoolError("invalid queued task fields") from exc
+        if (job.action != "task" or job.task_id != row["id"]
+                or job.message_id != row["message_id"]
+                or job.sender_open_id != row["sender_open_id"]
+                or job.repository != row["repository"] or job.mode != row["mode"]
+                or job.chat_id != self.config.target_chat_id
+                or not isinstance(job.task, str)
+                or not job.task.strip() or len(job.task) > self.config.max_prompt_chars):
+            raise SpoolError("queued task identity mismatch")
+        repository = self.config.repositories.get(job.repository)
+        if (repository is None or job.mode not in repository.allowed_modes
+                or not self.config.sender_allowed(job.sender_open_id, repository)):
+            raise SpoolError("queued task no longer authorized by policy")
+        if job.artifact:
+            ArtifactManager.validate_reference(repository, job.artifact)
+        return job
+
+    def _schedule(self, job: BotJob) -> bool:
+        with self._schedule_lock:
+            if job.task_id and job.task_id in self._scheduled:
+                return True
+            try:
+                self.jobs.put_nowait(job)
+            except queue.Full:
+                return False
+            if job.task_id:
+                self._scheduled.add(job.task_id)
+        return True
+
+    def recover_pending(self) -> None:
+        """Requeue never-started tasks only; preserve running as unknown."""
+        abandoned = self.store.reconcile_abandoned_running()
+        for row in abandoned:
+            self.spool.discard(row["id"])
+            self._send_safe(
+                self.config.target_chat_id,
+                f"任务 #{row['id']} 在服务重启时执行状态未知，未自动重试；请核对结果。",
+                row["message_id"],
+            )
+        self.refill_pending(startup=True)
+        pending_ids = {row["id"] for row in self.store.pending()}
+        for task_id in self.spool.ids():
+            if task_id not in pending_ids:
+                self.spool.discard(task_id)
+
+    def refill_pending(self, *, startup: bool = False) -> None:
+        for row in self.store.pending():
+            if row["status"] != "queued":
+                continue
+            with self._schedule_lock:
+                if row["id"] in self._scheduled:
+                    continue
+            try:
+                job = self._decode_job(self.spool.get(row["id"]), row)
+            except FileNotFoundError:
+                # An event callback may have committed the DB row but not yet
+                # fsynced its private payload. Only a true restart may declare
+                # such a brand-new row missing immediately.
+                if not startup and int(time.time()) - int(row["created_at"]) < 30:
+                    continue
+                self.store.update_task(row["id"], "unknown", "QueuedPayloadUnavailable")
+                self._send_safe(
+                    self.config.target_chat_id,
+                    f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
+                    row["message_id"],
+                )
+                continue
+            except (OSError, SpoolError, FeishuCodexError):
+                self.store.update_task(row["id"], "unknown", "QueuedPayloadUnavailable")
+                self._send_safe(
+                    self.config.target_chat_id,
+                    f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
+                    row["message_id"],
+                )
+                continue
+            if not self._schedule(job):
+                break
+
+    def _poll_pending(self) -> None:
+        while True:
+            time.sleep(1)
+            self.refill_pending()
 
     def _send_safe(self, chat_id: str, text: str, message_id: str = "") -> None:
         try:
@@ -1593,7 +1724,14 @@ class FeishuCodexBot:
                     daemon=True,
                 ).start()
                 return
-            self.jobs.put_nowait(job)
+            if job.action == "task":
+                try:
+                    self.spool.put(job.task_id, self._encode_job(job))
+                except (OSError, SpoolError):
+                    self.store.update_task(job.task_id, "unknown", "SpoolWriteFailed")
+                    raise FeishuCodexError("待执行输入未能安全持久化；任务未执行")
+            if not self._schedule(job):
+                raise queue.Full()
             print(
                 f"[INFO] queued action={job.action} repo={job.repository} "
                 f"message_id_suffix={job.message_id[-6:]}",
@@ -1602,6 +1740,7 @@ class FeishuCodexBot:
         except queue.Full:
             if "job" in locals() and job.task_id:
                 self.store.update_task(job.task_id, "rejected", "QueueFull")
+                self.spool.discard(job.task_id)
             if "job" in locals():
                 threading.Thread(
                     target=self._send_safe,
@@ -1723,7 +1862,8 @@ class FeishuCodexBot:
                 with self.repo_locks[job.repository]:
                     if self.store.task_status(job.task_id) == "canceled":
                         continue
-                    self.store.update_task(job.task_id, "running")
+                    if not self.store.claim_queued(job.task_id):
+                        continue
                     print(
                         f"[INFO] running task={job.task_id} repo={job.repository} "
                         f"message_id_suffix={job.message_id[-6:]}",
@@ -1740,10 +1880,14 @@ class FeishuCodexBot:
                             result.commit_hash,
                             result.worktree_path,
                         )
-                    self._send_chunks(job.chat_id, result.text, job.message_id)
                     if job.artifact:
                         self._send_artifact(job, result)
                     self.store.update_task(job.task_id, "completed")
+                    # A failed chat reply must never rewrite a verified execution as failed.
+                    try:
+                        self._send_chunks(job.chat_id, result.text, job.message_id)
+                    except FeishuCodexError:
+                        print(f"[WARN] result_delivery_unknown task={job.task_id}", flush=True)
                     print(f"[PASS] completed task={job.task_id} repo={job.repository}", flush=True)
             except TaskCanceled:
                 self.store.update_task(job.task_id, "canceled", "TaskCanceled")
@@ -1762,11 +1906,20 @@ class FeishuCodexBot:
                 print(f"[ERROR] unexpected_job_failure task={job.task_id} kind={type(exc).__name__}", flush=True)
                 self._send_safe(job.chat_id, "任务失败：服务发生未预期错误，已记录错误类型。", job.message_id)
             finally:
+                if job.task_id:
+                    try:
+                        self.spool.discard(job.task_id)
+                    except OSError:
+                        print(f"[WARN] spool_cleanup_failed task={job.task_id}", flush=True)
+                    with self._schedule_lock:
+                        self._scheduled.discard(job.task_id)
                 self.jobs.task_done()
 
     def start(self) -> None:
+        self.recover_pending()
         for index in range(self.config.worker_count):
             threading.Thread(target=self.worker, name=f"feishu-codex-worker-{index + 1}", daemon=True).start()
+        threading.Thread(target=self._poll_pending, name="feishu-codex-pending", daemon=True).start()
         self.transport.start(self.on_message)
 
 

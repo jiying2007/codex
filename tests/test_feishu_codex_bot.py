@@ -879,6 +879,103 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertEqual("error", transport.lark.ws.Client.call_args.kwargs["log_level"])
 
 
+    def test_private_spool_replays_only_queued_after_restart(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        original = feishu_codex_bot.MessageGate(config, store).accept(self.event())
+        self.assertIsNotNone(original)
+        first = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
+        first.spool.put(original.task_id, first._encode_job(original))
+        restarted = feishu_codex_bot.FeishuCodexBot(
+            config, mock.Mock(), mock.Mock(), feishu_codex_bot.StateStore(config.state_db)
+        )
+        restarted.recover_pending()
+        recovered = restarted.jobs.get_nowait()
+        self.assertEqual((original.task_id, original.task), (recovered.task_id, recovered.task))
+        self.assertEqual("queued", restarted.store.task_status(original.task_id))
+        self.assertFalse(restarted.jobs.qsize())
+        restarted.refill_pending()
+        self.assertEqual(0, restarted.jobs.qsize())  # no duplicate enqueue
+
+    def test_running_is_unknown_and_never_replayed_after_restart(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        job = feishu_codex_bot.MessageGate(config, store).accept(self.event())
+        bot = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
+        bot.spool.put(job.task_id, bot._encode_job(job))
+        self.assertTrue(store.claim_queued(job.task_id))
+        restarted = feishu_codex_bot.FeishuCodexBot(
+            config, mock.Mock(), mock.Mock(), feishu_codex_bot.StateStore(config.state_db)
+        )
+        restarted.recover_pending()
+        self.assertEqual("unknown", restarted.store.task_status(job.task_id))
+        self.assertEqual(0, restarted.jobs.qsize())
+        self.assertFalse((restarted.spool.root / f"{job.task_id}.json").exists())
+        restarted.transport.send_text.assert_called_once()
+        restarted.recover_pending()
+        self.assertEqual(1, restarted.transport.send_text.call_count)
+
+    def test_legacy_queued_without_spool_is_unknown_not_automatically_retried(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        task_id = store.create_task("om_old", "ou_owner", "codex", "explain")
+        bot = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
+        bot.recover_pending()
+        self.assertEqual("unknown", store.task_status(task_id))
+        self.assertEqual(0, bot.jobs.qsize())
+
+    def test_queued_spool_rechecks_policy_and_permissions(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        job = feishu_codex_bot.MessageGate(config, store).accept(self.event())
+        bot = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
+        bot.spool.put(job.task_id, bot._encode_job(job))
+        self.policy["allowed_open_ids"] = ["ou_another"]
+        self.write_policy()
+        changed = feishu_codex_bot.FeishuCodexBot(
+            self.config(), mock.Mock(), mock.Mock(), store
+        )
+        changed.recover_pending()
+        self.assertEqual("unknown", store.task_status(job.task_id))
+        self.assertEqual(0, changed.jobs.qsize())
+
+    def test_spool_rejects_world_readable_payload_and_foreign_file(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        job = feishu_codex_bot.MessageGate(config, store).accept(self.event())
+        bot = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
+        bot.spool.put(job.task_id, bot._encode_job(job))
+        path = bot.spool.root / f"{job.task_id}.json"
+        self.assertEqual(0, path.stat().st_mode & 0o077)
+        path.chmod(0o644)
+        bot.recover_pending()
+        self.assertEqual("unknown", store.task_status(job.task_id))
+        self.assertEqual(0, bot.jobs.qsize())
+
+
+    def test_non_task_commands_can_queue_without_zero_id_collision(self) -> None:
+        config = self.config()
+        bot = feishu_codex_bot.FeishuCodexBot(
+            config, mock.Mock(), mock.Mock(), feishu_codex_bot.StateStore(config.state_db)
+        )
+        first = feishu_codex_bot.BotJob(0, "om_help", "oc_target", "ou_owner", "help", "codex", "explain", "")
+        second = feishu_codex_bot.BotJob(0, "om_status", "oc_target", "ou_owner", "status", "codex", "explain", "")
+        self.assertTrue(bot._schedule(first))
+        self.assertTrue(bot._schedule(second))
+        self.assertEqual(2, bot.jobs.qsize())
+
+    def test_poll_grace_does_not_race_with_new_incoming_task(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        task_id = store.create_task("om_grace", "ou_owner", "codex", "explain")
+        bot = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
+        bot.refill_pending()
+        self.assertEqual("queued", store.task_status(task_id))
+        self.assertEqual(0, bot.jobs.qsize())
+        bot.recover_pending()
+        self.assertEqual("unknown", store.task_status(task_id))
+
+
 def dataclass_values(command: feishu_codex_bot.ParsedCommand) -> object:
     return command.action, command.repository, command.mode, command.task
 
