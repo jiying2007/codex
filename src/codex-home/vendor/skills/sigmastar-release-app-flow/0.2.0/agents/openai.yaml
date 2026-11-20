@@ -1,4 +1,4 @@
 interface:
-  display_name: "SigmaStar Release App Flow"
-  short_description: "Diagnose PCR02/SigmaStar app/image/OTA build-order and partition flows"
+  display_name: "SigmaStar 应用与镜像发布"
+  short_description: "核对应用、镜像、OTA 和分区的构建顺序及发布依赖，避免版本错配。"
   default_prompt: "Use $sigmastar-release-app-flow for PCR02/SigmaStar build.sh app/image/OTA/customer layout issues; use adk-embedded-release-orchestration for generic release orchestration."

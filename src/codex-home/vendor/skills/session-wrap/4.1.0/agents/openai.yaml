@@ -1,5 +1,5 @@
 interface:
-  display_name: "Session Wrap"
-  short_description: "收口当前会话并按本地配置自动生成活动回执 v2"
+  display_name: "会话交付收口"
+  short_description: "基于当前会话真实任务进展生成结构化回执，区分已完成、阻塞和下一步。"
   default_prompt: "Use $session-wrap to close the current session with evidence-backed outcomes and, when local receipt persistence is enabled, automatically persist a sanitized activity receipt v2."
 
