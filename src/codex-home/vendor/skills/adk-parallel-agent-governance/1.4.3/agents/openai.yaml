@@ -1,4 +1,4 @@
 interface:
-  display_name: adk-parallel-agent-governance
-  short_description: 并行子代理治理，定义任务分片、scope_write、冲突矩阵、等待和整合验证
+  display_name: "ADK · 并行代理治理"
+  short_description: "评估可独立写入和验证的并行任务边界，避免共享文件冲突与无收益并行。"
   default_prompt: Use $adk-parallel-agent-governance for its documented workflow.

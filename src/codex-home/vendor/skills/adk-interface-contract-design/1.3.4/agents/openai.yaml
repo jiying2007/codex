@@ -1,4 +1,4 @@
 interface:
-  display_name: adk-interface-contract-design
-  short_description: 定义模块、API、消息和受控生命周期操作的接口契约
+  display_name: "ADK · 接口契约设计"
+  short_description: "设计跨模块接口与正反向验收，保留兼容、失败和迁移边界，不代替实际编码。"
   default_prompt: Use $adk-interface-contract-design for its documented workflow.

@@ -1,3 +1,3 @@
 interface:
-  display_name: ADK Plan Lite
-  short_description: Create a concise read-only implementation plan for coding tasks.
+  display_name: "ADK · 轻量只读计划"
+  short_description: "用户只需计划而暂不修改代码时生成最短可验证步骤，不启动长任务执行。"

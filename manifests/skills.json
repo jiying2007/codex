@@ -954,7 +954,7 @@
         "agents/openai.yaml": {
           "source": null,
           "installed": {
-            "blob": "7e254e4000f6ddbe6fc7f76db3f2b918d15f7721",
+            "blob": "2590d6565747bab6527d8eac3d1c813760eec54d",
             "mode": "100644"
           }
         }
@@ -995,7 +995,7 @@
             "mode": "100644"
           },
           "installed": {
-            "blob": "fbb7a3472c639827c4fd110b5c0a1c64721a274d",
+            "blob": "111288cb8b950ffbdb0ce90c0abaa01e93edbfef",
             "mode": "100644"
           }
         }
@@ -1034,7 +1034,7 @@
             "mode": "100644"
           },
           "installed": {
-            "blob": "dfe6682034190c40960bfe36e2c1a89a3849a8fd",
+            "blob": "797853030fb220d3e2af50ed88680ce8bc5596e1",
             "mode": "100644"
           }
         }
@@ -1073,7 +1073,7 @@
             "mode": "100644"
           },
           "installed": {
-            "blob": "68c1fd2f1f55ddddac320dafc8fca251f6627680",
+            "blob": "56880aa3de6d359d7eefa3037aad4fa6b3cac3aa",
             "mode": "100644"
           }
         }
@@ -1123,7 +1123,7 @@
         "agents/openai.yaml": {
           "source": null,
           "installed": {
-            "blob": "efa883b86f16d6f9e1d6dc34be3243737605a2ff",
+            "blob": "73847bd016e8e64c9ba21aca9fbe8837bc18570a",
             "mode": "100644"
           }
         }
@@ -1171,7 +1171,7 @@
         "agents/openai.yaml": {
           "source": null,
           "installed": {
-            "blob": "249e7a469beea2c623476da5857f1befa4ab4f4b",
+            "blob": "48bfcdce6e9003073bed3ea86b3dc29497fe3260",
             "mode": "100644"
           }
         }
