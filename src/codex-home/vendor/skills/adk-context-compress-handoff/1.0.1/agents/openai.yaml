@@ -1,4 +1,4 @@
 interface:
-  display_name: ADK Context Compress Handoff
-  short_description: Produce recoverable context handoff summaries with evidence,
+  display_name: "ADK · 上下文压缩与接力"
+  short_description: "长任务或跨会话恢复时保留目标、实际进展、证据和下一动作，不替代原始验证。"
     excluded context, and next actions.

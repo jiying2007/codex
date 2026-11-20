@@ -1,4 +1,4 @@
 interface:
-  display_name: "ADK Driver Bringup Checklist"
-  short_description: "驱动 bring-up 标准检查清单"
+  display_name: "ADK · 驱动上板调通"
+  short_description: "按板级依赖验证驱动初始化、寄存器、中断和恢复路径，不把源码构建当上板成功。"
   default_prompt: "Use $adk-driver-bringup-checklist for its documented workflow."

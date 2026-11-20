@@ -1,4 +1,4 @@
 interface:
-  display_name: "ADK Commit Pr Quality Gate"
-  short_description: "提交与 PR 质量门禁检查"
+  display_name: "ADK · 提交与 PR 质量门禁"
+  short_description: "根据当前操作检查提交信息、改动范围和验证回执，不替代代码审查或合并授权。"
   default_prompt: "Use $adk-commit-pr-quality-gate for its documented workflow."
