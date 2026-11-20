@@ -403,3 +403,33 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 ### 13.1 飞书事件与任务 ID 原子登记
 
 消息去重 ID 与新任务的 queued 记录在同一个 SQLite `BEGIN IMMEDIATE` 事务提交；如果创建任务或来源记录失败，整个事务回滚，不留下“已收消息但无任务”的去重记录。若接收后进程在私有输入 spool 持久化前崩溃，保留原来的 fail-closed `unknown` 处理，**不自动猜测提示或重复调用模型**。这是同机可靠性保障，不等于真实飞书重连资格。
+
+## 无飞书项目企业 API 权限时：工作项人工登记（可选）
+
+`manual_workitems_enabled` 在策略中默认 `false`。它**不申请**飞书项目、TAPD、卡片或额外模型权限；如果当前已授权的应用机器人能正常收发消息，管理员可在现有私有策略文件内设置 `"manual_workitems_enabled": true`，并按原第 5 节验证和重启已有的**唯一** Bot。该能力不会新增第二个进程或 WebSocket 消费者。
+
+聊天中可发送：
+
+```text
+/wi help
+/wi add tapd 缺陷 10104801 123456 repo=robot-app | 低速回充过流；复现、预期和验收条件
+/wi add feishu_project 需求 project123 98765 repo=robot-app | OTA回滚需求和验收条件
+/wi list
+/wi status <AgentRun完整ID>
+```
+
+实际仓库别名必须是当前策略允许的值，示例 `robot-app` 不代表已在你的生产策略登记。不写 `repo=` 时继承用户当前项目。工作项 ID 和空间由发送者填写，**不会自动读取/验证** 飞书项目或 TAPD 中的内容；本地独立 0600 数据库只保存消息 ID、来源元数据和摘要哈希，不保存明文需求。来源状态是“用户提供，未核验”。单独批准的分析/开发仍走原有 Codex 权限检查，`/wi` 本身不启动任何模型、写代码或关闭缺陷。
+
+如果连现有应用机器人的接收消息权限也没有，不能把仅能单向推送的自定义 Webhook 机器人当成双向聊天助手。此时使用 `python -m tools.codex_assets.feishu_engineering_agent --manual` 的本地 stdin CLI；完整示例和能力边界参见 `docs/changes/20261120-feishu-engineering-agent/pilot.md`。勿使用非授权的网页登录态、cookie 或企业账号进行绕过。
+
+### 无企业 API：从登记到研发交接
+
+`/wi add` 返回的完整 `AgentRun` ID 可以用于 `/wi handoff <RunID> | 最新需求/复现/验收信息`。机器人会返回按需求或缺陷分类的**只读研发交接草稿**，包括仓库、工作项身份、SDD 或复现/负向测试方向；不会启动模型或自动执行代码。旧 Codex 执行仍需独立授权，操作人再在本地 Codex CLI/既有研发渠道明确发起。交接内容不存入新 SQLite，工作项原系统的权限和最终 QA/关闭仍归产品、测试负责人。
+
+## SDD 代码批次：工作项到独立 AgentRun 与可选卡片
+
+`/wi add` 仅登记来源工作项；`/wi handoff` 仅输出只读研发交接草稿；`/wi attempt <原始RunID> <read|review|edit> | 本次范围和验收` 仅新建一个 `proposed` 的独立 Run。三者都不会自动执行模型。实际排队/执行必须经过外部签名 SDD+范围+仓库+费用门禁，并在真实 Codex 主机上独立验证。原来的 `mode=edit` 命令仍按旧 Bot 权限运行，不会自动获得新 WorkItem 的签名授权。
+
+卡片交互为可选开关 `engineering_cards_enabled=false`，不是企业 API 无权限场景的前置条件；需私有环境中的 `FEISHU_CARD_VERIFICATION_TOKEN` 和 `FEISHU_CARD_SIGNING_KEY_HEX`，且 `manual_workitems_enabled=true`。回调只记录待审批请求和状态，不是模型权限，切忌在未通过真实 SDK/应用权限试验时打开生产开关。
+
+迁移、离线回滚演练、安全边界及验收门禁详见 `docs/changes/20261120-feishu-engineering-agent/pilot.md`。当前代码实施并不代表已经在 vstrong100 部署、授权收费或完成真实产品/QA 测试。

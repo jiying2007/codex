@@ -192,6 +192,10 @@ class BotConfig:
     deny_read_paths: Tuple[pathlib.Path, ...] = ()
     isolation_write_paths: Tuple[pathlib.Path, ...] = ()
     agent_intake_enabled: bool = False
+    manual_workitems_enabled: bool = False  # requires no Feishu Project/TAPD API
+    engineering_cards_enabled: bool = False
+    card_verification_token: str = ""
+    card_signing_key_hex: str = ""
 
     @classmethod
     def from_values(cls, values: Mapping[str, str], default_workdir: pathlib.Path) -> "BotConfig":
@@ -228,6 +232,23 @@ class BotConfig:
         agent_intake_enabled = payload.get("agent_intake_enabled", False)
         if not isinstance(agent_intake_enabled, bool):
             raise FeishuCodexError("agent_intake_enabled 必须是布尔值")
+        manual_workitems_enabled = payload.get("manual_workitems_enabled", False)
+        if not isinstance(manual_workitems_enabled, bool):
+            raise FeishuCodexError("manual_workitems_enabled 必须是布尔值")
+        cards_enabled = payload.get("engineering_cards_enabled", False)
+        if not isinstance(cards_enabled, bool):
+            raise FeishuCodexError("engineering_cards_enabled 必须是布尔值")
+        token = values.get("FEISHU_CARD_VERIFICATION_TOKEN", "").strip()
+        signing_hex = values.get("FEISHU_CARD_SIGNING_KEY_HEX", "").strip()
+        if cards_enabled:
+            if not manual_workitems_enabled or len(token) < 8:
+                raise FeishuCodexError("卡片必须启用工作项登记并配置私有 Verification Token")
+            try:
+                key_bytes = bytes.fromhex(signing_hex)
+            except ValueError as exc:
+                raise FeishuCodexError("卡片签名密钥格式无效") from exc
+            if len(key_bytes) < 32:
+                raise FeishuCodexError("卡片签名密钥至少需要 32 字节")
         repositories: Dict[str, RepositoryPolicy] = {}
         for alias, item in repositories_raw.items():
             if not isinstance(alias, str) or not ALIAS_PATTERN.fullmatch(alias):
@@ -407,6 +428,10 @@ class BotConfig:
             deny_read_paths=deny_read_paths,
             isolation_write_paths=isolation_write_paths,
             agent_intake_enabled=agent_intake_enabled,
+            manual_workitems_enabled=manual_workitems_enabled,
+            engineering_cards_enabled=cards_enabled,
+            card_verification_token=token if cards_enabled else "",
+            card_signing_key_hex=signing_hex if cards_enabled else "",
         )
 
     @property
@@ -1744,12 +1769,19 @@ class FeishuTransport:
             return f"- log={source.value}：消息内容={content}"
         return f"- {source.kind}={source.value}：引用已记录；当前未配置该产品的正文读取连接器。"
 
-    def start(self, callback: Callable[[Any], None]) -> None:
-        handler = (
+    def start(
+        self, callback: Callable[[Any], None],
+        card_callback: Optional[Callable[[Any], Any]] = None,
+    ) -> None:
+        # The optional callback is registered on the EXISTING single WS consumer.
+        # Default None preserves production Bot behaviour and model-cost policy.
+        builder = (
             self.lark.EventDispatcherHandler.builder("", "")
             .register_p2_im_message_receive_v1(callback)
-            .build()
         )
+        if card_callback is not None:
+            builder = builder.register_p2_card_action_trigger(card_callback)
+        handler = builder.build()
         client = self.lark.ws.Client(
             self.config.app_id,
             self.config.app_secret,
@@ -1767,11 +1799,35 @@ class FeishuCodexBot:
         self.store = store
         self.gate = MessageGate(config, store)
         self.limiter = RateLimiter(config.rate_limit_count, config.rate_limit_window_sec)
+        self.manual_limiter = RateLimiter(config.rate_limit_count, config.rate_limit_window_sec)
         self.jobs: queue.Queue = queue.Queue(maxsize=config.queue_size)
         self.repo_locks = {alias: threading.Lock() for alias in config.repositories}
         self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         self._scheduled: Set[int] = set()
         self._schedule_lock = threading.Lock()
+        self._manual_service = None
+        if config.manual_workitems_enabled:
+            from .feishu_engineering_agent.manual_items import ManualWorkItemService
+            # Separate 0600 SQLite file, never the legacy task DB/WAL/spool.
+            manual_db = config.state_db.with_name("feishu-engineering-agent.sqlite3")
+            if manual_db == config.state_db:
+                raise FeishuCodexError("manual WorkItem DB must differ from legacy Bot DB")
+            self._manual_service = ManualWorkItemService(manual_db)
+        self._card_publisher = None
+        if config.engineering_cards_enabled:
+            if (self._manual_service is None
+                    or not config.card_verification_token
+                    or len(bytes.fromhex(config.card_signing_key_hex)) < 32):
+                raise FeishuCodexError("卡片仅可在私有凭据和手工工作项登记均启用后使用")
+            from .feishu_engineering_agent.channel import (
+                CardPublisher, send_interactive_via_existing_transport,
+            )
+            self._card_publisher = CardPublisher(
+                self._manual_service.store,
+                lambda chat, card: send_interactive_via_existing_transport(
+                    self.transport, chat, card,
+                ),
+            )
 
     @staticmethod
     def _encode_job(job: BotJob) -> Dict[str, Any]:
@@ -1884,8 +1940,112 @@ class FeishuCodexBot:
         for chunk in split_reply(text, self.config.reply_chunk_chars):
             self.transport.send_text(chat_id, chunk, "" if message_id.startswith("agent:") else message_id)
 
+    def _run_manual_message(self, inbound: Any, actor: str,
+                            allowed: FrozenSet[str]) -> None:
+        """Run SQLite work off the Feishu WS callback thread (3s deadline)."""
+        from .feishu_engineering_agent.models import IntakeRejected
+        try:
+            reply = self._manual_service.handle(
+                inbound, self.gate.default_repository(actor), allowed,
+            )
+        except IntakeRejected as exc:
+            print(f"[WARN] manual_workitem_denied kind={type(exc).__name__}", flush=True)
+            reply = "工作项命令被拒绝：来源、权限、格式或工作项身份无效；没有执行模型。"
+        except (ValueError, sqlite3.DatabaseError, OSError) as exc:
+            print(f"[WARN] manual_workitem_store_failed kind={type(exc).__name__}", flush=True)
+            reply = "工作项状态库不可用：未执行模型或远端操作。"
+        except Exception as exc:
+            print(f"[ERROR] manual_workitem_failed kind={type(exc).__name__}", flush=True)
+            reply = "工作项登记异常，未执行模型或远端操作。"
+        if reply is not None:
+            self._send_safe(inbound.chat, reply, inbound.event_id)
+        # A card is strictly optional and only sent for a newly registered
+        # Run. The original text command remains independently usable.
+        if (self._card_publisher is not None and reply
+                and reply.startswith("已登记工作项引用")
+                and "AgentRun：" in reply):
+            try:
+                import uuid
+                from .feishu_engineering_agent.cards import register_card
+                run_id = reply.split("AgentRun：", 1)[1].split("\n", 1)[0]
+                self._manual_service.store.get_run(run_id, inbound)
+                card_id = uuid.uuid4().hex
+                register_card(self._manual_service.store, run_id, card_id)
+                self._card_publisher.send_registered_card(
+                    card_id, bytes.fromhex(self.config.card_signing_key_hex),
+                )
+            except Exception as exc:
+                # Feishu delivery may have succeeded despite a lost receipt.
+                # Never retry a card send or start any model as a fallback.
+                print(f"[WARN] card_delivery_unknown kind={type(exc).__name__}", flush=True)
+
+    def _try_manual_workitem(self, data: Any) -> bool:
+        """Consume reserved /wi commands *before* legacy Codex job intake.
+
+        The sender and tenant come from the trusted SDK event, never user text.
+        This endpoint performs no API read, model call, Git write or card send.
+        """
+        from .feishu_engineering_agent.manual_items import is_manual_command
+        from .feishu_engineering_agent.models import InboundEvent, IntakeRejected
+        event = getattr(data, "event", None)
+        message = getattr(event, "message", None)
+        chat_id = str(getattr(message, "chat_id", "") or "")
+        if (chat_id != self.config.target_chat_id
+                or str(getattr(message, "message_type", "") or "") != "text"):
+            return False
+        try:
+            mentions = getattr(message, "mentions", None) or []
+            keys = [str(getattr(x, "key", "") or "") for x in mentions]
+            body = extract_text(str(getattr(message, "content", "") or ""), keys)
+        except FeishuCodexError:
+            return False
+        if not is_manual_command(body):
+            return False
+
+        message_id = str(getattr(message, "message_id", "") or "")
+        sender = getattr(getattr(event, "sender", None), "sender_id", None)
+        actor = str(getattr(sender, "open_id", "") or "")
+        allowed = {
+            alias for alias, policy in self.config.repositories.items()
+            if self.config.sender_allowed(actor, policy)
+        }
+        if not actor or not allowed:
+            return True  # unauthorized sender receives no task state or reply
+        if not self.config.manual_workitems_enabled or self._manual_service is None:
+            reply = "工作项人工登记未启用；管理员可设置 manual_workitems_enabled，或在本地使用 --manual。不会启动 Codex。"
+        elif not self.manual_limiter.allow(actor):
+            reply = "工作项操作过于频繁，请稍后重试；未执行任何模型或外部操作。"
+        else:
+            header = getattr(data, "header", None)
+            tenant = str(getattr(header, "tenant_key", "") or "")
+            if not tenant:
+                reply = "工作项登记被拒绝：当前消息未提供可验证的租户标识。"
+            else:
+                try:
+                    inbound = InboundEvent(
+                        "feishu_message", tenant, chat_id, actor, message_id, body,
+                    )
+                except (IntakeRejected, ValueError):
+                    reply = "工作项命令被拒绝：格式、来源、权限或消息身份校验失败。请发送 /wi help。"
+                else:
+                    threading.Thread(
+                        target=self._run_manual_message,
+                        args=(inbound, actor, frozenset(allowed)),
+                        daemon=True,
+                    ).start()
+                    return True
+        if reply is not None:
+            threading.Thread(
+                target=self._send_safe,
+                args=(chat_id, reply, message_id),
+                daemon=True,
+            ).start()
+        return True
+
     def on_message(self, data: Any) -> None:
         try:
+            if self._try_manual_workitem(data):
+                return
             job = self.gate.accept(data)
             if job is None:
                 return
@@ -1949,6 +2109,7 @@ class FeishuCodexBot:
             "/repo reset 恢复系统默认项目\n"
             "/status 查看任务状态\n"
             "/cancel 取消本人排队中或运行中的任务\n"
+            "/wi help 查看无企业项目 API 的需求/缺陷人工登记（需管理员启用）\n"
             f"系统默认项目：{self.config.default_repo}\n"
             f"仓库别名：{repositories}"
         )
@@ -2101,7 +2262,19 @@ class FeishuCodexBot:
         for index in range(self.config.worker_count):
             threading.Thread(target=self.worker, name=f"feishu-codex-worker-{index + 1}", daemon=True).start()
         threading.Thread(target=self._poll_pending, name="feishu-codex-pending", daemon=True).start()
-        self.transport.start(self.on_message)
+        if self.config.engineering_cards_enabled:
+            from .feishu_engineering_agent.channel import (
+                make_single_consumer_card_callback,
+            )
+            callback = make_single_consumer_card_callback(
+                self._manual_service.store,
+                self.config.card_verification_token,
+                self.config.app_id,
+                bytes.fromhex(self.config.card_signing_key_hex),
+            )
+            self.transport.start(self.on_message, callback)
+        else:
+            self.transport.start(self.on_message)
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:

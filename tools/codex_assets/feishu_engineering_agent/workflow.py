@@ -1,0 +1,239 @@
+"""WorkItem -> independently approved AgentRun attempts; no Agent Runtime rebuild.
+
+A human-provided WorkItem reference does not authorize a model turn. An
+isolated execution attempt must be created first, and an external trusted
+policy/billing owner signs the exact repository/mode scope before queueing.
+"""
+from __future__ import annotations
+
+import contextlib
+import dataclasses
+import hashlib
+import hmac
+import json
+import sqlite3
+import time
+import uuid
+from typing import Iterable
+
+from .models import EventConflict, InboundEvent, IntakeRejected, WorkItemKey, _check_id, check_repo_alias
+from .sessions import RuntimeGrant
+from .state import RunStore
+
+
+@dataclasses.dataclass(frozen=True)
+class ExecutionApproval:
+    run_id: str
+    actor: str
+    tenant: str
+    chat: str
+    repo: str
+    mode: str
+    approval_ref: str
+    billing_source: str
+    expires_at: int
+    sdd_reviewed: bool = False
+
+    def __post_init__(self):
+        for field in ("run_id", "actor", "tenant", "chat", "repo",
+                      "approval_ref", "billing_source"):
+            _check_id(getattr(self, field), field)
+        if self.mode not in ("read", "review", "edit"):
+            raise IntakeRejected("invalid approved mode")
+        if self.billing_source in ("codex_shared", "work_shared", "unapproved"):
+            raise IntakeRejected("disallowed billing source")
+
+    def canonical(self) -> bytes:
+        return json.dumps(dataclasses.asdict(self), ensure_ascii=True,
+                          sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+class EngineeringWorkflow:
+    def __init__(self, store: RunStore):
+        self.store = store
+        with contextlib.closing(store._connect()) as db:
+            db.executescript("""
+                CREATE TABLE IF NOT EXISTS fea_attempt_links (
+                    event_key TEXT PRIMARY KEY,
+                    content_digest TEXT NOT NULL,
+                    source_run_id TEXT NOT NULL,
+                    attempt_run_id TEXT NOT NULL UNIQUE,
+                    created_at INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS fea_run_approvals (
+                    run_id TEXT PRIMARY KEY,
+                    approval_ref TEXT NOT NULL,
+                    signed_digest TEXT NOT NULL,
+                    billing_source TEXT NOT NULL,
+                    expires_at INTEGER NOT NULL,
+                    authorized_at INTEGER NOT NULL
+                );
+            """)
+
+    def create_attempt(
+        self, source_run_id: str, event: InboundEvent, mode: str,
+        allowed_repos: Iterable[str],
+    ) -> dict:
+        """One registered WorkItem can have many independent run attempts.
+
+        Exact message replay is idempotent; no prompt text is stored, no model
+        is queued, no new permission is granted.
+        """
+        if mode not in ("read", "review", "edit"):
+            raise IntakeRejected("unsupported execution attempt mode")
+        parent = self.store.get_run(source_run_id, event)
+        if not parent["workitem_fp"] or not parent["provider"]:
+            raise IntakeRejected("source run lacks verified WorkItem linkage metadata")
+        if parent["repo"] not in {check_repo_alias(x) for x in allowed_repos}:
+            raise IntakeRejected("repository access revoked")
+        if parent["status"] in ("unknown", "blocked", "canceled"):
+            raise IntakeRejected("cannot attempt unknown/blocked/canceled source")
+        child_id = uuid.uuid4().hex
+        when = int(time.time())
+        with contextlib.closing(self.store._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                previous = db.execute(
+                    "SELECT content_digest,source_run_id,attempt_run_id "
+                    "FROM fea_attempt_links WHERE event_key=?",
+                    (event.event_key,),
+                ).fetchone()
+                if previous is not None:
+                    if previous["content_digest"] != event.content_digest:
+                        raise EventConflict("same event identity with changed scope")
+                    if previous["source_run_id"] != source_run_id:
+                        raise IntakeRejected("replayed event cannot change WorkItem source")
+                    row = db.execute(
+                        "SELECT repo,mode FROM fea_runs WHERE run_id=?",
+                        (previous["attempt_run_id"],),
+                    ).fetchone()
+                    if (row is None or row["repo"] != parent["repo"]
+                            or row["mode"] != mode):
+                        raise IntakeRejected("replayed attempt no longer matches scope")
+                    db.rollback()
+                    return {"run_id": previous["attempt_run_id"],
+                            "created": False, "model_invoked": False}
+                db.execute(
+                    "INSERT INTO fea_runs "
+                    "(run_id,tenant,chat,actor,repo,mode,provider,workspace,kind,"
+                    "item_id,workitem_fp,status,revision,created_at,updated_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,'proposed',0,?,?)",
+                    (child_id, event.tenant, event.chat, event.actor,
+                     parent["repo"], mode, parent["provider"], parent["workspace"],
+                     parent["kind"], parent["item_id"], parent["workitem_fp"],
+                     when, when),
+                )
+                db.execute(
+                    "INSERT INTO fea_attempt_links "
+                    "(event_key,content_digest,source_run_id,attempt_run_id,created_at)"
+                    " VALUES (?,?,?,?,?)",
+                    (event.event_key, event.content_digest, source_run_id, child_id, when),
+                )
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return {"run_id": child_id, "created": True,
+                "status": "proposed", "mode": mode, "model_invoked": False}
+
+    @staticmethod
+    def sign_approval(approval: ExecutionApproval, secret: bytes) -> str:
+        """Used only by the trusted external policy/billing issuer, not chat."""
+        if not isinstance(secret, bytes) or len(secret) < 32:
+            raise IntakeRejected("private approval secret must be at least 32 bytes")
+        return hmac.new(secret, approval.canonical(), hashlib.sha256).hexdigest()
+
+    def authorize_queue(
+        self, approval: ExecutionApproval, signature: str,
+        secret: bytes, event: InboundEvent, allowed_repos: Iterable[str],
+        now: int = None,
+    ) -> RuntimeGrant:
+        """Validate external approval, atomically queue only the exact attempt.
+
+        Does not launch any Codex subprocess or model call. Queueing means
+        prepared for the separately authorized effect boundary.
+        """
+        when = int(time.time()) if now is None else int(now)
+        if (approval.expires_at <= when or approval.expires_at > when + 3600
+                or not isinstance(signature, str)
+                or not hmac.compare_digest(signature, self.sign_approval(approval, secret))):
+            raise IntakeRejected("invalid/expired independently signed execution approval")
+        record = self.store.get_run(approval.run_id, event)
+        if (approval.tenant, approval.chat, approval.actor, approval.repo, approval.mode) != (
+                event.tenant, event.chat, event.actor, record["repo"], record["mode"]):
+            raise IntakeRejected("execution grant scope mismatch")
+        if record["repo"] not in {check_repo_alias(x) for x in allowed_repos}:
+            raise IntakeRejected("repository access changed")
+        if approval.mode == "edit" and not approval.sdd_reviewed:
+            raise IntakeRejected("edit requires independently reviewed SDD/scope")
+        with contextlib.closing(self.store._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                linked = db.execute(
+                    "SELECT 1 FROM fea_attempt_links WHERE attempt_run_id=?",
+                    (approval.run_id,),
+                ).fetchone()
+                if not linked:
+                    raise IntakeRejected("only explicit WorkItem development attempts may queue")
+                prior = db.execute(
+                    "SELECT signed_digest FROM fea_run_approvals WHERE run_id=?",
+                    (approval.run_id,),
+                ).fetchone()
+                digest = hashlib.sha256(approval.canonical()).hexdigest()
+                if prior is not None:
+                    if prior["signed_digest"] != digest:
+                        raise IntakeRejected("conflicting execution approval")
+                    active = db.execute(
+                        "SELECT status FROM fea_runs WHERE run_id=?",
+                        (approval.run_id,),
+                    ).fetchone()
+                    if active is None or active["status"] != "queued":
+                        raise IntakeRejected("approved Run already started or ended")
+                    db.rollback()
+                    return RuntimeGrant(
+                        approval.run_id, approval.actor, approval.repo, approval.mode,
+                        approval.billing_source, approval.expires_at, approval.approval_ref,
+                    )
+                status = db.execute(
+                    "SELECT status FROM fea_runs WHERE run_id=?",
+                    (approval.run_id,),
+                ).fetchone()
+                if status is None or status["status"] != "proposed":
+                    raise IntakeRejected("attempt not in proposed state")
+                db.execute(
+                    "INSERT INTO fea_run_approvals "
+                    "(run_id,approval_ref,signed_digest,billing_source,"
+                    "expires_at,authorized_at) VALUES (?,?,?,?,?,?)",
+                    (approval.run_id, approval.approval_ref, digest,
+                     approval.billing_source, approval.expires_at, when),
+                )
+                db.execute(
+                    "UPDATE fea_runs SET status='queued',revision=revision+2,"
+                    "updated_at=? WHERE run_id=?",
+                    (when, approval.run_id),
+                )
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return RuntimeGrant(
+            approval.run_id, approval.actor, approval.repo, approval.mode,
+            approval.billing_source, approval.expires_at, approval.approval_ref,
+        )
+
+    def status_for_source(self, source_run_id: str, event: InboundEvent) -> dict:
+        """Return source + all same-owner attempts, no raw user description."""
+        source = self.store.get_run(source_run_id, event)
+        with contextlib.closing(self.store._connect()) as db:
+            links = db.execute(
+                "SELECT a.attempt_run_id,r.mode,r.status,r.repo "
+                "FROM fea_attempt_links a JOIN fea_runs r "
+                "ON r.run_id=a.attempt_run_id "
+                "WHERE a.source_run_id=? AND r.tenant=? AND r.chat=? AND r.actor=? "
+                "ORDER BY a.created_at,a.attempt_run_id",
+                (source_run_id, event.tenant, event.chat, event.actor),
+            ).fetchall()
+        return {"source_run_id": source_run_id,
+                "workitem_fp": source["workitem_fp"],
+                "attempts": [dict(r) for r in links],
+                "workitem_closed": False}
