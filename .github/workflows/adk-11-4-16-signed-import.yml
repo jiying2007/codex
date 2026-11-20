@@ -134,7 +134,8 @@ jobs:
             src/codex-home/vendor/skills src/codex-home/vendor/agents/agent-dev-kit \
             src/codex-home/skills/registry.csv tests/fixtures/adk-skill-sources-11.4.16.json
           test -n "$(git diff --cached --name-only)"
-          git diff --cached --name-only | head -30
+          git diff --cached --name-only > "$RUNNER_TEMP/adk-staged-files.txt"
+          sed -n '1,30p' "$RUNNER_TEMP/adk-staged-files.txt"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'chore(adk): exact signed 11.4.16 Skill source import'
