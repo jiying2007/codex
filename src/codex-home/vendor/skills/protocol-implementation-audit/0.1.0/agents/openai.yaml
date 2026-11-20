@@ -1,4 +1,4 @@
 interface:
-  display_name: "Protocol Implementation Audit"
-  short_description: "Compare specs with firmware or app implementation for protocol mismatches"
+  display_name: "协议规范与实现对照"
+  short_description: "比较接口协议与固件、应用实现，定位消息字段、状态机及兼容性差异。"
   default_prompt: "Use $protocol-implementation-audit to compare a protocol or interface document with implementation and runtime evidence."

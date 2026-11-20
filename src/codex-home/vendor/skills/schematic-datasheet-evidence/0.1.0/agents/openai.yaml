@@ -1,4 +1,4 @@
 interface:
-  display_name: "原理图与规格书证据读取"
-  short_description: "核对原理图、规格书和IO表，保留引脚及参数证据与未知项"
+  display_name: "原理图与规格书核验"
+  short_description: "逐项对照原理图、芯片手册和引脚配置，保留来源、参数与未知条件。"
   default_prompt: "使用 $schematic-datasheet-evidence 读取原理图或规格书，按原件坐标建立证据，区分定位、图面确认、原生网表与待核实项。"

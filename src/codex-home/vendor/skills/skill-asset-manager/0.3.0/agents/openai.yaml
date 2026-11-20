@@ -1,4 +1,4 @@
 interface:
-  display_name: "Skill Asset Manager"
-  short_description: "Discover, review, and archive Codex skills"
+  display_name: "Skill 资产管理"
+  short_description: "发现、核查和归档 Codex Skill 资产，保留来源与版本，避免未经审查的安装。"
   default_prompt: "Use $skill-asset-manager to scan and promote Codex skills into the asset repository."

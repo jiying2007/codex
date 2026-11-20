@@ -1,4 +1,4 @@
 interface:
-  display_name: "Chronicle Workflow Miner"
-  short_description: "从治理报告与结构化回执中识别高置信重复流程并优化现有资产"
+  display_name: "工程工作流挖掘"
+  short_description: "从历史交付回执和结构化记录识别重复步骤，评估是否值得沉淀自动化。"
   default_prompt: "Use $chronicle-workflow-miner to inspect governed reports, structured receipts, and existing assets before proposing reusable workflow changes."

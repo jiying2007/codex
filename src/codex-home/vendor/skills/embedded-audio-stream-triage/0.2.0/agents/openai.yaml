@@ -1,4 +1,4 @@
 interface:
-  display_name: "Embedded Audio Stream Triage"
-  short_description: "Trace audio ordering, buffering, volume, timing, and tails"
+  display_name: "嵌入式音频流排障"
+  short_description: "分析音频帧顺序、缓冲、音量和尾帧时序，定位可复现的流媒体异常。"
   default_prompt: "Use $embedded-audio-stream-triage to diagnose an embedded audio stream from producer through playback and propose focused fixes."

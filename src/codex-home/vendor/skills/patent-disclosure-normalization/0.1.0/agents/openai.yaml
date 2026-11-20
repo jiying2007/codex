@@ -1,4 +1,4 @@
 interface:
-  display_name: "Patent Disclosure Normalization"
-  short_description: "Normalize invention disclosures and claim drafts"
+  display_name: "专利交底材料规范化"
+  short_description: "整理发明交底和权利要求草稿，区分已证实技术事实与待确认表述。"
   default_prompt: "Use $patent-disclosure-normalization to extract invention points and normalize patent disclosure drafts."

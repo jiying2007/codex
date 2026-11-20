@@ -1,4 +1,4 @@
 interface:
-  display_name: "CLI Creator"
-  short_description: "Build CLIs for Codex"
+  display_name: "CLI 命令行工具设计"
+  short_description: "设计可测试的命令行接口及错误处理，明确参数、安全边界和使用方式。"
   default_prompt: "Create a composable CLI from this source material, install it on PATH, test it from outside the source folder, and create a companion skill that teaches Codex when to use it."

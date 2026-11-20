@@ -1,4 +1,4 @@
 interface:
-  display_name: "Office Document Delivery"
-  short_description: "Create office files with factual boundaries and OOXML checks"
+  display_name: "Office 文档交付"
+  short_description: "生成并检查 Office 文件结构和内容，验证格式与事实，保留可编辑的交付产物。"
   default_prompt: "Use $office-document-delivery to create or revise PPTX, XLSX, DOCX, and companion Markdown while preserving sources and validating package integrity."

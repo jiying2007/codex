@@ -1,4 +1,4 @@
 interface:
-  display_name: "Offline Embedded Log Triage"
-  short_description: "Analyze pasted or offline embedded logs without live-device access"
+  display_name: "嵌入式离线日志分析"
+  short_description: "只读分析串口、内核及应用离线日志，关联异常时间线而不假定设备在线。"
   default_prompt: "Use $embedded-log-triage only for pasted or offline log text; route device-side or remote investigations to $adk-embedded-remote-debug-log-triage."
