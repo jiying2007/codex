@@ -111,18 +111,10 @@ class DoctorPolicyContractTests(unittest.TestCase):
     def test_independent_policy_lock_is_required_and_binds_both_sources(self) -> None:
         provider_path = self.root / "manifests/provider-locks/agent-dev-kit.json"
         data = json.loads(provider_path.read_text(encoding="utf-8"))
-        data.update(
-            version="11.2.1",
-            release_tag="v11.2.1",
-            provider_commit="a5ba89065b163594571cc673dd436a23524725a6",
-            provider_tree="9e679843c2f4b6d87a8ed8542029ca58abbbd437",
-            manifest_blob="8f11102cacb75663ea5861bff0edee094a078cab",
-            release_artifact={
-                "name": "agent-dev-kit-11.2.1.tar.gz",
-                "sha256": "dfd7dbea35d52fa60aa45fc4e1ce8c3d689d7209dc2482fe4edfe13e998bad90",
-            },
-        )
-        write_json(provider_path, data)
+        # Preserve the currently reviewed provider release. The independent
+        # policy lock's consumer pointer must match *this* exact source;
+        # rewriting it to a historical release would falsely reject an
+        # otherwise valid signed Skill-only promotion.
         reviewed = ROOT / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
         lock_path = self.root / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
         # The disposable governance fixture includes the reviewed lock by default:
@@ -136,6 +128,7 @@ class DoctorPolicyContractTests(unittest.TestCase):
             ("engine", lambda d: d["source"].update(commit="0" * 40)),
             ("artifact", lambda d: d["source"]["release_artifact"].update(sha256="0" * 64)),
             ("consumer", lambda d: d["consumer"].update(commit="0" * 40)),
+            ("stale-consumer-version", lambda d: d["consumer"].update(version="11.2.1")),
             ("boundary", lambda d: d.update(boundary="unreviewed")),
         ):
             with self.subTest(label=label):
