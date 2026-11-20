@@ -84,6 +84,11 @@ class AgentTaskIntake:
     def cancel_queued_task(self, task_id: int) -> dict[str, Any]:
         self.get_task(task_id)
         canceled = self.store.cancel_agent_queued(task_id, self.sender)
+        if canceled:
+            try:
+                self.spool.discard(task_id)
+            except OSError:
+                raise FeishuCodexError("任务已取消，但私有输入清理失败，需人工核验") from None
         result = self.get_task(task_id)
         result["queued_cancelled"] = canceled
         result["running_cancel_requires_feishu"] = result["status"] == "running"

@@ -808,6 +808,16 @@ class StateStore:
             )
         return [dict(row) for row in rows]
 
+    def mark_queued_unknown(self, task_id: int, reason: str) -> bool:
+        """Only a still-queued task may be invalidated by a stale poller."""
+        with self._connect() as connection:
+            row = connection.execute(
+                "UPDATE tasks SET status='unknown',error_kind=?,updated_at=? "
+                "WHERE id=? AND status='queued'",
+                (reason, int(time.time()), task_id),
+            )
+            return row.rowcount == 1
+
     def claim_queued(self, task_id: int) -> bool:
         with self._connect() as connection:
             result = connection.execute(
@@ -1758,20 +1768,20 @@ class FeishuCodexBot:
                 # such a brand-new row missing immediately.
                 if not startup and int(time.time()) - int(row["created_at"]) < 30:
                     continue
-                self.store.update_task(row["id"], "unknown", "QueuedPayloadUnavailable")
-                self._send_safe(
-                    self.config.target_chat_id,
-                    f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
-                    row["message_id"],
-                )
+                if self.store.mark_queued_unknown(row["id"], "QueuedPayloadUnavailable"):
+                    self._send_safe(
+                        self.config.target_chat_id,
+                        f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
+                        row["message_id"],
+                    )
                 continue
             except (OSError, SpoolError, FeishuCodexError):
-                self.store.update_task(row["id"], "unknown", "QueuedPayloadUnavailable")
-                self._send_safe(
-                    self.config.target_chat_id,
-                    f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
-                    row["message_id"],
-                )
+                if self.store.mark_queued_unknown(row["id"], "QueuedPayloadUnavailable"):
+                    self._send_safe(
+                        self.config.target_chat_id,
+                        f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
+                        row["message_id"],
+                    )
                 continue
             if not self._schedule(job):
                 break
