@@ -1,4 +1,4 @@
 interface:
-  display_name: ADK Engineering Growth Review
-  short_description: Review local engineering history and produce evidence-backed
+  display_name: "ADK · 工程习惯成长复盘"
+  short_description: "基于获准的交付证据分析长期编码习惯，避免推断个人属性或无依据评价。"
     growth recommendations.

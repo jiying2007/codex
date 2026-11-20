@@ -1,4 +1,4 @@
 interface:
-  display_name: ADK Embedded Diagnostic Harness
-  short_description: Govern embedded diagnostic CLI suites, expected return semantics,
+  display_name: "ADK · 嵌入式诊断框架"
+  short_description: "建立可复用诊断命令、返回码和 HIL 证据，限制目标设备操作副作用。"
     and HIL/SIL evidence.

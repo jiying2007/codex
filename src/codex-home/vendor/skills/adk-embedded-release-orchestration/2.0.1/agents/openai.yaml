@@ -1,4 +1,4 @@
 interface:
-  display_name: ADK Embedded Release Orchestration
-  short_description: Orchestrate embedded firmware release bundles, gates, evidence,
+  display_name: "ADK · 嵌入式发布编排"
+  short_description: "准备固件发布包、签名及回滚链路，发布到外部目标与刷机需分别授权。"
     and non-overwrite publishing.

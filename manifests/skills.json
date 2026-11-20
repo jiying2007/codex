@@ -709,7 +709,7 @@
         "agents/openai.yaml": {
           "source": null,
           "installed": {
-            "blob": "4c36f57ca1c0ca147f4a00416947c637c6e9eb99",
+            "blob": "4927addc42040f85c3103e8a3b7f42167ed80e08",
             "mode": "100644"
           }
         }
@@ -748,7 +748,7 @@
             "mode": "100644"
           },
           "installed": {
-            "blob": "8a0d99fd4ac24848d25f9f8e6f6af8b75992d715",
+            "blob": "19e84c3c10df3b61ffcb2e02088bdf9177289205",
             "mode": "100644"
           }
         }
@@ -787,7 +787,7 @@
             "mode": "100644"
           },
           "installed": {
-            "blob": "44346b8b6ecd4ec1569f3a75f401e9e6944efd8b",
+            "blob": "4684db0985961a79abbe8f97267384ddce41a29d",
             "mode": "100644"
           }
         }
@@ -827,7 +827,7 @@
             "mode": "100644"
           },
           "installed": {
-            "blob": "7e45c0774e35f8a1915fe0eb4d837e5fc318457f",
+            "blob": "3259e0a810fefee95cd51df30641fd01d9c007d9",
             "mode": "100644"
           }
         }
@@ -858,7 +858,19 @@
       "review_status": "accepted",
       "source_blob": "9936e058634b407592f10e286ce3e3afa4e3ddb5",
       "source_tree_sha256": "735020d2b510793c4f0d98e7f1fcd992a1424441048db5f02e7490453823cfc2",
-      "source_release": "v11.2.1"
+      "source_release": "v11.2.1",
+      "distribution_metadata": {
+        "agents/openai.yaml": {
+          "source": {
+            "blob": "d50dba172a3732c982867bb1205024b2c193c2f2",
+            "mode": "100644"
+          },
+          "installed": {
+            "blob": "dadba7923c480a5766e16e070cea6a5cd28e210e",
+            "mode": "100644"
+          }
+        }
+      }
     },
     {
       "name": "adk-engineering-growth-review",
@@ -894,7 +906,7 @@
             "mode": "100644"
           },
           "installed": {
-            "blob": "15197699e50f6d852b9d96e89b5e43d0979ebc9c",
+            "blob": "6b28ef6326fcb87d9439cda5e407844e500087b3",
             "mode": "100644"
           }
         }

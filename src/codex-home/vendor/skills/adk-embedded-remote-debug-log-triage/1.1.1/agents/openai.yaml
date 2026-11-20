@@ -1,3 +1,3 @@
 interface:
-  display_name: ADK Embedded Remote Debug Log Triage
-  short_description: Triage reachability, device logs, artifact gates, HIL stages, and recovery with read-only-first safety.
+  display_name: "ADK · 嵌入式日志排障"
+  short_description: "分析嵌入式设备连接、串口、内核和应用日志，先取证再区分修复动作。"
