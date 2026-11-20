@@ -23,7 +23,7 @@ The additional offline tests in `tests/test_feishu_engineering_workflows.py` cov
 
 ## Channel and protocol regression cases
 - Same existing WebSocket consumer, optional callback disabled by default.
-- Official `card.action.trigger` callback schema has `event.host` and `event.context`, not top-level fields.
+- Card callbacks accept either top-level or event-nested host/context only when identities agree; conflicting or missing fields fail closed.
 - Interactive send records `sending` before I/O; lost receipt becomes UNKNOWN without resend.
 - No-model `--probe-runtime` success/failure paths and invalid combined arguments.
 - All new checks require a fresh exact-SHA CI receipt. They do not qualify real callbacks or tenant permissions.
@@ -70,3 +70,5 @@ Required offline CI: Python 3.8/3.11/3.12 full repository tests, profile context
 - Confirm app-server terminal notification sent before turn-start ACK is queued for later exact-thread reconciliation. Notification queue overflow blocks subsequent RPC instead of dropping evidence.
 - Confirm source workitem replay cannot switch to another source Run and current repository access revocation blocks provider reading before any API I/O.
 These tests must pass under the exact final HEAD across Python 3.8, 3.11 and 3.12; actual network/model/Feishu/device evidence remains pending field verification.
+
+- Verify exact Codex app-server v2 `turn/start` input contains `text_elements: []`, and read-only/workspace-write `sandboxPolicy` supplies all required properties; this is a source-schema assertion, not live protocol proof. The vstrong100-installed version's generated JSON Schema and live handshake remain separate gates.

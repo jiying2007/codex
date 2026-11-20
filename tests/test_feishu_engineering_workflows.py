@@ -274,6 +274,46 @@ class EngineeringRunContractTest(unittest.TestCase):
                                     model_calls_enabled=True, now=NOW)
         self.assertEqual("turn/start", rpc["method"])
         self.assertEqual("on-request", rpc["params"]["approvalPolicy"])
+        self.assertEqual(
+            [{"type": "text", "text": "分析系统", "text_elements": []}],
+            rpc["params"]["input"],
+        )
+        self.assertEqual({
+            "type": "workspaceWrite",
+            "writableRoots": ["/srv/robot-app"],
+            "networkAccess": False,
+            "excludeTmpdirEnvVar": True,
+            "excludeSlashTmp": True,
+        }, rpc["params"]["sandboxPolicy"])
+
+    def test_read_only_native_request_has_required_network_access(self):
+        read_id = self.store.create_run(
+            self.event, "robot-app", {"robot-app"}, mode="read",
+        )
+        sessions = SessionRegistry(self.store)
+        sessions.bind(
+            read_id, self.event, "vstrong100", "/srv/robot-app",
+            "/srv/codex-home", "thr_read_only",
+        )
+        binding = sessions.exact(
+            read_id, self.event, "vstrong100", "/srv/robot-app",
+            "/srv/codex-home",
+        )
+        grant = RuntimeGrant(
+            read_id, "ou_owner", "robot-app", "read",
+            "approved_external", NOW + 10, "approval_read",
+        )
+        rpc = sessions.turn_request(
+            binding, grant, "只读分析", model_calls_enabled=True, now=NOW,
+        )
+        self.assertEqual(
+            {"type": "readOnly", "networkAccess": False},
+            rpc["params"]["sandboxPolicy"],
+        )
+        self.assertEqual(
+            [{"type": "text", "text": "只读分析", "text_elements": []}],
+            rpc["params"]["input"],
+        )
 
     def test_nonmodel_host_probe_uses_only_help_and_version(self):
         fake = mock.Mock(returncode=0, stdout="ok", stderr="")

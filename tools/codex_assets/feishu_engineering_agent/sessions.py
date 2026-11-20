@@ -183,13 +183,19 @@ class SessionRegistry:
             "method": "turn/start", "id": rpc_id,
             "params": {
                 "threadId": _check_id(binding["thread_id"], "thread_id"),
-                "input": [{"type": "text", "text": prompt}],
+                # Codex App Server v2 UserInput.Text serializes text_elements
+                # (snake_case), and SandboxPolicy has required booleans.
+                # The CI fixture should match the public protocol schema.
+                "input": [{"type": "text", "text": prompt, "text_elements": []}],
                 "cwd": _absolute_path(binding["repo_path"], "repo_path"),
                 "approvalPolicy": "on-request",
                 "sandboxPolicy": (
                     {"type": "workspaceWrite",
-                     "writableRoots": [binding["repo_path"]], "networkAccess": False}
-                    if grant.mode == "edit" else {"type": "readOnly"}
+                     "writableRoots": [binding["repo_path"]],
+                     "networkAccess": False,
+                     "excludeTmpdirEnvVar": True, "excludeSlashTmp": True}
+                    if grant.mode == "edit"
+                    else {"type": "readOnly", "networkAccess": False}
                 ),
             },
         }

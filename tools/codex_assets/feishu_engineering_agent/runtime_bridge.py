@@ -188,8 +188,15 @@ class NativeTurnCoordinator:
                     return {"run_id": run_id, "duplicate": True, "turn_status": status}
                 if run["status"] != "running":
                     raise IntakeRejected("run no longer active")
-                new_run_status = ("waiting_ci" if status == "completed" else
-                                  "failed" if status == "failed" else "unknown")
+                # Read/review stops at a correlated native terminal event.
+                # Only an edit enters PR/CI and independent QA delivery gates.
+                if status == "completed":
+                    new_run_status = (
+                        "completed" if run["mode"] in ("read", "review")
+                        else "waiting_ci"
+                    )
+                else:
+                    new_run_status = "failed" if status == "failed" else "unknown"
                 now = int(time.time())
                 db.execute(
                     "UPDATE fea_turn_effects SET effect_state='observed',"
@@ -206,7 +213,8 @@ class NativeTurnCoordinator:
                 db.rollback()
                 raise
         return {"run_id": run_id, "turn_status": status,
-                "run_status": new_run_status, "duplicate": False}
+                "run_status": new_run_status, "duplicate": False,
+                "source_workitem_closed": False}
 
     def interrupt(
         self, run_id: str, event: InboundEvent,
