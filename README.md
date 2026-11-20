@@ -20,6 +20,7 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 复用现有 build/doctor/plan/apply/diff/drift/rollback；不需要部署 Digital Worker，
 不要求成员为了安装资源而配置飞书 SDK、复制他人凭证或运行全部维护侧测试。
 
+\n### ADK 中文 Skill UI 的受控来源升级\n\nADK 11.4.16 起，已发布的 Skill 提供中文 `agents/openai.yaml`。Codex 的旧资产可能含独立生成的英文 UI 包装。首次从已核实签名的 ADK Release 切换到来源元数据时，`adk_source_import` 必须显式提供 `--allow-reviewed-native-ui`，并且每项 Skill 版本必须递增。此开关仅允许中文显示字段与不扩大隐式调用权限的 `policy.allow_implicit_invocation: false`，不会放宽来源 SHA、证书、许可证、完整性或设备权限验证。\n\n导入仅修改本资产仓的候选分支，不会修改 `~/.codex`。仍需独立 PR/CI 审查，再按 `build → plan → apply → doctor` 流程交付，最后重新打开 Codex CLI 会话验证真实显示。\n
 ## 常用命令
 
 ```bash
