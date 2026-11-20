@@ -83,6 +83,24 @@ class ManualWorkItemBotBridgeTest(unittest.TestCase):
         with sqlite3.connect(str(self.root / "bot_state.sqlite3")) as conn:
             self.assertEqual(0, conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
 
+    def test_handoff_uses_existing_bot_text_reply_without_execution(self):
+        bot = self.bot(True)
+        with self.immediate_threads(), mock.patch.object(
+            bot.gate, "accept", side_effect=AssertionError("legacy gate reached")
+        ):
+            bot.on_message(self.event())
+            response = self.transport.send_text.call_args.args[1]
+            run_id = response.split("AgentRun：", 1)[1].split("\n")[0]
+            self.transport.reset_mock()
+            bot.on_message(self.event(
+                msg_id="om_handoff", text="/wi handoff " + run_id +
+                " | 复现：上桩低速电流升高；验收：独立QA通过"
+            ))
+        self.assertIn("未启动 Codex", self.transport.send_text.call_args.args[1])
+        self.assertIn("只读复现缺陷", self.transport.send_text.call_args.args[1])
+        self.assertTrue(bot.jobs.empty())
+        self.runner.run.assert_not_called()
+
     def test_sqlite_intake_is_deferred_off_message_callback_thread(self):
         bot = self.bot(True)
         with mock.patch.object(legacy.threading, "Thread") as thread, mock.patch.object(

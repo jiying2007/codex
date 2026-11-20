@@ -28,8 +28,9 @@ _HELP = (
     "不需要飞书项目/TAPD 企业 API 的工作项登记：\n"
     "/wi add tapd 缺陷 <空间ID> <工作项ID> [repo=仓库别名] | 问题与验收描述\n"
     "/wi add feishu_project 需求 <空间ID> <工作项ID> [repo=仓库别名] | 需求与验收描述\n"
-    "/wi list 查看本人最近登记；/wi status <完整Run ID> 查询状态；/wi help\n"
-    "仅登记来源声明与任务关联，不启动 Codex、不获取原系统内容、不关闭需求或缺陷。"
+    "/wi list 最近登记；/wi status <完整Run ID> 查询状态\n"
+    "/wi handoff <完整Run ID> | 当前问题描述、验收要求及复现信息\n"
+    "/wi help 查看帮助；handoff 只生成可复制的研发交接说明，不自动运行 Codex。"
 )
 
 
@@ -58,10 +59,18 @@ def parse_manual_command(text: str, tenant: str, default_repo: str) -> ManualCom
         return ManualCommand("help")
     if action == "list" and len(tokens) == 2 and not delimiter:
         return ManualCommand("list")
-    if action == "status" and len(tokens) == 3 and not delimiter:
+    if action in ("status", "handoff") and len(tokens) == 3:
         if not _RUN_ID.fullmatch(tokens[2]):
-            raise IntakeRejected("status requires an exact 32-hex Run ID")
-        return ManualCommand("status", run_id=tokens[2])
+            raise IntakeRejected("status/handoff requires an exact 32-hex Run ID")
+        if action == "status" and not delimiter:
+            return ManualCommand("status", run_id=tokens[2])
+        if action == "handoff" and delimiter:
+            current = summary.strip()
+            if (not current or len(current) > 4000
+                    or any(ord(x) < 32 and x not in "\n\t" for x in current)):
+                raise IntakeRejected("handoff needs bounded current context")
+            return ManualCommand("handoff", summary=current, run_id=tokens[2])
+        raise IntakeRejected("status forbids extra text, handoff requires a | summary")
     if action != "add" or len(tokens) not in (6, 7) or not delimiter:
         raise IntakeRejected("invalid /wi syntax; send /wi help")
     provider = _PROVIDERS.get(tokens[2].lower())
@@ -111,16 +120,45 @@ class ManualWorkItemService:
         cmd = parse_manual_command(event.text, event.tenant, default_repo)
         if cmd.action == "help":
             return _HELP
-        if cmd.action == "status":
+        if cmd.action in ("status", "handoff"):
             record = self.store.get_run(cmd.run_id, event)
             if record["repo"] not in authorized:
                 raise IntakeRejected("repository access has changed")
+            if cmd.action == "status":
+                return (
+                    "任务：" + record["run_id"] + "\n"
+                    "项目：" + record["repo"] + "\n"
+                    "状态：" + record["status"] + "\n"
+                    "工作项来源：用户提供，未通过原系统 API 核验\n"
+                    "执行授权：未由本命令授予；需求/缺陷仍在原系统验收。"
+                )
+            if record["status"] in ("unknown", "canceled", "blocked"):
+                raise IntakeRejected("cannot hand off an unknown/canceled/blocked run")
+            with contextlib.closing(self.store._connect()) as db:
+                claim = db.execute(
+                    "SELECT 1 FROM fea_manual_claims WHERE run_id=?",
+                    (cmd.run_id,),
+                ).fetchone()
+            if claim is None:
+                raise IntakeRejected("handoff requires a manually registered WorkItem")
+            phase = (
+                "请先只读梳理需求、头脑风暴方案、形成 SDD 与验收测试清单。"
+                if record["kind"] == "requirement"
+                else "请先只读复现缺陷、定位根因、给出负向测试与修复验证方案。"
+            )
             return (
-                "任务：" + record["run_id"] + "\n"
-                "项目：" + record["repo"] + "\n"
-                "状态：" + record["status"] + "\n"
-                "工作项来源：用户提供，未通过原系统 API 核验\n"
-                "执行授权：未由本命令授予；需求/缺陷仍在原系统验收。"
+                "研发交接草稿（仅生成文本，未启动 Codex）：\n"
+                "外部工作项（用户提供，未经原系统 API 核验）："
+                + record["provider"] + " / " + record["kind"] + " / "
+                + record["workspace"] + " / " + record["item_id"] + "\n"
+                "AgentRun：" + record["run_id"] + "\n"
+                "目标仓库：" + record["repo"] + "\n"
+                "当前问题与验收信息（本次用户提供，未持久化）：\n"
+                + cmd.summary + "\n"
+                + phase + "\n"
+                "相关仓库或 SoC/MCU 跨仓接口应写明版本化契约与各自验证证据。\n"
+                "代码写入、模型额度、Git 发布及设备操作仍需各自单独批准。"
+                "不得把 CI 通过视为产品/测试验收，也不得自动关闭原工作项。"
             )
         if cmd.action == "list":
             with contextlib.closing(self.store._connect()) as db:

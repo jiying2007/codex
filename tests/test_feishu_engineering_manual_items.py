@@ -145,6 +145,101 @@ class ManualWorkItemTest(unittest.TestCase):
             ).repo,
         )
 
+    def test_handoff_generates_read_only_sdd_or_bug_plan_without_side_effects(self):
+        registered = self.service.handle(self.event, "robot-app", self.repos)
+        run_id = self._run_id(registered)
+        detail = "复现：坡道低速旋转过流；需要验证基线与回归测试。"
+        event = InboundEvent(
+            "feishu_message", "tenantA", "oc_team", "ou_owner",
+            "om_handoff", "/wi handoff " + run_id + " | " + detail,
+        )
+        receipt = self.service.handle(event, "robot-app", self.repos)
+        self.assertIn("未启动 Codex", receipt)
+        self.assertIn("只读复现缺陷", receipt)
+        self.assertIn("robot-app", receipt)
+        self.assertIn("123456", receipt)
+        self.assertIn(detail, receipt)
+        self.assertIn("单独批准", receipt)
+        self.assertEqual("proposed", self.service.store.get_run(run_id)["status"])
+        with sqlite3.connect(str(self.db)) as db:
+            self.assertEqual(1, db.execute(
+                "SELECT COUNT(*) FROM fea_runs"
+            ).fetchone()[0])
+            self.assertEqual(1, db.execute(
+                "SELECT COUNT(*) FROM fea_manual_claims"
+            ).fetchone()[0])
+        self.assertNotIn(detail.encode("utf-8"), self.db.read_bytes())
+
+    def test_handoff_rejects_cross_user_ambiguous_and_unknown_run(self):
+        registered = self.service.handle(self.event, "robot-app", self.repos)
+        run_id = self._run_id(registered)
+        valid = "/wi handoff " + run_id + " | 回归验证计划"
+        self.assertEqual(
+            "handoff",
+            parse_manual_command(valid, "tenantA", "robot-app").action,
+        )
+        for bad in (
+            "/wi handoff " + run_id,
+            "/wi handoff " + run_id + " | ",
+            "/wi handoff last | test",
+            "/wi handoff " + run_id + " | " + "x" * 4001,
+        ):
+            with self.assertRaises(IntakeRejected):
+                parse_manual_command(bad, "tenantA", "robot-app")
+        for tenant, actor, repos in (
+            ("tenantB", "ou_owner", self.repos),
+            ("tenantA", "ou_attacker", self.repos),
+            ("tenantA", "ou_owner", {"pcr02-mcu"}),
+        ):
+            with self.assertRaises(IntakeRejected):
+                self.service.handle(
+                    InboundEvent("feishu_message", tenant, "oc_team", actor,
+                                 "om_new", valid), "robot-app", repos,
+                )
+        self.service.store.transition(run_id, 0, "blocked", "ou_owner")
+        with self.assertRaises(IntakeRejected):
+            self.service.handle(
+                InboundEvent("feishu_message", "tenantA", "oc_team",
+                             "ou_owner", "om_blocked", valid),
+                "robot-app", self.repos,
+            )
+
+    def test_requirement_handoff_is_sdd_first_and_local_cli_works(self):
+        cmd = "/wi add feishu_project 需求 project123 98765 repo=robot-app | 支持异常断电恢复"
+        created = self.service.handle(
+            InboundEvent("feishu_message", "tenantA", "oc_team", "ou_owner",
+                         "om_req", cmd),
+            "robot-app", self.repos,
+        )
+        run_id = self._run_id(created)
+        handoff = self.service.handle(
+            InboundEvent("feishu_message", "tenantA", "oc_team", "ou_owner",
+                         "om_req_handoff", "/wi handoff " + run_id +
+                         " | 验收：断电后不损坏数据；覆盖 SoC 和 MCU"),
+            "robot-app", self.repos,
+        )
+        self.assertIn("头脑风暴方案", handoff)
+        self.assertIn("SDD", handoff)
+        self.assertIn("SoC/MCU", handoff)
+        database = self.root / "cli_handoff.sqlite3"
+        args = ["--manual", "--db", str(database), "--event-id", "local_a",
+                "--allow-repo", "robot-app", "--selected-repo", "robot-app"]
+        first = io.StringIO()
+        with mock.patch("sys.stdin", io.StringIO(COMMAND)), contextlib.redirect_stdout(first):
+            self.assertEqual(0, main(args))
+        new_id = json.loads(first.getvalue())["reply"].split("AgentRun：")[1].split("\n")[0]
+        second = io.StringIO()
+        args2 = list(args)
+        args2[args2.index("local_a")] = "local_b"
+        with mock.patch("sys.stdin", io.StringIO(
+            "/wi handoff " + new_id + " | 最小复现与QA验证标准"
+        )), contextlib.redirect_stdout(second):
+            self.assertEqual(0, main(args2))
+        response = json.loads(second.getvalue())
+        self.assertIn("未启动 Codex", response["reply"])
+        self.assertFalse(response["model_invoked"])
+        self.assertFalse(response["external_api_accessed"])
+
     def test_local_cli_stdin_works_without_feishu_and_never_calls_model(self):
         database = self.root / "cli.sqlite3"
         args = [

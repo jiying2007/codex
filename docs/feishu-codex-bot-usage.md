@@ -421,3 +421,7 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 实际仓库别名必须是当前策略允许的值，示例 `robot-app` 不代表已在你的生产策略登记。不写 `repo=` 时继承用户当前项目。工作项 ID 和空间由发送者填写，**不会自动读取/验证** 飞书项目或 TAPD 中的内容；本地独立 0600 数据库只保存消息 ID、来源元数据和摘要哈希，不保存明文需求。来源状态是“用户提供，未核验”。单独批准的分析/开发仍走原有 Codex 权限检查，`/wi` 本身不启动任何模型、写代码或关闭缺陷。
 
 如果连现有应用机器人的接收消息权限也没有，不能把仅能单向推送的自定义 Webhook 机器人当成双向聊天助手。此时使用 `python -m tools.codex_assets.feishu_engineering_agent --manual` 的本地 stdin CLI；完整示例和能力边界参见 `docs/changes/20261120-feishu-engineering-agent/pilot.md`。勿使用非授权的网页登录态、cookie 或企业账号进行绕过。
+
+### 无企业 API：从登记到研发交接
+
+`/wi add` 返回的完整 `AgentRun` ID 可以用于 `/wi handoff <RunID> | 最新需求/复现/验收信息`。机器人会返回按需求或缺陷分类的**只读研发交接草稿**，包括仓库、工作项身份、SDD 或复现/负向测试方向；不会启动模型或自动执行代码。旧 Codex 执行仍需独立授权，操作人再在本地 Codex CLI/既有研发渠道明确发起。交接内容不存入新 SQLite，工作项原系统的权限和最终 QA/关闭仍归产品、测试负责人。

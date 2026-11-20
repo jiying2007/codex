@@ -69,3 +69,13 @@ This changes the earlier C3 gate: **manual/source-provenance accuracy and access
 Sources for capability limits:
 - https://open.feishu.cn/document/home/introduction-to-scope-and-authorization/overview
 - https://open.feishu.cn/document/client-docs/bot-v3/bot-overview
+
+## No-model handoff from the registered defect/requirement
+
+Once `/wi add` replies with an exact `AgentRun` identifier, send this in the same authorized chat:
+
+```text
+/wi handoff <完整32字符AgentRun ID> | 最新问题、复现步骤、预期效果和独立验收要求
+```
+
+Or use the same `/wi handoff` input on the local `--manual` stdin CLI with a **new** `--event-id` (the original ID is for idempotency, not for a different command). It returns a copyable, source-linked, read-only SDD/bug-analysis brief **without** invoking Codex. When actually ready to develop, the engineer starts or resumes an independently authorized Codex CLI session in the target allowlisted repository and supplies fresh source context. The run remains `proposed` until independently verified work/evidence is recorded; no automatic QA closure or CI PASS is claimed.

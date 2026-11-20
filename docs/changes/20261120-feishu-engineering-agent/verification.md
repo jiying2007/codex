@@ -36,3 +36,9 @@ The additional offline tests in `tests/test_feishu_engineering_workflows.py` cov
 Manual message rate-limit negative test: six unique `/wi add` events under default 5-per-window must create only five proposed runs, never a legacy queued/model job.
 
 Additional regression: the Feishu message listener enqueues at most one bounded manual-intake worker and returns before SQLite I/O; the test invokes the captured worker separately to prove no synchronous database transaction or Codex job inside the event callback.
+
+## VERIFY-017/018 (offline tests; not field qualification)
+- Manual WorkItem `handoff` includes current supplied acceptance but no new Run/receipt or prompt storage.
+- Different tenant, chat, actor or no-longer-authorized repository cannot read handoff; UNKNOWN/CANCELED/BLOCKED cannot be handed off.
+- Requirement handoff suggests brainstorming/SDD, defect handoff prioritizes reproduction/negative testing; neither auto-launches Codex, Git, card or API.
+- Bot no-API reply uses existing authorized text route and retains a zero-model-call invariant. Validate on exact new SHA before marking PASS.

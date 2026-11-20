@@ -58,3 +58,9 @@ Status is evidence based. This file is planning, not proof of implementation.
 - [ ] Enable and validate a single existing Feishu Bot's real message receive/reply with trusted tenant ID, using a redacted low-risk workitem (if already permitted).
 - [ ] If bot message scopes are unavailable, verify local CLI on vstrong100 without connecting Feishu.
 - [ ] Real PR/CI, independent source-system QA, production cutover and App Server qualification remain separately unverified.
+
+## Current no-API delivery bridge
+- [x] Add `/wi handoff` for scoped, deterministic no-model requirement vs Bug development briefs.
+- [x] Keep latest source description in reply only; no new persistence or second system.
+- [x] Add negative tests for owner/repo/tenant isolation, invalid IDs and blocked runs; Bot text-only route does not enqueue models.
+- [ ] Exact-HEAD CI validation, code review, and real authorized host smoke still required.
