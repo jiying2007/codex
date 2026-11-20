@@ -1,4 +1,4 @@
-# Feishu Engineering Agent V2 — SDD Requirements
+# Feishu Engineering Agent — SDD Requirements
 
 ## Canonical Change Contract
 | REQ | Delta and owner | Acceptance | Task | Evidence |
@@ -30,5 +30,12 @@ ACC-010: event, card, PR and external write receipt idempotent, running after re
 ACC-011: old service queue, WAL, spool, source and systemd captured with restore proof; only one active consumer.
 ACC-012: external billing identity, per-repo policy, model and quota explicitly approved; no use of Work/Codex shared allowance without fresh authority.
 
-## Scope of first PR: TASK-001 only
+## Initial no-model scope: TASK-001
 Pure deterministic no-model router, typed WorkItem identity, isolated SQLite event receipts and project context, offline dry-run CLI and Python 3.8/3.11/3.12 full regression. No Feishu events subscription, webhook, real Codex turn, Git push, server restart or new permission in this PR.
+
+## Implementation extension in PR #73 (offline)
+- TASK-002 code: signed Card JSON 2.0 callbacks, verified envelope, card/message/actor binding, 14-day expiry and SQLite click receipts; **no real client or 3-second field test**.
+- TASK-003 code: exact host/repo/CODEX_HOME/thread binding, resume/interrupt request builders, explicit quota and model-turn gates, no-model host capability probe; **no live App Server protocol turn**.
+- TASK-004 code: injected read-only TAPD GET stories/bugs and Meegle plugin-scoped query; typed source snapshot and version check; **no tenant credentials or real source response yet**.
+- TASK-005 code: separate WorkItem/AgentRun ledger, immutable evidence references, guarded transitions, independent QA proof requirement; **no real feature or bug PR/CI/QA evidence**.
+- TASK-006 deliberately unmodified: production Bot remains the only active consumer.

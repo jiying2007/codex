@@ -1,4 +1,4 @@
-# Feishu Engineering Agent V2 — Tasks
+# Feishu Engineering Agent — Tasks
 Status is evidence based. This file is planning, not proof of implementation.
 
 ## TASK-000 Brainstorm and SDD freeze
@@ -8,7 +8,7 @@ Status is evidence based. This file is planning, not proof of implementation.
 [x] Freeze REQ-001..012, acceptance criteria, failure gates and cutover.
 [ ] Independent implementation/tenant review.
 
-## TASK-001 First vertical slice (current PR)
+## TASK-001 First vertical slice (verified on original SHA)
 [ ] Implement safe natural-language router + explicit project selection; unknown intent clarifies.
 [ ] Implement typed WorkItemKey and no-auto-execute decision.
 [ ] Implement scoped user preference + event dedupe in offline temp SQLite with failure rollback.
@@ -40,3 +40,11 @@ Status is evidence based. This file is planning, not proof of implementation.
 [ ] Separate permission/model billing/host smoke from CI results.
 
 **No Codex/ChatGPT Work quota, new scheduled tasks or external writes authorized by this document.**
+
+## Evidence checkpoint: offline implementation extension
+- TASK-001 source and 9/9 CI checks previously passed at `5f2ca425fc92ccb7c70b7d0e94fe30237915f4f0`; merging remains a separate decision.
+- TASK-002: Card rendering and signed callback storage implemented for offline tests. Real card send/update/3-second callback on Feishu desktop and mobile **open**.
+- TASK-003: exact session records and RPC planning implemented for offline tests. vstrong100 App Server handshake/resume/approval/interrupt **open**; no model quota used.
+- TASK-004: API read adapters and fail-closed responses implemented with injected transports. Tenant authorization and real one requirement/one bug read **open**.
+- TASK-005: run state/evidence contracts implemented; real feature and Bug PR/CI and independent QA **open**.
+- TASK-006: **not started**; no production service/config, consumer or private DB touched.

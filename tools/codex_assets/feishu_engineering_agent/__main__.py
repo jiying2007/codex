@@ -11,7 +11,7 @@ from .routing import route_message
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Feishu Engineering Agent V2: deterministic offline intake only",
+        description="Feishu Engineering Agent: deterministic offline intake only",
     )
     parser.add_argument("--dry-run", action="store_true", help="mandatory; never calls Codex")
     parser.add_argument("--allow-repo", action="append", default=[], metavar="ALIAS")

@@ -1,4 +1,4 @@
-# Feishu Engineering Agent V2 — Proposal
+# Feishu Engineering Agent — Proposal
 Date: 2026-11-20. Scope: one deployed Bot on vstrong100, personal and 2–8 person development team.
 
 ## Brainstorm decision
@@ -72,3 +72,6 @@ Do not build: generic agent graph engine, multi-model provider broker, PM duplic
 - https://open.tapd.cn/document/api-doc/
 
 Source facts do NOT certify access to the user's tenant, running Card callback, App Server or model billing.
+
+## Current implementation boundary (2026-11-20)
+The PR now adds an **offline** AgentRun ledger, Card JSON 2.0 builder and signed callback-intent store, exact Codex thread binding/RPC planner, and injected read-only TAPD/Meegle readers. No production Feishu event handler is subscribed; no Codex App Server is spawned for a turn; no remote source item or QA account has been accessed. Full task completion still depends on production capability/permissions and end-to-end tests. A successful callback only records an intent, not an execution approval or a running model. Historical TASK-001 CI evidence remains tied to its original SHA.

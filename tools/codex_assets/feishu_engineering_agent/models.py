@@ -1,4 +1,4 @@
-"""Side-effect-free identity and decision types for Feishu Engineering Agent V2."""
+"""Side-effect-free identity and decision types for Feishu Engineering Agent."""
 from __future__ import annotations
 
 import dataclasses

@@ -1,4 +1,4 @@
-# Feishu Engineering Agent V2 — Verification plan
+# Feishu Engineering Agent — Verification plan
 
 | VERIFY | Test/observation | Status |
 |---|---|---|
@@ -17,3 +17,6 @@
 
 Current PR source/CI may prove only VERIFY-001..005. CI success is NOT evidence of real Feishu, card, App Server, billing, project API, GitHub PR publication, device HIL or QA.
 Every reported PASS must include exact SHA, command+exit, time, environment, source reference and checked scope.
+
+## Next exact-HEAD receipt requirements
+The additional offline tests in `tests/test_feishu_engineering_workflows.py` cover card signatures/replay/actor/message/expiry, run transitions/independent QA, Codex exact session and budget gates, and TAPD/Meegle source validation. They are **not counted as passed** until this PR's new commit CI completes. The 9/9 prior checks apply only to the prior SHA. Real Feishu, deployed App Server, tenant API, PR publication, QA and production cutover are separately marked unverified regardless of CI.

@@ -1,4 +1,4 @@
-"""V2 staged engineering-agent core; no production channel or model hook yet."""
+"""Staged engineering-agent core; no production channel or model hook yet."""
 from .models import Decision, EventConflict, InboundEvent, IntakeRejected, WorkItemKey
 from .routing import route_message
 

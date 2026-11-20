@@ -1,4 +1,4 @@
-# Feishu Engineering Agent V2 — Design
+# Feishu Engineering Agent — Design
 
 ## Boundary
 Build a slim domain core inside tools/codex_assets/feishu_engineering_agent, consistent with repository AGENTS instructions. It is NOT wired to the production Bot until phased cutover. The existing Feishu Bot still owns runtime, private spool and its SQLite state. First SDD slice has zero model/network side effects.
@@ -35,3 +35,10 @@ Actual edit requires allowlisted repo + separate explicit action approval + isol
 4. Freeze old queued/running/UNKNOWN, preserve WAL/spool/keys outside Git, backup+restore, shadow compare decisions without duplicate consuming, switch only one active listener and keep rollback.
 
 Explicitly avoid new Redis, Postgres, UI admin panel, second state owner, scheduled checks or agent orchestration framework.
+
+## Implemented offline extension and explicit non-goals
+- `state.py`: private RunStore (a sibling of the separate offline intake DB); optional external WorkItem fingerprint, many AgentRuns per WorkItem, optimistic state transitions, immutable source evidence refs. No original ticket status mutation.
+- `cards.py`: JSON 2.0 signing uses a host-private HMAC secret and stores source card, exact posted message and requester identities; an authenticated callback records one intent per revision in a single transaction and returns a fast toast. `request_execution` is a **request** only and does not grant a Codex budget or edit permission. Sender must bind the returned message id and later update card from durable truth.
+- `sessions.py`: exact actor/tenant/chat/repo/host/repo_path/CODEX_HOME/thread_id binding; read-only resume request builder and interrupt builder; turn planner is disabled without a fresh non-shared in-memory RuntimeGrant and a default-off runtime switch. Request planning does not prove transport, approvals or actual model spend.
+- `workitems.py`: fixed/provider-configured API origin, injected transport, read-only query, strict tenant/project/kind/id/version comparison; response text is untrusted input, not permission.
+- No second consumer, no webhook listener, no scheduler, no Codex model process and no PR/QA/firmware operations are introduced by this extension.
