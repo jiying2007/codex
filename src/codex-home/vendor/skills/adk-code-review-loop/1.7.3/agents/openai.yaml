@@ -1,4 +1,4 @@
 interface:
-  display_name: adk-code-review-loop
-  short_description: 独立代码审查与反馈修复闭环，覆盖发现分级、真实性核验、修复验证和复审
+  display_name: "ADK · 代码审查与反馈闭环"
+  short_description: "按真实差异审查代码及设计风险、核实反馈误报，不自动批准或修改未授权内容。"
   default_prompt: Use $adk-code-review-loop for its documented workflow.

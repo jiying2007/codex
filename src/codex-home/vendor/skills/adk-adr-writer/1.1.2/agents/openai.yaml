@@ -1,4 +1,4 @@
 interface:
-  display_name: "ADK Adr Writer"
-  short_description: "产出 Architecture Decision Record 并固化技术决策"
+  display_name: "ADK · 架构决策记录"
+  short_description: "将明确的技术决定写成独立可读的 ADR，保留取舍依据和未决风险，不编造方案。"
   default_prompt: "Use $adk-adr-writer for its documented workflow."
