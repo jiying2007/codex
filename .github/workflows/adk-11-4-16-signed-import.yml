@@ -58,7 +58,7 @@ jobs:
           test "$(git -C .adk-provider rev-parse HEAD)" = c41f7c933f653dd702b0d8042ae9df38807430dc
           test -z "$(git -C .adk-provider status --porcelain --untracked-files=all)"
           test "$(git -C .adk-provider rev-parse 'HEAD^{tree}')" = d8927518b9f5fafb944ba9e08a14a62dad5cb495
-          test "$(git -C .adk-provider hash-object manifest.json)" = 65990ada947d4bb78e8c997db689d037a64050b2 || true
+          test "$(git -C .adk-provider hash-object manifest.json)" = 65990ada947d4bb78e8c997db689d037a64050b2
           mkdir -p "$RUNNER_TEMP/adk-release" "$RUNNER_TEMP/adk-evidence"
           gh release download v11.4.16 -R jiying2007/agent-dev-kit \
             --pattern agent-dev-kit-11.4.16.tar.gz \
