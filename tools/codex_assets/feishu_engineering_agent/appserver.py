@@ -44,6 +44,8 @@ class StdioAppServer:
         self.timeout_sec = timeout_sec
         self.on_event = on_event
         self._responses = queue.Queue(maxsize=256)
+        self._notifications = queue.Queue(maxsize=256)
+        self._notification_overflow = False
         self._request_lock = threading.Lock()
         self._next_id = 1
         self._running = False
@@ -79,8 +81,16 @@ class StdioAppServer:
                 elif "id" in frame:
                     self._put(frame)
                 elif "method" in frame:
-                    if self.on_event is not None:
-                        self.on_event(frame)
+                    # A terminal notification may arrive before turn/start
+                    # ACK is persisted. Buffer it until the host coordinator
+                    # can correlate the exact thread/turn; never drop it or
+                    # execute callbacks on the stdout reader thread.
+                    try:
+                        self._notifications.put_nowait(frame)
+                    except queue.Full:
+                        self._notification_overflow = True
+                        self._put({"_fatal": "notification_overflow"})
+                        return
                 else:
                     raise ValueError("unknown RPC message")
             except Exception as exc:
@@ -105,7 +115,26 @@ class StdioAppServer:
         except (OSError, ValueError) as exc:
             raise NativeProtocolError("native RPC write outcome unknown") from exc
 
+    def drain_notifications(self, limit: int = 64) -> list:
+        """Host calls after durable turn ACK, or on its existing event loop."""
+        if not isinstance(limit, int) or not 1 <= limit <= 256:
+            raise NativeProtocolError("invalid notification drain limit")
+        if self._notification_overflow:
+            raise NativeProtocolError("native notification overflow; effect UNKNOWN")
+        events = []
+        for _ in range(limit):
+            try:
+                event = self._notifications.get_nowait()
+            except queue.Empty:
+                break
+            events.append(event)
+            if self.on_event is not None:
+                self.on_event(event)
+        return events
+
     def request(self, request: Mapping[str, Any]) -> dict:
+        if self._notification_overflow:
+            raise NativeProtocolError("native notification overflow; effect UNKNOWN")
         if not isinstance(request, Mapping) or not request.get("method"):
             raise NativeProtocolError("missing native RPC method")
         with self._request_lock:

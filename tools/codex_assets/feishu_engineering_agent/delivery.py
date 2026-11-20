@@ -55,6 +55,11 @@ class DeliveryCoordinator:
                     created_at INTEGER NOT NULL,
                     last_error TEXT NOT NULL DEFAULT ''
                 );
+                CREATE TABLE IF NOT EXISTS fea_delivery_heads (
+                    run_id TEXT PRIMARY KEY,
+                    head_sha TEXT NOT NULL,
+                    pinned_at INTEGER NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS fea_qa_attestations (
                     run_id TEXT NOT NULL, reviewer TEXT NOT NULL,
                     evidence_ref TEXT NOT NULL, workitem_fingerprint TEXT NOT NULL,
@@ -127,6 +132,12 @@ class DeliveryCoordinator:
                 ).fetchone()
                 if prior is not None:
                     raise IntakeRejected("publication already attempted; reconcile, never replay")
+                pinned = db.execute(
+                    "SELECT head_sha FROM fea_delivery_heads WHERE run_id=?",
+                    (run_id,),
+                ).fetchone()
+                if pinned is not None and pinned["head_sha"] != sha:
+                    raise IntakeRejected("published head differs from pinned PR/CI head")
                 db.execute(
                     "INSERT INTO fea_publications "
                     "(run_id,repo_full_name,target_ref,head_sha,effect_state,created_at) "
@@ -195,10 +206,44 @@ class DeliveryCoordinator:
             raise IntakeRejected("PR not confirmed by source")
         if evidence_type == "contract" and not observed.get("contract_verified"):
             raise IntakeRejected("cross-repo contract not verified")
-        self.store.add_evidence(
-            run_id, evidence_type, reference, verifier="trusted_git",
-            verified=True,
-        )
+        if run["mode"] != "edit" or run["status"] not in ("waiting_ci", "waiting_qa"):
+            raise IntakeRejected("Git delivery proof requires an active edited run")
+        if not isinstance(reference, str) or not _REF.fullmatch(reference):
+            raise IntakeRejected("invalid Git evidence reference")
+        with contextlib.closing(self.store._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                published = db.execute(
+                    "SELECT head_sha FROM fea_publications WHERE run_id=?",
+                    (run_id,),
+                ).fetchone()
+                if published is not None and published["head_sha"] != sha:
+                    raise IntakeRejected("Git evidence head differs from publication")
+                pinned = db.execute(
+                    "SELECT head_sha FROM fea_delivery_heads WHERE run_id=?",
+                    (run_id,),
+                ).fetchone()
+                if pinned is not None and pinned["head_sha"] != sha:
+                    raise IntakeRejected("PR/CI evidence commit mismatch")
+                now = int(time.time())
+                if pinned is None:
+                    db.execute(
+                        "INSERT INTO fea_delivery_heads(run_id,head_sha,pinned_at) "
+                        "VALUES (?,?,?)", (run_id, sha, now),
+                    )
+                db.execute(
+                    "INSERT INTO fea_evidence "
+                    "(run_id,evidence_type,reference,verifier,verified,recorded_at) "
+                    "VALUES (?,?,?,'trusted_git',1,?)",
+                    (run_id, evidence_type, reference, now),
+                )
+                db.commit()
+            except sqlite3.IntegrityError as exc:
+                db.rollback()
+                raise IntakeRejected("duplicate Git evidence cannot replace proof") from exc
+            except Exception:
+                db.rollback()
+                raise
         return {"run_id": run_id, "kind": evidence_type, "verified": True,
                 "head_sha": sha}
 
@@ -246,6 +291,12 @@ class DeliveryCoordinator:
         with contextlib.closing(self.store._connect()) as db:
             db.execute("BEGIN IMMEDIATE")
             try:
+                pinned = db.execute(
+                    "SELECT head_sha FROM fea_delivery_heads WHERE run_id=?",
+                    (run_id,),
+                ).fetchone()
+                if pinned is None or pinned["head_sha"] != self._sha(head_sha):
+                    raise IntakeRejected("QA head does not match verified PR/CI commit")
                 previous = db.execute(
                     "SELECT 1 FROM fea_qa_attestations "
                     "WHERE run_id=? AND reviewer=? AND evidence_ref=?",
@@ -287,6 +338,13 @@ class DeliveryCoordinator:
             ).fetchall()
         if {r["evidence_type"] for r in rows} != {"pr", "ci"}:
             raise IntakeRejected("verified PR and CI both required")
+        with contextlib.closing(self.store._connect()) as db:
+            pinned = db.execute(
+                "SELECT head_sha FROM fea_delivery_heads WHERE run_id=?",
+                (run_id,),
+            ).fetchone()
+        if pinned is None:
+            raise IntakeRejected("PR/CI must share a verified exact head")
         updated = self.store.transition(
             run_id, run["revision"], "waiting_qa", event.actor,
         )
@@ -311,6 +369,23 @@ class DeliveryCoordinator:
     def complete_engineering_only(self, run_id: str, event: InboundEvent) -> dict:
         """Completion of AgentRun is not closure of Feishu Project/TAPD item."""
         run = self.store.get_run(run_id, event)
+        if run["mode"] != "edit" or run["status"] != "waiting_qa":
+            raise IntakeRejected("engineering delivery requires edited Run awaiting QA")
+        with contextlib.closing(self.store._connect()) as db:
+            pinned = db.execute(
+                "SELECT head_sha FROM fea_delivery_heads WHERE run_id=?",
+                (run_id,),
+            ).fetchone()
+            valid_qa = db.execute(
+                "SELECT 1 FROM fea_qa_attestations q "
+                "JOIN fea_evidence e ON e.run_id=q.run_id AND "
+                "e.evidence_type='qa' AND e.reference=q.evidence_ref "
+                "AND e.verifier=q.reviewer AND e.verified=1 "
+                "WHERE q.run_id=? AND q.head_sha=? LIMIT 1",
+                (run_id, pinned["head_sha"] if pinned else ""),
+            ).fetchone()
+        if pinned is None or valid_qa is None:
+            raise IntakeRejected("matching signed independent QA and head required")
         result = self.store.transition(
             run_id, run["revision"], "completed", event.actor,
         )

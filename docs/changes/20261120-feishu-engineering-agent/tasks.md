@@ -61,3 +61,11 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [x] `github_adapter.py`：固定 `api.github.com` 和仓库白名单的只读 PR/Actions 观察；经独立签名授权后为已存在的精确远端分支创建草稿 PR，不负责 Git push、merge 或 GitHub Issue。
 [x] PR 发布与原工作项评论分别验证私有签名授权；无签名/失效凭据/写权限默认关闭。
 [ ] 现场 GitHub/GitLab/Git Forge 具体权限及真实 PR/CI 读取和发布必须集中实证。
+
+## 最后一次源码深审发现并补齐的契约
+[x] PR/CI/独立 QA 必须匹配同一 canonical 精确提交，不能串接不同固件/代码版本作为交付证据。
+[x] read/review 正常结束不强制构建 PR；edit 仍保留 PR/CI/QA 独立门禁。
+[x] NativeTurnCoordinator 实际执行前再次核实 WorkItem 已持久化签名审批，非仅依赖内存 grant。
+[x] turn/completed 可能先于 turn/start ACK，原生事件缓冲并在有界溢出时 fail closed。
+[x] WorkItem 关联重放不能改绑来源，企业 API 可用时也重新检查当前仓库访问权限。
+[ ] 以上源码补丁仍需本次新 HEAD 全量 CI 才可标记为已验证；生产主机与真实模型/设备现场试验统一后移。

@@ -19,7 +19,7 @@ _TRANSITIONS = {
     "proposed": frozenset(("ready", "blocked", "canceled")),
     "ready": frozenset(("queued", "blocked", "canceled")),
     "queued": frozenset(("running", "unknown", "canceled", "blocked")),
-    "running": frozenset(("waiting_ci", "waiting_qa", "failed", "unknown", "canceled")),
+    "running": frozenset(("completed", "waiting_ci", "waiting_qa", "failed", "unknown", "canceled")),
     "waiting_ci": frozenset(("waiting_qa", "failed", "unknown")),
     "waiting_qa": frozenset(("completed", "blocked", "failed", "unknown")),
     "unknown": frozenset(("blocked",)),  # no replay of uncertain model/remote effects
@@ -117,7 +117,7 @@ class RunStore(OfflineIntakeStore):
             db.execute("BEGIN IMMEDIATE")
             try:
                 row = db.execute(
-                    "SELECT actor,status,revision,workitem_fp FROM fea_runs WHERE run_id=?",
+                    "SELECT actor,status,revision,workitem_fp,mode FROM fea_runs WHERE run_id=?",
                     (run_id,),
                 ).fetchone()
                 if row is None or row["actor"] != actor:
@@ -126,7 +126,13 @@ class RunStore(OfflineIntakeStore):
                     raise IntakeRejected("stale run revision")
                 if status not in _TRANSITIONS[row["status"]]:
                     raise IntakeRejected("run status transition denied")
-                if status == "completed" and row["workitem_fp"]:
+                if status == "completed":
+                    if row["mode"] in ("read", "review"):
+                        if row["status"] != "running":
+                            raise IntakeRejected("read-only run must be running to complete")
+                    elif row["status"] != "waiting_qa":
+                        raise IntakeRejected("edited run requires CI and QA before completion")
+                if status == "completed" and row["mode"] == "edit" and row["workitem_fp"]:
                     evidence = db.execute(
                         "SELECT evidence_type, verifier, verified FROM fea_evidence "
                         "WHERE run_id=?", (run_id,),

@@ -14,17 +14,22 @@ from unittest import mock
 from tools.codex_assets.feishu_engineering_agent.appserver import (
     ApprovalPending, NativeProcess, NativeProtocolError, StdioAppServer,
 )
-from tools.codex_assets.feishu_engineering_agent.models import InboundEvent, IntakeRejected
+from tools.codex_assets.feishu_engineering_agent.models import (
+    InboundEvent, IntakeRejected, WorkItemKey,
+)
 from tools.codex_assets.feishu_engineering_agent.runtime_bridge import (
     NativeTurnCoordinator, RemoteOutcomeUnknown,
 )
 from tools.codex_assets.feishu_engineering_agent.sessions import RuntimeGrant, SessionRegistry
 from tools.codex_assets.feishu_engineering_agent.state import RunStore
+from tools.codex_assets.feishu_engineering_agent.workflow import (
+    EngineeringWorkflow, ExecutionApproval,
+)
 
 HOST = "vstrong100"
 REPO_PATH = "/srv/robot-app"
 CODEX_HOME = "/srv/codex-private"
-FAKE_NOW = 2000000000
+APPROVAL_KEY = b"test-only-independent-runtime-approval-key-32-bytes"
 
 
 class NativeTurnTest(unittest.TestCase):
@@ -34,18 +39,32 @@ class NativeTurnTest(unittest.TestCase):
         self.store = RunStore(pathlib.Path(tmp.name) / "private.sqlite3")
         self.event = InboundEvent("feishu_message", "tenant1", "chat1", "actor1",
                                   "msg1", "分析代码")
-        self.run = self.store.create_run(self.event, "robot-app", {"robot-app"}, mode="edit")
+        self.workflow = EngineeringWorkflow(self.store)
+        self.source_run = self.store.create_run(
+            self.event, "robot-app", {"robot-app"}, mode="read",
+            workitem=WorkItemKey("tapd", "tenant1", "10101", "defect", "33"),
+        )
+        self.run = self.workflow.create_attempt(
+            self.source_run, self.event, "edit", {"robot-app"},
+        )["run_id"]
         self.sessions = SessionRegistry(self.store)
         self.sessions.bind(self.run, self.event, HOST, REPO_PATH, CODEX_HOME, "thread_abc")
         self.turns = NativeTurnCoordinator(self.store, self.sessions)
         self.grant = RuntimeGrant(
-            self.run, "actor1", "robot-app", "edit", "external_approved", FAKE_NOW+300,
-            "approval_123",
+            self.run, "actor1", "robot-app", "edit", "external_approved",
+            int(time.time()) + 300, "approval_123",
         )
 
     def queue_run(self):
-        row = self.store.transition(self.run, 0, "ready", self.event.actor)
-        self.store.transition(self.run, row["revision"], "queued", self.event.actor)
+        approved = ExecutionApproval(
+            self.run, "actor1", "tenant1", "chat1", "robot-app", "edit",
+            "approval_123", "external_approved", int(time.time()) + 300,
+            sdd_reviewed=True,
+        )
+        signature = self.workflow.sign_approval(approved, APPROVAL_KEY)
+        self.grant = self.workflow.authorize_queue(
+            approved, signature, APPROVAL_KEY, self.event, {"robot-app"},
+        )
 
     def dispatch(self, send, grant=None, enabled=True):
         return self.turns.dispatch(
@@ -93,6 +112,78 @@ class NativeTurnTest(unittest.TestCase):
         receipt = self.turns.observe(self.run, self.event, completion)
         self.assertEqual("waiting_ci", receipt["run_status"])
         self.assertTrue(self.turns.observe(self.run, self.event, completion)["duplicate"])
+
+    def test_read_only_workitem_analysis_finishes_without_pr_qa(self):
+        read_event = InboundEvent(
+            "feishu_message", "tenant1", "chat1", "actor1",
+            "msg_read", "只读分析任务",
+        )
+        source = self.store.create_run(
+            read_event, "robot-app", {"robot-app"}, mode="read",
+            workitem=WorkItemKey("tapd", "tenant1", "10101", "requirement", "34"),
+        )
+        analysis = self.workflow.create_attempt(
+            source, read_event, "read", {"robot-app"},
+        )["run_id"]
+        approved = ExecutionApproval(
+            analysis, "actor1", "tenant1", "chat1", "robot-app", "read",
+            "approval_read", "external_approved", int(time.time()) + 300,
+        )
+        signature = self.workflow.sign_approval(approved, APPROVAL_KEY)
+        grant = self.workflow.authorize_queue(
+            approved, signature, APPROVAL_KEY, read_event, {"robot-app"},
+        )
+        self.sessions.bind(
+            analysis, read_event, HOST, REPO_PATH, CODEX_HOME, "thread_read",
+        )
+        result = self.turns.dispatch(
+            analysis, read_event, HOST, REPO_PATH, CODEX_HOME,
+            grant, "只读分析并总结测试建议",
+            lambda request: {"result": {"turn": {"id": "turn_read"}}},
+            model_calls_enabled=True,
+        )
+        self.assertFalse(result["verified_complete"])
+        finished = self.turns.observe(analysis, read_event, {
+            "method": "turn/completed",
+            "params": {"threadId": "thread_read",
+                       "turn": {"id": "turn_read", "status": "completed"}},
+        })
+        self.assertEqual("completed", finished["run_status"])
+        self.assertFalse(finished["source_workitem_closed"])
+        self.assertEqual("completed", self.store.get_run(analysis)["status"])
+        with contextlib.closing(self.store._connect()) as db:
+            self.assertEqual(0, db.execute(
+                "SELECT COUNT(*) FROM fea_evidence WHERE run_id=?", (analysis,),
+            ).fetchone()[0])
+
+    def test_forged_in_memory_runtime_grant_is_not_enough(self):
+        # A caller can construct RuntimeGrant, but cannot use it without
+        # a durable independently signed approval receipt.
+        with contextlib.closing(self.store._connect()) as db:
+            db.execute(
+                "UPDATE fea_runs SET status='queued',revision=revision+2 "
+                "WHERE run_id=?", (self.run,),
+            )
+            db.commit()
+        sender = mock.Mock()
+        with self.assertRaisesRegex(IntakeRejected, "persistent signed approval"):
+            self.dispatch(sender)
+        sender.assert_not_called()
+
+    def test_edit_run_cannot_skip_pr_ci_qa(self):
+        self.queue_run()
+        result = self.dispatch(
+            lambda request: {"result": {"turn": {"id": "turn_edit"}}},
+        )
+        run = self.store.get_run(self.run)
+        with self.assertRaises(IntakeRejected):
+            self.store.transition(self.run, run["revision"], "completed", "actor1")
+        self.turns.observe(self.run, self.event, {
+            "method": "turn/completed",
+            "params": {"threadId": "thread_abc",
+                       "turn": {"id": "turn_edit", "status": "completed"}},
+        })
+        self.assertEqual("waiting_ci", self.store.get_run(self.run)["status"])
 
     def test_unknown_send_or_restart_never_replays(self):
         self.queue_run()
@@ -199,6 +290,40 @@ class NativeAppServerProtocolTest(unittest.TestCase):
             allow_model=True,
         )
         self.assertEqual("turn_1", result["result"]["turn"]["id"])
+
+    def test_terminal_notification_before_start_ack_is_buffered(self):
+        self.server.initialize()
+        original_write = self.input.write
+        final_event = {
+            "method": "turn/completed",
+            "params": {"threadId": "thread_abc",
+                       "turn": {"id": "turn_1", "status": "completed"}},
+        }
+
+        def emit_terminal_before_ack(raw):
+            if json.loads(raw).get("method") == "turn/start":
+                self.output.data.put(json.dumps(final_event) + "\n")
+            return original_write(raw)
+
+        self.input.write = emit_terminal_before_ack
+        observed = self.server.turn_start(
+            {"method": "turn/start", "params": {"threadId": "thread_abc"}},
+            allow_model=True,
+        )
+        self.assertEqual("turn_1", observed["result"]["turn"]["id"])
+        self.assertEqual([final_event], self.server.drain_notifications())
+        self.assertEqual([], self.server.drain_notifications())
+
+    def test_overflow_fails_before_starting_new_native_turn(self):
+        self.server.initialize()
+        before = len(self.input.sent)
+        self.server._notification_overflow = True
+        with self.assertRaisesRegex(NativeProtocolError, "notification overflow"):
+            self.server.turn_start(
+                {"method": "turn/start", "params": {"threadId": "thread_abc"}},
+                allow_model=True,
+            )
+        self.assertEqual(before, len(self.input.sent))
 
     def test_host_tool_approval_is_never_autoaccepted(self):
         self.server.initialize()

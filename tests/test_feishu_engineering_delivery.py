@@ -147,6 +147,62 @@ class DeliveryContractTest(unittest.TestCase):
         with self.assertRaises(IntakeRejected):
             self.delivery.complete_engineering_only(self.run, self.event)
 
+    def test_different_pr_ci_sha_or_qa_sha_must_not_complete(self):
+        different = "f" * 40
+        self.delivery.verify_git(
+            self.run, self.event, "pr", "github://pr/11", SHA,
+            self.observer("pr", "github://pr/11"),
+        )
+        with self.assertRaisesRegex(IntakeRejected, "commit mismatch"):
+            self.delivery.verify_git(
+                self.run, self.event, "ci", "github://actions/22", different,
+                lambda ref: {
+                    "head_sha": different, "repo_alias": "robot-app",
+                    "reference": ref, "conclusion": "success",
+                },
+            )
+        self.delivery.verify_git(
+            self.run, self.event, "ci", "github://actions/22", SHA,
+            self.observer("ci", "github://actions/22"),
+        )
+        self.delivery.advance_after_ci(self.run, self.event)
+        stamp = int(time.time())
+        qa_ref = "tapd://qa/wrong-head"
+        forged_but_validly_signed = hmac.new(
+            QA_SECRET,
+            DeliveryCoordinator.qa_message(
+                self.run, self.key.fingerprint, different,
+                "ou_independent_qa", qa_ref, stamp,
+            ), hashlib.sha256,
+        ).hexdigest()
+        with self.assertRaisesRegex(IntakeRejected, "QA head"):
+            self.delivery.accept_manual_qa(
+                self.run, self.event, different,
+                "ou_independent_qa", qa_ref, stamp,
+                forged_but_validly_signed, QA_SECRET,
+            )
+        with self.assertRaises(IntakeRejected):
+            self.delivery.complete_engineering_only(self.run, self.event)
+
+    def test_publication_head_and_verified_pr_must_match(self):
+        self.publication(lambda request: {
+            "pr_id": "PR_11", "head_sha": SHA,
+            "repo_full_name": "jiying2007/robot-app",
+        })
+        different = "f" * 40
+        with self.assertRaisesRegex(IntakeRejected, "differs from publication"):
+            self.delivery.verify_git(
+                self.run, self.event, "pr", "github://pr/11", different,
+                lambda ref: {
+                    "head_sha": different, "repo_alias": "robot-app",
+                    "reference": ref, "state": "open",
+                },
+            )
+        self.delivery.verify_git(
+            self.run, self.event, "pr", "github://pr/11", SHA,
+            self.observer("pr", "github://pr/11"),
+        )
+
     def test_signed_independent_qa_completes_run_not_external_workitem(self):
         self.verify_pr_ci()
         self.delivery.advance_after_ci(self.run, self.event)

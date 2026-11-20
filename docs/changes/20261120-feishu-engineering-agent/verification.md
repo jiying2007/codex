@@ -62,3 +62,11 @@ Required offline CI: Python 3.8/3.11/3.12 full repository tests, profile context
 **Centralized field campaign, to be scheduled after code integration:** (1) vstrong100 host and Codex version/identity/charge; (2) real Feishu message/card permissions & callback timing; (3) TAPD/Meegle optional read; (4) one Feature + one Bug actual Git/CI/QA; (5) one multi-repo contract + device proof when relevant; (6) single-consumer migration/rollback. For any inaccessible API, record a blocked gate with an explicit manual path, not fabricated PASS.
 
 - `test_feishu_engineering_github_adapter.py`: fixed GitHub API origin, repo/ref/head identity, PR draft POST only after remote branch proof, independent read-only PR/CI results, no default remote writes. PR and source-comment unsigned effect negatives verified in delivery test. Real GitHub publishing requires live host access and separate permission; no source-side field proof is inferred.
+
+## P0 exact-SHA negative regressions (source-only)
+- Confirm a PR at SHA A + CI at SHA B is rejected even when each remote observer separately reports success; QA's correctly signed attestation at SHA B is rejected when the pinned delivery SHA is A. Published head and later source proof must also agree.
+- Confirm read/review native turns can finish at their own terminal event with no forced PR/CI/QA, but edit attempts cannot complete before matching PR/CI and independent QA.
+- Confirm a forged in-memory RuntimeGrant cannot start an actual native model turn without a durable, independently signed WorkItem execution approval receipt; replay after Run started cannot mint another grant.
+- Confirm app-server terminal notification sent before turn-start ACK is queued for later exact-thread reconciliation. Notification queue overflow blocks subsequent RPC instead of dropping evidence.
+- Confirm source workitem replay cannot switch to another source Run and current repository access revocation blocks provider reading before any API I/O.
+These tests must pass under the exact final HEAD across Python 3.8, 3.11 and 3.12; actual network/model/Feishu/device evidence remains pending field verification.

@@ -91,6 +91,37 @@ class WorkflowContractTest(unittest.TestCase):
         with self.assertRaises(IntakeRejected):
             self.workflow.create_attempt(self.source_id, event, "edit", {"motor-mcu"})
 
+    def test_replayed_event_cannot_rebind_a_different_workitem(self):
+        from tools.codex_assets.feishu_engineering_agent.models import WorkItemKey
+        event, first_id = self.attempt()
+        unrelated = self.manual.store.create_run(
+            self.event, "robot-app", {"robot-app"}, mode="read",
+            workitem=WorkItemKey("tapd", "tenantA", "10104801", "defect", "999"),
+        )
+        with self.assertRaisesRegex(IntakeRejected, "cannot change WorkItem source"):
+            self.workflow.create_attempt(unrelated, event, "edit", {"robot-app"})
+        self.assertEqual(
+            first_id, self.workflow.status_for_source(
+                self.source_id, event,
+            )["attempts"][0]["attempt_run_id"],
+        )
+
+    def test_queued_approval_not_reissued_after_remote_dispatch(self):
+        event, child_id = self.attempt()
+        approved = self.approval(child_id)
+        signed = self.workflow.sign_approval(approved, SECRET)
+        self.workflow.authorize_queue(
+            approved, signed, SECRET, event, {"robot-app"},
+        )
+        current = self.manual.store.get_run(child_id)
+        self.manual.store.transition(
+            child_id, current["revision"], "running", event.actor,
+        )
+        with self.assertRaisesRegex(IntakeRejected, "already started or ended"):
+            self.workflow.authorize_queue(
+                approved, signed, SECRET, event, {"robot-app"},
+            )
+
     def test_signed_edit_requires_sdd_scoped_repo_and_unshared_budget(self):
         event, child_id = self.attempt()
         bad = self.approval(child_id, sdd_reviewed=False)

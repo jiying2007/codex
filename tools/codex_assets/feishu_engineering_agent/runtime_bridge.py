@@ -60,6 +60,18 @@ class NativeTurnCoordinator:
         rpc = self.sessions.turn_request(
             binding, grant, prompt, model_calls_enabled=model_calls_enabled,
         )
+        # A dataclass supplied by a chat/card handler is not itself an approval.
+        # Require the independent, signed WorkItem approval to have been
+        # durably admitted by EngineeringWorkflow before any model effect.
+        with contextlib.closing(self.store._connect()) as approval_db:
+            receipt = approval_db.execute(
+                "SELECT approval_ref,billing_source FROM fea_run_approvals "
+                "WHERE run_id=?", (run_id,),
+            ).fetchone()
+        if (receipt is None or grant is None
+                or receipt["approval_ref"] != grant.authorization_ref
+                or receipt["billing_source"] != grant.billing_source):
+            raise IntakeRejected("native Codex turn lacks persistent signed approval")
         # request_hash is only metadata; do not save prompt or model response.
         import hashlib
         digest = hashlib.sha256(

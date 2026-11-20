@@ -8,7 +8,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import time
-from typing import Callable, Mapping, Optional
+from typing import Callable, Iterable, Mapping, Optional
 
 from .models import InboundEvent, IntakeRejected, WorkItemKey
 from .state import RunStore
@@ -32,6 +32,7 @@ class SourceReconciler:
         self, run_id: str, event: InboundEvent,
         reader: Optional[Callable[[WorkItemKey], WorkItemSnapshot]],
         source_read_enabled: bool = False,
+        allowed_repos: Iterable[str] = (),
     ) -> dict:
         """Return real provider text only in the immediate authorized response.
 
@@ -39,6 +40,10 @@ class SourceReconciler:
         write/close permission, and no model call.
         """
         run = self.store.get_run(run_id, event)
+        from .models import check_repo_alias
+        authorized = {check_repo_alias(alias) for alias in allowed_repos}
+        if run["repo"] not in authorized:
+            raise IntakeRejected("source repository access revoked")
         if (not run["provider"] or not run["workitem_fp"]
                 or not run["workspace"] or not run["item_id"]):
             raise IntakeRejected("run is not linked to an external WorkItem")

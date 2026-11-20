@@ -93,13 +93,15 @@ class EngineeringWorkflow:
             db.execute("BEGIN IMMEDIATE")
             try:
                 previous = db.execute(
-                    "SELECT content_digest,attempt_run_id "
+                    "SELECT content_digest,source_run_id,attempt_run_id "
                     "FROM fea_attempt_links WHERE event_key=?",
                     (event.event_key,),
                 ).fetchone()
                 if previous is not None:
                     if previous["content_digest"] != event.content_digest:
                         raise EventConflict("same event identity with changed scope")
+                    if previous["source_run_id"] != source_run_id:
+                        raise IntakeRejected("replayed event cannot change WorkItem source")
                     row = db.execute(
                         "SELECT repo,mode FROM fea_runs WHERE run_id=?",
                         (previous["attempt_run_id"],),
@@ -180,6 +182,12 @@ class EngineeringWorkflow:
                 if prior is not None:
                     if prior["signed_digest"] != digest:
                         raise IntakeRejected("conflicting execution approval")
+                    active = db.execute(
+                        "SELECT status FROM fea_runs WHERE run_id=?",
+                        (approval.run_id,),
+                    ).fetchone()
+                    if active is None or active["status"] != "queued":
+                        raise IntakeRejected("approved Run already started or ended")
                     db.rollback()
                     return RuntimeGrant(
                         approval.run_id, approval.actor, approval.repo, approval.mode,
