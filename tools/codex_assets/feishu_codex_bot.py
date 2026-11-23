@@ -2045,6 +2045,7 @@ class FeishuCodexBot:
         abandoned = self.store.reconcile_abandoned_running()
         for row in abandoned:
             self.spool.discard(row["id"])
+            self._fail_agent_run(row["id"], "unknown")
             self._send_safe(
                 self.config.target_chat_id,
                 f"任务 #{row['id']} 在服务重启时执行状态未知，未自动重试；请核对结果。",
@@ -2072,6 +2073,7 @@ class FeishuCodexBot:
                 if not startup and int(time.time()) - int(row["created_at"]) < 30:
                     continue
                 if self.store.mark_queued_unknown(row["id"], "QueuedPayloadUnavailable"):
+                    self._fail_agent_run(row["id"], "unknown")
                     self._send_safe(
                         self.config.target_chat_id,
                         f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
@@ -2080,6 +2082,7 @@ class FeishuCodexBot:
                 continue
             except (OSError, SpoolError, FeishuCodexError):
                 if self.store.mark_queued_unknown(row["id"], "QueuedPayloadUnavailable"):
+                    self._fail_agent_run(row["id"], "unknown")
                     self._send_safe(
                         self.config.target_chat_id,
                         f"任务 #{row['id']} 缺少可信的待执行输入，未自动运行；请重新提交。",
@@ -2362,6 +2365,7 @@ class FeishuCodexBot:
                         continue
                     if not self.store.claim_queued(job.task_id):
                         continue
+                    self._transition_agent_run(job.task_id, "running", strict=True)
                     print(
                         f"[INFO] running task={job.task_id} repo={job.repository} "
                         f"message_id_suffix={job.message_id[-6:]}",
@@ -2380,6 +2384,7 @@ class FeishuCodexBot:
                         )
                     if job.artifact:
                         self._send_artifact(job, result)
+                    self._finish_agent_run(job, result)
                     self.store.update_task(job.task_id, "completed")
                     # A failed chat reply must never rewrite a verified execution as failed.
                     try:
@@ -2389,10 +2394,12 @@ class FeishuCodexBot:
                     print(f"[PASS] completed task={job.task_id} repo={job.repository}", flush=True)
             except TaskCanceled:
                 self.store.update_task(job.task_id, "canceled", "TaskCanceled")
+                self._fail_agent_run(job.task_id, "canceled")
                 self._send_safe(job.chat_id, "任务已取消；如模型已运行，应核对可能产生的费用或外部效果。", job.message_id)
             except CodexOutcomeUnknown:
                 if job.task_id:
                     self.store.update_task(job.task_id, "unknown", "CodexOutcomeUnknown")
+                    self._fail_agent_run(job.task_id, "unknown")
                 self._send_safe(
                     job.chat_id,
                     "Codex 执行结果未知；未自动重试。请核对本地改动、外部效果和模型费用。",
@@ -2401,6 +2408,7 @@ class FeishuCodexBot:
             except FeishuCodexError as exc:
                 if job.task_id:
                     self.store.update_task(job.task_id, "failed", type(exc).__name__)
+                    self._fail_agent_run(job.task_id, "failed")
                 print(
                     f"[ERROR] job_failed task={job.task_id} kind={type(exc).__name__}",
                     flush=True,
@@ -2409,6 +2417,7 @@ class FeishuCodexBot:
             except Exception as exc:
                 if job.task_id:
                     self.store.update_task(job.task_id, "failed", type(exc).__name__)
+                    self._fail_agent_run(job.task_id, "failed")
                 print(f"[ERROR] unexpected_job_failure task={job.task_id} kind={type(exc).__name__}", flush=True)
                 self._send_safe(job.chat_id, "任务失败：服务发生未预期错误，已记录错误类型。", job.message_id)
             finally:
