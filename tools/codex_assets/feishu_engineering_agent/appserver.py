@@ -1,7 +1,7 @@
 """Bounded Codex App Server stdio RPC: explicit opt-in, no implicit model calls.
 
-stdio app-server protocol uses initialize -> initialized -> thread/resume and
-turn/start, with notifications for turn completion and tool approvals. This
+stdio app-server protocol uses initialize -> initialized -> thread/start or
+thread/resume -> turn/start, with notifications for turn completion and tool approvals. This
 module does not launch Codex unless the host operator creates a transport.
 """
 from __future__ import annotations
@@ -178,21 +178,58 @@ class StdioAppServer:
                     "title": "Feishu Engineering Agent",
                     "version": "1.0.0",
                 },
-                "capabilities": {},
+                # thread/resume.excludeTurns is experimental in the v2 API.
+                # Negotiate it explicitly rather than sending an unsupported field.
+                "capabilities": {"experimentalApi": True},
             },
         })
         self._write({"method": "initialized", "params": {}})
         self.initialized = True
         return response
 
+    def start_thread(self, cwd: str, sandbox: str = "read-only") -> dict:
+        """Create a persistent thread without starting a model turn.
+
+        The returned thread ID is the only identity suitable for SessionRegistry.bind.
+        Danger-full-access and ephemeral threads are deliberately unavailable here.
+        """
+        if not self.initialized:
+            raise NativeProtocolError("initialize first")
+        working_directory = _absolute_path(cwd, "cwd")
+        if sandbox not in ("read-only", "workspace-write"):
+            raise NativeProtocolError("thread sandbox must be read-only or workspace-write")
+        response = self.request({
+            "method": "thread/start",
+            "params": {
+                "cwd": working_directory,
+                "approvalPolicy": "on-request",
+                "sandbox": sandbox,
+                "ephemeral": False,
+            },
+        })
+        result = response.get("result")
+        thread = result.get("thread") if isinstance(result, dict) else None
+        thread_id = thread.get("id") if isinstance(thread, dict) else None
+        if (not isinstance(thread, dict) or not isinstance(thread_id, str)
+                or thread.get("ephemeral") is not False):
+            # thread/start may have created a remote persistent thread. Do not
+            # retry automatically when its exact identity cannot be established.
+            raise NativeProtocolError("thread/start result lacks an exact persistent thread identity")
+        return {"thread_id": _check_id(thread_id, "thread_id"), "response": response}
+
     def resume_exact(self, thread_id: str) -> dict:
         if not self.initialized:
             raise NativeProtocolError("initialize first")
-        return self.request({
+        exact_id = _check_id(thread_id, "thread_id")
+        response = self.request({
             "method": "thread/resume",
-            "params": {"threadId": _check_id(thread_id, "thread_id"),
-                       "excludeTurns": True},
+            "params": {"threadId": exact_id, "excludeTurns": True},
         })
+        result = response.get("result")
+        thread = result.get("thread") if isinstance(result, dict) else None
+        if not isinstance(thread, dict) or thread.get("id") != exact_id:
+            raise NativeProtocolError("thread/resume returned a different thread identity")
+        return response
 
     def turn_start(self, request: Mapping[str, Any], allow_model: bool = False) -> dict:
         if not self.initialized or not allow_model:
