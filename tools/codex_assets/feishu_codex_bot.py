@@ -2074,10 +2074,15 @@ class FeishuCodexBot:
                 from .feishu_engineering_agent.workflow import (
                     EngineeringWorkflow, local_agent_policy_digest,
                 )
-                run = self._manual_service.store.get_run(link["agent_run_id"])
-                approval = EngineeringWorkflow(self._manual_service.store).local_agent_approval(
-                    link["agent_run_id"],
-                )
+                try:
+                    run = self._manual_service.store.get_run(link["agent_run_id"])
+                    approval = EngineeringWorkflow(self._manual_service.store).local_agent_approval(
+                        link["agent_run_id"],
+                    )
+                except Exception as exc:
+                    raise SpoolError(
+                        "WorkItem AgentRun ledger or local approval receipt is unavailable"
+                    ) from exc
                 expected_mode = {"read": "explain", "review": "review", "edit": "edit"}.get(run["mode"])
                 if (run["status"] != "queued" or run["repo"] != job.repository
                         or expected_mode != job.mode
