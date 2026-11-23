@@ -213,17 +213,92 @@ def external_items(repo: Repo) -> tuple[list[dict[str, Any]], list[str]]:
     return items, unavailable
 
 
+_OBJECT_PREFIX = re.compile(
+    r"(?:[\s`'“”\"‘’，,:：]|the\b|this\b|that\b|my\b|our\b|"
+    r"一下|这次的|本次的|此次的|本轮的|这份|我的|这次|本次|此次|本轮|当前)*"
+)
+_REVIEW_SUFFIX = re.compile(
+    r"(?:[\s`'“”\"‘’，,:：]|please\b|改动|差异|补丁|代码|帮我|请|做|进行|作|独立|只读)*"
+)
+_OBJECT_FIRST = re.compile(r"(?:对|把|将)\s*(?:当前|本轮|这次的)?\s*[`'“\"‘]*$")
+_EXPLICIT_REQUEST = re.compile(r"(?:请|帮我|做|进行|please)\s*$")
+_NON_REQUEST_PREFIX = re.compile(
+    r"(?:如何|怎样|怎么|how\s+to|不要|无需|不必|不需要|do\s+not|don['’]t|no\s+need\s+to)"
+    r"(?:\s|独立|只读|去|做|independently\b)*$"
+)
+_CLAUSE_BOUNDARY = re.compile(
+    r"[，。；！？,;!?\n]+|并且|然后|同时|但是|\b(?:and|but|then)\b"
+)
+_NON_REQUEST_SCOPE = re.compile(
+    r"^\s*(?:(?:请|麻烦|先|暂时|please\b)\s*)*"
+    r"(?:不要|无需|不必|不需要|别|是否|do\s+not\b|don['’]t\b|no\s+need\s+to\b|should\s+(?:we|i)\b)"
+)
+_HISTORICAL_REQUEST = re.compile(
+    r"^\s*(?:(?:请|麻烦)?\s*(?P<only_zh>只|仅|仅仅)?\s*(?:统计|计数|梳理|归纳|汇总|提炼)\s*(?:一下\s*)?"
+    r"(?:历史会话|历史线程|工作记录)|"
+    r"(?:please\s+)?(?:(?P<only_en>only|just)\s+)?(?:count|tally|mine|summari[sz]e|analy[sz]e)\s+"
+    r"(?:(?:the|our|my)\s+)?(?:session history|prior sessions))"
+)
+
+
+def _qualified_route_terms(query: str, route: dict[str, Any]) -> list[str]:
+    historical = _HISTORICAL_REQUEST.match(query)
+    if historical and (historical["only_zh"] or historical["only_en"]):
+        return []
+    required = route["requires_any"]
+    if (not isinstance(required, list) or not required
+            or any(not isinstance(term, str) or not term.strip() for term in required)):
+        return []
+    include = {term.strip().casefold() for term in required}
+    intents = {term.strip().casefold() for term in route.get("match_any", []) if term.strip()}
+    targets = [
+        (match, term)
+        for term in sorted(include)
+        for match in re.finditer(re.escape(term), query)
+    ]
+    matches = set()
+    for intent in sorted(intents):
+        pattern = re.escape(intent)
+        if intent.isascii():
+            pattern = rf"(?<![a-z0-9_]){pattern}(?![a-z0-9_])"
+        for action in re.finditer(pattern, query):
+            prefix = query[:action.start()]
+            clause_prefix = _CLAUSE_BOUNDARY.split(prefix)[-1]
+            if (_NON_REQUEST_PREFIX.search(prefix)
+                    or _NON_REQUEST_SCOPE.match(clause_prefix)
+                    or _HISTORICAL_REQUEST.match(clause_prefix)):
+                continue
+            for target, term in targets:
+                if action.end() <= target.start() and _OBJECT_PREFIX.fullmatch(query[action.end():target.start()]):
+                    matches.update((intent, term))
+                elif target.end() <= action.start():
+                    between = query[target.end():action.start()]
+                    if (_REVIEW_SUFFIX.fullmatch(between)
+                            and (_OBJECT_FIRST.search(query[:target.start()])
+                                 or re.search(r"please\b|帮我|请", between))):
+                        matches.update((intent, term))
+                elif (action.start() <= target.start() and target.end() <= action.end()
+                      and _EXPLICIT_REQUEST.search(query[:action.start()])):
+                    matches.update((intent, term))
+    return sorted(matches)
+
+
 def _route_hints(repo: Repo, query: str) -> dict[str, dict[str, Any]]:
     manifest_path = repo.manifests_dir / "workflows.json"
     if not manifest_path.is_file():
         return {}
     folded_query = query.casefold()
-    candidates: list[tuple[int, str, dict[str, Any], list[str]]] = []
+    candidates: list[tuple[tuple[bool, int], str, dict[str, Any], list[str]]] = []
     workflows = json.loads(manifest_path.read_text(encoding="utf-8")).get("workflows", [])
     for workflow in workflows:
         for route in workflow.get("routes", []):
             excludes = [str(term).casefold() for term in route.get("exclude_any", [])]
             if any(term and term in folded_query for term in excludes):
+                continue
+            if "requires_any" in route:
+                matches = _qualified_route_terms(folded_query, route)
+                if matches:
+                    candidates.append(((True, len(matches)), str(workflow.get("name", "")), route, matches))
                 continue
             matches = [
                 str(term)
@@ -231,7 +306,7 @@ def _route_hints(repo: Repo, query: str) -> dict[str, dict[str, Any]]:
                 if str(term) and str(term).casefold() in folded_query
             ]
             if matches:
-                candidates.append((len(matches), str(workflow.get("name", "")), route, matches))
+                candidates.append(((False, len(matches)), str(workflow.get("name", "")), route, matches))
     if not candidates:
         return {}
     best_score = max(item[0] for item in candidates)
@@ -420,7 +495,11 @@ def search_skills(
                 "content_sha256": hashlib.sha256(load_path.read_bytes()).hexdigest(),
             }
         )
-    candidates.sort(key=lambda item: (-item["score"], item["activation"] != "active", item["name"]))
+    candidates.sort(key=lambda item: (
+        item["name"] not in named_skills,
+        item["name"] not in named_skills and (item["route"] or {}).get("role") == "mutually_exclusive",
+        -item["score"], item["activation"] != "active", item["name"],
+    ))
     total_matches = len(candidates)
     selected = candidates[:limit]
     payload: dict[str, Any] = {

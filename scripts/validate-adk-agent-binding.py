@@ -11,8 +11,8 @@ SOURCE = ROOT / "src/codex-home"
 AGENTS = ROOT / "manifests/agents.json"
 PROVIDER = ROOT / "manifests/provider-locks/agent-dev-kit.json"
 
-PROVIDER_VERSION = "11.4.16"
-PROVIDER_COMMIT = "c41f7c933f653dd702b0d8042ae9df38807430dc"
+PROVIDER_VERSION = "11.4.17"
+PROVIDER_COMMIT = "3ab45d2d4d7607f1d6c46c7c6726b8551603a017"
 EXPECTED = {
     "architecture-planner": "3b7638b277806f0e752a2ae5d261a93047c394b0",
     "build-release-engineer": "e9fca2c67489d9dd5471f6b075ba2d660397f322",

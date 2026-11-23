@@ -45,6 +45,11 @@ whole-branch 只含 merge-base 到 HEAD；status 中 dirty/untracked 为独立 o
 - Reviewer Independence: independent | author-self-review
 - Review Round:
 - Review Mode: targeted-finding-review | whole-diff-review | whole-lifecycle-review
+- Repository Candidates (试点启用组首轮): <逐仓 Review Target、HEAD、index/diff、适用 base/merge-base、叠加改动、相关未跟踪输入、配套版本及分级映射>
+- Round End (试点启用组首轮): planned | early-stop; reason:
+- Required Coverage (试点启用组首轮): complete | incomplete; see Review Coverage Ledger
+- Submit Decision (试点启用组首轮): <现行门禁结论、阻断问题与关键证据缺口，可并列>
+- Hold Notice (试点启用组首轮，如适用): <标记时间、已授权通知或其证据，与首轮报告交付时间分别记录>
 - Finding Classes:
 - New Finding Class Count:
 - Reopened Finding Count:
@@ -62,6 +67,9 @@ whole-branch 只含 merge-base 到 HEAD；status 中 dirty/untracked 为独立 o
 - Findings:
   | ID | Severity | File | Evidence | Required Action | Status |
   |---|---|---|---|---|---|
+- Findings (试点启用组首轮，替换上方通用表):
+  | ID | Original Severity | File | Scenario / Trigger | Expected / Observed | Impact | Evidence | Required Action | Status |
+  |---|---|---|---|---|---|---|---|---|
 - Cannot Verify From Diff:
 - Spec-to-Code Ledger (when applicable): requirement->code / code->spec / not-checked / owner-risk-decision
 - False Positives:
@@ -69,6 +77,7 @@ whole-branch 只含 merge-base 到 HEAD；status 中 dirty/untracked 为独立 o
 - Review Coverage Ledger (whole-diff/whole-lifecycle when applicable):
   | Scope ID | Source Snapshot | Inspected/Uninspected/Unavailable | Evidence | Owner/Risk Decision |
   |---|---|---|---|---|
+  - Required Scenario (试点启用组首轮): <关联 Scope ID、入口或状态、预期结果、取证方式>
 - Patch Validation (when applicable): base / patched / original_repro / related_variants / legitimate_behavior / new_risks / not-tested
 - CI/PR Review Boundary:
   - trusted_trigger:
@@ -77,6 +86,7 @@ whole-branch 只含 merge-base 到 HEAD；status 中 dirty/untracked 为独立 o
   - inline_anchor_valid:
 - Fix Plan:
 - Re-review Result:
+- Late Finding Attribution (如适用): <finding/scenario ID、原/新快照、首次发现轮次、可比证据、重开状态、来源判定>
 - Final Verdict: pass | needs-fix
 - Review Independence Result: locally-clean | independent-final-pass | needs-fix
 - Final Readiness: true | false

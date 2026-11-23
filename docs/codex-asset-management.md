@@ -97,6 +97,8 @@ rtk bash scripts/skill-search.sh --query "<任务>" --profile default --limit 3 
 
 只有在 `why_selected` 足以区分相邻候选后才读取 `load_path`。已停用 Superpowers 运行依赖；不得通过 `--include-fallback` 重新激活旧框架。需要旧式完整 catalog 时可构建并 apply `team-collab`，但 catalog 只在新线程刷新。
 
+Workflow 路由可用 `requires_any` 指定 `match_any` 意图直接作用的对象。两组在本轮请求中明确相连时，优先于单组匹配。历史统计、否定请求和历史用法中的「如何审查」按原有规则推荐 Skill。历史会话作为本轮暂存审查的佐证时，目录仍优先推荐代码审查。
+
 ### Profile 切换操作边界
 
 - `build.sh --profile <name>` 只更新 `build/codex-home`；只有 apply 才会修改 `~/.codex`。

@@ -39,6 +39,11 @@
 - Semantic review: no-finding | findings-open | needs-context
 - Result: pass | needs-fix
 
+## 整批交付与后续归因
+
+- 首轮确认一项 P1、两项 P2 时，先标记暂缓提交，再继续检查同一候选。报告按级别列全部发现。若设备证据不可用，同时记录必查覆盖不完整与 `needs-review`。首轮报告交付与最终提交判断分别记录。
+- 修复前后都出现同一断言失败，且失败签名对应不同违约时，不能计为同一问题的首轮漏报。首轮已把某场景列为待核实、后来确证时，按后续确证记录。若旧候选有通过证据、新候选失败，但修复与并行改动尚无法隔离，记录来源未定。
+
 ## Snapshot Commands
 
 只使用 [Snapshot commands](review-evidence-template.md#snapshot-commands) 的目标选择与命令，不复制快照流程。机械检查不替代语义审查。

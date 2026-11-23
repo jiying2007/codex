@@ -1,8 +1,8 @@
 ---
 name: adk-code-review-loop
 description: "用于独立代码审查、问题复核与反馈闭环；不用于自动批准或代替提交前门禁。"
-version: 1.7.13
-last_updated: 2026-11-20
+version: 1.7.14
+last_updated: 2026-11-23
 triggers:
   - "独立代码审查"
   - "代码评审"
@@ -46,7 +46,7 @@ constraints:
 ## Workflow
 1. **按意图分流**：`feedback-triage` 仅核单条/有限条反馈。只读来源快照、相关代码/测试/契约和反证；判 `valid / false-positive / question / cannot-verify-from-diff`。不强制 whole-diff/全量 CI/额外 reviewer，不修改文件或发 SCM comment，**不得**给 `Final Verdict: pass`、`Final Readiness: true`。跨文件、共享状态、生命周期、安全/权限及无界影响升级完整审查；缺证据不猜。
 2. **定向复核**：`targeted-finding-review` 只核已知 finding 修复；更新目标 Snapshot ID、overlay、reopened；**不能**替代最终 `whole-diff-review` 或适用的 `whole-lifecycle-review`。
-3. **最终完整审查**：`whole-diff-review` 冻结 HEAD/index/diff 和 Requirement/Domain Model/Verification Baseline；核机械 build/test/format 与语义，同轮输出 Spec/Quality 双 verdict；共享生命周期追加 whole-lifecycle 和独立 reviewer；大范围/高风险记录 `Review Coverage Ledger`。
+3. **完整审查**：`whole-diff-review` 冻结 HEAD/index/diff 和 Requirement/Domain Model/Verification Baseline；核机械 build/test/format 与语义，同轮输出 Spec/Quality 双 verdict；共享生命周期追加 whole-lifecycle 和独立 reviewer；大范围/高风险记录 `Review Coverage Ledger`。高风险试点启用组按 [首轮整批审查](references/review-governance-details.md#首轮整批审查) 预列场景，证实阻断或重大问题即标暂缓提交，继续覆盖并一次性交付各级已确认问题与缺口。
 4. **设计变更分流与收敛**：按 blocker/major/minor/question/cannot-verify-from-diff 分类并附证据；owner/state/event/resource/termination 或取消/超时/恢复变更标 `design-change` 并 replan；记录 new/reopened/clean rounds，不顺带重构。
 5. **门禁交接**：最终 review 交 `adk-commit-pr-quality-gate` 或 `adk-verification-before-completion`；不自动批准；重复模式经 trace-feedback-eval-handoff/AAR 才成为 durable rule。
 

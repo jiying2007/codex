@@ -9,7 +9,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-POLICY_SOURCE = ROOT / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
 ADK = ROOT / "manifests/provider-locks/agent-dev-kit.json"
 RUNTIME = ROOT / "manifests/execution_policy.json"
 HUB = ROOT / "manifests/provider-locks/knowledge-hub.json"
@@ -20,12 +19,12 @@ PROVIDER_MODULE = ROOT / "tools/codex_assets/knowledge_provider_adapter.py"
 AGENTS = ROOT / "AGENTS.md"
 
 ADK_RELEASE = {
-    "version": "11.4.16",
-    "release_tag": "v11.4.16",
-    "provider_commit": "c41f7c933f653dd702b0d8042ae9df38807430dc",
-    "provider_tree": "d8927518b9f5fafb944ba9e08a14a62dad5cb495",
-    "manifest_blob": "65990ada947d4bb78e8c997db689d037a64050b2",
-    "release_artifact_sha256": "66107c68a2ac76488cd06238bc582114dcc4c595aa691da3d6114743b534d59b"
+    "version": "11.4.17",
+    "release_tag": "v11.4.17",
+    "provider_commit": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
+    "provider_tree": "736a9a649d35d0114c196f53640d87b8862522c2",
+    "manifest_blob": "c7fb6ad32c5162ab4c4d87e5fcee4ab377c9cfcd",
+    "release_artifact_sha256": "93fe08fdd4d9c00d4160377faf4299bdaaad0f73f1e3acdf88881f074499779f"
 }
 ADK_FIELDS = {
     "schema", "repository", "version", "release_tag", "provider_commit", "provider_tree",
@@ -103,7 +102,7 @@ def validate_historical_receipt_schema(receipt: dict[str, object]) -> None:
         require(claim in text, f"historical receipt does not forbid {claim}")
 
 def main() -> None:
-    for path in [ADK, POLICY_SOURCE, RUNTIME, HUB, RECEIPT_V2, RECEIPT_V1, ADAPTER, AGENTS,
+    for path in [ADK, RUNTIME, HUB, RECEIPT_V2, RECEIPT_V1, ADAPTER, AGENTS,
                  ROOT / "manifests/session_bootstrap.json"]:
         require(path.is_file(), f"missing runtime binding asset: {path.relative_to(ROOT)}")
     adk = json.loads(ADK.read_text(encoding="utf-8"))

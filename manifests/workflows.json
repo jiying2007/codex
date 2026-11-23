@@ -69,11 +69,11 @@
       "routes": [
         {
           "name": "current-code-review",
-          "match_any": [
-            "独立代码审查", "审查当前代码", "评审当前代码", "审查当前 diff", "评审当前 diff",
-            "审查暂存", "复审暂存", "审查 git diff", "复审 git diff",
-            "review the current code", "review current code", "review the current diff", "review current diff",
-            "review staged changes", "review staged diff", "review the staged diff", "review git diff", "review the git diff"
+          "match_any": ["审查", "复审", "评审", "review", "独立代码审查", "独立代码评审", "independent code review"],
+          "requires_any": [
+            "当前代码", "当前改动", "当前 diff", "暂存", "代码审查", "代码评审", "code review",
+            "git diff", "git diff --cached", "current code", "current diff", "current changes",
+            "current patch", "staged patch", "staged changes", "staged diff"
           ],
           "exclude_any": [],
           "primary_skill": "adk-code-review-loop",
@@ -287,12 +287,7 @@
         {
           "name": "historical-workflow-review",
           "match_any": ["历史会话", "历史线程", "跨会话复盘", "回顾工作记录", "重复流程", "工作流挖掘", "session history", "workflow mining"],
-          "exclude_any": [
-            "独立代码审查", "审查当前代码", "评审当前代码", "审查当前 diff", "评审当前 diff",
-            "审查暂存", "复审暂存", "审查 git diff", "复审 git diff",
-            "review the current code", "review current code", "review the current diff", "review current diff",
-            "review staged changes", "review staged diff", "review the staged diff", "review git diff", "review the git diff"
-          ],
+          "exclude_any": [],
           "primary_skill": "chronicle-workflow-miner",
           "supporting_skills": [],
           "fallback_skill": "",

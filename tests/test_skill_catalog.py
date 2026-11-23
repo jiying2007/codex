@@ -8,6 +8,7 @@ import unittest
 
 from tools.codex_assets.core import Repo
 from tools.codex_assets.skill_catalog import (
+    _qualified_route_terms,
     catalog_metrics,
     search_skills,
     validate_context_budgets,
@@ -35,6 +36,24 @@ class SkillCatalogTest(unittest.TestCase):
             "回顾工作记录，找重复流程并优化 Skill",
             "只分析历史会话的使用问题，不修改代码",
             "分析历史会话里反复运行的 git diff --cached，提炼重复流程",
+            "从历史会话提炼 git diff --cached 的使用习惯",
+            "Review the session history for repeated git diff --cached commands",
+            "Review our session history for repeated git diff --cached commands",
+            "审查一下历史会话里重复出现的 git diff --cached 命令",
+            "仅梳理历史会话里的暂存补丁审查习惯",
+            "回顾历史会话里的暂存审查流程，提炼重复做法",
+            "从历史会话提炼如何评审暂存改动",
+            "Review how we used git diff --cached in our session history",
+            "回顾历史会话，提炼怎么独立评审暂存改动",
+            "Use session history to learn how to independently review staged changes",
+            "统计历史会话里审查暂存改动的次数",
+            "请统计一下历史会话里审查暂存改动的次数",
+            "请只统计历史会话，审查暂存改动一共出现多少次",
+            "请不要审查暂存改动，只梳理历史会话",
+            "请不要对当前代码做独立代码审查，只梳理历史会话",
+            "不要做独立代码审查，参考历史会话",
+            "是否要审查暂存改动？只梳理历史会话",
+            "请先参考历史会话并且不要对当前暂存改动做独立只读审查",
         ]
         with tempfile.TemporaryDirectory() as home:
             for profile in ("default", "team-collab"):
@@ -42,16 +61,46 @@ class SkillCatalogTest(unittest.TestCase):
                     with self.subTest(profile=profile, query=query):
                         result = search_skills(repo, query, profile, home)
                         self.assertEqual("chronicle-workflow-miner", result["candidates"][0]["name"])
+                        self.assertEqual("historical-workflow-review", result["candidates"][0]["route"]["name"])
                 for query in ("对当前代码做独立代码审查", "结合历史会话审查当前 diff，做独立代码审查",
                               "参考历史会话，独立审查当前代码改动",
                               "Review the current code changes using session history",
                               "请复审暂存候选的 git diff --cached，结合历史会话",
                               "review current diff with session history",
                               "请独立只读复审 git diff --cached 中四项反例修复，参考历史会话",
-                              "Review git diff --cached against session history"):
+                              "Review git diff --cached against session history",
+                              "请对 `git diff --cached` 做独立审查，参考历史会话",
+                              "Please review the staged patch against session history",
+                              "结合历史会话帮我审查当前暂存改动",
+                              "Using session history review the current diff",
+                              "参考历史会话审查这次的暂存改动",
+                              "请审查，当前暂存改动可参考历史会话",
+                              "请审查本轮暂存改动，参考历史会话",
+                              "统计历史会话，然后独立审查当前暂存改动",
+                              "请对当前暂存改动做独立只读审查，参考历史会话",
+                              "请对本轮暂存改动做独立只读审查，参考历史会话",
+                              "请独立代码审查，参考历史会话",
+                              "请审查暂存改动，并审查历史会话中的相关决策作为依据",
+                              "Please review the staged patch, then review the session history for supporting evidence"):
                     with self.subTest(profile=profile, query=query):
                         result = search_skills(repo, query, profile, home)
                         self.assertEqual("adk-code-review-loop", result["candidates"][0]["name"])
+                        self.assertEqual("current-code-review", result["candidates"][0]["route"]["name"])
+                        self.assertEqual("primary", result["candidates"][0]["route"]["role"])
+
+    def test_explicit_skill_selection_takes_precedence_over_conflicting_route(self):
+        repo = Repo(pathlib.Path(__file__).resolve().parents[1])
+        cases = (
+            ("统计历史会话，然后独立审查当前暂存改动；仅使用 $chronicle-workflow-miner",
+             "chronicle-workflow-miner"),
+            ("只梳理历史会话，使用 $adk-code-review-loop", "adk-code-review-loop"),
+        )
+        with tempfile.TemporaryDirectory() as home:
+            for profile in ("default", "team-collab"):
+                for query, name in cases:
+                    with self.subTest(profile=profile, name=name):
+                        result = search_skills(repo, query, profile, home)
+                        self.assertEqual(name, result["candidates"][0]["name"])
 
     def test_explicit_only_skills_are_not_natural_language_candidates(self):
         repo = Repo(pathlib.Path(__file__).resolve().parents[1])
@@ -65,6 +114,11 @@ class SkillCatalogTest(unittest.TestCase):
                         self.assertNotIn(name, [row["name"] for row in natural["candidates"]])
                         explicit = search_skills(repo, f"Please use ${name}.", profile, home)
                         self.assertEqual(name, explicit["candidates"][0]["name"])
+
+    def test_qualified_route_normalizes_terms_without_changing_the_match(self):
+        route = {"match_any": ["review"], "requires_any": [" diff ", "DIFF"], "exclude_any": []}
+        self.assertEqual(["diff", "review"], _qualified_route_terms("review diff", route))
+        self.assertEqual([], _qualified_route_terms("preview diff", route))
 
     def test_implicit_selection_honors_live_and_source_invocation_metadata(self):
         repo = self.make_repo()

@@ -138,18 +138,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-adr-writer/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "2ce4fdd95ec15130a55e9244da63b22ec874de4c",
       "source_tree_sha256": "ea35b782a19141197e4480095ae2dfaee86ae3613bce4893955f7c860c7c37c6",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "b20a41941e1ace46aa429f8a8d3ee31b847b629a",
+            "blob": "f0a3ec3045cb26a88be4d28e245b1a6b403b0e30",
             "mode": "100644"
           }
         },
@@ -189,18 +189,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-after-action-review/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "8195e1dd603a80fd6dfd37fabfda231e522a27cf",
       "source_tree_sha256": "6805d9034614c2c829c85497a657e8e738fffdcdb07a362ad036a99e7a7d1d46",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "7ac590e96af2c484c9e9369283e3ac306b24d0d6",
+            "blob": "7d2c404c6e99c08442a1a340db0533ef4e76a27c",
             "mode": "100644"
           }
         },
@@ -242,13 +242,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-archive-governance/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "74071cb5a91805239a08865e815eede99b376b41",
       "source_tree_sha256": "ceabf447c667d8e48e87cd5662870a1ec3447311f1dd464fbc6c8dbc889c5451",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -280,18 +280,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-artifact-gating/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "d86cf7f79a6f0fbd935dbbe16772bd7636289902",
       "source_tree_sha256": "37736b6ed8299638021cbd312f01403987afbb198f6dc353aaba1adaac7c75d6",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "2f753528c6b1ae3ee38c6e3da6318323b1cec798",
+            "blob": "5a68650e02eaf54bf8cb8f521df13d95ff8bbcc1",
             "mode": "100644"
           }
         },
@@ -331,18 +331,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-branch-closeout/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "0eafef3292f33ddd49bb7189f5dc8d8688487ff5",
       "source_tree_sha256": "e26e1a472fb51ab6746e119ef90eb5d7738f8121cd721acdd059dc662462b27d",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "d5774e863dd95ee32c21f441e8bfea35655ea209",
+            "blob": "199910dadb1b59276b634cabfb657f39ce46916d",
             "mode": "100644"
           }
         },
@@ -369,8 +369,8 @@
       "name": "adk-code-review-loop",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.7.13",
-      "vendor_rel": "vendor/skills/adk-code-review-loop/1.7.13",
+      "version": "1.7.14",
+      "vendor_rel": "vendor/skills/adk-code-review-loop/1.7.14",
       "target_rel": "skills/adk-code-review-loop",
       "profiles": [
         "team-collab",
@@ -383,18 +383,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-code-review-loop/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
-      "source_blob": "47d666ac761c1c3c406d27b041f80a4951ee3e35",
-      "source_tree_sha256": "bf1bb94bff359e7dbfeda2fdd3235ee7039472a89f7ab409c1467fed1732ba2b",
-      "source_release": "v11.4.16",
+      "source_blob": "f0810f08a3efc4b6abe5e6a6df93b356b0bbcf2a",
+      "source_tree_sha256": "b15c3284bb1dd8142333c7054a5bdeff0ebe4374acf14a5a39970bd62b092ba6",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "6796a5859774a22c82ecb96c3ad5a538d77d870b",
+            "blob": "7977f921c68a9c1175539b4eb6acd7144c09b39f",
             "mode": "100644"
           }
         },
@@ -434,18 +434,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-commit-pr-quality-gate/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "e64350b66f50c279301d402c5cb556eff0377b25",
       "source_tree_sha256": "cbcac4d493bd4b9303d71020de727ac1c07d2c4049552a5327f90d4f3d7da9af",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "e376061912e694f13d2cda88ec6d611e54a600a2",
+            "blob": "7b83d2a8c600e7786c4f9f46994dc662337af19b",
             "mode": "100644"
           }
         },
@@ -485,18 +485,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-component-api-stability/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "f177aa970e424b9bc54ccca840585349a8359140",
       "source_tree_sha256": "b40f717caba062bee3eabe60fb0bc6f47c29337a83515a36138651bb394cb003",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "8faff4c81591df54c1607f1cc1e35d2513ad433e",
+            "blob": "b5dacdd3ba6393147906345d67b4ce7820d9ebe0",
             "mode": "100644"
           }
         },
@@ -539,13 +539,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-context-compress-handoff/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "ece505929265aa0e02e8c3d72b0a5f63df00f24f",
       "source_tree_sha256": "04cad79e48db2738389f81f126dc1612fbeec22daf41595d260b7e95f6177594",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -576,18 +576,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-context-engineering/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "6e7f97445359227f79ffc29a8d4c52029f74d0cc",
       "source_tree_sha256": "9690421574bbbd1f730cdd490e4a1c11b481b152c7f39df4b41569b8bbc5f710",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "4f86b3385034a31932f5350ee34f593ddc127e0f",
+            "blob": "5db12293f65f090336e351d809b10cc15774e7a3",
             "mode": "100644"
           }
         },
@@ -627,18 +627,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-cross-team-handoff/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "38b6a47d03fe1dd18293ba7fb1eb02afd0ed5f12",
       "source_tree_sha256": "82d0639c3b2a20a25dfc59222efd436a36d03cf34c791b6ff711c0f84dad6fd2",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "fa5b5f2073ddfcad814aff2addd772893c062ef4",
+            "blob": "a92d5790319d8b9439c60835ed1b4530b79ceaae",
             "mode": "100644"
           }
         },
@@ -678,18 +678,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-driver-bringup-checklist/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "16d37a1593de47b69a9d3f03a91719eb306f3ee6",
       "source_tree_sha256": "fc1e549837db7067b514656c0663134ccd14a272d0a2f27d7464d1424756e13b",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "ce905b0dd6878e28e5faa1bdbc0dee433ec17e79",
+            "blob": "ea879bafc414aafedba371805cdbe380c6bb7c31",
             "mode": "100644"
           }
         },
@@ -729,18 +729,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-driver-implementation/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "03dab786433fce3fb12487701cb9a206ddc2416c",
       "source_tree_sha256": "d6812a12bb7b6c90cdd2db0696e5038d59f27d32815248754abf26af5aae48fc",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "5be324214494242afc90f90519905c72ec341b99",
+            "blob": "a66f8c30fb15c2b5cc3bb002a6efdead128330d3",
             "mode": "100644"
           }
         },
@@ -782,13 +782,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-embedded-debug-transport/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "293b0664c59d5069af03a92983357943dd5f0d52",
       "source_tree_sha256": "dc120f1878573274410253cc47a12d19836bfba2c0ae212eca7522345a1e2d4b",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -821,13 +821,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-embedded-diagnostic-harness/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "6f7a7813bb420f04ce96f4acc2078500ea7f3850",
       "source_tree_sha256": "4ea8ae1b419899729f056387782f8b6bc2fcf0061dcb5bad36e24bce50f4b391",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -861,13 +861,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-embedded-release-orchestration/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "d97c42deae89a3e8f9be7204296e67a442e8f101",
       "source_tree_sha256": "a53c5a2182633de62d74159b1fd00bc43ac43c29856fe237eb1afe0a154d4150",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -900,13 +900,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-embedded-remote-debug-log-triage/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "eea9374be54518c1a9e16729f82d063b4cc13ea5",
       "source_tree_sha256": "f91e340dce36c3be77560ada97eb40ed001d35b2e6675991abb67e1463241801",
-      "source_release": "v11.4.16"
+      "source_release": "v11.4.17"
     },
     {
       "name": "adk-engineering-growth-review",
@@ -928,13 +928,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-engineering-growth-review/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "eb6ec5ed04d90371e3aa8bae3870ddb74915905c",
       "source_tree_sha256": "0fff4904cef53e46461177040d7f5d0862ba14d44a6d39c97130c5ea8e0f72c7",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -965,18 +965,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-interface-contract-design/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "b01e02a69b8161d1518329cb1e7c297775bc8f83",
       "source_tree_sha256": "f079d84af1c07d59f7efc048ba3b1aef70ac71085a0fa27d9d1fa5c2bdac4cd0",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "36931607bed9abeea92593c1d3300b2ccffc9087",
+            "blob": "46fe56c9ef84653a8ad99a26cbfe9adea8ec18b5",
             "mode": "100644"
           }
         },
@@ -1020,13 +1020,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-knowledge-archive/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "5f67580e169c9b5c0687db35f954e98b73c5e10a",
       "source_tree_sha256": "407e6d2109832c576c5dfb506dbedf5fc641906839f74b27d17d13e37bcd5c27",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -1059,13 +1059,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-lightweight-planning/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "7de09d80e4c1f267c9b3592702c964a12b384863",
       "source_tree_sha256": "896297c0eb81f2e97da378395d93e9ef7b3924931955020d574a41d4d6cbd06d",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -1098,13 +1098,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-memory-curator/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "5da39061de48e197503d06321b5dfeb59da78859",
       "source_tree_sha256": "f82f98a4179bb7883a347941f9620ab9862323a2872a70473d581bc2073bfb88",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "agents/openai.yaml": {
           "source": {
@@ -1137,18 +1137,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-offline-core-dump-triage/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "67e73b15716488dd8736f2635fe13c2d2bd7782e",
       "source_tree_sha256": "047f218bbe72f712cc4a379ff4968676fa1eefdd140f279fd95ae8046949ce05",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "61e47224142604d49afc9a11fff21184ac73374c",
+            "blob": "6b5f8745f1390eb4d209fb641866ef0cd8d257b6",
             "mode": "100644"
           }
         },
@@ -1188,18 +1188,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-parallel-agent-governance/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "554bd0f42d10832a0aa4c898f73bc4a216b2d9fe",
       "source_tree_sha256": "330c02c562bc90410b706ebf73daccdc73b48755d8b822e987b15183d82ccf28",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "be6f08c26feaa5a738c5b57291843bbcde617de1",
+            "blob": "1affbd41c6beac56b88effd7f86d12c9c97dd31a",
             "mode": "100644"
           }
         },
@@ -1226,8 +1226,8 @@
       "name": "adk-planning-execution-loop",
       "enabled": true,
       "source_kind": "vendor",
-      "version": "1.4.6",
-      "vendor_rel": "vendor/skills/adk-planning-execution-loop/1.4.6",
+      "version": "1.4.7",
+      "vendor_rel": "vendor/skills/adk-planning-execution-loop/1.4.7",
       "target_rel": "skills/adk-planning-execution-loop",
       "profiles": [
         "team-collab",
@@ -1240,18 +1240,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-planning-execution-loop/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
-      "source_blob": "667230ca70172709d8368415e4a8751459e39e4d",
-      "source_tree_sha256": "9d1c2e265951883864b5f77289b9ee43bf118db974442f2091ca00b62c94a8d3",
-      "source_release": "v11.4.16",
+      "source_blob": "9912783e5cdcf3cd5ab339804b4d993405b2de76",
+      "source_tree_sha256": "6c5d7c86fb1d0dfd9c90ffc1334490e22200d641f9ef21a3d1d1eee8b0f5da14",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "24c9b7d879c0f3a23128a393cf19af192088c3a1",
+            "blob": "15a75423ef802b8d4c7f096545c132f571c2a5f6",
             "mode": "100644"
           }
         },
@@ -1291,18 +1291,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-release-versioning/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "735f3854b89ef31248e3eee85718f588aa64f492",
       "source_tree_sha256": "33988f70228f507dcdd2fdde247217fe71735d8997163dc24c266e16a2151503",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "1c707087fb5fba7a42d00ebc8977a5053dd4c4a7",
+            "blob": "78b309f3f4280bebe510e38cefe6f0d9d576b3db",
             "mode": "100644"
           }
         },
@@ -1344,13 +1344,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-repo-drift-remediation/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "a4b5eda8cfbab427ad5528edd878b6bd80b32eba",
       "source_tree_sha256": "23ba28a7338236723f94e47549c21cb78cd192ce6b523ceb273e6e0861eb3126",
-      "source_release": "v11.4.16"
+      "source_release": "v11.4.17"
     },
     {
       "name": "adk-repo-prompt-analysis",
@@ -1369,13 +1369,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-repo-prompt-analysis/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "874c69c6d1df32b6460c2ad285cb3ca85645dcc9",
       "source_tree_sha256": "81712fae30d79d9f521812e997ca7311795f24bc4035105cdfb84bd8a6180f2f",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -1387,8 +1387,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "93a04776948f0533a37994264eb96be6b43f7ec6"
+            "blob": "04ffbfc1d6fdc6f0e1d40f1685b2a956f020313e",
+            "mode": "100644"
           }
         }
       }
@@ -1411,18 +1411,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-requirements-triage/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "6da898609dd635ae982fedeed2471b4abc307eac",
       "source_tree_sha256": "63dc3f8cfa45711285ed98b8ce34a13f211089ab7cb374b256df7435539ec1da",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "eea2525c5a203ccc97bab780593fc7269a7514a3",
+            "blob": "7dc117cd3c3cd8fa86363f79bad1989ac75f81d1",
             "mode": "100644"
           }
         },
@@ -1463,18 +1463,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-runtime-router/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "931a57565c65028f42ac68fc7346de2adc54fb61",
       "source_tree_sha256": "a62307008f50dc1076485097091457f20096855284336b0bc92dfaaba60d6192",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "c930dcd87852d50c7fe0a8131e22526694020f16",
+            "blob": "7ce366c6434d827e85d87dd16bad8f5eec503e9a",
             "mode": "100644"
           }
         },
@@ -1514,18 +1514,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-security-supply-chain/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "ee812e64e5ba17913211b85049bcd7632a3b44ba",
       "source_tree_sha256": "b47c44cf4a640818c9f09fe6e00eb9cf8d7eb514907eaf1eb45cce3bdc77ec47",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "88f39fd8991afdfce6f915ce170945df34af545b",
+            "blob": "883474118891878eaf890a2dc38b70adf8b5592a",
             "mode": "100644"
           }
         },
@@ -1565,18 +1565,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-skill-composition-governance/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "43b577717aa8f101cb4b9c79af511938d068007b",
       "source_tree_sha256": "56695061cda83f8a5cf637326d050ede478a7d2caa4c958ab9c678f740318b89",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "daa7f69f77cb76430fd3e4cd2f62d3c6a39433f5",
+            "blob": "371d9d21b38730299a896b010e2222ca8451a0c3",
             "mode": "100644"
           }
         },
@@ -1616,13 +1616,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-skill-deep-analysis/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "d85f4df49326ae5c64bc8348c1fbef5f0f785ba3",
       "source_tree_sha256": "460e7e4de4e3988901af2b2a2de56454ec0e49223f45d7dddab873756aa19300",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -1634,8 +1634,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "8dea44add62d0bb6b83801cb4f0a1dc029659e8e"
+            "blob": "319c998921c17ae51c26d4a97c363b679064b764",
+            "mode": "100644"
           }
         }
       }
@@ -1657,18 +1657,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-static-analysis-c-cpp/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "c5f3a3ac90c6354800bc5a2f20d284e2c445b8af",
       "source_tree_sha256": "0f3725e0f8777753fb69c9809fb02b73f78c5ea62584741d94252451d12560c5",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "11bde4cb5861cec03d2c03c65b686143f92a2518",
+            "blob": "5dc8b8c054c0a2dc7bc1706d97edfcc0e721f45c",
             "mode": "100644"
           }
         },
@@ -1708,18 +1708,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-structured-requirements-questioning/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "d6c1f98230088215cfc779145e7641e93156983f",
       "source_tree_sha256": "d8a4e5c93501f0eacd18d522e552832860f82659ade4e90d8744e9966ab3d89e",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "5d4ace960e8a4fae2b4c32ea148daa09e6e13306",
+            "blob": "821a3615912d0b6767c7c05c2f54507320ab9df1",
             "mode": "100644"
           }
         },
@@ -1760,18 +1760,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-systematic-debugging/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "6d5d6359e67da57d7a5b1c943e4f1b64948f8a61",
       "source_tree_sha256": "f98cc25f9dc59ae7c35ec8b8fc63a42733486832743b87d8eaf5f9c241e1046c",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "c8081ec1c39080a00aa1e6cbd117c76710b2af62",
+            "blob": "ffb2086c1d293f2398db983adcec2fc77d372a71",
             "mode": "100644"
           }
         },
@@ -1812,18 +1812,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-task-breakdown/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "c7d809a4346546e7679603bbbaf63270042491a5",
       "source_tree_sha256": "0b897c353d8f7770dde556936b72e3d72833088b50042f3a02ecefc5036debb7",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "bb5b927fc051e57c6cfc8bf62b4d0dd93ac8f2c0",
+            "blob": "d3cac4e9f9315c1178329f7c06fcf3e5a3703d7e",
             "mode": "100644"
           }
         },
@@ -1863,18 +1863,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-test-strategy/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "49818a624e959070a94955e288df1e50dbdcb168",
       "source_tree_sha256": "469d4e545bdd5d051e6da7b3a4fcef57117bcea64543a6a17f19d61b41459b70",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "98adc20ef60183b601737948368555c2d0d19f12",
+            "blob": "7c4e7ab9910dba74bb691535934f7de8e746dfbd",
             "mode": "100644"
           }
         },
@@ -1915,18 +1915,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-token-context-governance/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "7e172f799cafc5c571226eb226570e772a6ba6e4",
       "source_tree_sha256": "e80d28cbeae407d164d6437373b5a32ec3f8ba162891bdc1ba20e2720af766b8",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "1bc96a4a46397c536414b0591165ec5e18bdf1c2",
+            "blob": "f68ec9691d4ee11c889d76584792ba418c955cf0",
             "mode": "100644"
           }
         },
@@ -1966,18 +1966,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-unit-test-embedded/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "ed38bc23be18b6840b0c5d2dfb1056ec4afcfff0",
       "source_tree_sha256": "6bc1a5d206a345ca54ca45ba2f83d37a07bfb7f272c569df4c62432e35f971fc",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "c1a645a108870828531d96cf9d600515f3297967",
+            "blob": "312df0fe005a8b518e2233daf33d17161f30c31c",
             "mode": "100644"
           }
         },
@@ -2018,18 +2018,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-verification-before-completion/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "0ce29b5b2be5488b76c70d668bd6d544fb85ff07",
       "source_tree_sha256": "d3a709e1488389d4833cde1c5fade62e2c3873f5a35b744bc5c9f4f929a0f8f9",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "1465e0477d2266a64c42c8d6d88b84c6eff811f6",
+            "blob": "c21fa4ef94e26176c73addcad973391940df1618",
             "mode": "100644"
           }
         },
@@ -2069,18 +2069,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-worktree-governance/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "57567ec35ba9ca2eca51766a9df8d2fff115014f",
       "source_tree_sha256": "9fa7c7d76e92849638ed29d12c887cb871fd0da59a63138dff3e7f071d10bd14",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "e802c0763e669d2f86d9ac5235948e8cda042d3e",
+            "blob": "7513821741034db11e17f2116a133fd29e8c31af",
             "mode": "100644"
           }
         },
@@ -2832,18 +2832,18 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-goal-authoring/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "3842be279ec9fc128136c021cb7253ee68308af3",
       "source_tree_sha256": "bdd904aebf0038dca699790c79fa6818193b8170944db1f05abb7353e02fb3b4",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "README.md": {
           "source": null,
           "installed": {
-            "blob": "71d36420eba769cf7ed7478ceafbcb8ba492b97d",
+            "blob": "4bb7e914f6a8911cfa0df59ce517030eb54dac07",
             "mode": "100644"
           }
         },
@@ -2883,13 +2883,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-register-map-design/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "37c46017dad979cde1519b895f57f0f03b2e962a",
       "source_tree_sha256": "a28a4610788067d1170492333849d4276ce825241d8feab56d0f33ec7150a1b4",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -2901,8 +2901,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "a6b8fd316e31fc2ced0d7e6de8ef64d1fdc79615"
+            "blob": "ad54d2e5571cbc71f5c450f71c53979770bc637e",
+            "mode": "100644"
           }
         }
       }
@@ -2924,13 +2924,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-bsp-analysis/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "0143ecbfa9286268361b84a49e78bd282f4576f3",
       "source_tree_sha256": "2f8b0c51c307f81a3a5efedf8cd61b2497561bb2ea56f32be44c22f8b7756844",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -2942,8 +2942,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "3a4160e2aeddc9eecf39be2d1e9f22c6cb2e3ecf"
+            "blob": "c7a487c6f526da693f2438ddd576172a005d9cf3",
+            "mode": "100644"
           }
         }
       }
@@ -2965,13 +2965,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-bsp-porting-playbook/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "5cee450e33628b1c6ddaf56d61922d74ddf49c56",
       "source_tree_sha256": "9b00a9133802078df43c6602d09087aa95d4a8ba966051321ce9b07616e16171",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -2983,8 +2983,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "41a436cfa50a16d77f7f03cbff7292f54921ad42"
+            "blob": "6a58d437b162f4d0635562c8f8375a8f79b3d584",
+            "mode": "100644"
           }
         }
       }
@@ -3006,13 +3006,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-rtos-task-design/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "d392cad67d76298418debc6e2acfb33a25b5d299",
       "source_tree_sha256": "79c16b4d7d512437e977a6b52368f31686ae833fbf92a62963705834aed26754",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3024,8 +3024,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "2ee8c2aedca0d3753d4a26f9e499d4d4244b1222"
+            "blob": "dfa770e0b9cc88261d9fcef7c61905430e227670",
+            "mode": "100644"
           }
         }
       }
@@ -3047,13 +3047,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-interrupt-dma-patterns/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "aa2644981bd2b9ff5bb710f30c8a6e096216c2b1",
       "source_tree_sha256": "43133e1f44dbcb99c27d4a8968ca6f46627d9ce39f5e600a77233661e7baeec2",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3065,8 +3065,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "8fe948884712d12f5e63fbf679b40ccc1015caa3"
+            "blob": "72d732bd69df615a1a9272c24f6e549aa2e25562",
+            "mode": "100644"
           }
         }
       }
@@ -3088,13 +3088,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-protocol-stack-integration/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "ae16d728b57e25db1eb497850947eadad9861462",
       "source_tree_sha256": "f7bf69c789c44ccfdca23740f093099983611ff0bdfe4071b9c014e39981129f",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3106,8 +3106,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "cee71a83a4a626536c6b5e91e063a5739adb0caa"
+            "blob": "93fad58c89f33808fc391915cae9093fe35347bb",
+            "mode": "100644"
           }
         }
       }
@@ -3129,13 +3129,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-cmake-cross-build/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "79222b0a19ceef3dece53c89dafb19fac6df8c48",
       "source_tree_sha256": "d1adc225f487fcb3ece7e8548d7cdcd136949244b031425e5336b554f8e21017",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3147,8 +3147,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "b74da5983fa2a8823878cddd2037a2aba957e8a2"
+            "blob": "7e8cf5bf2aafb4a38be0cbbe20e81712a8450b3a",
+            "mode": "100644"
           }
         }
       }
@@ -3170,13 +3170,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-code-simplification/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "6e71fda0617a66ace9be420f23dfd46c1efe2475",
       "source_tree_sha256": "9663f997b2f0f4a15e98d2b5056f8bc1522f45cb58b522f9f0a7d92c7e49a78f",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3188,8 +3188,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "0e869fe1a475f133803dd51698187f7d6c381879"
+            "blob": "93ff3d0e74438e2af5c6162c7bc95d76af3807e4",
+            "mode": "100644"
           }
         }
       }
@@ -3211,13 +3211,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-hardware-debugging/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "a2c5a0b60e226edcd78cb0ecafbe2a282a376625",
       "source_tree_sha256": "eb9b86adc3a667f1b74b241c72cb2582a001f6ddaae232e4a2fcd9f61748f282",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3229,8 +3229,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "7532a10ab00010f7ed6180b254f3cd60e216f13a"
+            "blob": "bff1607b0db2978d0d314d64a143c0d777e1866c",
+            "mode": "100644"
           }
         }
       }
@@ -3252,13 +3252,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-performance-profiling-embedded/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "16c824a9b88d80bf4f55a5cdf3c3e990ac17a2b4",
       "source_tree_sha256": "7d74ca37b98e69c7442acb2f084fe96ce2e7ea5976bbb52811f779e208d27f1c",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3270,8 +3270,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "8c01b38e18c6ac38460d93b2cd17642225b672aa"
+            "blob": "754b8b7c68ef681b93e18487da99ba7d99c5059e",
+            "mode": "100644"
           }
         }
       }
@@ -3293,13 +3293,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-integration-hil-sil/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "ade320cb66e3e813b249d77dd0c3d021775b58bc",
       "source_tree_sha256": "b41de35c7943b648ac04ceb1e0d17ac45175a2b38f4d175ad80f48f6875909b1",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3311,8 +3311,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "78ac81a7d9ee77b8469031e7e81dccafe4771b59"
+            "blob": "48eefe02b7f3358caece9ecdbfa90bf7c574fd17",
+            "mode": "100644"
           }
         }
       }
@@ -3334,13 +3334,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-fault-injection-recovery/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "8d80fda79a9c7755ee9a379c630667152f526a16",
       "source_tree_sha256": "4d129bda76154923494f5d850f01ebfafdf056da2ef1c4506e4d4c04e144d8f6",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3352,8 +3352,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "ffe793cd0f584b5a16092dd06d653a3ff0341684"
+            "blob": "83effd536d76cdc9253a9b06f4543c1ab01d3ca2",
+            "mode": "100644"
           }
         }
       }
@@ -3375,13 +3375,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-pilot-framework/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "643418c1b28f0085e4a1ca502682748d24888a2b",
       "source_tree_sha256": "b6c5e0a2b24fdbc7b0730a6ed569b2199553c0bb729dc55e18dd8a404f3b5e66",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3393,8 +3393,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "91187365a74d11679183075dcfceabd739e91446"
+            "blob": "eefbfd559ba49f67ce50af2d86265c4ddf842e17",
+            "mode": "100644"
           }
         }
       }
@@ -3416,13 +3416,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-production-field-readiness/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "cbe3c52844c2021654fed0e913f754cbcf3ef8c1",
       "source_tree_sha256": "1df0467946a97bd1b1cd467e3dde29f2be149310bfef1855cf58c912753aa9e2",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3434,8 +3434,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "7117b1f231d6d4da694539b0bc8e0f53dc28f474"
+            "blob": "14f528f187d3eddb9abad97c42820d2034cc118f",
+            "mode": "100644"
           }
         }
       }
@@ -3457,13 +3457,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "skills/adk-embedded-storage-layout-migration/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "c34fbf64df1ef04563f3e912deaac74614a42ef7",
       "source_tree_sha256": "307cf04d8f315db34109d988f949ba661f7864edec2defd7886884e683799fff",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3475,8 +3475,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "a63d29be94570151266f4a84da6dc15ce27256b8"
+            "blob": "369a355e7da5a86131f95d29b202434326ef53ed",
+            "mode": "100644"
           }
         }
       }
@@ -3498,13 +3498,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-external-practice-absorption/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "de2f97c599879be5e1e657354af211ddf8fac8f2",
       "source_tree_sha256": "ea4a3ba6046f570768f06c1d1af3c21e09862ed4a49bb750f8b9dd3844957aa6",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3516,8 +3516,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "0afc48fcbe45f3d8f5d47db52f4b38c70dd44240"
+            "blob": "0daa9e94580fbc2b687aeede15dbda69772c155a",
+            "mode": "100644"
           }
         }
       }
@@ -3539,13 +3539,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-data-fetch/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "2e9dad05a42b82a92894fef092f542c32357b79c",
       "source_tree_sha256": "54179a49d7e8139deeca0277dfbe43a6a10e712ca099deeb27ea359996e38f2b",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3557,8 +3557,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "5bb2837843f1992d94a3e9bdf1cce4413e6456fe"
+            "blob": "96db1a31dd0911641b99ddf6d8de3db0b88b2760",
+            "mode": "100644"
           }
         }
       }
@@ -3580,13 +3580,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-data-fetch/adk-email-imap-fetch/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "574d4423588d8cd7750d24c3bac63fedc1ea67e4",
       "source_tree_sha256": "26fc2569d6b9466bae3bdaea929668d0356596adda2c60ffd976f6ced7354700",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3598,8 +3598,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "1ad925135ced014f89a650bb53888a05e16524fc"
+            "blob": "3e042f65f1718c58c387134cbc135f609bba01fd",
+            "mode": "100644"
           }
         }
       }
@@ -3621,13 +3621,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-data-fetch/adk-fetch-url-content/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "4745cbba7bf0f339b8978f2d76bd93ba20993a68",
       "source_tree_sha256": "ed239f24e72f330e7e670095b5231c35ff824352b1bdfc49026b1245a291a9d1",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3639,8 +3639,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "a297d1fcc178e221535f92282171a8b0eaad8105"
+            "blob": "94b38ade159af16c43b8f038d5515d9e09b6db60",
+            "mode": "100644"
           }
         }
       }
@@ -3662,13 +3662,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-test-flakiness-triage/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "acb462baee059c291dc197cb326349dcd285babd",
       "source_tree_sha256": "64b8ac37a3343a3a17c59ccbe1d5add126ce07c431f3c534d3228655d6cd7ce8",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3680,8 +3680,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "55d6bd227a0cc532a56ac46d550b8497161871ba"
+            "blob": "902232e6f3a53152d15167133f63ca8aad468057",
+            "mode": "100644"
           }
         }
       }
@@ -3703,13 +3703,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-prose-revision/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "7f969f0e4b4648eea61bc5b70544e89bc635197b",
       "source_tree_sha256": "81369bc6c3b9f724e25e95b7c5aad3426138d30226211f0d36671e05614ff17f",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3721,8 +3721,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "b221411add34081221b3b829c35cb7706b72f95c"
+            "blob": "dd1e21e9073195e57413360bffe6635c14b27130",
+            "mode": "100644"
           }
         }
       }
@@ -3744,13 +3744,13 @@
       ],
       "owner": "agent-dev-kit",
       "source_repo": "jiying2007/agent-dev-kit",
-      "source_ref": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+      "source_ref": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
       "source_path": "optional-skills/adk-incident-rca-report/SKILL.md",
-      "imported_at": "2026-11-20",
+      "imported_at": "2026-11-23",
       "review_status": "accepted",
       "source_blob": "6ee3c722ef6f7798e6d32ed1c30340aec09b805f",
       "source_tree_sha256": "433341ff51011f9804b5bf37a819ad915703bf931b68775bbc5840ac981df1c0",
-      "source_release": "v11.4.16",
+      "source_release": "v11.4.17",
       "distribution_metadata": {
         "LICENSE": {
           "source": null,
@@ -3762,8 +3762,8 @@
         "README.md": {
           "source": null,
           "installed": {
-            "mode": "100644",
-            "blob": "1d020ff090a65f9cdf5dada7c6a217d73edd7e61"
+            "blob": "e363c370ebc57da91382a518fb0b2fab31a76d98",
+            "mode": "100644"
           }
         }
       }

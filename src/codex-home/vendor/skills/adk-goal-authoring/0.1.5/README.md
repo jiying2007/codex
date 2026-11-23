@@ -3,7 +3,7 @@
 平台中立的目标合同生成能力。上游正文与参考文件保持 exact source 字节；本文件和原生界面元数据由消费者装配，不冒充上游内容。
 
 - Skill version: `0.1.5`
-- Source commit: `c41f7c933f653dd702b0d8042ae9df38807430dc`
+- Source commit: `3ab45d2d4d7607f1d6c46c7c6726b8551603a017`
 - Source repository: `jiying2007/agent-dev-kit`
 - Source release: `v8.2.0`
 - Source path: `skills/adk-goal-authoring/SKILL.md`

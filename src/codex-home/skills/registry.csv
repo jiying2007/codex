@@ -5,7 +5,7 @@ adk-after-action-review,1.3.1,active,agent-dev-kit
 adk-archive-governance,1.0.7,active,agent-dev-kit
 adk-artifact-gating,1.0.4,active,agent-dev-kit
 adk-branch-closeout,1.1.3,active,agent-dev-kit
-adk-code-review-loop,1.7.13,active,agent-dev-kit
+adk-code-review-loop,1.7.14,active,agent-dev-kit
 adk-commit-pr-quality-gate,1.2.2,active,agent-dev-kit
 adk-component-api-stability,1.0.3,active,agent-dev-kit
 adk-context-compress-handoff,1.0.4,active,agent-dev-kit
@@ -30,7 +30,7 @@ adk-knowledge-archive,1.1.1,active,agent-dev-kit
 adk-memory-curator,1.0.4,active,agent-dev-kit
 adk-parallel-agent-governance,1.5.3,active,agent-dev-kit
 adk-lightweight-planning,1.1.1,active,agent-dev-kit
-adk-planning-execution-loop,1.4.6,active,agent-dev-kit
+adk-planning-execution-loop,1.4.7,active,agent-dev-kit
 adk-release-versioning,1.4.5,active,agent-dev-kit
 adk-repo-drift-remediation,1.1.5,active,agent-dev-kit
 adk-requirements-triage,1.4.1,active,agent-dev-kit
