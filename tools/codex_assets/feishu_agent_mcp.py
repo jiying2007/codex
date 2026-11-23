@@ -38,6 +38,15 @@ class AgentTaskIntake:
     def _enabled(self) -> None:
         if not self.config.agent_intake_enabled:
             raise FeishuCodexError("可信本机 Agent 入口未获允许")
+        self.config.validate_agent_runtime()
+
+    def _require_billing_source(self) -> None:
+        if (self.billing_source not in (
+                "external_api_key", "external_gateway", "self_hosted")
+                or self.billing_source != self.config.agent_billing_source):
+            raise FeishuCodexError(
+                "本机 Agent 任务必须使用服务私有配置中的独立非共享计费身份"
+            )
 
     def _manual_store(self):
         if not self.config.manual_workitems_enabled:
@@ -127,6 +136,7 @@ class AgentTaskIntake:
 
     def submit_task(self, repo: str, mode: str, task: str, idempotency_key: str) -> dict[str, Any]:
         self._enabled()
+        self._require_billing_source()
         return self._queue_task(repo, mode, task, idempotency_key)
 
     def submit_workitem_task(self, run_id: str, task: str) -> dict[str, Any]:
@@ -139,11 +149,7 @@ class AgentTaskIntake:
         """
         self._enabled()
         store = self._manual_store()
-        if self.billing_source not in ("external_api_key", "external_gateway", "self_hosted"):
-            raise FeishuCodexError(
-                "WorkItem execution needs FEISHU_AGENT_BILLING_SOURCE="
-                "external_api_key|external_gateway|self_hosted; shared quota is denied"
-            )
+        self._require_billing_source()
         if (not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id)
                 or not isinstance(task, str) or not task.strip()
                 or len(task) > self.config.max_prompt_chars or "\x00" in task):
