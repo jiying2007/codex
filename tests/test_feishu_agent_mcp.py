@@ -238,6 +238,34 @@ class FeishuAgentMCPTests(unittest.TestCase):
             ).fetchone()
         self.assertEqual(("commit", "a" * 40, 0), evidence)
 
+    def test_restart_reconciles_persisted_agent_run_receipt(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        submitted = intake.submit_workitem_task(run_id, scope)
+        bot = feishu_codex_bot.FeishuCodexBot(
+            intake.config, mock.Mock(), mock.Mock(),
+            feishu_codex_bot.StateStore(intake.config.state_db),
+        )
+        bot.recover_pending()
+        job = bot.jobs.get_nowait()
+        self.assertTrue(bot.store.claim_queued(job.task_id))
+        bot._transition_agent_run(job.task_id, "running", strict=True)
+        commit = "b" * 40
+        bot.store.record_result(job.task_id, "codex/agent-run", commit, self.tmp)
+        bot._finish_agent_run(
+            job,
+            feishu_codex_bot.ExecutionResult(
+                "本地修改完成", "codex/agent-run", commit, self.tmp,
+            ),
+        )
+        self.assertEqual("running", intake.get_task(submitted["id"])["status"])
+        self.assertEqual("waiting_ci", manual.store.get_run(run_id)["status"])
+
+        # Simulate a crash after the AgentRun receipt was persisted but before
+        # the legacy task status was updated to completed.
+        bot.recover_pending()
+        self.assertEqual("completed", intake.get_task(submitted["id"])["status"])
+        self.assertEqual("waiting_ci", manual.store.get_run(run_id)["status"])
+
     def test_workitem_task_rejects_scope_drift_and_shared_billing(self) -> None:
         intake, manual, run_id, scope = self.workitem_attempt()
         with self.assertRaisesRegex(ValueError, "scope"):
