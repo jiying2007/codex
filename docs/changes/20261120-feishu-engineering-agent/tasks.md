@@ -24,7 +24,7 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 
 ## TASK-003 — Codex 原生会话与有界执行
 [x] `sessions.py`：actor/tenant/chat/repo/host/CODEX_HOME/thread 精确绑定、resume/interrupt/turn 请求。
-[x] `appserver.py`：显式 host-qualified stdio initialize/initialized/thread resume/turn RPC；审批请求拒绝自动同意；不泄露 Feishu 凭据。
+[x] `appserver.py`：显式 host-qualified stdio initialize/initialized、无模型持久 `thread/start`、精确 `thread/resume` 身份核对、turn/interrupt RPC；协商 `experimentalApi`；审批请求拒绝自动同意；不泄露 Feishu 凭据。
 [x] `workflow.py`：一 WorkItem 多 Run；精确范围、SDD 和外部费用授权 HMAC 后才可 queued。
 [x] `runtime_bridge.py`：turn/start 前存 effect receipt；ACK≠完成；turn/completed 关联验证；失败、重启/中断 UNKNOWN。
 [x] 模型调用默认禁用，不消耗 Codex/Work 共享额度。
