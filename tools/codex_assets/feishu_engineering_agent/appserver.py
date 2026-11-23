@@ -211,7 +211,8 @@ class StdioAppServer:
         thread = result.get("thread") if isinstance(result, dict) else None
         thread_id = thread.get("id") if isinstance(thread, dict) else None
         if (not isinstance(thread, dict) or not isinstance(thread_id, str)
-                or thread.get("ephemeral") is not False):
+                or thread.get("ephemeral") is not False
+                or thread.get("cwd") != working_directory):
             # thread/start may have created a remote persistent thread. Do not
             # retry automatically when its exact identity cannot be established.
             raise NativeProtocolError("thread/start result lacks an exact persistent thread identity")
