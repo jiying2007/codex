@@ -60,7 +60,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
         config = feishu_codex_bot.BotConfig.from_values(self.values, self.tmp)
         return feishu_agent_mcp.AgentTaskIntake(config)
 
-    def workitem_attempt(self):
+    def workitem_attempt(self, mode: str = "edit"):
         self.policy["manual_workitems_enabled"] = True
         self.policy["repositories"]["codex"]["agent_allowed_modes"] = [
             "explain", "review", "edit",
@@ -78,7 +78,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
         scope = "先完成根因分析、SDD、隔离修改和回归验证；验收：缺陷不再复现。"
         attempt_event = InboundEvent(
             "feishu_message", "tenantA", "oc_test", "ou_owner", "om_attempt",
-            "/wi attempt " + source_run + " edit | " + scope,
+            "/wi attempt " + source_run + " " + mode + " | " + scope,
         )
         attempt_reply = manual.handle(attempt_event, "codex", {"codex"})
         run_id = attempt_reply.split("新Run：", 1)[1].split("\n", 1)[0]
@@ -301,6 +301,15 @@ class FeishuAgentMCPTests(unittest.TestCase):
         bot.refill_pending(startup=True)
         self.assertEqual("unknown", manual.store.get_run(run_id)["status"])
         self.assertEqual("unknown", intake.get_task(submitted["id"])["status"])
+
+    def test_read_workitem_attempt_maps_to_existing_explain_mode(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt("read")
+        submitted = intake.submit_workitem_task(run_id, scope)
+        self.assertEqual("explain", submitted["mode"])
+        self.assertEqual("queued", submitted["status"])
+        run = manual.store.get_run(run_id)
+        self.assertEqual("queued", run["status"])
+        self.assertEqual("read", run["mode"])
 
     def test_workitem_policy_fingerprint_binds_api_credential_rotation(self) -> None:
         intake, manual, run_id, scope = self.workitem_attempt()
