@@ -18,6 +18,7 @@ import subprocess
 import threading
 import time
 from typing import Any, Callable, Deque, Dict, FrozenSet, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from urllib.parse import urlsplit
 
 from .feishu_task_spool import TaskSpool, SpoolError
 from .feishu_documents import (
@@ -72,6 +73,12 @@ def _private_directory_mode(path: pathlib.Path, label: str) -> None:
         raise FeishuCodexError(
             f"{label}必须由当前服务用户拥有且权限为 700 或更严格: {path} ({mode:o})"
         )
+    for parent in path.parents:
+        parent_mode = stat.S_IMODE(parent.stat().st_mode)
+        if parent_mode & 0o022 and not parent_mode & stat.S_ISVTX:
+            raise FeishuCodexError(
+                f"{label}的父目录不能由组/其他用户写入（除 sticky 目录）: {parent}"
+            )
 
 
 def load_env_file(path: pathlib.Path) -> Dict[str, str]:
@@ -480,12 +487,15 @@ class BotConfig:
                     "external_api_key 使用官方端点；自定义 OPENAI_BASE_URL 应声明 external_gateway"
                 )
             if agent_billing_source in ("external_gateway", "self_hosted"):
-                if (not agent_openai_base_url.startswith(("https://", "http://"))
-                        or "@" in agent_openai_base_url):
+                parsed_base_url = urlsplit(agent_openai_base_url)
+                if (parsed_base_url.scheme not in ("http", "https")
+                        or not parsed_base_url.hostname
+                        or parsed_base_url.username or parsed_base_url.password
+                        or parsed_base_url.query or parsed_base_url.fragment):
                     raise FeishuCodexError(
-                        "external_gateway/self_hosted 必须配置不含凭据的 HTTP(S) OPENAI_BASE_URL"
+                        "external_gateway/self_hosted 必须配置不含凭据、查询参数或片段的 HTTP(S) OPENAI_BASE_URL"
                     )
-                if "api.openai.com" in agent_openai_base_url.lower():
+                if parsed_base_url.hostname.lower() == "api.openai.com":
                     raise FeishuCodexError(
                         "external_gateway/self_hosted 不得把官方 OpenAI 端点标记为独立网关"
                     )
