@@ -28,7 +28,7 @@ Codex shared/Work quota remains prohibited without separate fresh authorization.
 
 ## Remaining integration work
 
-The live Bot's message handler still follows its existing intake/queue and `FeishuCodexBot.start` still calls `transport.start(self.on_message)`; **the new card callback is not yet activated**. The real integration requires a guarded configuration flag, deployment-managed credential, trusted event identity adapter, effects/outbox dispatcher and a checked rollback plan. Do not silently switch the production consumer or mark C1–C5 complete.
+The live Bot's message handler still follows its existing intake/queue and `FeishuCodexBot.start` still calls `transport.start(self.on_message)`; **the new card callback is not yet activated**. The local WorkItem MCP bridge is source-integrated with the existing SQLite/spool/worker path, but it has not been installed or host-qualified on `vstrong100`. The App Server thread primitives are not yet wired as the Bot's production executor; the current bridge uses the legacy ephemeral Codex CLI runner. Real source-system access, real PR/CI/QA, card callbacks, host credential identity and single-consumer rollback still require their separate gates. Do not silently switch the production consumer or mark C1–C5 complete.
 
 ## No enterprise API / no card permission: minimum viable operator path
 
@@ -69,6 +69,29 @@ This changes the earlier C3 gate: **manual/source-provenance accuracy and access
 Sources for capability limits:
 - https://open.feishu.cn/document/home/introduction-to-scope-and-authorization/overview
 - https://open.feishu.cn/document/client-docs/bot-v3/bot-overview
+
+## Local MCP handoff into the existing Bot worker
+
+The source now includes a local stdio MCP bridge. It does not start a second Bot, network listener or Codex process. It writes a scoped task into the **existing Bot SQLite + private spool**; the existing single Bot worker remains the only executor.
+
+Operator prerequisites (all private, never commit these values):
+
+- Existing Bot policy: `agent_intake_enabled=true` and `manual_workitems_enabled=true`.
+- The target repository's `agent_allowed_modes` must include the requested mode. Agent `edit` additionally requires `edit_strategy=worktree`, a separate `worktree_root`, and `commit_enabled=true`.
+- Private `feishu.env`: `FEISHU_AGENT_BILLING_SOURCE=external_api_key` and `OPENAI_API_KEY`. For a non-OpenAI gateway or self-hosted endpoint, use `external_gateway` or `self_hosted` and set `OPENAI_BASE_URL` plus its API key.
+- Private `FEISHU_AGENT_CODEX_HOME`: a pre-created directory owned by the Bot service UID with mode 0700 or stricter, separate from the normal `~/.codex`, outside repositories/worktrees, and with **no `auth.json`**. The Agent worker overrides both `HOME` and `CODEX_HOME` to this directory and passes only the dedicated API key / configured base URL; it does not inherit the interactive user's Codex home or ChatGPT login tokens. Shared `codex_shared` / `work_shared` identities are rejected.
+- Run `scripts/feishu-agent-mcp.sh` as the **same Unix UID** as the Bot service. This is a local stdio process, not an exposed HTTP/MCP server.
+
+Operator flow:
+
+1. Register the external requirement/bug with `/wi add`, then prepare a source-linked handoff with `/wi handoff <RunID> | ...`.
+2. Create an execution proposal with `/wi attempt <sourceRunID> edit | <精确范围与验收>`. This records only the SHA-256 of the scope, not the raw summary.
+3. From the trusted local MCP client, call `submit_workitem_task(run_id, task)` with the exact same scope text. The bridge rechecks the WorkItem owner/repository/mode, scope hash, current policy digest, dedicated billing identity and Unix UID, then binds the AgentRun to one existing Bot task. A missing/ambiguous receipt becomes UNKNOWN; it is never rebound or replayed.
+4. Use `get_workitem_task(run_id)` to read the linked task and AgentRun status. `cancel_queued_task(task_id)` cancels only a queued task; a running Codex process is not falsely reported as interrupted.
+
+The MCP process itself makes **no model call**. The existing Bot worker runs the queued task through its current Codex CLI runner. That runner still uses an ephemeral Codex execution; it is not yet the persistent App Server thread/session path. Read/review may finish at AgentRun `completed`; edit finishes at `waiting_ci` with an unverified local commit receipt. This does not create a PR, claim CI/QA success, close the original Feishu Project/TAPD item or flash hardware. Those remain separately authorized delivery steps.
+
+If the dedicated API identity is not configured, keep using `/wi add` and `/wi handoff` for no-model intake; do not set a fake billing-source label to bypass the gate.
 
 ## No-model handoff from the registered defect/requirement
 
