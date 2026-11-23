@@ -84,13 +84,21 @@ class AgentTaskIntake:
             message_id, self.sender, repo, mode, digest, self.config.queue_size,
         )
         if agent_run_id:
-            try:
-                self.store.link_agent_run_task(agent_run_id, task_id, os.getuid())
-            except Exception:
-                if created:
+            if not created:
+                existing_link = self.store.agent_run_link_for_task(task_id)
+                if (existing_link is None
+                        or existing_link["agent_run_id"] != agent_run_id
+                        or existing_link["unix_uid"] != os.getuid()):
+                    raise FeishuCodexError(
+                        "existing task has no matching AgentRun receipt; reconcile manually, never rebind"
+                    )
+            else:
+                try:
+                    self.store.link_agent_run_task(agent_run_id, task_id, os.getuid())
+                except Exception:
                     self.store.update_task(task_id, "unknown", "AgentRunLinkFailed")
-                self._mark_workitem_run_unknown(agent_run_id)
-                raise
+                    self._mark_workitem_run_unknown(agent_run_id)
+                    raise
         if created:
             job = BotJob(task_id, message_id, self.config.target_chat_id, self.sender,
                          "task", repo, mode, task)
@@ -202,10 +210,8 @@ class AgentTaskIntake:
     def get_workitem_task(self, run_id: str) -> dict[str, Any]:
         self._enabled()
         store = self._manual_store()
-        approval = __import__(
-            "tools.codex_assets.feishu_engineering_agent.workflow",
-            fromlist=["EngineeringWorkflow"],
-        ).EngineeringWorkflow(store).local_agent_approval(run_id)
+        from .feishu_engineering_agent.workflow import EngineeringWorkflow
+        approval = EngineeringWorkflow(store).local_agent_approval(run_id)
         if approval["unix_uid"] != os.getuid():
             raise FeishuCodexError("AgentRun belongs to another local Unix user")
         record = store.get_run(run_id)
