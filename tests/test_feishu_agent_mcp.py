@@ -184,7 +184,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
         intake, manual, run_id, scope = self.workitem_attempt()
         idempotency_key = "workitem-" + run_id
         message_id = "agent:" + hashlib.sha256(
-            (intake.sender + "\\0" + idempotency_key).encode("utf-8")
+            (intake.sender + "\0" + idempotency_key).encode("utf-8")
         ).hexdigest()
         digest = hashlib.sha256(json.dumps(
             {"repo": "codex", "mode": "edit", "task": scope},
