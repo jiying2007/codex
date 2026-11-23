@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import contextlib
 import dataclasses
 import fcntl
 import hashlib
@@ -2158,14 +2159,14 @@ class FeishuCodexBot:
             if run["mode"] != "edit" or run["status"] not in (
                     "waiting_ci", "waiting_qa", "completed"):
                 return False
-            with self.store._connect() as bot_db:
+            with contextlib.closing(self.store._connect()) as bot_db:
                 result = bot_db.execute(
                     "SELECT commit_hash FROM task_results WHERE task_id=?",
                     (task_id,),
                 ).fetchone()
             if result is None or not result["commit_hash"]:
                 return False
-            with self._manual_service.store._connect() as run_db:
+            with contextlib.closing(self._manual_service.store._connect()) as run_db:
                 evidence = run_db.execute(
                     "SELECT 1 FROM fea_evidence WHERE run_id=? "
                     "AND evidence_type='commit' AND reference=? AND verified=0",
