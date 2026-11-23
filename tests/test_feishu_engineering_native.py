@@ -263,7 +263,16 @@ class ReactiveInput:
         if frame.get("method") == "initialized":
             return len(raw)
         method = frame.get("method")
-        if method == "turn/start":
+        if method == "thread/start":
+            reply = {"id": frame["id"], "result": {"thread": {
+                "id": "thread_abc", "cwd": "/srv/robot-app", "ephemeral": False,
+            }}}
+        elif method == "thread/resume":
+            reply = {"id": frame["id"], "result": {"thread": {
+                "id": frame["params"]["threadId"], "cwd": "/srv/robot-app",
+                "ephemeral": False,
+            }}}
+        elif method == "turn/start":
             reply = {"id": frame["id"], "result": {"turn": {"id": "turn_1"}}}
         else:
             reply = {"id": frame["id"], "result": {"accepted": True}}
@@ -289,6 +298,7 @@ class NativeAppServerProtocolTest(unittest.TestCase):
         response = self.server.initialize()
         self.assertTrue(response["result"]["accepted"])
         self.assertTrue(self.server.initialized)
+        self.assertTrue(self.input.sent[0]["params"]["capabilities"]["experimentalApi"])
         self.assertEqual("initialized", self.input.sent[1]["method"])
         self.assertEqual("thread/resume",
                          self.server.resume_exact("thread_abc")["result"] and
@@ -303,6 +313,43 @@ class NativeAppServerProtocolTest(unittest.TestCase):
             allow_model=True,
         )
         self.assertEqual("turn_1", result["result"]["turn"]["id"])
+
+    def test_thread_start_creates_persistent_exact_thread_without_model_turn(self):
+        self.server.initialize()
+        result = self.server.start_thread(REPO_PATH, sandbox="workspace-write")
+        self.assertEqual("thread_abc", result["thread_id"])
+        request = self.input.sent[2]
+        self.assertEqual("thread/start", request["method"])
+        self.assertEqual(REPO_PATH, request["params"]["cwd"])
+        self.assertEqual("workspace-write", request["params"]["sandbox"])
+        self.assertEqual("on-request", request["params"]["approvalPolicy"])
+        self.assertIs(request["params"]["ephemeral"], False)
+        self.assertFalse(any(item["method"] == "turn/start" for item in self.input.sent))
+
+    def test_thread_start_rejects_danger_full_access(self):
+        self.server.initialize()
+        before = len(self.input.sent)
+        with self.assertRaisesRegex(NativeProtocolError, "sandbox"):
+            self.server.start_thread(REPO_PATH, sandbox="danger-full-access")
+        self.assertEqual(before, len(self.input.sent))
+
+    def test_resume_rejects_mismatched_thread_identity(self):
+        self.server.initialize()
+        original_write = self.input.write
+
+        def mismatched_resume(raw):
+            frame = json.loads(raw)
+            if frame.get("method") == "thread/resume":
+                self.input.sent.append(frame)
+                self.output.data.put(json.dumps({
+                    "id": frame["id"], "result": {"thread": {"id": "thread_other"}},
+                }) + "\\n")
+                return len(raw)
+            return original_write(raw)
+
+        with mock.patch.object(self.input, "write", side_effect=mismatched_resume):
+            with self.assertRaisesRegex(NativeProtocolError, "different thread identity"):
+                self.server.resume_exact("thread_abc")
 
     def test_terminal_notification_before_start_ack_is_buffered(self):
         self.server.initialize()
