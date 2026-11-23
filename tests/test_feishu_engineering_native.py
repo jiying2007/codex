@@ -326,6 +326,26 @@ class NativeAppServerProtocolTest(unittest.TestCase):
         self.assertIs(request["params"]["ephemeral"], False)
         self.assertFalse(any(item["method"] == "turn/start" for item in self.input.sent))
 
+    def test_thread_start_rejects_mismatched_working_directory(self):
+        self.server.initialize()
+        original_write = self.input.write
+
+        def mismatched_start(raw):
+            frame = json.loads(raw)
+            if frame.get("method") == "thread/start":
+                self.input.sent.append(frame)
+                self.output.data.put(json.dumps({
+                    "id": frame["id"], "result": {"thread": {
+                        "id": "thread_abc", "cwd": "/srv/other-repo", "ephemeral": False,
+                    }},
+                }) + "\n")
+                return len(raw)
+            return original_write(raw)
+
+        with mock.patch.object(self.input, "write", side_effect=mismatched_start):
+            with self.assertRaisesRegex(NativeProtocolError, "exact persistent thread identity"):
+                self.server.start_thread(REPO_PATH)
+
     def test_thread_start_rejects_danger_full_access(self):
         self.server.initialize()
         before = len(self.input.sent)
