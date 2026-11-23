@@ -62,6 +62,17 @@ def _private_file_mode(path: pathlib.Path, label: str) -> None:
         raise FeishuCodexError(f"{label}权限必须为 600 或更严格: {path} ({mode:o})")
 
 
+def _private_directory_mode(path: pathlib.Path, label: str) -> None:
+    if path.is_symlink() or not path.is_dir():
+        raise FeishuCodexError(f"{label}必须是非符号链接目录: {path}")
+    metadata = path.stat()
+    mode = stat.S_IMODE(metadata.st_mode)
+    if metadata.st_uid != os.getuid() or mode & 0o077:
+        raise FeishuCodexError(
+            f"{label}必须由当前服务用户拥有且权限为 700 或更严格: {path} ({mode:o})"
+        )
+
+
 def load_env_file(path: pathlib.Path) -> Dict[str, str]:
     _private_file_mode(path, "环境文件")
     values: Dict[str, str] = {}
@@ -194,6 +205,9 @@ class BotConfig:
     isolation_write_paths: Tuple[pathlib.Path, ...] = ()
     agent_intake_enabled: bool = False
     agent_billing_source: str = "unapproved"
+    agent_codex_home: Optional[pathlib.Path] = None
+    agent_openai_api_key: str = dataclasses.field(default="", repr=False)
+    agent_openai_base_url: str = ""
     manual_workitems_enabled: bool = False  # requires no Feishu Project/TAPD API
     engineering_cards_enabled: bool = False
     card_verification_token: str = ""
@@ -414,6 +428,68 @@ class BotConfig:
         if not isinstance(write_paths_raw, list) or not all(isinstance(value, str) and value.strip() for value in write_paths_raw):
             raise FeishuCodexError("isolation_write_paths 必须是非空路径字符串数组")
         isolation_write_paths = tuple(pathlib.Path(value).expanduser().resolve() for value in write_paths_raw)
+        agent_codex_home: Optional[pathlib.Path] = None
+        agent_openai_api_key = ""
+        agent_openai_base_url = ""
+        if agent_intake_enabled:
+            if agent_billing_source not in ("external_api_key", "external_gateway", "self_hosted"):
+                raise FeishuCodexError(
+                    "启用本机 Agent 执行时必须声明独立非共享计费来源"
+                )
+            raw_agent_home = str(
+                values.get("FEISHU_AGENT_CODEX_HOME")
+                or payload.get("agent_codex_home", "")
+            ).strip()
+            if not raw_agent_home:
+                raise FeishuCodexError("启用本机 Agent 执行时必须配置 FEISHU_AGENT_CODEX_HOME")
+            raw_agent_path = pathlib.Path(raw_agent_home).expanduser()
+            if raw_agent_path.is_symlink():
+                raise FeishuCodexError("FEISHU_AGENT_CODEX_HOME 不允许使用符号链接")
+            try:
+                agent_codex_home = raw_agent_path.resolve(strict=True)
+            except OSError as exc:
+                raise FeishuCodexError("FEISHU_AGENT_CODEX_HOME 必须预先创建") from exc
+            _private_directory_mode(agent_codex_home, "Agent 专用 CODEX_HOME")
+            normal_codex_home = pathlib.Path(
+                values.get("CODEX_HOME", str(pathlib.Path.home() / ".codex"))
+            ).expanduser().resolve()
+            if agent_codex_home == normal_codex_home:
+                raise FeishuCodexError("Agent 专用 CODEX_HOME 不得复用个人 Codex 登录目录")
+            if (agent_codex_home / "auth.json").exists() or (agent_codex_home / "auth.json").is_symlink():
+                raise FeishuCodexError(
+                    "Agent 专用 CODEX_HOME 不得包含 ChatGPT/个人账户 auth.json；仅使用独立 API 凭据"
+                )
+            for repository in repositories.values():
+                candidates = [repository.path]
+                if repository.worktree_root is not None:
+                    candidates.append(repository.worktree_root)
+                if any(
+                    agent_codex_home == candidate
+                    or agent_codex_home in candidate.parents
+                    or candidate in agent_codex_home.parents
+                    for candidate in candidates
+                ):
+                    raise FeishuCodexError("Agent 专用 CODEX_HOME 不得与仓库或 worktree 重叠")
+            agent_openai_api_key = str(values.get("OPENAI_API_KEY", "")).strip()
+            agent_openai_base_url = str(values.get("OPENAI_BASE_URL", "")).strip()
+            if not agent_openai_api_key:
+                raise FeishuCodexError("Agent 专用执行缺少 OPENAI_API_KEY")
+            if agent_billing_source == "external_api_key" and agent_openai_base_url:
+                raise FeishuCodexError(
+                    "external_api_key 使用官方端点；自定义 OPENAI_BASE_URL 应声明 external_gateway"
+                )
+            if agent_billing_source in ("external_gateway", "self_hosted"):
+                if (not agent_openai_base_url.startswith(("https://", "http://"))
+                        or "@" in agent_openai_base_url):
+                    raise FeishuCodexError(
+                        "external_gateway/self_hosted 必须配置不含凭据的 HTTP(S) OPENAI_BASE_URL"
+                    )
+                if "api.openai.com" in agent_openai_base_url.lower():
+                    raise FeishuCodexError(
+                        "external_gateway/self_hosted 不得把官方 OpenAI 端点标记为独立网关"
+                    )
+            if agent_codex_home not in isolation_write_paths:
+                isolation_write_paths = (*isolation_write_paths, agent_codex_home)
         return cls(
             app_id=values["FEISHU_APP_ID"].strip(),
             app_secret=values["FEISHU_APP_SECRET"].strip(),
@@ -438,6 +514,9 @@ class BotConfig:
             isolation_write_paths=isolation_write_paths,
             agent_intake_enabled=agent_intake_enabled,
             agent_billing_source=agent_billing_source,
+            agent_codex_home=agent_codex_home,
+            agent_openai_api_key=agent_openai_api_key,
+            agent_openai_base_url=agent_openai_base_url,
             manual_workitems_enabled=manual_workitems_enabled,
             engineering_cards_enabled=cards_enabled,
             card_verification_token=token if cards_enabled else "",
@@ -461,7 +540,19 @@ class BotConfig:
             return False
         return bool(self.allowed_open_ids or repository.allowed_open_ids)
 
+    def validate_agent_runtime(self) -> None:
+        if not self.agent_intake_enabled:
+            return
+        if self.agent_codex_home is None:
+            raise FeishuCodexError("Agent 专用 CODEX_HOME 未配置")
+        _private_directory_mode(self.agent_codex_home, "Agent 专用 CODEX_HOME")
+        if (self.agent_codex_home / "auth.json").exists() or (self.agent_codex_home / "auth.json").is_symlink():
+            raise FeishuCodexError("Agent 专用 CODEX_HOME 出现个人账户 auth.json，已拒绝执行")
+        if not self.agent_openai_api_key:
+            raise FeishuCodexError("Agent 专用 OPENAI_API_KEY 不可用")
+
     def validate_runtime(self) -> None:
+        self.validate_agent_runtime()
         unprotected = [
             alias
             for alias, repository in self.repositories.items()
