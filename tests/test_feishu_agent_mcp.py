@@ -75,7 +75,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
             "/wi attempt " + source_run + " edit | " + scope,
         )
         attempt_reply = manual.handle(attempt_event, "codex", {"codex"})
-        run_id = attempt_reply.split("新Run：", 1)[1].split("\\n", 1)[0]
+        run_id = attempt_reply.split("新Run：", 1)[1].split("\n", 1)[0]
         return intake, manual, run_id, scope
 
     def test_disabled_and_write_permission_fail_closed(self) -> None:
