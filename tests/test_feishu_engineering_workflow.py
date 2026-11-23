@@ -13,7 +13,7 @@ from tools.codex_assets.feishu_engineering_agent.models import (
     EventConflict, InboundEvent, IntakeRejected,
 )
 from tools.codex_assets.feishu_engineering_agent.workflow import (
-    EngineeringWorkflow, ExecutionApproval,
+    EngineeringWorkflow, ExecutionApproval, local_agent_policy_digest,
 )
 
 SECRET = b"host-independent-approval-key-over-thirty-two-bytes"
@@ -106,7 +106,10 @@ class WorkflowContractTest(unittest.TestCase):
             workitem=WorkItemKey("tapd", "tenantA", "10104801", "defect", "999"),
         )
         with self.assertRaisesRegex(IntakeRejected, "cannot change WorkItem source"):
-            self.workflow.create_attempt(unrelated, event, "edit", {"robot-app"})
+            self.workflow.create_attempt(
+                unrelated, event, "edit", {"robot-app"},
+                scope_sha256=hashlib.sha256("实现修复并回归测试".encode("utf-8")).hexdigest(),
+            )
         self.assertEqual(
             first_id, self.workflow.status_for_source(
                 self.source_id, event,
@@ -119,10 +122,7 @@ class WorkflowContractTest(unittest.TestCase):
         scope = hashlib.sha256(task.encode("utf-8")).hexdigest()
         uid = 1000
         billing = "external_api_key"
-        policy = __import__(
-            "tools.codex_assets.feishu_engineering_agent.workflow",
-            fromlist=["local_agent_policy_digest"],
-        ).local_agent_policy_digest(
+        policy = local_agent_policy_digest(
             uid, "robot-app", "edit", billing, {"edit"}, "worktree", True,
         )
         result = self.workflow.authorize_local_agent_queue(
@@ -150,10 +150,7 @@ class WorkflowContractTest(unittest.TestCase):
                 scope, "codex_shared", policy,
             )
         other_uid = 1001
-        other_policy = __import__(
-            "tools.codex_assets.feishu_engineering_agent.workflow",
-            fromlist=["local_agent_policy_digest"],
-        ).local_agent_policy_digest(
+        other_policy = local_agent_policy_digest(
             other_uid, "robot-app", "edit", billing, {"edit"}, "worktree", True,
         )
         with self.assertRaisesRegex(IntakeRejected, "conflicts"):
