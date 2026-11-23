@@ -2046,6 +2046,10 @@ class FeishuCodexBot:
             if (not self.config.agent_intake_enabled
                     or job.mode not in repository.agent_allowed_modes):
                 raise SpoolError("agent task is no longer authorized")
+            try:
+                self.config.validate_agent_runtime()
+            except FeishuCodexError as exc:
+                raise SpoolError("dedicated Agent Codex runtime identity is no longer valid") from exc
             link = self.store.agent_run_link_for_task(job.task_id)
             if link is not None:
                 if (not self.config.manual_workitems_enabled
@@ -2076,6 +2080,14 @@ class FeishuCodexBot:
                     link["unix_uid"], job.repository, run["mode"],
                     approval["billing_source"], repository.agent_allowed_modes,
                     repository.edit_strategy, repository.commit_enabled,
+                    repo_path=str(repository.path),
+                    base_ref=repository.base_ref,
+                    worktree_root=str(repository.worktree_root or ""),
+                    branch_prefix=repository.branch_prefix,
+                    allowed_modes=repository.allowed_modes,
+                    verification_commands=repository.verification_commands,
+                    agent_codex_home=str(self.config.agent_codex_home or ""),
+                    openai_base_url=self.config.agent_openai_base_url,
                 )
                 if approval["policy_sha256"] != expected_policy:
                     raise SpoolError("WorkItem AgentRun repository policy changed after authorization")
