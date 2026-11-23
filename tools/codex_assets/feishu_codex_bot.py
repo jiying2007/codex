@@ -1635,6 +1635,7 @@ class CodexRunner:
             key: value for key, value in os.environ.items()
             if key in passthrough and value
         }
+        environment["HOME"] = str(self.config.agent_codex_home)
         environment["CODEX_HOME"] = str(self.config.agent_codex_home)
         environment["OPENAI_API_KEY"] = self.config.agent_openai_api_key
         if self.config.agent_openai_base_url:
