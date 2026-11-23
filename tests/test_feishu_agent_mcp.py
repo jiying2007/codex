@@ -48,7 +48,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
             "FEISHU_BOT_CONFIG": str(self.policy_path),
             "FEISHU_AGENT_CODEX_HOME": str(self.agent_home),
             "FEISHU_AGENT_BILLING_SOURCE": "external_api_key",
-            "OPENAI_API_KEY": "sk-test-agent-key",
+            "OPENAI_API_KEY": "fixture-agent-api-key",
         }
         self.write_policy()
 
@@ -156,14 +156,14 @@ class FeishuAgentMCPTests(unittest.TestCase):
         with mock.patch.dict("os.environ", {
             "PATH": "/usr/bin", "HOME": "/home/service",
             "CODEX_HOME": "/home/service/.codex",
-            "OPENAI_API_KEY": "sk-personal-session-key",
+            "OPENAI_API_KEY": "fixture-personal-api-key",
             "FEISHU_APP_SECRET": "must-not-leak",
             "FEISHU_AGENT_BILLING_SOURCE": "must-not-leak",
         }, clear=True):
             environment = runner._execution_environment(job)
         self.assertEqual(str(self.agent_home), environment["HOME"])
         self.assertEqual(str(self.agent_home), environment["CODEX_HOME"])
-        self.assertEqual("sk-test-agent-key", environment["OPENAI_API_KEY"])
+        self.assertEqual("fixture-agent-api-key", environment["OPENAI_API_KEY"])
         self.assertNotIn("/home/service/.codex", environment.values())
         self.assertNotIn("FEISHU_APP_SECRET", environment)
         self.assertNotIn("FEISHU_AGENT_BILLING_SOURCE", environment)
