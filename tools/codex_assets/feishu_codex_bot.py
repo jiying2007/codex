@@ -1923,11 +1923,110 @@ class FeishuCodexBot:
             if (not self.config.agent_intake_enabled
                     or job.mode not in repository.agent_allowed_modes):
                 raise SpoolError("agent task is no longer authorized")
+            link = self.store.agent_run_link_for_task(job.task_id)
+            if link is not None:
+                if (not self.config.manual_workitems_enabled
+                        or self._manual_service is None
+                        or job.sender_open_id != f"agent:{link['unix_uid']}"):
+                    raise SpoolError("WorkItem AgentRun local identity is no longer authorized")
+                from .feishu_engineering_agent.workflow import (
+                    EngineeringWorkflow, local_agent_policy_digest,
+                )
+                run = self._manual_service.store.get_run(link["agent_run_id"])
+                approval = EngineeringWorkflow(self._manual_service.store).local_agent_approval(
+                    link["agent_run_id"],
+                )
+                expected_mode = {"read": "explain", "review": "review", "edit": "edit"}.get(run["mode"])
+                if (run["status"] != "queued" or run["repo"] != job.repository
+                        or expected_mode != job.mode
+                        or approval["unix_uid"] != link["unix_uid"]
+                        or approval["repository"] != job.repository
+                        or approval["mode"] != run["mode"]
+                        or approval["scope_sha256"] != hashlib.sha256(job.task.encode("utf-8")).hexdigest()
+                        or approval["billing_source"] not in (
+                            "external_api_key", "external_gateway", "self_hosted"
+                        )
+                        or not self.config.sender_allowed(run["actor"], repository)):
+                    raise SpoolError("WorkItem AgentRun execution scope or approval mismatch")
+                expected_policy = local_agent_policy_digest(
+                    link["unix_uid"], job.repository, run["mode"],
+                    approval["billing_source"], repository.agent_allowed_modes,
+                    repository.edit_strategy, repository.commit_enabled,
+                )
+                if approval["policy_sha256"] != expected_policy:
+                    raise SpoolError("WorkItem AgentRun repository policy changed after authorization")
         elif not self.config.sender_allowed(job.sender_open_id, repository):
             raise SpoolError("queued task sender is no longer authorized")
         if job.artifact:
             ArtifactManager.validate_reference(repository, job.artifact)
         return job
+
+    def _agent_run_link(self, task_id: int) -> Optional[Dict[str, Any]]:
+        return self.store.agent_run_link_for_task(task_id)
+
+    def _transition_agent_run(self, task_id: int, status: str, strict: bool = False) -> None:
+        link = self._agent_run_link(task_id)
+        if link is None:
+            return
+        if self._manual_service is None:
+            if strict:
+                raise FeishuCodexError("WorkItem AgentRun ledger is disabled")
+            return
+        try:
+            record = self._manual_service.store.get_run(link["agent_run_id"])
+            if record["status"] == status:
+                return
+            self._manual_service.store.transition(
+                link["agent_run_id"], record["revision"], status, record["actor"],
+            )
+        except Exception as exc:
+            print(
+                f"[WARN] agent_run_transition_failed task={task_id} "
+                f"target={status} kind={type(exc).__name__}",
+                flush=True,
+            )
+            if strict:
+                raise FeishuCodexError("WorkItem AgentRun state could not be advanced") from exc
+
+    def _finish_agent_run(self, job: BotJob, result: ExecutionResult) -> None:
+        link = self._agent_run_link(job.task_id)
+        if link is None or self._manual_service is None:
+            return
+        run = self._manual_service.store.get_run(link["agent_run_id"])
+        if run["mode"] in ("read", "review"):
+            self._transition_agent_run(job.task_id, "completed", strict=True)
+            return
+        if not result.commit_hash:
+            self._transition_agent_run(job.task_id, "failed")
+            raise FeishuCodexError("WorkItem edit produced no verified local commit; AgentRun cannot advance")
+        self._manual_service.store.add_evidence(
+            link["agent_run_id"], "commit", result.commit_hash,
+            verifier="local_codex", verified=False,
+        )
+        self._transition_agent_run(job.task_id, "waiting_ci", strict=True)
+
+    def _fail_agent_run(self, task_id: int, reason: str) -> None:
+        link = self._agent_run_link(task_id)
+        if link is None or self._manual_service is None:
+            return
+        try:
+            record = self._manual_service.store.get_run(link["agent_run_id"])
+            if record["status"] in ("queued", "running"):
+                target = (
+                    "unknown" if reason == "unknown"
+                    else "canceled" if reason == "canceled"
+                    else "failed" if record["status"] == "running"
+                    else "blocked"
+                )
+                self._manual_service.store.transition(
+                    link["agent_run_id"], record["revision"], target, record["actor"],
+                )
+        except Exception as exc:
+            print(
+                f"[WARN] agent_run_failure_receipt_failed task={task_id} "
+                f"kind={type(exc).__name__}",
+                flush=True,
+            )
 
     def _schedule(self, job: BotJob) -> bool:
         with self._schedule_lock:
