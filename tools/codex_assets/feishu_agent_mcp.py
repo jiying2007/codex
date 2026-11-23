@@ -255,6 +255,29 @@ TOOLS = [
         },
     },
     {
+        "name": "submit_workitem_task",
+        "description": "Bind an exact manually registered Feishu/TAPD WorkItem AgentRun to the existing Bot queue. Requires the same Unix UID, manual WorkItem mode, repo agent allowlist, exact scope hash and a declared non-shared billing source.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "run_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+                "task": {"type": "string", "minLength": 1, "maxLength": 12000},
+            },
+            "required": ["run_id", "task"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "get_workitem_task",
+        "description": "Read the AgentRun status and its linked existing-Bot task status without returning the prompt or model output.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"run_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"}},
+            "required": ["run_id"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "get_task",
         "description": "Read bounded status / Git result metadata for this local user's submitted task, not prompt or model output.",
         "inputSchema": {
@@ -301,12 +324,18 @@ def handle_request(request: Any, intake: AgentTaskIntake) -> Optional[dict[str, 
         try:
             known = {
                 "submit_task": {"repo", "mode", "task", "idempotency_key"},
+                "submit_workitem_task": {"run_id", "task"},
+                "get_workitem_task": {"run_id"},
                 "get_task": {"task_id"}, "cancel_queued_task": {"task_id"},
             }
             if not isinstance(args, dict) or name not in known or set(args) != known[name]:
                 raise FeishuCodexError("工具名称或参数不符合最小受控接口")
             if name == "submit_task":
                 value = intake.submit_task(**args)
+            elif name == "submit_workitem_task":
+                value = intake.submit_workitem_task(**args)
+            elif name == "get_workitem_task":
+                value = intake.get_workitem_task(**args)
             elif name == "get_task":
                 value = intake.get_task(**args)
             else:
@@ -326,7 +355,10 @@ def load_intake() -> AgentTaskIntake:
         "FEISHU_AGENT_ENV_FILE", str(root / "mcp/secrets/feishu.env"),
     )).expanduser().resolve()
     values = merged_environment(env_file, os.environ)
-    return AgentTaskIntake(BotConfig.from_values(values, root))
+    return AgentTaskIntake(
+        BotConfig.from_values(values, root),
+        billing_source=values.get("FEISHU_AGENT_BILLING_SOURCE", "unapproved"),
+    )
 
 
 def main() -> int:
