@@ -752,6 +752,13 @@ class StateStore:
                     default_repository TEXT NOT NULL,
                     updated_at INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS agent_run_task_links (
+                    agent_run_id TEXT PRIMARY KEY,
+                    task_id INTEGER NOT NULL UNIQUE,
+                    unix_uid INTEGER NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id)
+                );
                 CREATE INDEX IF NOT EXISTS idx_tasks_sender_status
                     ON tasks(sender_open_id, status, updated_at);
                 """
@@ -926,6 +933,64 @@ class StateStore:
                 (task_id, input_digest),
             )
             return task_id, True
+
+    def link_agent_run_task(self, agent_run_id: str, task_id: int, unix_uid: int) -> None:
+        if (not isinstance(agent_run_id, str)
+                or not re.fullmatch(r"[a-f0-9]{32}", agent_run_id)
+                or not isinstance(task_id, int) or isinstance(task_id, bool) or task_id <= 0
+                or not isinstance(unix_uid, int) or isinstance(unix_uid, bool) or unix_uid < 0):
+            raise FeishuCodexError("invalid AgentRun/task link")
+        sender = f"agent:{unix_uid}"
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                task = connection.execute(
+                    "SELECT sender_open_id FROM tasks WHERE id=?", (task_id,),
+                ).fetchone()
+                if task is None or task["sender_open_id"] != sender:
+                    raise FeishuCodexError("AgentRun task is not owned by this local Unix user")
+                by_run = connection.execute(
+                    "SELECT task_id,unix_uid FROM agent_run_task_links WHERE agent_run_id=?",
+                    (agent_run_id,),
+                ).fetchone()
+                by_task = connection.execute(
+                    "SELECT agent_run_id,unix_uid FROM agent_run_task_links WHERE task_id=?",
+                    (task_id,),
+                ).fetchone()
+                if by_run is not None or by_task is not None:
+                    if (by_run is not None and by_task is not None
+                            and by_run["task_id"] == task_id
+                            and by_run["unix_uid"] == unix_uid
+                            and by_task["agent_run_id"] == agent_run_id
+                            and by_task["unix_uid"] == unix_uid):
+                        connection.rollback()
+                        return
+                    raise FeishuCodexError("AgentRun/task link conflicts with an existing execution")
+                connection.execute(
+                    "INSERT INTO agent_run_task_links "
+                    "(agent_run_id,task_id,unix_uid,created_at) VALUES (?,?,?,?)",
+                    (agent_run_id, task_id, unix_uid, int(time.time())),
+                )
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
+
+    def agent_run_link_for_task(self, task_id: int) -> Optional[Dict[str, Any]]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT agent_run_id,task_id,unix_uid FROM agent_run_task_links "
+                "WHERE task_id=?", (task_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def agent_run_link_for_run(self, agent_run_id: str) -> Optional[Dict[str, Any]]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT agent_run_id,task_id,unix_uid FROM agent_run_task_links "
+                "WHERE agent_run_id=?", (agent_run_id,),
+            ).fetchone()
+        return dict(row) if row else None
 
     def agent_task_detail(self, task_id: int, sender: str) -> Optional[Dict[str, Any]]:
         with self._connect() as connection:
