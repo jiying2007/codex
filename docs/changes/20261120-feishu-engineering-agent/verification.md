@@ -17,12 +17,12 @@
 |---|---|---|---|
 | TASK-001 | 中文路由、项目与用户隔离、WorkItem 来源身份、原子事件收据、无 API `/wi add|list|status|handoff|attempt` | 重复事件、身份冲突、撤权、无模型调用、正文不进 DB | 已授权飞书消息或本地 CLI |
 | TASK-002 | 可选 Card JSON 2.0、HMAC、事件身份和消息绑定、过期/重放保护、卡片请求持久化 | 同一回调的上下文冲突、他人点击、重复/迟到、发送结果 UNKNOWN | 飞书桌面/手机，SDK 和 3 秒响应 |
-| TASK-003 | 精确 Codex host/repo/CODEX_HOME/thread、独立签名授权、原生 initialize/resume/turn/interrupt、持久 effect 收据 | 伪造或延长授权、无权限模型启动、乱序通知、费用/远端结果不明不重放 | 主机 App Server 协议、审批、额度和中断恢复 |
+| TASK-003 | 精确 Codex host/repo/CODEX_HOME/thread、原生 initialize/resume/turn/interrupt、WorkItem→本机 MCP→既有 Bot 队列桥接、独立 Agent CODEX_HOME/API 凭据、持久 effect 收据 | scope/hash 错配、Unix UID 错配、个人 auth.json/共享计费、仓库策略漂移、孤儿任务、乱序通知、UNKNOWN 不重放 | vstrong100 专用 API 身份、同 UID、Bot worker、App Server 与恢复实测 |
 | TASK-004 | TAPD/飞书项目可选只读读取；手工来源标记未核验；版本哈希不存正文 | 403/404、源身份与版本冲突、撤权后不得读取 | 真实一条需求、一条缺陷；无权限可走人工路径 |
 | TASK-005 | 独立 Run、多仓版本化接口、GitHub PR/CI 可选适配、一次性发布、签名 QA、人工反馈 | 不同 PR/CI/QA SHA 不可拼接；CI 不等于 QA/HIL；外部写 UNKNOWN 不重放 | 真实 Feature 和 Bug PR/CI/QA；涉及设备时实际 HIL |
 | TASK-006 | WAL 一致性备份、私有 spool/策略校验、哈希清单、隔离恢复演练、单消费者 cutover gate | 损坏备份、权限/符号链接、恢复不一致和重复消费者 | `vstrong100` 暂停旧服务、真实备份/恢复/回滚 |
 
-源码关键测试入口：`tests/test_feishu_engineering_agent.py`、`test_feishu_engineering_manual_items.py`、`test_feishu_engineering_manual_bot.py`、`test_feishu_engineering_workflow.py`、`test_feishu_engineering_workflows.py`、`test_feishu_engineering_native.py`、`test_feishu_engineering_cards_complete.py`、`test_feishu_engineering_channel.py`、`test_feishu_engineering_source_bridge.py`、`test_feishu_engineering_contracts.py`、`test_feishu_engineering_delivery.py`、`test_feishu_engineering_github_adapter.py`、`test_feishu_engineering_end_to_end.py`、`test_feishu_engineering_migration.py`。
+源码关键测试入口：`tests/test_feishu_agent_mcp.py`、`tests/test_feishu_codex_bot.py`、`tests/test_feishu_engineering_agent.py`、`test_feishu_engineering_manual_items.py`、`test_feishu_engineering_manual_bot.py`、`test_feishu_engineering_workflow.py`、`test_feishu_engineering_workflows.py`、`test_feishu_engineering_native.py`、`test_feishu_engineering_cards_complete.py`、`test_feishu_engineering_channel.py`、`test_feishu_engineering_source_bridge.py`、`test_feishu_engineering_contracts.py`、`test_feishu_engineering_delivery.py`、`test_feishu_engineering_github_adapter.py`、`test_feishu_engineering_end_to_end.py`、`test_feishu_engineering_migration.py`。
 
 ### 一次性源码验收命令
 
@@ -34,6 +34,12 @@ python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
 ```
 
 `--probe-runtime` 只执行 `codex --version` 与 `codex app-server --help`；运行在 CI 时不能代表 `vstrong100`。仓库完整门禁另见 `.github/workflows/full-regression.yml`、`runtime-binding-contract.yml`、`profile-context-contract.yml`，以最终提交的 9/9 job 结果为准。
+
+### 本机 MCP WorkItem 纵向合同
+
+离线回归必须覆盖以下完整链路：`/wi add` → `/wi attempt`（精确 scope SHA-256）→ `submit_workitem_task` → 既有 Bot spool/worker → `get_workitem_task`。MCP 进程不启动 Codex；worker 只使用独立专用 `CODEX_HOME` 与私有 API 凭据。负向测试必须证明：共享计费、个人 `auth.json`、Unix UID/仓库/模式/范围不匹配、策略指纹变化、孤儿任务和 spool 丢失均拒绝或进入 UNKNOWN，绝不重绑或自动重放。Edit 只到 `waiting_ci` + 未验证 commit evidence；不伪称 PR/CI/QA 已通过。
+
+目标主机 `vstrong100` 必须另外核验：私有环境文件 0600、Agent CODEX_HOME 目录 0700 且无 `auth.json`、Bot 与本机 MCP 同 UID、实际 Codex provider 只读取该专用 API key/base URL、没有回退到个人 ChatGPT 登录目录。仅仅设置 `FEISHU_AGENT_BILLING_SOURCE` 文本值不是计费身份凭证。
 
 ## 集中现场验证顺序
 
