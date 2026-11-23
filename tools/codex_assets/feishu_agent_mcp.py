@@ -182,6 +182,14 @@ class AgentTaskIntake:
             os.getuid(), record["repo"], run_mode, self.billing_source,
             repository.agent_allowed_modes, repository.edit_strategy,
             repository.commit_enabled,
+            repo_path=str(repository.path),
+            base_ref=repository.base_ref,
+            worktree_root=str(repository.worktree_root or ""),
+            branch_prefix=repository.branch_prefix,
+            allowed_modes=repository.allowed_modes,
+            verification_commands=repository.verification_commands,
+            agent_codex_home=str(self.config.agent_codex_home or ""),
+            openai_base_url=self.config.agent_openai_base_url,
         )
         workflow = EngineeringWorkflow(store)
         workflow.authorize_local_agent_queue(
