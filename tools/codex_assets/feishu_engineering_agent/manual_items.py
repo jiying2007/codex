@@ -175,6 +175,7 @@ class ManualWorkItemService:
             from .workflow import EngineeringWorkflow
             outcome = EngineeringWorkflow(self.store).create_attempt(
                 cmd.run_id, event, cmd.mode, authorized,
+                scope_sha256=hashlib.sha256(cmd.summary.encode("utf-8")).hexdigest(),
             )
             return (
                 "已建立独立研发 AgentRun（未执行）：\n"
