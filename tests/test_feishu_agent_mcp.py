@@ -302,6 +302,26 @@ class FeishuAgentMCPTests(unittest.TestCase):
         self.assertEqual("unknown", manual.store.get_run(run_id)["status"])
         self.assertEqual("unknown", intake.get_task(submitted["id"])["status"])
 
+    def test_workitem_policy_fingerprint_binds_api_credential_rotation(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        submitted = intake.submit_workitem_task(run_id, scope)
+        self.values["OPENAI_API_KEY"] = "fixture-rotated-api-key"
+        rotated_config = feishu_codex_bot.BotConfig.from_values(self.values, self.tmp)
+        bot = feishu_codex_bot.FeishuCodexBot(
+            rotated_config, mock.Mock(), mock.Mock(),
+            feishu_codex_bot.StateStore(rotated_config.state_db),
+        )
+        bot.refill_pending(startup=True)
+        self.assertEqual("unknown", intake.get_task(submitted["id"])["status"])
+        self.assertEqual("unknown", manual.store.get_run(run_id)["status"])
+
+    def test_gateway_url_rejects_embedded_credentials_and_query(self) -> None:
+        values = dict(self.values)
+        values["FEISHU_AGENT_BILLING_SOURCE"] = "external_gateway"
+        values["OPENAI_BASE_URL"] = "https://user:password@gateway.example/v1?token=secret"
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "不含凭据"):
+            feishu_codex_bot.BotConfig.from_values(values, self.tmp)
+
     def test_workitem_task_cancel_updates_agent_run(self) -> None:
         intake, manual, run_id, scope = self.workitem_attempt()
         submitted = intake.submit_workitem_task(run_id, scope)
