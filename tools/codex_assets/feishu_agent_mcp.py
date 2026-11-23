@@ -38,9 +38,9 @@ class AgentTaskIntake:
     def _enabled(self) -> None:
         if not self.config.agent_intake_enabled:
             raise FeishuCodexError("可信本机 Agent 入口未获允许")
-        self.config.validate_agent_runtime()
 
     def _require_billing_source(self) -> None:
+        self.config.validate_agent_runtime()
         if (self.billing_source not in (
                 "external_api_key", "external_gateway", "self_hosted")
                 or self.billing_source != self.config.agent_billing_source):
