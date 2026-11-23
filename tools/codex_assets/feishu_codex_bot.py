@@ -41,6 +41,7 @@ SECRET_ENV_KEYS = {
     "FEISHU_APP_SECRET",
     "FEISHU_TENANT_ACCESS_TOKEN",
     "FEISHU_USER_ACCESS_TOKEN",
+    "FEISHU_AGENT_BILLING_SOURCE",
 }
 ALIAS_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}")
 OPEN_ID_PATTERN = re.compile(r"ou_[A-Za-z0-9]+")
@@ -192,6 +193,7 @@ class BotConfig:
     deny_read_paths: Tuple[pathlib.Path, ...] = ()
     isolation_write_paths: Tuple[pathlib.Path, ...] = ()
     agent_intake_enabled: bool = False
+    agent_billing_source: str = "unapproved"
     manual_workitems_enabled: bool = False  # requires no Feishu Project/TAPD API
     engineering_cards_enabled: bool = False
     card_verification_token: str = ""
@@ -232,6 +234,13 @@ class BotConfig:
         agent_intake_enabled = payload.get("agent_intake_enabled", False)
         if not isinstance(agent_intake_enabled, bool):
             raise FeishuCodexError("agent_intake_enabled 必须是布尔值")
+        agent_billing_source = str(
+            values.get("FEISHU_AGENT_BILLING_SOURCE", "unapproved")
+        ).strip().lower() or "unapproved"
+        if agent_billing_source not in (
+                "unapproved", "codex_shared", "work_shared",
+                "external_api_key", "external_gateway", "self_hosted"):
+            raise FeishuCodexError("FEISHU_AGENT_BILLING_SOURCE 值无效")
         manual_workitems_enabled = payload.get("manual_workitems_enabled", False)
         if not isinstance(manual_workitems_enabled, bool):
             raise FeishuCodexError("manual_workitems_enabled 必须是布尔值")
@@ -428,6 +437,7 @@ class BotConfig:
             deny_read_paths=deny_read_paths,
             isolation_write_paths=isolation_write_paths,
             agent_intake_enabled=agent_intake_enabled,
+            agent_billing_source=agent_billing_source,
             manual_workitems_enabled=manual_workitems_enabled,
             engineering_cards_enabled=cards_enabled,
             card_verification_token=token if cards_enabled else "",
@@ -1946,6 +1956,7 @@ class FeishuCodexBot:
                         or approval["billing_source"] not in (
                             "external_api_key", "external_gateway", "self_hosted"
                         )
+                        or approval["billing_source"] != self.config.agent_billing_source
                         or not self.config.sender_allowed(run["actor"], repository)):
                     raise SpoolError("WorkItem AgentRun execution scope or approval mismatch")
                 expected_policy = local_agent_policy_digest(
