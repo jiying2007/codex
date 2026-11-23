@@ -27,12 +27,13 @@ MAX_LINE_BYTES = 65536
 
 
 class AgentTaskIntake:
-    def __init__(self, config: BotConfig, billing_source: str = "unapproved") -> None:
+    def __init__(self, config: BotConfig, billing_source: Optional[str] = None) -> None:
         self.config = config
         self.store = StateStore(config.state_db)
         self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         self.sender = f"agent:{os.getuid()}"
-        self.billing_source = str(billing_source or "unapproved").strip().lower()
+        source = config.agent_billing_source if billing_source is None else billing_source
+        self.billing_source = str(source or "unapproved").strip().lower()
 
     def _enabled(self) -> None:
         if not self.config.agent_intake_enabled:
