@@ -79,7 +79,7 @@ class AgentTaskIntake:
             ensure_ascii=False, sort_keys=True, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         message_id = "agent:" + hashlib.sha256(
-            (self.sender + "\\0" + idempotency_key).encode("utf-8")
+            (self.sender + "\0" + idempotency_key).encode("utf-8")
         ).hexdigest()
         task_id, created = self.store.create_agent_task(
             message_id, self.sender, repo, mode, digest, self.config.queue_size,
@@ -146,7 +146,7 @@ class AgentTaskIntake:
             )
         if (not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id)
                 or not isinstance(task, str) or not task.strip()
-                or len(task) > self.config.max_prompt_chars or "\\x00" in task):
+                or len(task) > self.config.max_prompt_chars or "\x00" in task):
             raise FeishuCodexError("invalid WorkItem Run ID or bounded task text")
         record = store.get_run(run_id)
         repository = self.config.repositories.get(record["repo"])
@@ -166,7 +166,7 @@ class AgentTaskIntake:
             EngineeringWorkflow, local_agent_policy_digest,
         )
         event_id = "local-agent-" + hashlib.sha256(
-            (run_id + "\\0" + self.sender).encode("utf-8")
+            (run_id + "\0" + self.sender).encode("utf-8")
         ).hexdigest()[:32]
         event = InboundEvent(
             "feishu_message", record["tenant"], record["chat"],
