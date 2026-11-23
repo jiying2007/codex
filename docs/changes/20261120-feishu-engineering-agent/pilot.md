@@ -105,7 +105,7 @@ Or use the same `/wi handoff` input on the local `--manual` stdin CLI with a **n
 
 ## Source implementation prepared: operator-facing invocation
 
-**Text mode (no enterprise API):** `/wi add` → `/wi handoff <RunID> | ...` → `/wi attempt <sourceRunID> edit | scope/acceptance`. The attempt is **proposed**, not executed. A trusted host policy issuer must separately sign an `ExecutionApproval` containing actor, tenant, chat, repository, mode, reviewed SDD, billing identity and expiry. A Codex model turn cannot be triggered directly by this chat command.
+**Text mode (no enterprise API):** `/wi add` → `/wi handoff <RunID> | ...` → `/wi attempt <sourceRunID> edit | scope/acceptance`. The attempt is **proposed**, not executed. It can be handed to either (a) the native App Server path, which requires a separately signed `ExecutionApproval`, or (b) the local MCP bridge above, which requires explicit same-UID tool invocation, exact scope hash, current repo policy and a dedicated non-shared API identity. The chat command itself never approves or starts a model turn.
 
 **Optional interactive card (same existing Bot only):** keep `engineering_cards_enabled=false` unless the authorized Feishu app has been configured for Card 2.0 callback. To enable in private, existing Bot policy must have `manual_workitems_enabled=true` plus `engineering_cards_enabled=true` and the service's **private** environment must contain `FEISHU_CARD_VERIFICATION_TOKEN` and `FEISHU_CARD_SIGNING_KEY_HEX` (>=32 random bytes encoded as hex). These are never committed. Validate actual SDK compatibility and 3-second ACK before the unique Bot is restarted; cards never grant model access.
 
