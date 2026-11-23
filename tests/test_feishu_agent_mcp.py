@@ -1,6 +1,7 @@
 """Offline local MCP intake tests; never call a model or Feishu network."""
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 import sqlite3
@@ -145,6 +146,60 @@ class FeishuAgentMCPTests(unittest.TestCase):
                 intake.submit_task("codex", "review", "第二次", "case-000007")
             popen.assert_not_called()
 
+    def test_agent_codex_identity_isolated_from_personal_home_and_auth(self) -> None:
+        config = self.intake().config
+        runner = feishu_codex_bot.CodexRunner(config)
+        job = feishu_codex_bot.BotJob(
+            91, "agent:test", "oc_test", f"agent:{__import__('os').getuid()}",
+            "task", "codex", "review", "只读检查",
+        )
+        with mock.patch.dict("os.environ", {
+            "PATH": "/usr/bin", "HOME": "/home/service",
+            "CODEX_HOME": "/home/service/.codex",
+            "OPENAI_API_KEY": "sk-personal-session-key",
+            "FEISHU_APP_SECRET": "must-not-leak",
+            "FEISHU_AGENT_BILLING_SOURCE": "must-not-leak",
+        }, clear=True):
+            environment = runner._execution_environment(job)
+        self.assertEqual(str(self.agent_home), environment["CODEX_HOME"])
+        self.assertEqual("sk-test-agent-key", environment["OPENAI_API_KEY"])
+        self.assertNotIn("/home/service/.codex", environment.values())
+        self.assertNotIn("FEISHU_APP_SECRET", environment)
+        self.assertNotIn("FEISHU_AGENT_BILLING_SOURCE", environment)
+
+    def test_agent_codex_home_rejects_account_auth_file_and_missing_api_key(self) -> None:
+        auth = self.agent_home / "auth.json"
+        auth.write_text('{"tokens":"not-a-real-token"}', encoding="utf-8")
+        auth.chmod(0o600)
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "auth.json"):
+            feishu_codex_bot.BotConfig.from_values(self.values, self.tmp)
+        auth.unlink()
+        values = dict(self.values)
+        values.pop("OPENAI_API_KEY")
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "OPENAI_API_KEY"):
+            feishu_codex_bot.BotConfig.from_values(values, self.tmp)
+
+    def test_orphaned_legacy_task_is_unknown_and_never_rebound_to_workitem(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        idempotency_key = "workitem-" + run_id
+        message_id = "agent:" + hashlib.sha256(
+            (intake.sender + "\\0" + idempotency_key).encode("utf-8")
+        ).hexdigest()
+        digest = hashlib.sha256(json.dumps(
+            {"repo": "codex", "mode": "edit", "task": scope},
+            ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
+        task_id, created = intake.store.create_agent_task(
+            message_id, intake.sender, "codex", "edit", digest,
+            intake.config.queue_size,
+        )
+        self.assertTrue(created)
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "marked UNKNOWN"):
+            intake.submit_workitem_task(run_id, scope)
+        self.assertEqual("unknown", intake.get_task(task_id)["status"])
+        self.assertEqual("unknown", manual.store.get_run(run_id)["status"])
+        self.assertIsNone(intake.store.agent_run_link_for_task(task_id))
+
     def test_workitem_run_queues_through_existing_bot_and_tracks_ci_gate(self) -> None:
         intake, manual, run_id, scope = self.workitem_attempt()
         with mock.patch.object(feishu_codex_bot.subprocess, "Popen") as popen:
@@ -204,7 +259,10 @@ class FeishuAgentMCPTests(unittest.TestCase):
     def test_workitem_task_requires_billing_and_repo_policy_to_remain_current(self) -> None:
         intake, manual, run_id, scope = self.workitem_attempt()
         submitted = intake.submit_workitem_task(run_id, scope)
-        self.policy["repositories"]["codex"]["agent_allowed_modes"] = ["explain", "review"]
+        self.policy["repositories"]["codex"]["verification_commands"] = [
+            ["git", "diff", "--check"],
+            ["git", "status", "--short"],
+        ]
         self.write_policy()
         revoked_config = feishu_codex_bot.BotConfig.from_values(self.values, self.tmp)
         bot = feishu_codex_bot.FeishuCodexBot(
