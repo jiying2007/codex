@@ -99,8 +99,15 @@ class AgentTaskIntake:
                 if (existing_link is None
                         or existing_link["agent_run_id"] != agent_run_id
                         or existing_link["unix_uid"] != os.getuid()):
+                    # A crash may have left a legacy task row before its
+                    # AgentRun link was committed. It is ambiguous, not safe
+                    # to adopt or replay under a different WorkItem identity.
+                    self.store.update_task(task_id, "unknown", "AgentRunLinkMissingOrConflict")
+                    self._mark_workitem_run_unknown(agent_run_id)
+                    if existing_link is not None:
+                        self._mark_workitem_run_unknown(existing_link["agent_run_id"])
                     raise FeishuCodexError(
-                        "existing task has no matching AgentRun receipt; reconcile manually, never rebind"
+                        "existing task has no matching AgentRun receipt; marked UNKNOWN, reconcile manually, never rebind"
                     )
             else:
                 try:
