@@ -544,6 +544,9 @@ class BotConfig:
     def validate_agent_runtime(self) -> None:
         if not self.agent_intake_enabled:
             return
+        if self.agent_billing_source not in (
+                "external_api_key", "external_gateway", "self_hosted"):
+            raise FeishuCodexError("Agent 运行身份不是允许的独立非共享计费来源")
         if self.agent_codex_home is None:
             raise FeishuCodexError("Agent 专用 CODEX_HOME 未配置")
         _private_directory_mode(self.agent_codex_home, "Agent 专用 CODEX_HOME")
