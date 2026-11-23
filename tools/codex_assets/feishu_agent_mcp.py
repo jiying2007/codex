@@ -201,6 +201,13 @@ class AgentTaskIntake:
             credential_fingerprint=hashlib.sha256(
                 self.config.agent_openai_api_key.encode("utf-8")
             ).hexdigest(),
+            codex_bin=self.config.codex_bin,
+            isolation_bin=str(self.config.isolation_bin),
+            deny_push_hooks_path=str(self.config.deny_push_hooks_path),
+            deny_read_paths=(str(path) for path in self.config.deny_read_paths),
+            isolation_write_paths=(str(path) for path in self.config.isolation_write_paths),
+            codex_timeout_sec=self.config.codex_timeout_sec,
+            max_prompt_chars=self.config.max_prompt_chars,
         )
         workflow = EngineeringWorkflow(store)
         workflow.authorize_local_agent_queue(
