@@ -2354,6 +2354,7 @@ class FeishuCodexBot:
                     )
                     continue
                 if self.store.task_status(job.task_id) == "canceled":
+                    self._fail_agent_run(job.task_id, "canceled")
                     continue
                 self._send_safe(
                     job.chat_id,
@@ -2362,8 +2363,11 @@ class FeishuCodexBot:
                 )
                 with self.repo_locks[job.repository]:
                     if self.store.task_status(job.task_id) == "canceled":
+                        self._fail_agent_run(job.task_id, "canceled")
                         continue
                     if not self.store.claim_queued(job.task_id):
+                        if self.store.task_status(job.task_id) == "canceled":
+                            self._fail_agent_run(job.task_id, "canceled")
                         continue
                     self._transition_agent_run(job.task_id, "running", strict=True)
                     print(
