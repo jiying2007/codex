@@ -232,6 +232,18 @@ class AgentTaskIntake:
                 self.spool.discard(task_id)
             except OSError:
                 raise FeishuCodexError("任务已取消，但私有输入清理失败，需人工核验") from None
+            link = self.store.agent_run_link_for_task(task_id)
+            if link is not None:
+                try:
+                    store = self._manual_store()
+                    record = store.get_run(link["agent_run_id"])
+                    if record["status"] == "queued":
+                        store.transition(
+                            link["agent_run_id"], record["revision"],
+                            "canceled", record["actor"],
+                        )
+                except Exception:
+                    raise FeishuCodexError("任务已取消，但 AgentRun 状态未能同步，需人工核验") from None
         result = self.get_task(task_id)
         result["queued_cancelled"] = canceled
         result["running_cancel_requires_feishu"] = result["status"] == "running"
