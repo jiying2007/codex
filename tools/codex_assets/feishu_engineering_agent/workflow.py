@@ -100,9 +100,10 @@ class EngineeringWorkflow:
         """
         if mode not in ("read", "review", "edit"):
             raise IntakeRejected("unsupported execution attempt mode")
-        if (not isinstance(scope_sha256, str) or len(scope_sha256) != 64
-                or any(char not in "0123456789abcdef" for char in scope_sha256)):
-            raise IntakeRejected("execution attempt requires an exact SHA-256 scope digest")
+        if (scope_sha256 and (
+                not isinstance(scope_sha256, str) or len(scope_sha256) != 64
+                or any(char not in "0123456789abcdef" for char in scope_sha256))):
+            raise IntakeRejected("execution attempt scope digest must be SHA-256")
         parent = self.store.get_run(source_run_id, event)
         if not parent["workitem_fp"] or not parent["provider"]:
             raise IntakeRejected("source run lacks verified WorkItem linkage metadata")
