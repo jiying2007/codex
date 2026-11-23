@@ -1618,6 +1618,28 @@ class CodexRunner:
         command.extend(["--chdir", str(working_directory), "--", self.config.codex_bin, *codex_arguments])
         return command
 
+    def _execution_environment(self, job: BotJob) -> Dict[str, str]:
+        if not job.sender_open_id.startswith("agent:"):
+            return git_guard_environment(os.environ, self.config.deny_push_hooks_path)
+        self.config.validate_agent_runtime()
+        # Agent runs never inherit the interactive user's CODEX_HOME or
+        # account/session tokens. Only the dedicated API-key identity is
+        # passed to this subprocess.
+        passthrough = {
+            "PATH", "HOME", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "TMPDIR",
+            "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+            "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE",
+        }
+        environment = {
+            key: value for key, value in os.environ.items()
+            if key in passthrough and value
+        }
+        environment["CODEX_HOME"] = str(self.config.agent_codex_home)
+        environment["OPENAI_API_KEY"] = self.config.agent_openai_api_key
+        if self.config.agent_openai_base_url:
+            environment["OPENAI_BASE_URL"] = self.config.agent_openai_base_url
+        return git_guard_environment(environment, self.config.deny_push_hooks_path)
+
     def run(self, job: BotJob, source_context: str = "") -> ExecutionResult:
         repository = self.config.repository(job.repository)
         working_directory = repository.path
@@ -1649,7 +1671,7 @@ class CodexRunner:
             process = subprocess.Popen(
                 command,
                 cwd=str(working_directory),
-                env=git_guard_environment(os.environ, self.config.deny_push_hooks_path),
+                env=self._execution_environment(job),
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
