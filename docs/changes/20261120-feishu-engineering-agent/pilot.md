@@ -8,6 +8,10 @@ This is a short operator contract for the existing **single Feishu Bot instance*
 - `python -m tools.codex_assets.feishu_engineering_agent --probe-runtime`: checks the installed `codex --version` and `codex app-server --help` on the **host actually running the Bot**. It **does not** authenticate to Codex, start App Server, resume a thread or call a model. The same command from CI is not evidence about vstrong100.
 - Use a temporary 0600 SQLite path with `RunStore` for offline smoke. Never point offline code at the installed `feishu-codex-state.sqlite3`.
 
+## Native App Server session bootstrap (source-only)
+
+`StdioAppServer.initialize()` explicitly negotiates `experimentalApi` because the v2 `thread/resume.excludeTurns` field requires it. `start_thread(cwd, sandbox)` creates a persistent, non-ephemeral thread with `approvalPolicy=on-request` and only `read-only` or `workspace-write`; it does not issue `turn/start` or invoke a model. It returns a thread ID only after checking `result.thread.id` and `ephemeral=false`. `resume_exact(thread_id)` verifies the returned `result.thread.id` is exactly the requested ID. These are offline protocol-contract implementations; they do **not** qualify the Codex binary on `vstrong100`, start a production App Server, or connect the new AgentRun flow to the live Bot worker.
+
 ## Single-consumer card boundary
 
 The legacy `FeishuTransport.start(on_message, card_callback=None)` retains its original behavior with no callback configured. Only an **explicitly enabled** same-process integration may pass `card_callback` to that method. The new `CardPublisher` must receive the existing transport and a private HMAC signing key outside Git. It marks `sending` in durable SQLite before sending a Card 2.0 interactive message and binds the returned message ID on success. Ambiguous external outcomes become **UNKNOWN** and are not automatically retried. Card display states read the `AgentRun` ledger, not the Feishu card message.
@@ -19,7 +23,7 @@ A valid `card.action.trigger` must pass authenticated transport validation, veri
 | Gate | Offline code evidence | Required real evidence | Status |
 |---|---|---|---|
 | C1: card | Signed JSON and idempotent send/click tests | Real callback delivery, response under three seconds, mobile/desktop, expiry and update | Pending |
-| C2: exact session | Store, resume/interrupt request plan, help-only probe | vstrong100 app-server handshake, thread identity, approval, turn lifecycle, interrupt/restart semantics | Pending |
+| C2: exact session | Persistent no-model `thread/start`, exact `thread/resume` identity check, turn/interrupt request plan, help-only probe | vstrong100 app-server handshake, thread identity, approval, turn lifecycle, interrupt/restart semantics | Pending |
 | C3: sources | Read-only TAPD/Meegle injected transport tests | One scoped Feishu Project requirement and one TAPD Bug read with actual app permission | Pending |
 | C4: delivery | WorkItem/AgentRun ledger and verified-evidence gate | One feature and one bug through code/PR/CI and **independent** source-system QA | Pending |
 | C5: migration | Existing Bot unchanged by default | Backup WAL/spool/config, restore proof, one active listener and rollback | Pending |
@@ -28,7 +32,7 @@ Codex shared/Work quota remains prohibited without separate fresh authorization.
 
 ## Remaining integration work
 
-The live Bot's message handler still follows its existing intake/queue and `FeishuCodexBot.start` still calls `transport.start(self.on_message)`; **the new card callback is not yet activated**. The real integration requires a guarded configuration flag, deployment-managed credential, trusted event identity adapter, effects/outbox dispatcher and a checked rollback plan. Do not silently switch the production consumer or mark C1–C5 complete.
+The live Bot's message handler still follows its existing intake/queue and `FeishuCodexBot.start` still calls `transport.start(self.on_message)`; **the new card callback is not yet activated**. The new App Server `thread/start`/`thread/resume` methods are protocol primitives only: there is no production per-run App Server process manager or AgentRun-to-worker execution dispatcher yet. The real integration requires a guarded configuration flag, deployment-managed credential, trusted event identity adapter, effects/outbox dispatcher and a checked rollback plan. Do not silently switch the production consumer or mark C1–C5 complete.
 
 ## No enterprise API / no card permission: minimum viable operator path
 
@@ -60,7 +64,7 @@ Then enter `/wi add tapd 缺陷 10104801 123456 repo=robot-app | <完整问题�
 |---|---|---|
 | WorkItem intake | Local CLI or existing Bot text `/wi` | Project/TAPD read-only adapter optional |
 | Run status | `/wi list`, `/wi status` | Card JSON 2.0 optional |
-| Session | No model call in intake; independently authorized Codex CLI remains available | App Server exact-thread continuity requires host qualification |
+| Session | No model call in intake; legacy Codex CLI path remains separate from AgentRun | Persistent App Server thread bootstrap exists as source code; exact-thread continuity and AgentRun execution still require host qualification and Bot integration |
 | QA | Human verifies original requirement/bug in source system | Provider status update only after explicit policy/permission |
 | Cutover | Do not replace old Bot/consumer without backup/restore | Same single-consumer invariant |
 
@@ -110,4 +114,4 @@ Paths are placeholders, not discovered production paths. The backup intentionall
 
 **Optional concrete GitHub adapter:** `GitHubForge` takes an approved repository alias/full name, an injected `GitHubTransport` (fixed HTTPS API host, private token), an approved base branch and a disabled-by-default remote write switch. It verifies an already-pushed exact branch SHA and only then prepares a draft PR (not push or merge); `DeliveryCoordinator` independently requires a valid signed `PublicationGrant` and persists a remote effect receipt first. Read-only PR and CI observation each requires source SHA identity and completed CI status. GitLab or an internal forge may implement the same injected contract without changing WorkItem identity; no GitHub Issues are created. Private GitHub tokens, QA attestation HMAC keys, Feishu/TAPD creds and model billing identities must not be placed in repository config, chat or Codex child environment.
 
-**Offline native protocol qualification before any real model turn:** On vstrong100 inspect the installed Codex version and generate its app-server JSON Schema to a **private temporary directory**, then compare `UserInput` and `SandboxPolicy` required keys with `sessions.py`. Generating a schema is not a model call. A green GitHub CI job does not prove that the host's installed Codex and schema match. Do not write or log host tokens while inspecting the schema. Only after the real host's approval routing, exact thread resume and sandbox are verified may a separately budget-approved model turn be considered.
+**Offline native protocol qualification before any real model turn:** On vstrong100 inspect the installed Codex version and generate its app-server JSON Schema to a **private temporary directory**, then compare `ThreadStartParams`, `ThreadResumeParams`, `TurnStartParams`, `UserInput` and `SandboxPolicy` with `appserver.py` and `sessions.py`. The client must negotiate `experimentalApi` before using `thread/resume.excludeTurns`. Generating a schema is not a model call. A green GitHub CI job does not prove that the host's installed Codex and schema match. Do not write or log host tokens while inspecting the schema. Only after the real host's approval routing, exact thread resume and sandbox are verified may a separately budget-approved model turn be considered.
