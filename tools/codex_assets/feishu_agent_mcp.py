@@ -27,18 +27,40 @@ MAX_LINE_BYTES = 65536
 
 
 class AgentTaskIntake:
-    def __init__(self, config: BotConfig) -> None:
+    def __init__(self, config: BotConfig, billing_source: str = "unapproved") -> None:
         self.config = config
         self.store = StateStore(config.state_db)
         self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         self.sender = f"agent:{os.getuid()}"
+        self.billing_source = str(billing_source or "unapproved").strip().lower()
 
     def _enabled(self) -> None:
         if not self.config.agent_intake_enabled:
             raise FeishuCodexError("可信本机 Agent 入口未获允许")
 
-    def submit_task(self, repo: str, mode: str, task: str, idempotency_key: str) -> dict[str, Any]:
-        self._enabled()
+    def _manual_store(self):
+        if not self.config.manual_workitems_enabled:
+            raise FeishuCodexError("WorkItem AgentRun bridge is disabled")
+        from .feishu_engineering_agent.manual_items import ManualWorkItemService
+        manual_db = self.config.state_db.with_name("feishu-engineering-agent.sqlite3")
+        if manual_db == self.config.state_db:
+            raise FeishuCodexError("AgentRun DB must be separate from legacy Bot state")
+        return ManualWorkItemService(manual_db).store
+
+    def _mark_workitem_run_unknown(self, run_id: str) -> None:
+        try:
+            store = self._manual_store()
+            record = store.get_run(run_id)
+            if record["status"] in ("queued", "running"):
+                store.transition(run_id, record["revision"], "unknown", record["actor"])
+        except Exception:
+            # The old task receipt remains UNKNOWN even if the second ledger is unavailable.
+            pass
+
+    def _queue_task(
+        self, repo: str, mode: str, task: str, idempotency_key: str,
+        agent_run_id: str = "",
+    ) -> dict[str, Any]:
         if not all(isinstance(value, str) for value in (repo, mode, task, idempotency_key)):
             raise FeishuCodexError("Agent 任务字段必须是字符串")
         if not REQUEST_KEY.fullmatch(idempotency_key):
@@ -46,8 +68,9 @@ class AgentTaskIntake:
         repository = self.config.repositories.get(repo)
         if repository is None or mode not in repository.agent_allowed_modes:
             raise FeishuCodexError("仓库或 Agent 任务模式未获允许")
-        if mode == "edit" and repository.edit_strategy != "worktree":
-            raise FeishuCodexError("Agent 修改必须使用 worktree 隔离")
+        if mode == "edit" and (
+                repository.edit_strategy != "worktree" or not repository.commit_enabled):
+            raise FeishuCodexError("Agent 修改必须使用可提交的 worktree 隔离")
         if not task.strip() or len(task) > self.config.max_prompt_chars:
             raise FeishuCodexError("Agent 任务为空或超出提示预算")
         digest = hashlib.sha256(json.dumps(
@@ -55,11 +78,19 @@ class AgentTaskIntake:
             ensure_ascii=False, sort_keys=True, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         message_id = "agent:" + hashlib.sha256(
-            (self.sender + "\0" + idempotency_key).encode("utf-8")
+            (self.sender + "\\0" + idempotency_key).encode("utf-8")
         ).hexdigest()
         task_id, created = self.store.create_agent_task(
             message_id, self.sender, repo, mode, digest, self.config.queue_size,
         )
+        if agent_run_id:
+            try:
+                self.store.link_agent_run_task(agent_run_id, task_id, os.getuid())
+            except Exception:
+                if created:
+                    self.store.update_task(task_id, "unknown", "AgentRunLinkFailed")
+                self._mark_workitem_run_unknown(agent_run_id)
+                raise
         if created:
             job = BotJob(task_id, message_id, self.config.target_chat_id, self.sender,
                          "task", repo, mode, task)
@@ -67,9 +98,96 @@ class AgentTaskIntake:
                 self.spool.put(task_id, dataclasses.asdict(job))
             except (OSError, SpoolError):
                 self.store.update_task(task_id, "unknown", "AgentInputPersistFailed")
+                if agent_run_id:
+                    self._mark_workitem_run_unknown(agent_run_id)
                 raise FeishuCodexError("任务输入持久化失败，禁止自动重复执行") from None
+        elif agent_run_id:
+            detail = self.store.agent_task_detail(task_id, self.sender)
+            if detail is None:
+                raise FeishuCodexError("existing local Agent task is not owned by this Unix user")
+            if detail["status"] == "queued":
+                try:
+                    self.spool.get(task_id)
+                except (FileNotFoundError, OSError, SpoolError):
+                    self.store.update_task(task_id, "unknown", "AgentQueuedPayloadUnavailable")
+                    self._mark_workitem_run_unknown(agent_run_id)
+                    raise FeishuCodexError("既有任务缺少可信输入，状态已置为 UNKNOWN，禁止重放") from None
         result = self.get_task(task_id)
         result["created"] = created
+        return result
+
+    def submit_task(self, repo: str, mode: str, task: str, idempotency_key: str) -> dict[str, Any]:
+        self._enabled()
+        return self._queue_task(repo, mode, task, idempotency_key)
+
+    def submit_workitem_task(self, run_id: str, task: str) -> dict[str, Any]:
+        """Queue an exact manual WorkItem attempt through the existing Bot worker.
+
+        This local-MCP lane is separate from Feishu chat and from App Server
+        HMAC grants. It requires the same Unix UID, both operator feature flags,
+        the repo's agent mode allowlist, a scope hash match, and an explicitly
+        declared non-shared billing source.
+        """
+        self._enabled()
+        store = self._manual_store()
+        if self.billing_source not in ("external_api_key", "external_gateway", "self_hosted"):
+            raise FeishuCodexError(
+                "WorkItem execution needs FEISHU_AGENT_BILLING_SOURCE="
+                "external_api_key|external_gateway|self_hosted; shared quota is denied"
+            )
+        if (not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id)
+                or not isinstance(task, str) or not task.strip()
+                or len(task) > self.config.max_prompt_chars or "\\x00" in task):
+            raise FeishuCodexError("invalid WorkItem Run ID or bounded task text")
+        record = store.get_run(run_id)
+        repository = self.config.repositories.get(record["repo"])
+        if repository is None or not self.config.sender_allowed(record["actor"], repository):
+            raise FeishuCodexError("WorkItem owner or repository access is no longer authorized")
+        run_mode = record["mode"]
+        bot_mode = {"read": "explain", "review": "review", "edit": "edit"}.get(run_mode)
+        if (bot_mode is None or bot_mode not in repository.allowed_modes
+                or bot_mode not in repository.agent_allowed_modes):
+            raise FeishuCodexError("WorkItem execution mode is not allowed by the current repository policy")
+        if run_mode == "edit" and (
+                repository.edit_strategy != "worktree" or not repository.commit_enabled):
+            raise FeishuCodexError("WorkItem edit requires an isolated, locally committable worktree")
+        scope_sha256 = hashlib.sha256(task.encode("utf-8")).hexdigest()
+        from .feishu_engineering_agent.models import InboundEvent
+        from .feishu_engineering_agent.workflow import (
+            EngineeringWorkflow, local_agent_policy_digest,
+        )
+        event_id = "local-agent-" + hashlib.sha256(
+            (run_id + "\\0" + self.sender).encode("utf-8")
+        ).hexdigest()[:32]
+        event = InboundEvent(
+            "feishu_message", record["tenant"], record["chat"],
+            record["actor"], event_id, task,
+        )
+        policy_sha256 = local_agent_policy_digest(
+            os.getuid(), record["repo"], run_mode, self.billing_source,
+            repository.agent_allowed_modes, repository.edit_strategy,
+            repository.commit_enabled,
+        )
+        workflow = EngineeringWorkflow(store)
+        workflow.authorize_local_agent_queue(
+            run_id, event, os.getuid(), {record["repo"]}, {run_mode},
+            scope_sha256, self.billing_source, policy_sha256,
+        )
+        try:
+            result = self._queue_task(
+                record["repo"], bot_mode, task, "workitem-" + run_id,
+                agent_run_id=run_id,
+            )
+        except FeishuCodexError:
+            current = store.get_run(run_id)
+            if current["status"] == "queued":
+                try:
+                    store.transition(run_id, current["revision"], "blocked", current["actor"])
+                except Exception:
+                    pass
+            raise
+        result["agent_run_id"] = run_id
+        result["run_status"] = store.get_run(run_id)["status"]
         return result
 
     def get_task(self, task_id: int) -> dict[str, Any]:
@@ -80,6 +198,25 @@ class AgentTaskIntake:
         if detail is None:
             raise FeishuCodexError("任务不存在或不属于本机 Agent 用户")
         return detail
+
+    def get_workitem_task(self, run_id: str) -> dict[str, Any]:
+        self._enabled()
+        store = self._manual_store()
+        approval = __import__(
+            "tools.codex_assets.feishu_engineering_agent.workflow",
+            fromlist=["EngineeringWorkflow"],
+        ).EngineeringWorkflow(store).local_agent_approval(run_id)
+        if approval["unix_uid"] != os.getuid():
+            raise FeishuCodexError("AgentRun belongs to another local Unix user")
+        record = store.get_run(run_id)
+        link = self.store.agent_run_link_for_run(run_id)
+        task = None
+        if link is not None:
+            task = self.store.agent_task_detail(link["task_id"], self.sender)
+            if task is None:
+                raise FeishuCodexError("linked Agent task is not owned by this local Unix user")
+        return {"agent_run_id": run_id, "run_status": record["status"],
+                "task": task, "billing_source": approval["billing_source"]}
 
     def cancel_queued_task(self, task_id: int) -> dict[str, Any]:
         self.get_task(task_id)
