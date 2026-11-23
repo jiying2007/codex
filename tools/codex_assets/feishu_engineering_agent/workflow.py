@@ -51,7 +51,10 @@ class ExecutionApproval:
 def local_agent_policy_digest(
     unix_uid: int, repo: str, mode: str, billing_source: str,
     agent_allowed_modes: Iterable[str], edit_strategy: str,
-    commit_enabled: bool,
+    commit_enabled: bool, *, repo_path: str = "", base_ref: str = "",
+    worktree_root: str = "", branch_prefix: str = "",
+    allowed_modes: Iterable[str] = (),
+    verification_commands: Iterable[Iterable[str]] = (),
 ) -> str:
     """Canonical digest of the operator-controlled local MCP execution policy."""
     payload = {
@@ -59,9 +62,15 @@ def local_agent_policy_digest(
         "repo": check_repo_alias(repo),
         "mode": mode,
         "billing_source": billing_source,
+        "repo_path": repo_path,
+        "base_ref": base_ref,
+        "worktree_root": worktree_root,
+        "branch_prefix": branch_prefix,
+        "allowed_modes": sorted(set(allowed_modes)),
         "agent_allowed_modes": sorted(set(agent_allowed_modes)),
         "edit_strategy": edit_strategy,
         "commit_enabled": bool(commit_enabled),
+        "verification_commands": [list(command) for command in verification_commands],
     }
     return hashlib.sha256(json.dumps(
         payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
