@@ -451,6 +451,8 @@ class BotConfig:
             if not raw_agent_home:
                 raise FeishuCodexError("启用本机 Agent 执行时必须配置 FEISHU_AGENT_CODEX_HOME")
             raw_agent_path = pathlib.Path(raw_agent_home).expanduser()
+            if not raw_agent_path.is_absolute():
+                raise FeishuCodexError("FEISHU_AGENT_CODEX_HOME 必须是绝对路径")
             if raw_agent_path.is_symlink():
                 raise FeishuCodexError("FEISHU_AGENT_CODEX_HOME 不允许使用符号链接")
             try:
