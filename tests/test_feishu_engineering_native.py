@@ -343,7 +343,7 @@ class NativeAppServerProtocolTest(unittest.TestCase):
                 self.input.sent.append(frame)
                 self.output.data.put(json.dumps({
                     "id": frame["id"], "result": {"thread": {"id": "thread_other"}},
-                }) + "\\n")
+                }) + "\n")
                 return len(raw)
             return original_write(raw)
 
