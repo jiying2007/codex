@@ -56,6 +56,7 @@ def local_agent_policy_digest(
     allowed_modes: Iterable[str] = (),
     verification_commands: Iterable[Iterable[str]] = (),
     agent_codex_home: str = "", openai_base_url: str = "",
+    credential_fingerprint: str = "",
 ) -> str:
     """Canonical digest of the operator-controlled local MCP execution policy."""
     payload = {
@@ -74,6 +75,7 @@ def local_agent_policy_digest(
         "verification_commands": [list(command) for command in verification_commands],
         "agent_codex_home": str(agent_codex_home),
         "openai_base_url": str(openai_base_url),
+        "credential_fingerprint": str(credential_fingerprint),
     }
     return hashlib.sha256(json.dumps(
         payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
