@@ -161,6 +161,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
             "FEISHU_AGENT_BILLING_SOURCE": "must-not-leak",
         }, clear=True):
             environment = runner._execution_environment(job)
+        self.assertEqual(str(self.agent_home), environment["HOME"])
         self.assertEqual(str(self.agent_home), environment["CODEX_HOME"])
         self.assertEqual("sk-test-agent-key", environment["OPENAI_API_KEY"])
         self.assertNotIn("/home/service/.codex", environment.values())
