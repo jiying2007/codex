@@ -81,8 +81,9 @@ class AgentTaskIntake:
         if mode == "edit" and (
                 repository.edit_strategy != "worktree" or not repository.commit_enabled):
             raise FeishuCodexError("Agent 修改必须使用可提交的 worktree 隔离")
-        if not task.strip() or len(task) > self.config.max_prompt_chars:
-            raise FeishuCodexError("Agent 任务为空或超出提示预算")
+        if (not task.strip() or len(task) > self.config.max_prompt_chars
+                or "\x00" in task):
+            raise FeishuCodexError("Agent 任务为空、包含 NUL 或超出提示预算")
         digest = hashlib.sha256(json.dumps(
             {"repo": repo, "mode": mode, "task": task},
             ensure_ascii=False, sort_keys=True, separators=(",", ":"),
