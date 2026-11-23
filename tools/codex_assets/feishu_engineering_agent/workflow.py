@@ -48,6 +48,26 @@ class ExecutionApproval:
                           sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
+def local_agent_policy_digest(
+    unix_uid: int, repo: str, mode: str, billing_source: str,
+    agent_allowed_modes: Iterable[str], edit_strategy: str,
+    commit_enabled: bool,
+) -> str:
+    """Canonical digest of the operator-controlled local MCP execution policy."""
+    payload = {
+        "unix_uid": int(unix_uid),
+        "repo": check_repo_alias(repo),
+        "mode": mode,
+        "billing_source": billing_source,
+        "agent_allowed_modes": sorted(set(agent_allowed_modes)),
+        "edit_strategy": edit_strategy,
+        "commit_enabled": bool(commit_enabled),
+    }
+    return hashlib.sha256(json.dumps(
+        payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+
+
 class EngineeringWorkflow:
     def __init__(self, store: RunStore):
         self.store = store
