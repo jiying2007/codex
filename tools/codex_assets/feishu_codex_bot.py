@@ -2093,6 +2093,9 @@ class FeishuCodexBot:
                     verification_commands=repository.verification_commands,
                     agent_codex_home=str(self.config.agent_codex_home or ""),
                     openai_base_url=self.config.agent_openai_base_url,
+                    credential_fingerprint=hashlib.sha256(
+                        self.config.agent_openai_api_key.encode("utf-8")
+                    ).hexdigest(),
                 )
                 if approval["policy_sha256"] != expected_policy:
                     raise SpoolError("WorkItem AgentRun repository policy changed after authorization")
