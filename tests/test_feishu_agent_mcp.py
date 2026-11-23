@@ -18,6 +18,9 @@ class FeishuAgentMCPTests(unittest.TestCase):
         self.tmp = pathlib.Path(tempfile.mkdtemp(prefix="feishu-agent-test-"))
         self.addCleanup(lambda: __import__("shutil").rmtree(self.tmp))
         (self.tmp / ".git").mkdir()
+        self.agent_home = self.tmp.parent / (self.tmp.name + "-agent-codex-home")
+        self.agent_home.mkdir(mode=0o700)
+        self.addCleanup(lambda: __import__("shutil").rmtree(self.agent_home, ignore_errors=True))
         self.policy_path = self.tmp / "agent-config.json"
         self.policy = {
             "schema_version": 1,
@@ -42,6 +45,9 @@ class FeishuAgentMCPTests(unittest.TestCase):
             "FEISHU_APP_SECRET": "not-used",
             "FEISHU_TARGET_CHAT_ID": "oc_test",
             "FEISHU_BOT_CONFIG": str(self.policy_path),
+            "FEISHU_AGENT_CODEX_HOME": str(self.agent_home),
+            "FEISHU_AGENT_BILLING_SOURCE": "external_api_key",
+            "OPENAI_API_KEY": "sk-test-agent-key",
         }
         self.write_policy()
 
@@ -59,7 +65,6 @@ class FeishuAgentMCPTests(unittest.TestCase):
             "explain", "review", "edit",
         ]
         self.write_policy()
-        self.values["FEISHU_AGENT_BILLING_SOURCE"] = "external_api_key"
         intake = self.intake()
         manual_db = self.tmp / "feishu-engineering-agent.sqlite3"
         manual = ManualWorkItemService(manual_db)
@@ -193,7 +198,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
         shared = feishu_agent_mcp.AgentTaskIntake(
             intake.config, billing_source="codex_shared",
         )
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "non-shared"):
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "独立非共享计费身份"):
             shared.submit_workitem_task(run_id, scope)
 
     def test_workitem_task_requires_billing_and_repo_policy_to_remain_current(self) -> None:
