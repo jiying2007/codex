@@ -27,8 +27,12 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [x] `appserver.py`：显式 host-qualified stdio initialize/initialized/thread resume/turn RPC；审批请求拒绝自动同意；不泄露 Feishu 凭据。
 [x] `workflow.py`：一 WorkItem 多 Run；精确范围、SDD 和外部费用授权 HMAC 后才可 queued。
 [x] `runtime_bridge.py`：turn/start 前存 effect receipt；ACK≠完成；turn/completed 关联验证；失败、重启/中断 UNKNOWN。
-[x] 模型调用默认禁用，不消耗 Codex/Work 共享额度。
-[ ] `vstrong100` 实测原生协议、精确 resume、实际审批、中断、资源/费用与会话恢复。
+[x] `feishu_agent_mcp.py`：本机 stdio MCP 将精确 WorkItem AgentRun/scope hash 接入既有 Bot SQLite/spool/worker；一对一任务回执、幂等和 UNKNOWN 不重放。
+[x] Agent 执行使用专用 0700 `CODEX_HOME` + 私有 API key / gateway base URL；拒绝个人 `auth.json`、共享计费标识，并在执行前复核仓库/工作区/验证策略指纹。
+[x] 既有 Bot worker 同步 AgentRun 与 task 状态；仅凭持久终态和 commit evidence 修复窄恢复窗口，不把 CI/QA 当作已完成。
+[x] 模型调用默认禁用；MCP 入口不直接启动模型，WorkItem 执行仅由明确启用的独立非共享计费身份交给既有 worker。
+[ ] `vstrong100` 实测独立 API 凭据、专用 CODEX_HOME、MCP/Bot 同 UID、Codex CLI 实际 provider、资源/费用与故障恢复。
+[ ] App Server persistent thread 与 AgentRun 的生产执行调度接线；当前 MCP bridge 仍走 legacy ephemeral `codex exec`，不宣称连续原生会话已完成。
 
 ## TASK-004 — 真实来源读取可选增强
 [x] `workitems.py`：TAPD Story/Bug + 飞书项目 Meegle 只读适配器，验证来源/空间/类型/版本。
