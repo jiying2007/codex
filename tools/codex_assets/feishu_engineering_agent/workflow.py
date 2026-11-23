@@ -232,7 +232,8 @@ class EngineeringWorkflow:
             raise IntakeRejected("WorkItem execution requires a non-shared approved billing source")
         record = self.store.get_run(run_id, event)
         allowed = {check_repo_alias(value) for value in allowed_repos}
-        if record["repo"] not in allowed or record["mode"] not in set(allowed_modes):
+        bot_mode = {"read": "explain", "review": "review", "edit": "edit"}.get(record["mode"])
+        if record["repo"] not in allowed or bot_mode not in set(allowed_modes):
             raise IntakeRejected("local Agent repository or mode is not authorized")
         with contextlib.closing(self.store._connect()) as db:
             db.execute("BEGIN IMMEDIATE")
