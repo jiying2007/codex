@@ -17,7 +17,7 @@
 |---|---|---|---|
 | TASK-001 | 中文路由、项目与用户隔离、WorkItem 来源身份、原子事件收据、无 API `/wi add|list|status|handoff|attempt` | 重复事件、身份冲突、撤权、无模型调用、正文不进 DB | 已授权飞书消息或本地 CLI |
 | TASK-002 | 可选 Card JSON 2.0、HMAC、事件身份和消息绑定、过期/重放保护、卡片请求持久化 | 同一回调的上下文冲突、他人点击、重复/迟到、发送结果 UNKNOWN | 飞书桌面/手机，SDK 和 3 秒响应 |
-| TASK-003 | 精确 Codex host/repo/CODEX_HOME/thread、独立签名授权、原生 initialize/resume/turn/interrupt、持久 effect 收据 | 伪造或延长授权、无权限模型启动、乱序通知、费用/远端结果不明不重放 | 主机 App Server 协议、审批、额度和中断恢复 |
+| TASK-003 | 精确 Codex host/repo/CODEX_HOME/thread、`experimentalApi` 协商、无模型持久 `thread/start`、精确 `thread/resume` 身份核对、独立签名授权、turn/interrupt 与持久 effect 收据 | 伪造或延长授权、thread ID 错配、危险 sandbox、无权限模型启动、乱序通知、费用/远端结果不明不重放 | 主机 App Server 协议、审批、额度和中断恢复 |
 | TASK-004 | TAPD/飞书项目可选只读读取；手工来源标记未核验；版本哈希不存正文 | 403/404、源身份与版本冲突、撤权后不得读取 | 真实一条需求、一条缺陷；无权限可走人工路径 |
 | TASK-005 | 独立 Run、多仓版本化接口、GitHub PR/CI 可选适配、一次性发布、签名 QA、人工反馈 | 不同 PR/CI/QA SHA 不可拼接；CI 不等于 QA/HIL；外部写 UNKNOWN 不重放 | 真实 Feature 和 Bug PR/CI/QA；涉及设备时实际 HIL |
 | TASK-006 | WAL 一致性备份、私有 spool/策略校验、哈希清单、隔离恢复演练、单消费者 cutover gate | 损坏备份、权限/符号链接、恢复不一致和重复消费者 | `vstrong100` 暂停旧服务、真实备份/恢复/回滚 |
@@ -33,7 +33,7 @@ python -m tools.codex_assets.feishu_engineering_agent --dry-run \
 python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
 ```
 
-`--probe-runtime` 只执行 `codex --version` 与 `codex app-server --help`；运行在 CI 时不能代表 `vstrong100`。仓库完整门禁另见 `.github/workflows/full-regression.yml`、`runtime-binding-contract.yml`、`profile-context-contract.yml`，以最终提交的 9/9 job 结果为准。
+`--probe-runtime` 只执行 `codex --version` 与 `codex app-server --help`；运行在 CI 时不能代表 `vstrong100`。`test_feishu_engineering_native.py` 另覆盖 no-model `thread/start`、`experimentalApi` 协商、精确 `thread/resume` 返回身份和危险 sandbox 拒绝；这些测试仍需绑定本分支最终 SHA 的 CI 结果，不能替代主机协议资格。仓库完整门禁另见 `.github/workflows/full-regression.yml`、`runtime-binding-contract.yml`、`profile-context-contract.yml`，以最终提交的 9/9 job 结果为准。
 
 ## 集中现场验证顺序
 
