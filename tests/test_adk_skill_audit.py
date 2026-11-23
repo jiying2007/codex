@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tools.codex_assets.adk_skill_audit import AuditError, audit, main, summary
+from tools.codex_assets.adk_skill_audit import AuditError, audit, main, summary, visibility
 
 
 def blob(data: bytes) -> str:
@@ -78,6 +78,55 @@ class AdkSkillAuditTests(unittest.TestCase):
         self.assertEqual(report["skills_matching_provider_lock_commit"], 1)
         self.assertEqual(report["claims"], {"read_only": True, "release_verified": False, "installation_verified": False, "runtime_qualified": False})
 
+    def test_visibility_checks_profile_receipt_and_entrypoint_independently(self) -> None:
+        self.record["profiles"] = ["team-collab"]
+        self.save()
+        self.write(self.root / "manifests/profiles.json", json.dumps({"profiles": [
+            {"name": "team-collab"}, {"name": "default"}]}))
+        text = self.skill.read_text()
+        build, live = self.root / "build", self.root / "live"
+        rel = self.record["vendor_rel"] + "/SKILL.md"
+        link = "skills/adk-example"
+        target = "../" + self.record["vendor_rel"]
+        for stage in (build, live):
+            self.write(stage / rel, text)
+            (stage / "skills").mkdir()
+            (stage / link).symlink_to(target)
+            self.write(stage / "control/state/managed-files.json", json.dumps({
+                "schema_version": 2, "profile": "team-collab", "managed": [
+                    {"path": link, "type": "symlink", "target": target},
+                    {"path": rel, "type": "file", "sha256": hashlib.sha256(text.encode()).hexdigest()}]}))
+        report = visibility(self.root, "adk-example", "team-collab", build, live)
+        self.assertEqual("selected", report["distribution"]["state"])
+        self.assertEqual("verified-entrypoint", report["build"])
+        self.assertEqual("verified-entrypoint", report["live"])
+        self.assertEqual("unobserved", report["host_discovery"])
+        other = visibility(self.root, "adk-example", "default", build, live)
+        self.assertEqual("not-selected", other["distribution"]["state"])
+        self.assertEqual("different-profile", other["live"])
+        (live / rel).write_text("unexpected")
+        self.assertEqual("drifted", visibility(self.root, "adk-example", "team-collab", build, live)["live"])
+        with self.assertRaisesRegex(AuditError, "unknown_profile"):
+            visibility(self.root, "adk-example", "typo", build, live)
+
+        self.save([])
+        retired = visibility(self.root, "adk-example", "team-collab", build, live)
+        self.assertEqual("not-registered", retired["distribution"]["state"])
+        self.assertEqual("unregistered-entrypoint", retired["build"])
+        self.assertEqual("unregistered-entrypoint", retired["live"])
+        (live / link).unlink()
+        self.assertEqual("unregistered-managed-entry",
+                         visibility(self.root, "adk-example", "team-collab", build, live)["live"])
+        nested = "vendor/skills/adk-parent/1.0.0/adk-example/SKILL.md"
+        self.write(live / nested, text)
+        self.write(live / "control/state/managed-files.json", json.dumps({
+            "schema_version": 2, "profile": "team-collab", "managed": [
+                {"path": nested, "type": "file", "sha256": hashlib.sha256(text.encode()).hexdigest()}]}))
+        self.assertEqual("unregistered-entrypoint",
+                         visibility(self.root, "adk-example", "team-collab", build, live)["live"])
+        (live / "control/state/managed-files.json").unlink()
+        self.assertEqual("state-unavailable",
+                         visibility(self.root, "adk-example", "team-collab", build, live)["live"])
     def test_legacy_short_refs_and_missing_blobs_are_reported_together(self) -> None:
         self.record.update(source_repo="llm_agent/agent-dev-kit", source_ref="083dc95")
         self.record.pop("source_blob")

@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 存储布局迁移"
+  short_description: "评估设备分区和闪存布局升级及掉电恢复，不在缺少回滚证据时执行写入。"

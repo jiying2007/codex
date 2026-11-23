@@ -164,13 +164,31 @@ def _provider(root: Path, commit: str) -> dict[str, Any]:
     version = manifest.get("version")
     if not isinstance(version, str) or len(version) > 64 or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is None:
         raise AuditError("provider_version_invalid")
-    return {"commit": commit, "version": version, "tracked": tracked}
+    declared_skills = {
+        item["path"]: item["name"]
+        for section in ("skills", "optional_skills")
+        for item in manifest.get(section, [])
+        if isinstance(item, dict) and isinstance(item.get("name"), str)
+        and isinstance(item.get("path"), str)
+    }
+    return {"commit": commit, "version": version, "tracked": tracked,
+            "declared_skills": declared_skills}
+
+
+def _skill_source_name(source: str) -> str:
+    parts = PurePosixPath(_ref(source)).parts
+    ordinary = len(parts) == 3 and parts[0] in ("skills", "optional-skills")
+    nested = len(parts) == 4 and parts[0] == "optional-skills"
+    if not (ordinary or nested) or parts[-1] != "SKILL.md" or any(
+            re.fullmatch(r"[a-z0-9][a-z0-9-]*", part) is None for part in parts[1:-1]):
+        raise AuditError("provider_skill_source_path_invalid")
+    return parts[-2]
 
 
 def _candidate(root: Path, source: str, provider: dict[str, Any]) -> dict[str, dict[str, str]]:
-    parts = PurePosixPath(source).parts
-    if len(parts) != 3 or parts[0] not in ("skills", "optional-skills") or parts[2] != "SKILL.md":
-        raise AuditError("provider_skill_source_path_invalid")
+    name = _skill_source_name(source)
+    if len(PurePosixPath(source).parts) > 3 and provider["declared_skills"].get(source) != name:
+        raise AuditError("provider_nested_skill_not_declared")
     directory = _path(root, str(PurePosixPath(source).parent))
     tree = _tree(directory)
     prefix = f"{PurePosixPath(source).parent}/"
@@ -229,7 +247,7 @@ def audit(root: Path, provider_root: Path | None = None, expected_commit: str = 
         source = None
         try:
             source = _ref(item.get("source_path"))
-            if source != f"skills/{name}/SKILL.md" and source != f"optional-skills/{name}/SKILL.md":
+            if _skill_source_name(source) != name:
                 raise AuditError("skill_source_name_mismatch")
             vendor = _ref(item.get("vendor_rel"))
             if not vendor.startswith(f"vendor/skills/{name}/") or len(PurePosixPath(vendor).parts) != 4:
@@ -297,16 +315,126 @@ def summary(report: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in report.items() if key != "skills"}
 
 
+def _visible_entrypoint(stage: Path, profile: str, name: str, entry: dict[str, Any] | None) -> str:
+    from .core import unchanged_from_managed
+
+    stage = stage.resolve()
+    rel = f"skills/{name}"
+    link = _path(stage, "skills") / name
+    if entry is None and (link.is_symlink() or link.exists()):
+        return "unregistered-entrypoint"
+    state = _path(stage, "control/state/managed-files.json")
+    if not state.exists():
+        return "state-unavailable"
+    receipt = _json(state)
+    managed = receipt.get("managed")
+    if receipt.get("schema_version") != 2 or not isinstance(managed, list):
+        raise AuditError("managed_state_invalid")
+    if entry is None:
+        prefix = f"vendor/skills/{name}/"
+        paths = [row["path"] for row in managed
+                 if isinstance(row, dict) and isinstance(row.get("path"), str)]
+        nested = re.compile(r"vendor/skills/adk-[a-z0-9-]+/[^/]+/" + re.escape(name) + r"/SKILL\.md")
+        nested_paths = [path for path in paths if nested.fullmatch(path)]
+        if any(_path(stage, path).is_file() for path in nested_paths):
+            return "unregistered-entrypoint"
+        if nested_paths or any(path == rel or path.startswith(prefix) for path in paths):
+            return "unregistered-managed-entry"
+    if receipt.get("profile") != profile:
+        return "different-profile"
+    if entry is None:
+        return "absent"
+    vendor = _ref(entry.get("vendor_rel"))
+    if not vendor.startswith(f"vendor/skills/{name}/") or len(PurePosixPath(vendor).parts) != 4:
+        raise AuditError("skill_vendor_path_invalid")
+    source = f"{vendor}/SKILL.md"
+    required = {rel, source}
+    matches = [row for row in managed if isinstance(row, dict) and row.get("path") in required]
+    by_path = {row["path"]: row for row in matches}
+    if len(matches) != len(by_path):
+        raise AuditError("managed_state_duplicate_entries")
+    if not by_path:
+        return "unmanaged" if link.exists() or link.is_symlink() else "absent"
+    if (by_path.get(rel, {}).get("target") != f"../{vendor}"
+            or by_path.get(rel, {}).get("type") != "symlink"
+            or by_path.get(source, {}).get("type") != "file"):
+        return "identity-mismatch"
+    installed = _path(stage, source)
+    if not unchanged_from_managed(link, by_path[rel]) or not installed.is_file():
+        return "drifted"
+    data = _bytes(installed, MAX_FILE)
+    if (hashlib.sha256(data).hexdigest() != by_path[source].get("sha256")
+            or _blob(data) != entry.get("source_blob")):
+        return "drifted"
+    return "verified-entrypoint"
+
+
+def visibility(root: Path, name: str, profile: str, build: Path, live: Path,
+               provider_root: Path | None = None) -> dict[str, Any]:
+    """Inspect each distribution stage; a filesystem entry proves no host discovery."""
+    if re.fullmatch(r"adk-[a-z0-9][a-z0-9-]{0,115}", name) is None:
+        raise AuditError("invalid_adk_skill_name")
+    from .core import active
+
+    root = root.resolve()
+    profiles = _json(_path(root, "manifests/profiles.json"))["profiles"]
+    if not any(row["name"] == profile for row in profiles):
+        raise AuditError("unknown_profile")
+    lock = _json(_path(root, "manifests/provider-locks/agent-dev-kit.json"))
+    commit = lock.get("provider_commit")
+    if (lock.get("repository") != REPOSITORY or not isinstance(commit, str)
+            or re.fullmatch(r"[0-9a-f]{40}", commit) is None):
+        raise AuditError("provider_lock_identity_invalid")
+    rows = [row for row in _json(_path(root, "manifests/skills.json"))["skills"] if row["name"] == name]
+    if len(rows) > 1:
+        raise AuditError("skill_name_invalid_or_duplicate")
+    entry = rows[0] if rows else None
+    origin = {"state": "unobserved", "pinned_commit": commit, "declared_skill": None}
+    if provider_root is not None:
+        pinned = json.loads(_git(provider_root.resolve(), "show", f"{commit}:manifest.json"))
+        for section in ("skills", "optional_skills"):
+            for record in pinned.get(section, []):
+                if record["name"] == name:
+                    origin["declared_skill"] = {"class": section, "path": _ref(record["path"])}
+        origin["state"] = "declared" if origin["declared_skill"] else "not-declared"
+    selection = "not-registered"
+    result = {"schema_version": 1, "skill": name, "profile": profile, "upstream": origin,
+              "host_discovery": "unobserved"}
+    if entry:
+        if (type(entry.get("enabled")) is not bool or not isinstance(entry.get("profiles"), list)
+                or not all(isinstance(value, str) for value in entry["profiles"])):
+            raise AuditError("skill_record_invalid")
+        selection = "selected" if active(entry, profile) else "not-selected" if entry["enabled"] else "disabled"
+    result["build"] = _visible_entrypoint(build, profile, name, entry)
+    result["live"] = _visible_entrypoint(live, profile, name, entry)
+    result["distribution"] = {"state": selection, "source_commit": entry.get("source_ref") if entry else None,
+                              "matches_provider_lock": entry is not None and entry.get("source_ref") == commit}
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--provider-root", type=Path)
     parser.add_argument("--expected-provider-commit", default="")
     parser.add_argument("--summary-json", action="store_true")
+    parser.add_argument("--skill", help="read back one ADK Skill across distribution stages")
+    parser.add_argument("--profile", help="Codex Runtime Profile for --skill")
+    parser.add_argument("--build", type=Path, help="managed build root for --skill")
+    parser.add_argument("--live", type=Path, help="managed live root for --skill")
     args = parser.parse_args(argv)
+    if bool(args.skill) != bool(args.profile) or (not args.skill and (args.build or args.live)):
+        parser.error("--skill and --profile are required together; --build/--live are for --skill only")
     try:
+        if args.skill:
+            if args.expected_provider_commit:
+                parser.error("--skill uses the exact commit in the provider lock")
+            report = visibility(args.root, args.skill, args.profile, args.build or args.root / "build/codex-home",
+                                args.live or Path.home() / ".codex", args.provider_root)
+            print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=None if args.summary_json else 2))
+            return 0
         report = audit(args.root, args.provider_root, args.expected_provider_commit)
-    except (AuditError, OSError, ValueError, subprocess.SubprocessError) as exc:
+    except (AuditError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
         print(json.dumps({"schema_version": 1, "status": "blocked", "reason": str(exc) if isinstance(exc, AuditError) else "audit_input_unavailable"}, separators=(",", ":")))
         return 3
     print(json.dumps(summary(report) if args.summary_json else report, ensure_ascii=False, sort_keys=True, separators=(",", ":") if args.summary_json else None, indent=None if args.summary_json else 2))

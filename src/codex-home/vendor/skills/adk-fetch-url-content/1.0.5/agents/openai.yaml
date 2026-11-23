@@ -1,0 +1,5 @@
+interface:
+  display_name: "ADK · 网页正文安全提取"
+  short_description: "提取已授权公开网页的正文与结构化链接，拒绝内网探测和受限内容绕过。"
+policy:
+  allow_implicit_invocation: false

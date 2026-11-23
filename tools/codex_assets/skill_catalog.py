@@ -7,6 +7,8 @@ import os
 import hashlib
 from typing import Any
 
+import yaml
+
 from .core import Repo, active, parse_frontmatter, CodexAssetError
 
 
@@ -149,6 +151,17 @@ def _load_path(repo: Repo, codex_home: pathlib.Path, item: dict[str, Any]) -> pa
         return pathlib.Path(item["discovery_path"])
     live = codex_home / item["vendor_rel"] / "SKILL.md"
     return live if live.is_file() else repo.source / item["vendor_rel"] / "SKILL.md"
+
+
+def _allows_implicit_invocation(skill_path: pathlib.Path) -> bool:
+    metadata = skill_path.with_name("agents") / "openai.yaml"
+    if not metadata.exists():
+        return True
+    try:
+        data = yaml.safe_load(metadata.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, yaml.YAMLError) as exc:
+        raise CodexAssetError(f"invalid Skill invocation metadata: {metadata}") from exc
+    return isinstance(data, dict) and "policy" not in data
 
 
 def external_items(repo: Repo) -> tuple[list[dict[str, Any]], list[str]]:
@@ -311,6 +324,7 @@ def search_skills(
     home = pathlib.Path(codex_home).expanduser()
     candidates: list[dict[str, Any]] = []
     fallback_excluded = 0
+    named_skills = set(re.findall(r"[a-z0-9_-]+", query.casefold()))
     route_hints = _route_hints(repo, query)
     activation_modes = _context_activation_modes(repo) if _profile_catalog_mode(repo, profile) == "lazy" else {}
     managed = repo.manifest("skills.json").get("skills", [])
@@ -327,6 +341,13 @@ def search_skills(
             continue
         skill_path = (pathlib.Path(item["discovery_path"]) if item.get("discovery_path")
                       else repo.source / item["vendor_rel"] / "SKILL.md")
+        load_path = _load_path(repo, home, item)
+        explicitly_named = item["name"].casefold() in named_skills
+        if not explicitly_named and (
+            not _allows_implicit_invocation(skill_path)
+            or (load_path != skill_path and not _allows_implicit_invocation(load_path))
+        ):
+            continue
         meta = parse_frontmatter(skill_path)
         description = _text(meta.get("description", ""))
         triggers = _list(meta.get("triggers", []))
@@ -343,6 +364,10 @@ def search_skills(
             "triggers": _text(triggers).casefold(),
         }
         score, matched_fields, matched_terms = _score(query, fields)
+        if explicitly_named and "name" not in matched_fields:
+            score += 160
+            matched_fields.append("name")
+            matched_terms.append(item["name"])
         route_hint = route_hints.get(item["name"])
         if route_hint:
             score += int(route_hint["score"])
@@ -355,7 +380,7 @@ def search_skills(
             continue
         if not route_hint and score < MIN_MATCH_SCORE:
             continue
-        if not route_hint:
+        if not route_hint and not explicitly_named:
             raw_ascii_terms = re.findall(r"[a-z0-9][a-z0-9_.+-]*", query.casefold())
             raw_ascii_hits = sum(
                 1
@@ -378,7 +403,7 @@ def search_skills(
                 ),
                 "description": _compact(description),
                 "triggers": [_compact(trigger, 72) for trigger in triggers[:2]],
-                "load_path": str(_load_path(repo, home, item)),
+                "load_path": str(load_path),
                 "profiles": item.get("profiles", []),
                 "why_selected": {"fields": matched_fields, "terms": matched_terms},
                 "route": (
@@ -392,7 +417,7 @@ def search_skills(
                 ),
                 "fallback": fallback,
                 "source_id": item.get("source_id", "managed"),
-                "content_sha256": hashlib.sha256(_load_path(repo, home, item).read_bytes()).hexdigest(),
+                "content_sha256": hashlib.sha256(load_path.read_bytes()).hexdigest(),
             }
         )
     candidates.sort(key=lambda item: (-item["score"], item["activation"] != "active", item["name"]))

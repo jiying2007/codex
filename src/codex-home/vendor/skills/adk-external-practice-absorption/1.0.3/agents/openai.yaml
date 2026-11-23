@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADK · 外部实践吸收治理"
+  short_description: "审查外部工程实践的来源、安全、重复能力与采纳证据，不自动安装发布。"
+  default_prompt: "请使用 $adk-external-practice-absorption 处理当前任务，按来源证据、权限边界和完成标准交付结果。"

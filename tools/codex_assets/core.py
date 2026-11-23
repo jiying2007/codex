@@ -342,6 +342,19 @@ def active(item: dict[str, Any], profile: str) -> bool:
     return bool(item.get("enabled", True)) and profile in item.get("profiles", [])
 
 
+def nested_adk_skill_patterns(source: pathlib.Path, skills: list[dict[str, Any]]) -> list[str]:
+    """Install nested ADK Skill entrypoints only through their own manifest records."""
+    skip = []
+    for item in skills:
+        if (item.get("source_repo") != "jiying2007/agent-dev-kit"
+                or not re.fullmatch(r"optional-skills/[a-z0-9-]+/SKILL\.md", item.get("source_path") or "")):
+            continue
+        package = source / item["vendor_rel"]
+        skip.extend(path.parent.relative_to(source).as_posix()
+                    for path in sorted(package.glob("*/SKILL.md")) if path.is_file())
+    return skip
+
+
 def inactive_plugin_skill_patterns(source: pathlib.Path, skills: list[dict[str, Any]], profile: str) -> list[str]:
     active_sources = {item["vendor_rel"] for item in skills if active(item, profile)}
     patterns: list[str] = []
@@ -661,7 +674,11 @@ def build_repo(root: str | pathlib.Path, profile_arg: str = "", source_arg: str 
 
     skills = repo.manifest("skills.json").get("skills", [])
     protected = policies.get("protected_paths", [])
-    skip_source = policies.get("skip_source_paths", []) + inactive_plugin_skill_patterns(source, skills, profile)
+    skip_source = (
+        policies.get("skip_source_paths", [])
+        + inactive_plugin_skill_patterns(source, skills, profile)
+        + nested_adk_skill_patterns(source, skills)
+    )
     for rel_text in assets.get("copy_roots", []):
         if rel_text == "config.toml":
             continue

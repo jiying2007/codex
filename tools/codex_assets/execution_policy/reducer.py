@@ -146,6 +146,8 @@ def _reset_goal_state(state: dict[str, Any], payload: Mapping[str, Any], at: dat
 def reduce_events(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     state: dict[str, Any] | None = None
     seen: dict[str, str] = {}
+    # Digests bind goal_id; retain consumption across goal resets in this history.
+    consumed_intakes: set[str] = set()
     last_at: datetime | None = None
 
     for raw in events:
@@ -174,6 +176,11 @@ def reduce_events(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
             if goal["status"] == "active":
                 raise ExecutionPolicyError("cannot start a second active goal")
             _reset_goal_state(state, payload, at)
+            attestation = state["goal"]["intake_attestation_sha256"]
+            if attestation is not None:
+                if attestation in consumed_intakes:
+                    raise ExecutionPolicyError("goal intake attestation has already been consumed")
+                consumed_intakes.add(attestation)
         elif kind == "goal.updated":
             allowed = {
                 "open_items_count", "token_budget", "time_budget_seconds",
@@ -194,8 +201,9 @@ def reduce_events(events: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                     payload.get("intake"), event_at=at, expected_kind="goal-replan",
                     expected_goal_id=str(goal["goal_id"]),
                 )
-                if intake["attestation_sha256"] == goal.get("intake_attestation_sha256"):
+                if intake["attestation_sha256"] in consumed_intakes:
                     raise ExecutionPolicyError("goal replan must carry a new intake attestation")
+                consumed_intakes.add(intake["attestation_sha256"])
                 goal["task_mode"] = intake["task_mode"]
                 goal["artifact_mode"] = intake["artifact_mode"]
                 goal["request_sha256"] = intake["request_sha256"]

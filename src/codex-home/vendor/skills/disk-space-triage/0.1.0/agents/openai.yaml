@@ -1,3 +1,0 @@
-interface:
-  display_name: "磁盘空间诊断"
-  short_description: "分析挂载点、磁盘占用和大文件，保留清理风险与证据，不直接删除用户资料。"

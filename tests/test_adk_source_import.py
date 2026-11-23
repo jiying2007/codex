@@ -532,10 +532,23 @@ class AdkSourceImportTests(unittest.TestCase):
             verifier.assert_not_called()
 
     def test_protected_dirty_target_still_rejected(self) -> None:
-        with patch.object(importer, "_git", side_effect=["candidate", " M manifests/skills.json"]):
-            with self.assertRaisesRegex(importer.ImportError, "pre-existing changes"):
-                importer._check_target_clean(self.root)
+        fixture = "tests/fixtures/adk-skill-sources-7.13.0.json"
+        for line in (" M manifests/skills.json", f" M {fixture}", f"M  {fixture}"):
+            with self.subTest(status=line), patch.object(importer, "_git", side_effect=["candidate", line]):
+                with self.assertRaisesRegex(importer.ImportError, "pre-existing changes"):
+                    importer._check_target_clean(self.root)
 
+    def test_real_unstaged_fixture_is_rejected_as_first_status_record(self) -> None:
+        fixture = self.root / "tests/fixtures/adk-skill-sources-7.13.0.json"
+        self.write(fixture, "{}\n")
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        subprocess.run(["git", "-C", str(self.root), "checkout", "-qb", "candidate"], check=True)
+        subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], check=True)
+        self.write(fixture, '{"pending": true}\n')
+        with self.assertRaisesRegex(importer.ImportError, "pre-existing changes"):
+            importer._check_target_clean(self.root)
 
 if __name__ == "__main__":
     unittest.main()

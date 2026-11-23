@@ -108,7 +108,7 @@ class DoctorPolicyContractTests(unittest.TestCase):
         path.unlink()
         self.assert_rejected()
 
-    def test_independent_policy_lock_is_required_and_binds_both_sources(self) -> None:
+    def test_independent_policy_lock_binds_both_sources_and_is_required_when_split(self) -> None:
         provider_path = self.root / "manifests/provider-locks/agent-dev-kit.json"
         data = json.loads(provider_path.read_text(encoding="utf-8"))
         # Preserve the currently reviewed provider release. The independent
@@ -117,10 +117,9 @@ class DoctorPolicyContractTests(unittest.TestCase):
         # otherwise valid signed Skill-only promotion.
         reviewed = ROOT / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
         lock_path = self.root / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
-        # The disposable governance fixture includes the reviewed lock by default:
-        # remove it to prove an undecided split is rejected.
+        # Both pins currently refer to the same release.
         lock_path.unlink()
-        self.assert_rejected()
+        self.assertEqual([], validate_repo(self.root))
         shutil.copyfile(reviewed, lock_path)
         self.assertEqual([], validate_repo(self.root))
         template = json.loads(lock_path.read_text())

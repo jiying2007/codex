@@ -2,7 +2,9 @@
 
 Smoke 恢复主构建时同时使用 `--reuse-context-input --reuse-machine-inputs`，以哈希及 profile 校验保留已批准的本机 context 与执行规则输入。变化的输入拒绝复用；显式规则输入与复用模式不能混用。
 
-Codex 的唯一任务执行策略面绑定 ADK 8.1.1 canonical Execution Policy v2。
+Codex 的任务执行策略面绑定 ADK 11.4.16 的 canonical Execution Policy v2。引擎四个文件按签名来源精确绑定。独立策略锁校验策略与 Skill 消费身份，升级使用同一已核验 Release，不改变现有策略阈值。
+
+11.4.16 引擎会拒绝同一完整历史中已消费的重规划凭据。保留既有 journal 字节，先离线回放旧事件与新凭据正反例，再核对当前宿主的只读状态。若旧历史已含重复凭据，诊断并保留完整证据，不静默重写事件。
 
 - 配置：`manifests/execution_policy.json`
 - exact decision：`tools/codex_assets/execution_policy/decision.py`

@@ -14,6 +14,10 @@ import time
 from collections import Counter
 from pathlib import Path
 
+PROTECTED_NAMES = {".ssh", ".aws", ".gnupg", ".netrc", ".git-credentials",
+                   "auth.json", "credentials.json", "authorized_keys", "cookies.sqlite",
+                   "key4.db", ".xauthority", ".iceauthority"}
+
 if __package__:
     from .core import CodexAssetError
 else:
@@ -47,7 +51,8 @@ def mount_identity(mount):
             fields, detail = left.split(), right.split()
             point = re.sub(r"\\([0-7]{3})", lambda m: chr(int(m[1], 8)), fields[4])
             if point == mount:
-                return dict(point=mount, device=fields[2], filesystem_type=detail[0], source=detail[1])
+                return dict(point=mount, device=fields[2], filesystem_type=detail[0],
+                            source=detail[1], options=fields[5].split(","))
     return dict(point=mount, state="changed-during-scan")
 
 
@@ -70,7 +75,8 @@ def username(uid):
 
 
 def scan(path, *, keep_days=5, max_entries=1000000, max_seconds=120,
-         top=20, mounts=None, now=None, reference_uid=None):
+         top=20, mounts=None, now=None, reference_uid=None, age_basis="change",
+         candidate_type=None, candidate_uid=None):
     root = str(Path(path).resolve(strict=True))
     if not os.path.isdir(root):
         raise CodexAssetError("扫描路径必须是目录")
@@ -80,6 +86,7 @@ def scan(path, *, keep_days=5, max_entries=1000000, max_seconds=120,
     cutoff = now - keep_days * 86400
     dev = os.lstat(root).st_dev
     reference_uid = os.getuid() if reference_uid is None else reference_uid
+    candidate_uid = reference_uid if candidate_uid is None else candidate_uid
     owners, rows, seen, large = {}, {}, set(), []
     errors, skipped, error_samples = Counter(), [], []
     visited = 0
@@ -95,12 +102,22 @@ def scan(path, *, keep_days=5, max_entries=1000000, max_seconds=120,
     def visit(p, key):
         nonlocal visited, stopped
         row = row_for(key)
+        name = os.path.basename(p)
         if visited >= max_entries or time.monotonic() - start >= max_seconds:
             stopped = "entry-limit" if visited >= max_entries else "time-limit"
             return
         visited += 1
+        if candidate_type:
+            lower = name.lower()
+            if (lower in PROTECTED_NAMES or lower.endswith((".lock", ".pid", ".sock", ".key", ".pem"))
+                    or lower.startswith((".env", "systemd-private-", "codex-daemon-", "ssh-"))):
+                row["protected"] = True
         try:
             s = os.lstat(p)
+            if candidate_type and p == key and p != root:
+                row["owner_uid"] = s.st_uid
+                row["type"] = ("directory" if stat.S_ISDIR(s.st_mode) else
+                               "file" if stat.S_ISREG(s.st_mode) else "other")
             if p != root and (p in mounts or s.st_dev != dev):
                 row["skipped_mount"] = True
                 if len(skipped) < 100:
@@ -108,12 +125,16 @@ def scan(path, *, keep_days=5, max_entries=1000000, max_seconds=120,
                 return
             row["entries"] += 1
             row["latest_change"] = max(row["latest_change"], s.st_mtime, s.st_ctime)
+            if age_basis == "usage" and stat.S_ISREG(s.st_mode):
+                row["latest_file_access"] = max(row.get("latest_file_access", s.st_atime), s.st_atime)
             row["uids"].add(s.st_uid)
-            row["git"] |= os.path.basename(p) == ".git"
+            row["git"] |= name == ".git"
             row["special"] |= not (stat.S_ISDIR(s.st_mode) or
                                       stat.S_ISREG(s.st_mode) or stat.S_ISLNK(s.st_mode))
             duplicate = False
             if not stat.S_ISDIR(s.st_mode) and s.st_nlink > 1:
+                if candidate_type:
+                    row["hardlink"] = True
                 identity = (s.st_dev, s.st_ino)
                 duplicate = identity in seen
                 seen.add(identity)
@@ -137,11 +158,15 @@ def scan(path, *, keep_days=5, max_entries=1000000, max_seconds=120,
                     if (opened.st_dev, opened.st_ino) != (s.st_dev, s.st_ino):
                         raise OSError("directory changed during scan")
                     with os.scandir(fd) as entries:
+                        git_markers = set()
                         for entry in entries:
+                            if candidate_type and entry.name in ("HEAD", "objects", "refs"):
+                                git_markers.add(entry.name)
                             child = os.path.join(p, entry.name)
                             visit(child, child if p == root else key)
                             if stopped:
                                 break
+                        row["git"] |= len(git_markers) == 3
                 finally:
                     os.close(fd)
         except (OSError, RecursionError) as exc:
@@ -156,6 +181,8 @@ def scan(path, *, keep_days=5, max_entries=1000000, max_seconds=120,
         reasons = []
         if row["latest_change"] >= cutoff:
             reasons.append("recent-change")
+        if age_basis == "usage" and row.get("latest_file_access", float("-inf")) >= cutoff:
+            reasons.append("recent-access")
         if stopped or row["errors"] or row["skipped_mount"]:
             reasons.append("incomplete-coverage")
         if row["git"]:
@@ -169,7 +196,7 @@ def scan(path, *, keep_days=5, max_entries=1000000, max_seconds=120,
         row["decision"] = "retain" if reasons else "old-review-required"
         row["reasons"] = reasons or ["age-alone-does-not-authorize-deletion"]
     ranked = sorted(rows.values(), key=lambda r: r["allocated_bytes"], reverse=True)
-    return dict(schema_version="disk-space-triage/v1", read_only=True,
+    result = dict(schema_version="disk-space-triage/v1", read_only=True,
                 root=root, started_at=now, cutoff_epoch=cutoff, keep_days=keep_days,
                 filesystem_before=before, filesystem_after=disk_stats(root),
                 accounting="st_blocks*512; hardlinks charged to first encountered path; not physical/reclaimable bytes",
@@ -184,14 +211,46 @@ def scan(path, *, keep_days=5, max_entries=1000000, max_seconds=120,
                 large_files=[dict(allocated_bytes=b, path=p, uid=u, links=n, apparent_bytes=a)
                              for b, p, u, n, a in sorted(large, reverse=True)],
                 process_check=dict(state="not-run"))
+    if age_basis == "usage":
+        result["age_basis"] = age_basis
+    if candidate_type:
+        items = []
+        types = {"file", "directory"} if candidate_type == "both" else {candidate_type}
+        for row in sorted(rows.values(), key=lambda item: item["path"]):
+            if row.get("type") not in types or row.get("owner_uid") != candidate_uid:
+                continue
+            reasons = [r for r in row["reasons"]
+                       if r not in ("other-or-mixed-uid", "age-alone-does-not-authorize-deletion")]
+            if set(row["uids"]) != {candidate_uid}:
+                reasons.append("other-or-mixed-uid")
+            if row.get("protected"):
+                reasons.append("protected-name")
+            if row.get("hardlink"):
+                reasons.append("hardlink")
+            item = dict(row)
+            item["reasons"] = reasons or ["requires-review"]
+            item["decision"] = "retain" if reasons else "review-required"
+            items.append(item)
+        result["candidate_selection"] = dict(
+            uid=candidate_uid, type=candidate_type, age_basis=age_basis,
+            filesystem_coverage=result["coverage"]["state"],
+            process_coverage="not-run", items=items)
+    return result
 
 
-def process_refs(root, *, proc="/proc", max_seconds=15):
+def process_refs(root, *, proc="/proc", max_seconds=15, protect_top_level=False):
     start = time.monotonic()
     coverage = Counter()
     refs, deleted, identities = [], [], set()
+    protected = set()
     root_dev = os.stat(root).st_dev
     truncated = False
+
+    def protect(target):
+        if target != root and contains(root, target):
+            rel = os.path.relpath(target, root).split(os.sep, 1)[0]
+            protected.add(os.path.join(root, rel))
+
     for name in os.listdir(proc):
         if not name.isdigit():
             continue
@@ -200,64 +259,106 @@ def process_refs(root, *, proc="/proc", max_seconds=15):
             break
         base = os.path.join(proc, name)
         coverage["seen"] += 1
+        candidates = []
         try:
             uid = os.stat(base).st_uid
-            candidates = []
-            for kind in ("cwd", "exe"):
-                try:
-                    candidates.append((kind, os.readlink(base + "/" + kind), None))
-                except FileNotFoundError:
-                    pass
-            for fd in os.listdir(base + "/fd"):
-                p = base + "/fd/" + fd
-                try:
-                    candidates.append(("fd", os.readlink(p), p))
-                except FileNotFoundError:
-                    pass
-            with open(base + "/maps", encoding="utf-8") as stream:
-                for line in stream:
-                    parts = line.split(None, 5)
-                    if len(parts) == 6:
-                        candidates.append(("map", parts[5].strip(), None))
-            for kind, target, fd_path in candidates:
-                was_deleted = target.endswith(" (deleted)")
-                target = target[:-10] if was_deleted else target
-                if not contains(root, target):
-                    continue
-                if len(refs) < 200:
-                    refs.append(dict(pid=int(name), uid=uid, kind=kind,
-                                     path=target, deleted=was_deleted))
-                else:
-                    truncated = True
-                if was_deleted and fd_path:
-                    try:
-                        s = os.stat(fd_path)
-                        identity = (s.st_dev, s.st_ino)
-                        if s.st_nlink == 0 and s.st_dev == root_dev and identity not in identities:
-                            identities.add(identity)
-                            deleted.append(dict(pid=int(name), uid=uid,
-                                                allocated_bytes=s.st_blocks * 512))
-                    except OSError:
-                        coverage["fd_stat_failed"] += 1
-            coverage["readable"] += 1
         except (FileNotFoundError, ProcessLookupError):
             coverage["vanished"] += 1
+            continue
         except PermissionError:
             coverage["denied"] += 1
+            continue
         except OSError:
             coverage["errors"] += 1
-    return dict(state="partial" if truncated or any(coverage[k] for k in
-                ("denied", "errors", "fd_stat_failed", "time_limit")) else "readable-snapshot",
+            continue
+        if protect_top_level:
+            try:
+                with open(base + "/cmdline", encoding="utf-8", errors="surrogateescape") as stream:
+                    for arg in stream.read().split("\x00"):
+                        target = arg if arg.startswith("/") else arg.partition("=")[2]
+                        if target.startswith("/"):
+                            target = os.path.normpath(target)
+                            if contains(root, target) and os.path.lexists(target):
+                                protect(target)
+            except (FileNotFoundError, ProcessLookupError):
+                pass
+            except PermissionError:
+                coverage["cmdline_denied"] += 1
+            except OSError:
+                coverage["cmdline_errors"] += 1
+        outcomes = set()
+        for kind in ("cwd", "exe", "fd", "maps"):
+            path = base + "/" + kind
+            try:
+                if kind == "fd":
+                    for fd in os.listdir(path):
+                        descriptor = path + "/" + fd
+                        try:
+                            candidates.append(("fd", os.readlink(descriptor), descriptor))
+                        except (FileNotFoundError, ProcessLookupError):
+                            pass
+                elif kind == "maps":
+                    with open(path, encoding="utf-8", errors="surrogateescape") as stream:
+                        for line in stream:
+                            parts = line.split(None, 5)
+                            if len(parts) == 6:
+                                candidates.append(("map", parts[5].rstrip("\n"), None))
+                else:
+                    candidates.append((kind, os.readlink(path), None))
+            except (FileNotFoundError, ProcessLookupError):
+                if kind in ("fd", "maps"):
+                    outcomes.add("vanished")
+            except PermissionError:
+                outcomes.add("denied")
+            except OSError:
+                outcomes.add("errors")
+        if outcomes:
+            coverage.update(outcomes)
+        else:
+            coverage["readable"] += 1
+        for kind, target, fd_path in candidates:
+            was_deleted = target.endswith(" (deleted)")
+            target = target[:-10] if was_deleted else target
+            if not contains(root, target):
+                continue
+            if protect_top_level:
+                protect(target)
+            if len(refs) < 200:
+                refs.append(dict(pid=int(name), uid=uid, kind=kind,
+                                 path=target, deleted=was_deleted))
+            else:
+                truncated = True
+            if was_deleted and fd_path:
+                try:
+                    s = os.stat(fd_path)
+                    identity = (s.st_dev, s.st_ino)
+                    if s.st_nlink == 0 and s.st_dev == root_dev and identity not in identities:
+                        identities.add(identity)
+                        deleted.append(dict(pid=int(name), uid=uid,
+                                            allocated_bytes=s.st_blocks * 512))
+                except OSError:
+                    coverage["fd_stat_failed"] += 1
+    result = dict(state="partial" if truncated or any(coverage[k] for k in
+                ("denied", "errors", "fd_stat_failed", "time_limit", "cmdline_denied",
+                 "cmdline_errors")) else "readable-snapshot",
                 coverage=dict(coverage), references=refs, references_truncated=truncated,
                 deleted_open_files=deleted,
                 deleted_open_allocated_bytes=sum(x["allocated_bytes"] for x in deleted),
                 limitation="snapshot only; no match never proves unused; deleted mmap-only files may be absent")
+    if protect_top_level:
+        result["protected_top_level_paths"] = sorted(protected)
+    return result
 
 
 def configure_parser(parser):
     parser.add_argument("--path", default="/tmp")
     parser.add_argument("--filesystem", action="store_true", help="扫描 path 所在挂载点，跳过其子挂载")
     parser.add_argument("--keep-days", type=float, default=5)
+    parser.add_argument("--age-basis", choices=("change", "usage"), default="change",
+                        help="change 检查 mtime/ctime，usage 另检查普通文件 atime")
+    parser.add_argument("--candidate-type", choices=("directory", "file", "both"),
+                        help="输出完整顶层候选清单。候选模式自动检查可见进程引用")
+    parser.add_argument("--candidate-uid", type=int, help="候选属主 UID，默认使用真实调用者的 UID")
     parser.add_argument("--max-entries", type=int, default=1000000)
     parser.add_argument("--max-seconds", type=float, default=120)
     parser.add_argument("--top", type=int, default=20)
@@ -286,6 +387,12 @@ def sudo_scan(args):
         command.append("--filesystem")
     if args.processes:
         command.append("--processes")
+    if args.age_basis != "change":
+        command.extend(("--age-basis", args.age_basis))
+    if args.candidate_type:
+        command.extend(("--candidate-type", args.candidate_type))
+    if args.candidate_uid is not None:
+        command.extend(("--candidate-uid", str(args.candidate_uid)))
     try:
         completed = subprocess.run(command, capture_output=True, text=True)
     except OSError as exc:
@@ -311,6 +418,10 @@ def run(args):
     if any(not math.isfinite(x) or x <= 0 for x in
            (args.keep_days, args.max_entries, args.max_seconds, args.top)):
         raise CodexAssetError("保留天数、扫描上限和 top 必须大于零")
+    if args.candidate_uid is not None and (args.candidate_type is None or args.candidate_uid < 0):
+        raise CodexAssetError("--candidate-uid 需要配合 --candidate-type 并指定非负 UID")
+    if args.candidate_type and args.filesystem:
+        raise CodexAssetError("候选清单需要显式目录作用域，不能与 --filesystem 同用")
     if args.sudo and os.geteuid() != 0:
         return sudo_scan(args)
     try:
@@ -320,17 +431,29 @@ def run(args):
         mount = filesystem_root(requested, mounts)
         result = scan(mount if args.filesystem else requested, keep_days=args.keep_days,
                       max_entries=args.max_entries, max_seconds=args.max_seconds,
-                      top=args.top, mounts=mounts, reference_uid=reference_uid)
+                      top=args.top, mounts=mounts, reference_uid=reference_uid,
+                      age_basis=args.age_basis, candidate_type=args.candidate_type,
+                      candidate_uid=args.candidate_uid)
         result["privilege"] = dict(mode=mode, effective_uid=os.geteuid(), reference_uid=reference_uid)
         result["requested_path"] = requested
         result["mount_point"] = mount
         result["mount"] = mount_identity(mount)
-        if args.processes:
-            result["process_check"] = process_refs(result["root"])
+        if args.processes or args.candidate_type or args.age_basis == "usage":
+            process = process_refs(result["root"], protect_top_level=bool(args.candidate_type))
+            result["process_check"] = process
             for row in result["top_paths"]:
-                if any(contains(row["path"], r["path"]) for r in result["process_check"]["references"]):
+                if any(contains(row["path"], r["path"]) for r in process["references"]):
                     row["decision"] = "retain"
                     row["reasons"].append("process-reference")
+            if args.candidate_type:
+                selection = result["candidate_selection"]
+                selection["process_coverage"] = process["state"]
+                protected = set(process["protected_top_level_paths"])
+                for item in selection["items"]:
+                    if item["path"] in protected:
+                        item["decision"] = "retain"
+                        item["reasons"] = [r for r in item["reasons"] if r != "requires-review"]
+                        item["reasons"].append("process-reference")
         print(json.dumps(result, ensure_ascii=True, indent=2))
         return 0 if result["coverage"]["state"] == "visible-tree-complete" else 2
     except OSError as exc:

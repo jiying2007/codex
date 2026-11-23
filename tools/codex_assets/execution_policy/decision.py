@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from .contracts import (
@@ -83,10 +83,10 @@ def evaluate(
     effective_artifact_mode = normalized_artifact_mode
     if not mode_authority_managed and normalized_artifact_mode == "readonly":
         effective_artifact_mode = "implementation"
-    now = as_of or datetime.now(timezone.utc)
+    now = as_of or datetime.now(UTC)
     if now.tzinfo is None:
         raise ExecutionPolicyError("as_of must include timezone")
-    now = now.astimezone(timezone.utc)
+    now = now.astimezone(UTC)
 
     usage = state.get("usage") or {}
     progress = state.get("progress") or {}

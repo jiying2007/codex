@@ -6,10 +6,42 @@ import tempfile
 from pathlib import Path
 from datetime import date
 
-from tools.codex_assets.workflow_mining_report import make_report, load_rows, metadata_coverage
+from tools.codex_assets.workflow_mining_report import make_report, load_rows, metadata_coverage, receipt_coverage
 
 
 class WorkflowMiningReportTest(unittest.TestCase):
+    def test_activity_project_reports_exact_match_and_filter_reasons(self):
+        day = date(2026, 10, 2)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            item = {"schema_version": 2, "kind": "work-activity-item", "raw_content_stored": False,
+                    "subject_id": "team", "project_id": "agent-dev-kit", "item_id": "goal",
+                    "activity_date": day.isoformat(), "title": "Goal private title"}
+            path.write_text(json.dumps({"schema_version": 2, "kind": "activity-session-receipt",
+                "raw_content_stored": False, "work_items": [
+                    item, item, dict(item, project_id=""), dict(item, project_id="adk"),
+                    dict(item, item_id="old", activity_date="2026-10-01"),
+                ]}))
+            result = receipt_coverage([path], day, day, project_id="agent-dev-kit")
+            self.assertEqual(1, result["distinct_work_items"])
+            self.assertEqual({"out_of_window": 1, "missing_project": 1, "different_project": 1},
+                             result["project_filter"]["excluded_distinct_items_by_reason"])
+            self.assertEqual("zero-hit", receipt_coverage(
+                [path], day, day, project_id="other")["project_filter"]["status"])
+            self.assertNotIn("private title", json.dumps(result))
+
+    def test_thread_refs_are_opt_in_and_exclude_orphans(self):
+        day = date(2026, 10, 2)
+        parent = "01a1f949-15c5-76d0-8d8d-cecca2ec6121"
+        rows = [{"thread_id": name, "date": day.isoformat(), "title": "Goal private title"}
+                for name in (parent, "child", "orphan")]
+        mapping = {parent: None, "child": parent, "orphan": "missing"}
+        default = make_report(rows, day, day, 3, parents=mapping)["clusters"][0]
+        self.assertNotIn("main_thread_refs", default)
+        sample = make_report(rows, day, day, 3, parents=mapping, include_thread_refs=True)["clusters"][0]
+        self.assertEqual([parent], sample["main_thread_refs"])
+        self.assertEqual(1, sample["unmapped_title_rows"])
+
     def test_thread_rename_is_not_an_independent_recurrence(self):
         rows = [{"thread_id": "a", "date": "2026-10-01", "title": "休眠失败"},
                 {"thread_id": "a", "date": "2026-10-02", "title": "语音唤醒词"},
@@ -60,6 +92,40 @@ class WorkflowMiningReportTest(unittest.TestCase):
             self.assertEqual(1, report["subagent_threads"])
             self.assertIsNone(report["coverage_ratio"])
             self.assertNotIn("RAW_SECRET", json.dumps(report))
+
+    def test_parent_mapping_and_receipts_have_separate_denominators(self):
+        day = date(2026, 10, 2)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "2026/10/02"
+            folder.mkdir(parents=True)
+            for thread, source in (("root", "cli"), ("child", {"subagent": {
+                    "thread_spawn": {"parent_thread_id": "root"}}})):
+                header = {"type": "session_meta", "payload": {"id": thread, "source": source,
+                          "timestamp": "2026-10-02T00:00:00Z"}}
+                (folder / f"{thread}.jsonl").write_text(json.dumps(header) + "\nRAW_BODY\n")
+            parents = {}
+            metadata_coverage(root, day, day, parents=parents)
+            rows = [{"thread_id": thread, "date": day.isoformat(), "title": "Goal private title"}
+                    for thread in ("root", "child", "missing")]
+            report = make_report(rows, day, day, 5, parents=parents, include_examples=True)
+            cluster, = report["clusters"]
+            self.assertEqual("goal_convergence", cluster["name"])
+            self.assertEqual(1, cluster["mapped_main_threads"])
+            self.assertEqual(1, cluster["unmapped_title_rows"])
+            self.assertEqual(["goal"], cluster["examples"])
+            self.assertNotIn("private title", json.dumps(report))
+            item = {"schema_version": 2, "kind": "work-activity-item", "raw_content_stored": False,
+                    "subject_id": "explicit-subject", "project_id": "explicit-project", "item_id": "same-item",
+                    "activity_date": day.isoformat(), "title": "Goal private receipt"}
+            path = root / "receipt.json"
+            path.write_text(json.dumps({"schema_version": 2, "kind": "activity-session-receipt",
+                "raw_content_stored": False, "work_items": [item, item]}))
+            receipts = receipt_coverage([path], day, day)
+            self.assertEqual(1, receipts["distinct_work_items"])
+            self.assertEqual({"goal_convergence": 1}, receipts["theme_counts"])
+            self.assertFalse(receipts["independent_sessions_verified"])
+            self.assertNotIn("private receipt", json.dumps(receipts))
 
     def test_inventory_rejects_links_and_malformed_metadata(self):
         with tempfile.TemporaryDirectory() as directory:

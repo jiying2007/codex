@@ -7,7 +7,7 @@ import json
 import math
 import re
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from ..model import ManifestError
@@ -60,7 +60,6 @@ READONLY_IMPLEMENTATION_ARTIFACTS = {"repo", "build", "plan", "dry-run", "live"}
 SENSITIVE_FIELDS = {"prompt", "messages", "content", "text", "raw_input", "raw_output", "objective"}
 IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
-UTC = timezone.utc
 
 
 class ExecutionPolicyError(ValueError):

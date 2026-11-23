@@ -6,13 +6,13 @@
     "contract": "runtime_control.policy/v2",
     "behavior_baseline": {
       "repository": "jiying2007/agent-dev-kit",
-      "version": "8.2.0",
-      "commit": "22e6c790d1ed191cecc3083dc001a6ccfed264f6",
+      "version": "11.4.16",
+      "commit": "c41f7c933f653dd702b0d8042ae9df38807430dc",
       "source_blobs": {
         "__init__.py": "677b83c8f18254bea0b07a497ceef0941fe766ce",
-        "contracts.py": "93977bd4f53283f53205a60ab01cc2981127783f",
-        "decision.py": "61179126b3f623f8aa6c2bc603afb4689da9c78c",
-        "reducer.py": "3446508aa08b5a541be11a283f725b9298fc0a81"
+        "contracts.py": "10139ff831beb12468363e35982be87c9b87701c",
+        "decision.py": "63215b0d7a8a7b0d354dc1f463d96c788b69e0e8",
+        "reducer.py": "65659cd0b739c9c582dd166c4d76050d8e6c4996"
       }
     }
   },

@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 故障注入与恢复"
+  short_description: "设计超时、掉电或资源异常的注入实验，检查可恢复性及清理与安全边界。"

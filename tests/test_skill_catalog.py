@@ -28,6 +28,69 @@ def write_skill(path: pathlib.Path, name: str, description: str, triggers: list[
 
 
 class SkillCatalogTest(unittest.TestCase):
+    def test_history_review_routes_to_miner_without_displacing_diff_review(self):
+        repo = Repo(pathlib.Path(__file__).resolve().parents[1])
+        history_queries = [
+            "全面审查，深度分析历史会话使用问题，adk有哪些可修复和优化的",
+            "回顾工作记录，找重复流程并优化 Skill",
+            "只分析历史会话的使用问题，不修改代码",
+            "分析历史会话里反复运行的 git diff --cached，提炼重复流程",
+        ]
+        with tempfile.TemporaryDirectory() as home:
+            for profile in ("default", "team-collab"):
+                for query in history_queries:
+                    with self.subTest(profile=profile, query=query):
+                        result = search_skills(repo, query, profile, home)
+                        self.assertEqual("chronicle-workflow-miner", result["candidates"][0]["name"])
+                for query in ("对当前代码做独立代码审查", "结合历史会话审查当前 diff，做独立代码审查",
+                              "参考历史会话，独立审查当前代码改动",
+                              "Review the current code changes using session history",
+                              "请复审暂存候选的 git diff --cached，结合历史会话",
+                              "review current diff with session history",
+                              "请独立只读复审 git diff --cached 中四项反例修复，参考历史会话",
+                              "Review git diff --cached against session history"):
+                    with self.subTest(profile=profile, query=query):
+                        result = search_skills(repo, query, profile, home)
+                        self.assertEqual("adk-code-review-loop", result["candidates"][0]["name"])
+
+    def test_explicit_only_skills_are_not_natural_language_candidates(self):
+        repo = Repo(pathlib.Path(__file__).resolve().parents[1])
+        cases = (("请获取邮件", "adk-email-imap-fetch"),
+                 ("请提取网页 URL 内容", "adk-fetch-url-content"))
+        with tempfile.TemporaryDirectory() as home:
+            for profile in ("default", "team-collab"):
+                for query, name in cases:
+                    with self.subTest(profile=profile, name=name):
+                        natural = search_skills(repo, query, profile, home)
+                        self.assertNotIn(name, [row["name"] for row in natural["candidates"]])
+                        explicit = search_skills(repo, f"Please use ${name}.", profile, home)
+                        self.assertEqual(name, explicit["candidates"][0]["name"])
+
+    def test_implicit_selection_honors_live_and_source_invocation_metadata(self):
+        repo = self.make_repo()
+        name = "skill-asset-manager"
+        item = next(item for item in repo.manifest("skills.json")["skills"] if item["name"] == name)
+        vendor = pathlib.Path(item["vendor_rel"])
+        source_metadata = repo.source / vendor / "agents/openai.yaml"
+        with tempfile.TemporaryDirectory() as home:
+            live_skill = pathlib.Path(home) / vendor / "SKILL.md"
+            live_skill.parent.mkdir(parents=True)
+            shutil.copyfile(repo.source / vendor / "SKILL.md", live_skill)
+            live_metadata = live_skill.with_name("agents") / "openai.yaml"
+            query = name.replace("-", " ")
+            baseline = search_skills(repo, query, "team-collab", home)
+            self.assertIn(name, [row["name"] for row in baseline["candidates"]])
+            policy = "interface: {display_name: Example, short_description: Example}\npolicy: {allow_implicit_invocation: false}\n"
+            for metadata in (source_metadata, live_metadata):
+                with self.subTest(metadata=metadata):
+                    metadata.parent.mkdir()
+                    metadata.write_text(policy)
+                    natural = search_skills(repo, query, "team-collab", home)
+                    self.assertNotIn(name, [row["name"] for row in natural["candidates"]])
+                    explicit = search_skills(repo, f"Use ${name}.", "team-collab", home)
+                    self.assertEqual(str(live_skill), explicit["candidates"][0]["load_path"])
+                    metadata.unlink()
+
     def make_repo(self, long_description: bool = False) -> Repo:
         root = pathlib.Path(tempfile.mkdtemp(prefix="codex-skill-catalog-test-"))
         self.addCleanup(shutil.rmtree, root)

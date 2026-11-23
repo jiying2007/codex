@@ -68,6 +68,20 @@
       ],
       "routes": [
         {
+          "name": "current-code-review",
+          "match_any": [
+            "独立代码审查", "审查当前代码", "评审当前代码", "审查当前 diff", "评审当前 diff",
+            "审查暂存", "复审暂存", "审查 git diff", "复审 git diff",
+            "review the current code", "review current code", "review the current diff", "review current diff",
+            "review staged changes", "review staged diff", "review the staged diff", "review git diff", "review the git diff"
+          ],
+          "exclude_any": [],
+          "primary_skill": "adk-code-review-loop",
+          "supporting_skills": [],
+          "fallback_skill": "",
+          "mutually_exclusive_skills": ["chronicle-workflow-miner"]
+        },
+        {
           "name": "after-action-memory-candidate",
           "match_any": [
             "任务复盘",
@@ -268,7 +282,23 @@
         "rtk bash scripts/check-skills.sh",
         "rtk bash scripts/check.sh"
       ],
-      "description": "从 Chronicle/Codex 历史和记忆中提炼重复流程，并转化为可注册、可验证的技能资产。"
+      "description": "从 Chronicle/Codex 历史和记忆中提炼重复流程，并转化为可注册、可验证的技能资产。",
+      "routes": [
+        {
+          "name": "historical-workflow-review",
+          "match_any": ["历史会话", "历史线程", "跨会话复盘", "回顾工作记录", "重复流程", "工作流挖掘", "session history", "workflow mining"],
+          "exclude_any": [
+            "独立代码审查", "审查当前代码", "评审当前代码", "审查当前 diff", "评审当前 diff",
+            "审查暂存", "复审暂存", "审查 git diff", "复审 git diff",
+            "review the current code", "review current code", "review the current diff", "review current diff",
+            "review staged changes", "review staged diff", "review the staged diff", "review git diff", "review the git diff"
+          ],
+          "primary_skill": "chronicle-workflow-miner",
+          "supporting_skills": [],
+          "fallback_skill": "",
+          "mutually_exclusive_skills": ["adk-code-review-loop"]
+        }
+      ]
     },
     {
       "name": "context-handoff",

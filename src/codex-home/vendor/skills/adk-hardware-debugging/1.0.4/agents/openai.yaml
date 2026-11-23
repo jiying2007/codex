@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 硬件故障定位"
+  short_description: "依据板级现象、测量和数据手册定位硬件故障，不以猜测取代实测证据。"
