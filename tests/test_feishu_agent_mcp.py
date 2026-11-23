@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import sqlite3
 import tempfile
 import unittest
 from unittest import mock
@@ -67,7 +68,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
             "/wi add tapd 缺陷 space1 bug123 repo=codex | 修复缺陷并补充回归验收",
         )
         source_reply = manual.handle(source_event, "codex", {"codex"})
-        source_run = source_reply.split("AgentRun：", 1)[1].split("\\n", 1)[0]
+        source_run = source_reply.split("AgentRun：", 1)[1].split("\n", 1)[0]
         scope = "先完成根因分析、SDD、隔离修改和回归验证；验收：缺陷不再复现。"
         attempt_event = InboundEvent(
             "feishu_message", "tenantA", "oc_test", "ou_owner", "om_attempt",
@@ -178,12 +179,17 @@ class FeishuAgentMCPTests(unittest.TestCase):
 
     def test_workitem_task_rejects_scope_drift_and_shared_billing(self) -> None:
         intake, manual, run_id, scope = self.workitem_attempt()
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "scope"):
+        with self.assertRaisesRegex(ValueError, "scope"):
             intake.submit_workitem_task(run_id, scope + " 改动")
         self.assertEqual("proposed", manual.store.get_run(run_id)["status"])
-        self.assertEqual(0, intake.store._connect().execute(
-            "SELECT COUNT(*) FROM tasks"
-        ).fetchone()[0])
+        connection = intake.store._connect()
+        try:
+            task_count = connection.execute(
+                "SELECT COUNT(*) FROM tasks"
+            ).fetchone()[0]
+        finally:
+            connection.close()
+        self.assertEqual(0, task_count)
         shared = feishu_agent_mcp.AgentTaskIntake(
             intake.config, billing_source="codex_shared",
         )
