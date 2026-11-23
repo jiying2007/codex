@@ -2141,6 +2141,45 @@ class FeishuCodexBot:
         )
         self._transition_agent_run(job.task_id, "waiting_ci", strict=True)
 
+    def _reconcile_terminal_agent_run(self, task_id: int) -> bool:
+        """Recover the narrow crash window after AgentRun completion was persisted.
+
+        A terminal AgentRun receipt is stronger than the legacy task's stale
+        running flag only when the local result/commit evidence is also durable.
+        Otherwise the execution remains UNKNOWN and is never replayed.
+        """
+        link = self._agent_run_link(task_id)
+        if link is None or self._manual_service is None:
+            return False
+        try:
+            run = self._manual_service.store.get_run(link["agent_run_id"])
+            if run["mode"] in ("read", "review"):
+                return run["status"] == "completed"
+            if run["mode"] != "edit" or run["status"] not in (
+                    "waiting_ci", "waiting_qa", "completed"):
+                return False
+            with self.store._connect() as bot_db:
+                result = bot_db.execute(
+                    "SELECT commit_hash FROM task_results WHERE task_id=?",
+                    (task_id,),
+                ).fetchone()
+            if result is None or not result["commit_hash"]:
+                return False
+            with self._manual_service.store._connect() as run_db:
+                evidence = run_db.execute(
+                    "SELECT 1 FROM fea_evidence WHERE run_id=? "
+                    "AND evidence_type='commit' AND reference=? AND verified=0",
+                    (link["agent_run_id"], result["commit_hash"]),
+                ).fetchone()
+            return evidence is not None
+        except Exception as exc:
+            print(
+                f"[WARN] agent_run_recovery_check_failed task={task_id} "
+                f"kind={type(exc).__name__}",
+                flush=True,
+            )
+            return False
+
     def _fail_agent_run(self, task_id: int, reason: str) -> None:
         link = self._agent_run_link(task_id)
         if link is None or self._manual_service is None:
@@ -2181,6 +2220,16 @@ class FeishuCodexBot:
         abandoned = self.store.reconcile_abandoned_running()
         for row in abandoned:
             self.spool.discard(row["id"])
+            if self._reconcile_terminal_agent_run(row["id"]):
+                self.store.update_task(
+                    row["id"], "completed", "RecoveredFromAgentRunReceipt",
+                )
+                self._send_safe(
+                    self.config.target_chat_id,
+                    f"任务 #{row['id']} 已根据持久 AgentRun/提交证据恢复为本地完成；后续 CI/QA 状态仍以工作项记录为准。",
+                    row["message_id"],
+                )
+                continue
             self._fail_agent_run(row["id"], "unknown")
             self._send_safe(
                 self.config.target_chat_id,
