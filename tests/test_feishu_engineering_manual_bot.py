@@ -114,6 +114,21 @@ class ManualWorkItemBotBridgeTest(unittest.TestCase):
         thread.call_args.kwargs["target"](*thread.call_args.kwargs["args"])
         self.assertIn("AgentRun：", self.transport.send_text.call_args.args[1])
 
+    def test_live_slash_typo_does_not_create_model_task(self):
+        bot = self.bot(True)
+        with self.immediate_threads():
+            bot.on_message(self.event(msg_id="om_typo", text="/wl help"))
+            self.assertIn("未知或格式错误", self.transport.send_text.call_args.args[1])
+            self.assertIn("未启动 Codex", self.transport.send_text.call_args.args[1])
+            bot.on_message(self.event(msg_id="om_workitem_help", text="/wi help"))
+            self.assertIn("/wi list", self.transport.send_text.call_args.args[1])
+            bot.on_message(self.event(msg_id="om_workitem_list", text="/wi list"))
+            self.assertIn("尚无可访问的工作项登记", self.transport.send_text.call_args.args[1])
+        self.runner.run.assert_not_called()
+        self.assertTrue(bot.jobs.empty())
+        with sqlite3.connect(str(self.root / "bot_state.sqlite3")) as db:
+            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
+
     def test_default_off_reserved_command_does_not_reach_codex(self):
         bot = self.bot(False)
         with self.immediate_threads(), mock.patch.object(

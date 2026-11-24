@@ -258,6 +258,25 @@ class FeishuCodexBotTest(unittest.TestCase):
                 "codex",
             )
 
+    def test_unknown_slash_control_is_not_a_model_prompt(self) -> None:
+        for text in ("/wl help", "/w1 list", "/HELP", "/status extra", "/unknown",
+                     "  /wi help", "/wiki"):
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "未启动 Codex"):
+                    feishu_codex_bot.parse_command(text, "codex")
+        for text in ("检查 /tmp", "/home/user/project 分析日志",
+                     "mode=explain /tmp 检查目录", "repo=codex /wl 是什么"):
+            with self.subTest(text=text):
+                self.assertEqual("task", feishu_codex_bot.parse_command(text, "codex").action)
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        gate = feishu_codex_bot.MessageGate(config, store)
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "未启动 Codex"):
+            gate.accept(self.event(message_id="om_typo", text="@_user_1 /wl help"))
+        self.assertEqual([], store.pending())
+        with store._connect() as db:
+            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
+
     def test_message_gate_requires_edit_and_enabled_policy_for_artifact(self) -> None:
         config = self.config()
         store = feishu_codex_bot.StateStore(config.state_db)
