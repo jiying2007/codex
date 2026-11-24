@@ -209,7 +209,7 @@ class BotConfig:
     state_db: pathlib.Path
     lock_file: pathlib.Path
     codex_bin: str = "codex"
-    worker_count: int = 2
+    worker_count: int = 1
     queue_size: int = 20
     rate_limit_count: int = 5
     rate_limit_window_sec: int = 60
@@ -225,6 +225,10 @@ class BotConfig:
     agent_codex_home: Optional[pathlib.Path] = None
     agent_openai_api_key: str = dataclasses.field(default="", repr=False)
     agent_openai_base_url: str = ""
+    agent_budget_backend: str = ""
+    agent_budget_max_usd: str = ""
+    agent_budget_key_alias: str = ""
+    agent_model: str = ""
     agent_github_read_token: str = dataclasses.field(default="", repr=False)
     manual_workitems_enabled: bool = False  # requires no Feishu Project/TAPD API
     link_repositories: Mapping[str, Tuple[str, ...]] = dataclasses.field(default_factory=dict)
@@ -511,8 +515,8 @@ class BotConfig:
                     for candidate in candidates
                 ):
                     raise FeishuCodexError("Agent 专用 CODEX_HOME 不得与仓库或 worktree 重叠")
-            agent_openai_api_key = str(values.get("OPENAI_API_KEY", "")).strip()
-            agent_openai_base_url = str(values.get("OPENAI_BASE_URL", "")).strip()
+            agent_openai_api_key = str(values.get("FEISHU_AGENT_OPENAI_API_KEY", "")).strip()
+            agent_openai_base_url = str(values.get("FEISHU_AGENT_OPENAI_BASE_URL", "")).strip()
             if not agent_openai_api_key:
                 raise FeishuCodexError("Agent 专用执行缺少 OPENAI_API_KEY")
             if agent_billing_source == "external_api_key" and agent_openai_base_url:
@@ -557,7 +561,7 @@ class BotConfig:
             state_db=state_db,
             lock_file=lock_file,
             codex_bin=values.get("FEISHU_CODEX_BIN", "codex").strip() or "codex",
-            worker_count=_bounded_int(payload.get("worker_count", 2), 1, 4, "worker_count"),
+            worker_count=_bounded_int(payload.get("worker_count", 1), 1, 4, "worker_count"),
             queue_size=_bounded_int(payload.get("queue_size", 20), 1, 100, "queue_size"),
             rate_limit_count=_bounded_int(payload.get("rate_limit_count", 5), 1, 30, "rate_limit_count"),
             rate_limit_window_sec=_bounded_int(payload.get("rate_limit_window_sec", 60), 10, 3600, "rate_limit_window_sec"),
@@ -573,6 +577,10 @@ class BotConfig:
             agent_codex_home=agent_codex_home,
             agent_openai_api_key=agent_openai_api_key,
             agent_openai_base_url=agent_openai_base_url,
+            agent_budget_backend=values.get("FEISHU_AGENT_BUDGET_BACKEND", "").strip(),
+            agent_budget_max_usd=values.get("FEISHU_AGENT_BUDGET_MAX_USD", "").strip(),
+            agent_budget_key_alias=values.get("FEISHU_AGENT_BUDGET_KEY_ALIAS", "").strip(),
+            agent_model=values.get("FEISHU_AGENT_MODEL", "").strip(),
             agent_github_read_token=values.get("FEISHU_AGENT_GITHUB_READ_TOKEN", "").strip(),
             manual_workitems_enabled=manual_workitems_enabled,
             link_repositories=link_repositories,
@@ -678,6 +686,8 @@ def workitem_policy_digest(config: BotConfig, repository: RepositoryPolicy,
             config.agent_openai_api_key.encode("utf-8")
         ).hexdigest(),
         codex_bin=config.codex_bin,
+        budget_policy=(config.agent_budget_backend, config.agent_budget_max_usd,
+                       config.agent_budget_key_alias, config.agent_model),
         isolation_bin=str(config.isolation_bin),
         deny_push_hooks_path=str(config.deny_push_hooks_path),
         deny_read_paths=(str(path) for path in config.deny_read_paths),
@@ -2005,12 +2015,39 @@ class CodexRunner:
             environment["OPENAI_BASE_URL"] = self.config.agent_openai_base_url
         return git_guard_environment(environment, self.config.deny_push_hooks_path)
 
+    def _observe_budget(self, task_id: int, phase: str) -> None:
+        from .feishu_engineering_agent.budget import BudgetError, observe_budget
+        try:
+            receipt = observe_budget(self.config, phase)
+            # Private state only. Never persist the provider response or API key.
+            with StateStore(self.config.state_db)._connect() as db:
+                db.execute("""CREATE TABLE IF NOT EXISTS engineering_budget_receipts (
+                    task_id INTEGER NOT NULL, phase TEXT NOT NULL, observed_at INTEGER NOT NULL,
+                    receipt_json TEXT NOT NULL, PRIMARY KEY(task_id, phase))""")
+                db.execute("INSERT INTO engineering_budget_receipts VALUES (?, ?, ?, ?)",
+                           (task_id, phase, int(time.time()), json.dumps(receipt, sort_keys=True)))
+        except (BudgetError, sqlite3.Error, OSError) as exc:
+            if phase == "before":
+                raise FeishuCodexError("独立计费预算未核验，禁止启动模型") from None
+            raise CodexOutcomeUnknown("模型已启动但计费回执未核验，禁止自动重试") from None
+
     def run(
         self, job: BotJob, source_context: str = "", *, persistent_session: bool = False,
         resume_target: Optional[ResumeTarget] = None,
     ) -> ExecutionResult:
         if persistent_session and not job.sender_open_id.startswith("agent:"):
             raise FeishuCodexError("持久研发会话必须由已授权的本机 Agent 执行")
+        dedicated = job.sender_open_id.startswith("agent:")
+        if dedicated:
+            self.config.validate_agent_runtime()
+            from .feishu_engineering_agent.budget import BudgetError, provider_overrides
+            try:
+                overrides = provider_overrides(self.config)
+            except BudgetError:
+                raise FeishuCodexError("独立计费模型和预算未配置，禁止启动模型") from None
+            self._observe_budget(job.task_id, "before")
+        else:
+            overrides = []
         repository = self.config.repository(job.repository)
         working_directory = repository.path
         branch_name = ""
@@ -2045,6 +2082,7 @@ class CodexRunner:
         )
         codex_arguments = [
             "exec",
+            *overrides,
             "--json" if persistent_session else "--ephemeral",
             "--sandbox",
             "workspace-write" if job.mode == "edit" else "read-only",
@@ -2054,7 +2092,6 @@ class CodexRunner:
         if resume_target is not None:
             codex_arguments.extend(["resume", resume_target.thread_id])
         codex_arguments.append(prompt)
-        dedicated = job.sender_open_id.startswith("agent:")
         command = self._isolated_command(working_directory,codex_arguments,
             dedicated=dedicated,writable_workdir=(not dedicated or job.mode=="edit"))
         try:
@@ -2084,6 +2121,8 @@ class CodexRunner:
                         except subprocess.TimeoutExpired:
                             process.kill()
                         raise CodexOutcomeUnknown("Codex 执行超时；模型计费和外部效果未知，禁止自动重试")
+            if dedicated:
+                self._observe_budget(job.task_id, "after")
             with self._lock:
                 canceled = job.task_id in self._canceled
                 self._canceled.discard(job.task_id)

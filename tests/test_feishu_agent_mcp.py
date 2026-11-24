@@ -54,10 +54,21 @@ class FeishuAgentMCPTests(unittest.TestCase):
             "FEISHU_TARGET_CHAT_ID": "oc_test",
             "FEISHU_BOT_CONFIG": str(self.policy_path),
             "FEISHU_AGENT_CODEX_HOME": str(self.agent_home),
-            "FEISHU_AGENT_BILLING_SOURCE": "external_api_key",
-            "OPENAI_API_KEY": "fixture-agent-api-key",
+            "FEISHU_AGENT_BILLING_SOURCE": "external_gateway",
+            "FEISHU_AGENT_OPENAI_API_KEY": "fixture-agent-api-key",
+            "FEISHU_AGENT_OPENAI_BASE_URL": "https://gateway.example/v1",
+            "FEISHU_AGENT_BUDGET_BACKEND": "litellm",
+            "FEISHU_AGENT_BUDGET_MAX_USD": "10",
+            "FEISHU_AGENT_BUDGET_KEY_ALIAS": "fixture-agent",
+            "FEISHU_AGENT_MODEL": "fixture-model",
         }
         self.write_policy()
+        # All runner tests use a deterministic provider response; no network.
+        budget_patch = mock.patch("tools.codex_assets.feishu_engineering_agent.budget.read_key_info",
+                                  return_value={"info": {"key_alias": "fixture-agent",
+                                              "max_budget": 10, "spend": 1}})
+        budget_patch.start()
+        self.addCleanup(budget_patch.stop)
 
     def write_policy(self) -> None:
         self.policy_path.write_text(json.dumps(self.policy), encoding="utf-8")
@@ -205,6 +216,14 @@ class FeishuAgentMCPTests(unittest.TestCase):
         self.assertEqual(self.tmp, result.thread_cwd)
         self.assertEqual("完成", result.text)
         self.assertIsNone(result.worktree_path)
+        self.assertIn('model_provider="feishu_agent_gateway"', arguments)
+        with sqlite3.connect(str(intake.config.state_db)) as db:
+            receipts = db.execute("SELECT phase, receipt_json FROM engineering_budget_receipts WHERE task_id=?", (job.task_id,)).fetchall()
+        self.assertEqual({"before", "after"}, {row[0] for row in receipts})
+        self.assertNotIn("fixture-agent-api-key", str(receipts))
+        # Use a distinct synthetic task ID: each paid launch is effect-once.
+        import dataclasses
+        job = dataclasses.replace(job, task_id=job.task_id + 1000)
         process.communicate.return_value = ('{"type":"thread.started"}', "")
         with mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process):
             with self.assertRaises(feishu_codex_bot.CodexOutcomeUnknown):
@@ -240,7 +259,8 @@ class FeishuAgentMCPTests(unittest.TestCase):
             feishu_codex_bot.BotConfig.from_values(self.values, self.tmp)
         auth.unlink()
         values = dict(self.values)
-        values.pop("OPENAI_API_KEY")
+        values.pop("FEISHU_AGENT_OPENAI_API_KEY")
+        values["OPENAI_API_KEY"] = "fixture-personal-key"
         with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "OPENAI_API_KEY"):
             feishu_codex_bot.BotConfig.from_values(values, self.tmp)
 
@@ -437,7 +457,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
     def test_workitem_policy_fingerprint_binds_api_credential_rotation(self) -> None:
         intake, manual, run_id, scope = self.workitem_attempt()
         submitted = intake.submit_workitem_task(run_id, scope)
-        self.values["OPENAI_API_KEY"] = "fixture-rotated-api-key"
+        self.values["FEISHU_AGENT_OPENAI_API_KEY"] = "fixture-rotated-api-key"
         rotated_config = feishu_codex_bot.BotConfig.from_values(self.values, self.tmp)
         bot = feishu_codex_bot.FeishuCodexBot(
             rotated_config, mock.Mock(), mock.Mock(),
@@ -450,7 +470,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
     def test_gateway_url_rejects_embedded_credentials_and_query(self) -> None:
         values = dict(self.values)
         values["FEISHU_AGENT_BILLING_SOURCE"] = "external_gateway"
-        values["OPENAI_BASE_URL"] = "https://user:password@gateway.example/v1?token=secret"
+        values["FEISHU_AGENT_OPENAI_BASE_URL"] = "https://user:password@gateway.example/v1?token=secret"
         with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "不含凭据"):
             feishu_codex_bot.BotConfig.from_values(values, self.tmp)
 
@@ -635,6 +655,8 @@ class FeishuAgentMCPTests(unittest.TestCase):
         real_runner.worktrees.prepare.assert_not_called()
         real_runner.worktrees.require_resume_base.assert_any_call(target, repo)
         real_runner.worktrees.verify_and_commit.assert_called_once()
+        import dataclasses
+        next_job = dataclasses.replace(next_job, task_id=next_job.task_id + 1000)
         frames[0]["thread_id"] = "01979c6c-0354-7000-8000-000000000002"
         process.communicate.return_value = ("\n".join(json.dumps(f) for f in frames), "")
         real_runner.worktrees.verify_and_commit.reset_mock()

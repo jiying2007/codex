@@ -52,7 +52,7 @@
   "isolation_write_paths": [
     "/home/user/.codex"
   ],
-  "worker_count": 2,
+  "worker_count": 1,
   "queue_size": 20,
   "rate_limit_count": 5,
   "rate_limit_window_sec": 60,

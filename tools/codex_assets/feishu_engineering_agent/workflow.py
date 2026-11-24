@@ -61,6 +61,7 @@ def local_agent_policy_digest(
     deny_read_paths: Iterable[str] = (),
     isolation_write_paths: Iterable[str] = (),
     codex_timeout_sec: int = 0, max_prompt_chars: int = 0,
+    budget_policy: Iterable[str] = (),
 ) -> str:
     """Canonical digest of the operator-controlled local MCP execution policy."""
     payload = {
@@ -87,6 +88,7 @@ def local_agent_policy_digest(
         "isolation_write_paths": sorted(str(path) for path in isolation_write_paths),
         "codex_timeout_sec": int(codex_timeout_sec),
         "max_prompt_chars": int(max_prompt_chars),
+        "budget_policy": list(budget_policy),
     }
     return hashlib.sha256(json.dumps(
         payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"),

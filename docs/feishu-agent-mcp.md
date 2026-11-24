@@ -57,3 +57,11 @@ rtk python3 -m unittest tests.test_feishu_agent_mcp tests.test_feishu_codex_bot
 
 ## WorkItem 实际开发与交付
 另启用 `manual_workitems_enabled`，按 [飞书助手使用指南](feishu-codex-bot-usage.md) 登记工作项，创建 `/wi attempt` 或 `/wi continue`，使用 `submit_workitem_task` 提交**完全相同的范围文本**。独立计费必须配置 `FEISHU_AGENT_BILLING_SOURCE`、专用 0700 `FEISHU_AGENT_CODEX_HOME` 和私有 API 凭据；不复用个人 auth.json。模型执行仅发生在现有 Worker。编辑任务为隔离 worktree 且允许本地提交。连续执行必须复用精确 thread、工作区和原提交，不自动重试未知结果。每仓的 `github_delivery` 配置、只读 GitHub 凭据、独立 QA 验证配置及现场步骤见 [pilot](changes/20261120-feishu-engineering-agent/pilot.md)。Git 发布继续使用原有工具，MCP 不自动 push/merge。`completed` 的 AgentRun 不代表已关闭原需求或缺陷。
+
+### 独立模型执行与金额预算（候选）
+生产不读取个人或通用 `OPENAI_API_KEY` / `OPENAI_BASE_URL`。在私有服务环境配置
+`FEISHU_AGENT_OPENAI_API_KEY`、`FEISHU_AGENT_OPENAI_BASE_URL`、`FEISHU_AGENT_BILLING_SOURCE=external_gateway`、
+`FEISHU_AGENT_BUDGET_BACKEND=litellm`、`FEISHU_AGENT_BUDGET_KEY_ALIAS`、
+`FEISHU_AGENT_BUDGET_MAX_USD` 和 `FEISHU_AGENT_MODEL`。目前仅接入可读取自身 key 信息的 LiteLLM 网关预算适配器，不宣称其他计费后端已验证，也不要求另起调度服务。
+在真实模型启动前用同一专用 bearer 读取同源 `/key/info`，核对 key alias、不自动重置的正数上限、累计 spend 及本地批准额度；无证据、超限或不可读取时拒绝执行。Codex CLI 显式选择同一个 gateway provider 与模型。前后金额观测写入私有 SQLite `engineering_budget_receipts`，只保留非秘密字段和密钥指纹，不打印完整响应。执行后无法取得回执记未知，不自动重试。默认 worker=1，显式配置仍可调整。
+该观测是服务端累计金额，不是单任务最终结算，不证明网关具有原子硬限额。超时/中断可能仅有 before 回执。真实网关必须另外验证独占密钥、请求级拒绝/在途预留、账单一致性及超额拒绝，再允许生产付费执行。所有测试为合成响应，未访问真实模型或网关。

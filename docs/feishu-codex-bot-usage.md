@@ -471,3 +471,11 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 同一飞书话题内发送 `/repo <已授权别名>` 后，明确要求分析、审查或开发；再切换另一已授权仓库开展独立任务。各仓库独立保存任务、原生线程与隔离工作区，`继续推进` 和 `/cancel` 仅针对当前选择的仓库。共同工单及文档引用留在话题内，普通补充消息按仓库作用域读取。`/status` 显示各授权仓库最近执行。生产默认单 worker，多个仓库任务可分别排队，不宣称实际并行模型执行。
 
 发送 `检查联合交付` 对该话题所有实际参与仓库的最新编辑版本重新获取精确 PR 和必需 CI，并保存版本集合证明。任一仓库未完成、未知、未授权、配置不全或版本变化均不能通过。该证明不替代上述版本集合的真实跨仓联调与产品/测试验收。
+
+### 独立模型执行与金额预算（候选）
+生产不读取个人或通用 `OPENAI_API_KEY` / `OPENAI_BASE_URL`。在私有服务环境配置
+`FEISHU_AGENT_OPENAI_API_KEY`、`FEISHU_AGENT_OPENAI_BASE_URL`、`FEISHU_AGENT_BILLING_SOURCE=external_gateway`、
+`FEISHU_AGENT_BUDGET_BACKEND=litellm`、`FEISHU_AGENT_BUDGET_KEY_ALIAS`、
+`FEISHU_AGENT_BUDGET_MAX_USD` 和 `FEISHU_AGENT_MODEL`。目前仅接入可读取自身 key 信息的 LiteLLM 网关预算适配器，不宣称其他计费后端已验证，也不要求另起调度服务。
+在真实模型启动前用同一专用 bearer 读取同源 `/key/info`，核对 key alias、不自动重置的正数上限、累计 spend 及本地批准额度；无证据、超限或不可读取时拒绝执行。Codex CLI 显式选择同一个 gateway provider 与模型。前后金额观测写入私有 SQLite `engineering_budget_receipts`，只保留非秘密字段和密钥指纹，不打印完整响应。执行后无法取得回执记未知，不自动重试。默认 worker=1，显式配置仍可调整。
+该观测是服务端累计金额，不是单任务最终结算，不证明网关具有原子硬限额。超时/中断可能仅有 before 回执。真实网关必须另外验证独占密钥、请求级拒绝/在途预留、账单一致性及超额拒绝，再允许生产付费执行。所有测试为合成响应，未访问真实模型或网关。
