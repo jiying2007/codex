@@ -21,11 +21,10 @@ class SessionBootstrapContractTests(unittest.TestCase):
         self.assertNotIn("L2", serialized)
         self.assertNotIn("runtime_binding_contract_modes", serialized)
 
-    def test_historical_receipt_schema_is_not_live_bootstrap_authority(self):
-        receipt = json.loads((ROOT / "schemas/runtime-execution-receipt.v2.schema.json").read_text(encoding="utf-8"))
-        self.assertIs(receipt["additionalProperties"], False)
-        for field in ("work_item_id", "run_id", "execution_source_set_identity", "digital_worker_governance_identity"):
-            self.assertIn(field, receipt["required"])
+    def test_retired_receipt_schema_is_not_a_live_bootstrap_dependency(self):
+        for relative in ("schemas/runtime-execution-receipt.schema.json",
+                         "schemas/runtime-execution-receipt.v2.schema.json"):
+            self.assertFalse((ROOT / relative).exists(), relative)
         contract = json.loads((ROOT / "manifests/session_bootstrap.json").read_text())
         self.assertNotIn("runtime_receipt_handoff", contract["output_contract"])
         self.assertNotIn("execution_source_set", contract["owns"])
