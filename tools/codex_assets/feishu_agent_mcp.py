@@ -211,7 +211,7 @@ class AgentTaskIntake:
         )
         workflow = EngineeringWorkflow(store)
         workflow.authorize_local_agent_queue(
-            run_id, event, os.getuid(), {record["repo"]}, {run_mode},
+            run_id, event, os.getuid(), {record["repo"]}, repository.agent_allowed_modes,
             scope_sha256, self.billing_source, policy_sha256,
         )
         try:
