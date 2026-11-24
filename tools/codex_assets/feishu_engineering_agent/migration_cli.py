@@ -15,7 +15,8 @@ from .migration import MigrationPlan, MigrationRejected
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Feishu Agent safe migration prep")
-    parser.add_argument("action", choices=("inspect", "backup", "rehearse"))
+    parser.add_argument("action", choices=("inspect", "backup", "rehearse", "unify"))
+    parser.add_argument("--lock-file", default="", help="exact existing service singleton lock for unify")
     parser.add_argument("--db", default="")
     parser.add_argument("--spool", default="")
     parser.add_argument("--private-policy", default="")
@@ -25,6 +26,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         help="operator has verified old consumer is stopped/frozen")
     args = parser.parse_args(argv)
     try:
+        if args.action != "unify" and args.lock_file:
+            parser.error("--lock-file is only valid for unify")
         if args.action == "rehearse":
             if not args.backup_dir or args.db or args.spool or args.private_policy or args.private_env or args.consumer_paused:
                 parser.error("rehearse needs only --backup-dir")
@@ -41,6 +44,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 if args.backup_dir or args.consumer_paused:
                     parser.error("inspect may not write a backup")
                 report = plan.inspect()
+            elif args.action == "unify":
+                if not args.backup_dir or not args.consumer_paused or not args.lock_file or not args.private_policy:
+                    parser.error("unify requires paired backup, --consumer-paused, --lock-file and --private-policy")
+                report = plan.unify(pathlib.Path(args.backup_dir),pathlib.Path(args.lock_file))
             else:
                 if not args.backup_dir or not args.consumer_paused:
                     parser.error("backup requires --backup-dir and --consumer-paused")

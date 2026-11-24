@@ -184,6 +184,12 @@ class LinkContextService:
                         or (ctx["repo"] and ctx["repo"] not in allowed)):
                     raise EventConflict("same event changed or no longer authorized")
                 return IntakeResult(True)
+            # Do not reinterpret a pre-cutover Feishu event as a new paid turn.
+            if db.execute("SELECT 1 FROM messages WHERE message_id=?",(event.event_id,)).fetchone():
+                return IntakeResult(True)
+            if (db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='engineering_legacy_events'").fetchone()
+                    and db.execute("SELECT 1 FROM engineering_legacy_events WHERE message_id=?",(event.event_id,)).fetchone()):
+                return IntakeResult(True)
             if ctx is None and not incoming and not (intent and scope_text):
                 return IntakeResult(False)
             cid = ctx["context_id"] if ctx else uuid.uuid4().hex
@@ -246,6 +252,13 @@ class LinkContextService:
                     "工单链接：" + source.url,
                     "来源：链接解析，原系统正文和类型尚未核验。",
                 ])
+                if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='engineering_legacy_runs'").fetchone():
+                    historic=db.execute(
+                        "SELECT COUNT(*) FROM engineering_legacy_runs WHERE tenant=? AND chat=? AND actor=? AND provider=? AND workspace=? AND kind=? AND item_id=?",
+                        (event.tenant,event.chat,event.actor,source.provider,source.space,source.kind,source.item_id),
+                    ).fetchone()[0]
+                    if historic:
+                        lines.append("关联历史归档记录："+str(historic)+" 条；未自动恢复旧会话或执行。")
             elif merged:
                 lines.append("文档驱动研发事项；尚未读取文档正文。")
             else:

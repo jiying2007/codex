@@ -21,3 +21,6 @@ ACC-18..19：生产可达路径、迁移/恢复、单 consumer；删除冗余后
 
 ## G3 只读交付发现候选
 从已完成本地 edit 的精确 task_result/branch/commit，使用固定 GitHub API 的 commit associated PR、head_sha runs 有界查询，严格 repo/base/head/branch/required path 与最新 run/attempt；重新读 PR 及所有选择的 CI，原子记录同一生产状态库证据。同话题检查 CI/交付反馈不调用模型、不推送、不关闭原工单。生产访问权限、真实交付与独立 QA 尚待验收；旧双 DB 迁移和删除未完成。
+
+## G3 单状态库迁移候选
+新增明确的 quiesced unify 命令：验证配对备份+恢复演练、实时逻辑内容、spool、私有策略/环境及单实例锁；拒绝待处理/UNKNOWN/待交付未核对状态；同一事务归档旧 ledger 元数据、历史链接、去重身份和一次性标记。旧 DB/备份不删除。生产启动/check 与旧 WorkItem MCP 识别 marker，停用旧运行路径；新链接入口对历史消息 fail-closed，不把旧 Run 自动冒充真实话题/会话。此为源码迁移候选，实际主机尚未执行，旧模块物理删除待完整替代/恢复/现场证据。

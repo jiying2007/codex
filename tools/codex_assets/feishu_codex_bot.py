@@ -1297,6 +1297,11 @@ class StateStore:
             ).fetchall()
         return rows[0]["value"] if len(rows) == 1 else None
 
+    def is_engineering_migrated(self) -> bool:
+        from .feishu_engineering_agent.migration import _unified
+        with self._connect() as db:
+            return _unified(db)
+
     def has_agent_run_links(self) -> bool:
         with self._connect() as connection:
             return connection.execute(
@@ -2442,6 +2447,8 @@ def open_workitem_service(config: BotConfig, store: StateStore):
     from .feishu_engineering_agent.models import IntakeRejected
     if not config.manual_workitems_enabled:
         raise FeishuCodexError("WorkItem AgentRun bridge is disabled")
+    if store.is_engineering_migrated():
+        raise FeishuCodexError("旧工作项工作流已迁移归档；请使用链接和飞书话题入口。")
     manual_db = config.state_db.with_name("feishu-engineering-agent.sqlite3")
     if manual_db == config.state_db:
         raise FeishuCodexError("manual WorkItem DB must differ from legacy Bot DB")
@@ -2471,7 +2478,8 @@ class FeishuCodexBot:
         self._link_service = None
         self._engineering_executor = None
         if config.manual_workitems_enabled:
-            self._manual_service = open_workitem_service(config, store)
+            if not store.is_engineering_migrated():
+                self._manual_service = open_workitem_service(config, store)
             from .feishu_engineering_agent.service import LinkContextService
             self._link_service = LinkContextService(store)
             from .feishu_engineering_agent.executor import EngineeringExecutor
@@ -2964,7 +2972,9 @@ class FeishuCodexBot:
         }
         if not actor or not allowed:
             return True  # unauthorized sender receives no task state or reply
-        if not self.config.manual_workitems_enabled or self._manual_service is None:
+        if self.config.manual_workitems_enabled and self.store.is_engineering_migrated():
+            reply = "旧 /wi 工作流已归档退出；请直接发送需求、缺陷或文档链接，在同一话题继续研发。未启动 Codex。"
+        elif not self.config.manual_workitems_enabled or self._manual_service is None:
             reply = "工作项人工登记未启用；管理员可设置 manual_workitems_enabled，或在本地使用 --manual。不会启动 Codex。"
         elif not self.manual_limiter.allow(actor):
             reply = "工作项操作过于频繁，请稍后重试；未执行任何模型或外部操作。"
@@ -3439,7 +3449,10 @@ def run(args: argparse.Namespace) -> int:
         version = runner.check()
         store = StateStore(config.state_db)
         if config.manual_workitems_enabled:
-            open_workitem_service(config, store)
+            if not store.is_engineering_migrated():
+                open_workitem_service(config, store)
+            from .feishu_engineering_agent.service import LinkContextService
+            LinkContextService(store)
         TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         print(
             f"[PASS] config chat_id_suffix={config.target_chat_id[-6:]} "
