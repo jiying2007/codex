@@ -2,9 +2,9 @@
 
 Smoke 恢复主构建时同时使用 `--reuse-context-input --reuse-machine-inputs`，以哈希及 profile 校验保留已批准的本机 context 与执行规则输入。变化的输入拒绝复用；显式规则输入与复用模式不能混用。
 
-Codex 的任务执行策略面将 canonical Execution Policy v2 的四个文件独立锁定在签名版 ADK 11.4.16。Skill 和 Agent 的消费锁独立记录签名版 ADK 11.4.17。Skills-only 导入先核对引擎与独立来源锁，再更新消费指针。
+Execution Policy 的四份 canonical 源文件由 `manifests/provider-locks/agent-dev-kit-execution-policy.json` 独立锁定；Skill 和 Agent 使用其各自来源锁。实际来源以锁和 manifest 为准。Skills-only 导入先核对引擎与独立来源锁，再更新消费指针。
 
-11.4.16 引擎会拒绝同一完整历史中已消费的重规划凭据。保留既有 journal 字节，先离线回放旧事件与新凭据正反例，再核对当前宿主的只读状态。若旧历史已含重复凭据，诊断并保留完整证据，不静默重写事件。
+引擎会拒绝同一完整历史中已消费的重规划凭据。保留既有 journal 字节，先离线回放旧事件与新凭据正反例，再核对当前宿主的只读状态。若旧历史已含重复凭据，诊断并保留完整证据，不静默重写事件。
 
 - 配置：`manifests/execution_policy.json`
 - exact decision：`tools/codex_assets/execution_policy/decision.py`
@@ -16,15 +16,14 @@ Codex 的任务执行策略面将 canonical Execution Policy v2 的四个文件�
 
 旧 `runtime-control` Python/CLI/config surface 已 hard-cut，不提供 alias、fallback、双读或双写。保留的 `runtime_control.*` 字符串仅是 ADK 冻结 wire schema 名称，不表示旧执行面仍存在。
 
-所有 action 和 goal start 都在与 intake 相同的线程锁内先用 canonical reducer 校验，再追加并同步 journal。非法或重复 progress 被拒绝时不改变 journal；新 goal 保留已终结历史。
+所有任务登记与 journal 写操作共用同一线程锁，先由 canonical reducer 校验，再追加并同步 journal。非法或重复 progress 被拒绝时不改变 journal；新 goal 保留已终结历史。
 
 若旧 host adapter 曾将被拒绝的非递增 progress 写入 journal，可先运行 `execution-policy journal` 得到只读计划，再以计划的 `before_sha256` 执行 `execution-policy journal --apply --expected-sha256 <sha256>`。恢复仅允许 canonical reducer 明确拒绝的非递增 progress；其他错误继续阻断。原字节完整备份，恢复记录保存被隔离事件的 hash、原因、前后 journal hash，成功后回读。该操作不 complete goal、不补证据、不产生 PASS；恢复后按真实目标继续或显式 abort/replan。
 
-Execution Policy v2 要求每个 goal 在 `goal.started` 时携带可验证 intake：task mode、request/routing digests、authority id 与 routing provenance。缺失 intake、使用 v1 policy、source-set blob 漂移或 behavior baseline 漂移均 fail closed。
+每个 goal 的 `goal.started` 事件必须携带 canonical intake：task mode、request/routing digests、authority id 与 routing provenance。缺失 intake、契约不匹配、source-set blob 或 behavior baseline 漂移均拒绝。
 
-Codex 资产工具的日常 CLI 支持 Python 3.8 及以上。宿主包保留历史上游源码使用
-`datetime.UTC` 时的 `timezone.utc` 兼容别名；当前 8.1.1 Execution Policy 源码
-本身不依赖该别名。此桥接不改变上游文件、来源哈希、策略条件或缺失 intake 时的 FATAL 结果。
+Codex 资产 CLI 支持 Python 3.8 及以上。锁定的 ADK 源码实际导入 `datetime.UTC`；
+宿主在低于 3.11 的受支持解释器中提供同一 `timezone.utc` 单例，不修改上游源码或策略。
 
 `readonly`/debug/review 由本机核验器核对当前线程、原生用户请求摘要、实际规则摘要、初始验收项和 canonical intake。只有全部匹配才使用 readonly 工件边界；未验证来源、规则漂移或跨线程仍按 implementation 工件要求处理。核验不代表操作系统强制只读，也不授予 owner、提交或发布权限；任务进入实现时必须重新登记 implementation。
 
@@ -98,20 +97,7 @@ milestone只核当前evidence-bound checkpoint和steady状态，不完成父goal
 安装验证使用原有 build/plan/dry-run/apply/doctor/rollback，测试只在隔离副本运行，
 不写成员认证和会话目录。
 
-## 7.0.31 来源迁移
-
-manifest schema 由 3 升至 4：`engine.module` 指向 canonical package，
-`behavior_baseline.source_blobs` 精确记录四份上游源文件；旧 engine.py 物理退役，
-不提供 alias/facade，也不静默接受旧自定义配置。自定义 config 需按当前 manifest
-结构迁移并重新验证，不能只改变版本数字。
-
-本次四份上游文件逐字节复制，9 个 Agent 在该来源中正文与旧版相同但来源归属已
-重新核验。既有 host-owned ManifestError/privacy adapter 保持不变，不冒充上游源码。
-Policy v2、event/state v1、decision v2、intake v1 及日志位置不变；已有日志不重写。
-基线生成的 19 个合成回放样本验证状态/决策指纹与失败语义，不能代替真实任务资格。
-来源完整不等于成员已升级、权限已批准或运行时/产品已通过资格认证。
-
-### 上下文维护与恢复
+## 上下文维护与恢复
 
 `compact` + `context-pressure` 表示需要维护上下文。它不证明项目存在业务阻塞。
 先保留真实 checkpoint 与恢复入口，再由宿主原生自动压缩或可用的 `/compact`

@@ -54,7 +54,7 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 - `eval_suites`：登记 routing、governance、completion 和 prompt eval 的 cases、通过率、负例和 promotion gate。
 - `cli_command_contracts`：登记 slash command 控制面的输入、允许动作、禁止动作、输出和验证契约。
 - `guidance_promotions`：登记从会话、归档、manifest、测试或官方资料提升到长期规则、skill、archive 或 memory 的审查路径。
-- `runtime_control`：唯一登记 Runtime Control Engine 制品、事件源、Journal、策略、门禁和保留契约。
+- `execution_policy`：唯一登记 Execution Policy 源码制品、事件源、Journal、策略、门禁和保留契约。
 - `prompt_experiments`：登记 AGENTS、skill 和 prompt 指导规则实验、样例、grader、人工评审和回退。
 - `trace_eval_contracts`：登记过程轨迹评分契约、必要事件、禁止事件、rubric 和最低分。
 - `context_state_contracts`：登记 stable、dynamic、evidence 和 excluded context 的状态契约。

@@ -9,10 +9,9 @@
 
 在本机终端执行，停止正在修改同一资源目录的安装、同步和 Codex 会话；新资源不在
 旧会话中热替换。需要 Git、**Python >=3.8**、PyYAML 和现有脚本使用的 RTK。
-持续回归覆盖 Python 3.8/3.11/3.12。当前 ADK 8.0.0 的 Python 3.8 合同由
-上游 CI 验证；Codex 宿主包仍保留历史 `datetime.UTC` 到 `timezone.utc` 的兼容别名，
-不修改 vendor 源码或安装同名 datetime 包。Execution Policy 的 intake
-和证据门禁仍按原策略执行。
+持续回归覆盖 Python 3.8/3.11/3.12。宿主对较早的受支持解释器提供
+`datetime.UTC` 所需的 `timezone.utc` 单例，不修改锁定的 ADK 源码。
+Execution Policy 的 intake 和证据门禁使用同一实现。
 不自动升级 Codex CLI、模型或系统软件，不调整内核、AppArmor 或沙箱权限。
 
 ### 0. 在更新源仓之前确认解释器

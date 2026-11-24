@@ -380,7 +380,7 @@ rtk python3 -m tools.codex_assets execution-policy gate --event final
   - 日志仅看短窗口 `tail`
   - 大 diff 先看 `--stat`
   - 大 JSON 只筛关键字段
-- Runtime Control 的建议来自版本化策略与确定性状态，不另建启发式旁路；需要改变阈值时只修改唯一 manifest 并重新验证制品绑定。
+- Execution Policy 的建议来自唯一策略与确定性状态，不另建启发式旁路；需要改变阈值时只修改唯一 manifest 并重新验证制品绑定。
 
 ## 设计约束
 
