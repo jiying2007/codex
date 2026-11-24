@@ -1178,7 +1178,7 @@ class StateStore:
                 receipt = connection.execute(
                     "SELECT v.repository AS repo,e.message_id FROM engineering_context_events e "
                     "JOIN engineering_context_event_targets v ON v.event_key=e.event_key "
-                    "WHERE e.event_key=? AND c.context_id=?",
+                    "WHERE e.event_key=? AND e.context_id=?",
                     (remote_context["event_key"],remote_context["context_id"]),
                 ).fetchone()
                 if receipt is None or receipt["message_id"]!=message_id or receipt["repo"]!=repository:
