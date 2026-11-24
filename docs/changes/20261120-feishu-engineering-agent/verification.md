@@ -72,3 +72,5 @@ Continuation tests additionally cover unapproved proposal cancellation/replaceme
 
 ## Local Worker delivery integration
 Offline fixture executes existing Bot worker once and passes the local commit to real GitHubForge/DeliveryCoordinator through the existing MCP method, with injected read-only GitHub HTTP responses. It rejects missing workflow, failed CI, unrelated SHA/PR and duplicate workflow paths; verifies all required workflow refs atomically; rejects self/invalid QA and changed PR head; accepts an independently configured exact-head test signature, preserves original source status and emits Feishu feedback. No model or actual remote API/write occurred in this fixture.
+
+The worker-delivery fixture additionally exercises the existing Feishu callback handler for /wi delivery, denies wrong actor or revoked repository without a GitHub call, and checks numeric ID parsing/duplicate rejection. Public/private GitHub and Feishu live permissions remain unverified.

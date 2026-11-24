@@ -86,3 +86,5 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 
 [x] 既有本机 MCP 增加 `verify_workitem_delivery` 与 `accept_workitem_qa`；从完成的 Bot task 读取精确 commit/branch，按每仓配置的 GitHub 仓库/基线/全部必需 workflow 校验已存在 PR 及 CI，原子记录证据并进入 waiting_qa；独立签名 QA 前再次读取原证据，完成研发 Run 后不关闭原工单。
 [x] `/wi feedback <attemptRunID>` 输出可复制的真实已核验交付引用；无企业 API 依赖；仍需精确 HEAD CI 与实际主机/API/QA 验证。
+
+[x] 既有授权飞书消息 `/wi delivery <attemptRunID> <PR号> <CI Run ID...>` 复用同一 MCP 交付核验逻辑；严格身份与 repo 授权、数字 ID、无外部写/模型调用；不增加消费者。

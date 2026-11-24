@@ -225,6 +225,7 @@ class BotConfig:
     agent_codex_home: Optional[pathlib.Path] = None
     agent_openai_api_key: str = dataclasses.field(default="", repr=False)
     agent_openai_base_url: str = ""
+    agent_github_read_token: str = dataclasses.field(default="", repr=False)
     manual_workitems_enabled: bool = False  # requires no Feishu Project/TAPD API
     engineering_cards_enabled: bool = False
     card_verification_token: str = ""
@@ -558,6 +559,7 @@ class BotConfig:
             agent_codex_home=agent_codex_home,
             agent_openai_api_key=agent_openai_api_key,
             agent_openai_base_url=agent_openai_base_url,
+            agent_github_read_token=values.get("FEISHU_AGENT_GITHUB_READ_TOKEN", "").strip(),
             manual_workitems_enabled=manual_workitems_enabled,
             engineering_cards_enabled=cards_enabled,
             card_verification_token=token if cards_enabled else "",
@@ -2633,6 +2635,37 @@ class FeishuCodexBot:
             return "任务处于启动或收尾阶段，当前没有可终止的进程；未确认取消。请查询状态。"
         return "任务状态：" + self.store.task_status(task_id) + "；未发送终止请求。"
 
+    def _verify_workitem_delivery(self, cmd: Any, inbound: Any,
+                                  allowed: FrozenSet[str]) -> str:
+        """Authenticated Feishu owner may request GET-only delivery verification."""
+        from .feishu_engineering_agent.models import IntakeRejected
+        from .feishu_engineering_agent.github_adapter import GitHubApiFailure
+        from .feishu_agent_mcp import AgentTaskIntake
+        if self._manual_service is None:
+            raise IntakeRejected("WorkItem commands disabled")
+        record = self._manual_service.store.get_run(cmd.run_id, inbound)
+        if (record["repo"] not in allowed or inbound.chat != self.config.target_chat_id
+                or not self.config.sender_allowed(inbound.actor, self.config.repository(record["repo"]))):
+            raise IntakeRejected("WorkItem delivery repository access changed")
+        try:
+            result = AgentTaskIntake(self.config).verify_workitem_delivery(
+                cmd.run_id, cmd.pr_number, list(cmd.ci_run_ids),
+            )
+        except (GitHubApiFailure, FeishuCodexError, IntakeRejected):
+            # No raw provider response, private token, URL or model output.
+            # Read errors may be safely retried; no remote mutation is performed.
+            return (
+                "交付未通过核验：请确认当前 Run 的精确本地提交、PR、全部必需 CI "
+                "及私有只读 GitHub 配置。未创建 PR、未调用模型、未执行远端写入。"
+            )
+        return (
+            "已核验精确 PR 和全部必需 CI；研发状态：" + result["run_status"] + "\n"
+            + "Run：" + cmd.run_id + "\n"
+            + "提交：" + result["head_sha"] + "\n"
+            + "PR：" + str(cmd.pr_number) + "；CI：" + str(len(result["required_workflows"])) + " 项\n"
+            + "可用 /wi feedback " + cmd.run_id + " 查询交付证据；原工单未自动关闭。"
+        )
+
     def _run_manual_message(self, inbound: Any, actor: str,
                             allowed: FrozenSet[str]) -> None:
         """Run SQLite work off the Feishu WS callback thread (3s deadline)."""
@@ -2643,6 +2676,8 @@ class FeishuCodexBot:
             cmd = parse_manual_command(inbound.text, inbound.tenant, default_repo)
             if cmd.action == "cancel":
                 reply = self._cancel_workitem(cmd.run_id, inbound, allowed)
+            elif cmd.action == "delivery":
+                reply = self._verify_workitem_delivery(cmd, inbound, allowed)
             else:
                 reply = self._manual_service.handle(inbound, default_repo, allowed)
         except IntakeRejected as exc:

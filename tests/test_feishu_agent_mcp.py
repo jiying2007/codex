@@ -715,6 +715,24 @@ class FeishuAgentMCPTests(unittest.TestCase):
             b["pull_requests"] = [{"number": 12}]
             self.assertEqual("waiting_ci", manual.store.get_run(run_id)["status"])
             self.assertEqual([], verifier.get_workitem_task(run_id)["delivery"]["evidence"])
+            # The authorized Feishu owner can verify the same exact delivery
+            # through the existing consumer, with no second listener or model.
+            message = InboundEvent(
+                "feishu_message", "tenantA", "oc_test", "ou_owner", "om_delivery",
+                "/wi delivery " + run_id + " 12 31 32",
+            )
+            foreign = InboundEvent(
+                "feishu_message", "tenantA", "oc_test", "ou_other", "om_foreign_delivery",
+                message.text,
+            )
+            calls = api.call_count
+            bot._run_manual_message(foreign, foreign.actor, frozenset({"codex"}))
+            self.assertEqual(calls, api.call_count)
+            bot._run_manual_message(message, message.actor, frozenset())
+            self.assertEqual(calls, api.call_count)
+            bot._run_manual_message(message, message.actor, frozenset({"codex"}))
+            self.assertIn("已核验精确 PR", transport.send_text.call_args.args[1])
+            self.assertEqual("waiting_qa", manual.store.get_run(run_id)["status"])
             result = verifier.verify_workitem_delivery(run_id, 12, [31, 32])
             self.assertEqual("waiting_qa", result["run_status"])
             self.assertEqual(sha, result["head_sha"])
@@ -751,6 +769,19 @@ class FeishuAgentMCPTests(unittest.TestCase):
         with self.assertRaises(IntakeRejected):
             manual.handle(feedback, "codex", set())
         runner.run.assert_called_once()
+
+    def test_delivery_chat_parser_rejects_freeform_urls_and_duplicates(self) -> None:
+        from tools.codex_assets.feishu_engineering_agent.manual_items import parse_manual_command
+        run_id = "a" * 32
+        parsed = parse_manual_command("/wi delivery " + run_id + " 12 31 32", "tenantA", "codex")
+        self.assertEqual("delivery", parsed.action)
+        self.assertEqual(12, parsed.pr_number)
+        self.assertEqual((31, 32), parsed.ci_run_ids)
+        for suffix in ("12 31 31", "12", "12 -1", "12 https://github.com/x",
+                       "12 31 | success", "0 31"):
+            with self.assertRaises(IntakeRejected):
+                parse_manual_command("/wi delivery " + run_id + " " + suffix,
+                                     "tenantA", "codex")
 
     def test_jsonrpc_initialize_list_call_and_notifications(self) -> None:
         intake = self.intake()

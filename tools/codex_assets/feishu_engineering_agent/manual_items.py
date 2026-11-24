@@ -13,7 +13,7 @@ import re
 import sqlite3
 import time
 import uuid
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
 from .models import EventConflict, InboundEvent, IntakeRejected, WorkItemKey, check_repo_alias
 from .state import RunStore
@@ -30,6 +30,7 @@ _HELP = (
     "/wi add feishu_project 需求 <空间ID> <工作项ID> [repo=仓库别名] | 需求与验收描述\n"
     "/wi list 最近登记；/wi status <完整Run ID> 查询状态\n"
     "/wi cancel <完整尝试Run ID> 在既有 Bot 中取消关联的精确执行任务\n"
+    "/wi delivery <完整尝试Run ID> <PR号> <CI Run ID...> 只读核验全部必需 CI\n"
     "/wi feedback <完整尝试Run ID> 生成可复制的研发交付反馈\n"
     "/wi handoff <完整Run ID> | 当前问题描述、验收要求及复现信息\n"
     "/wi attempt <来源Run ID> <read|review|edit> | 本次研发范围\n"
@@ -46,6 +47,8 @@ class ManualCommand:
     summary: str = ""
     run_id: str = ""
     mode: str = ""
+    pr_number: int = 0
+    ci_run_ids: Tuple[int, ...] = ()
 
 
 def is_manual_command(text: str) -> bool:
@@ -64,6 +67,13 @@ def parse_manual_command(text: str, tenant: str, default_repo: str) -> ManualCom
         return ManualCommand("help")
     if action == "list" and len(tokens) == 2 and not delimiter:
         return ManualCommand("list")
+    if action == "delivery" and not delimiter and 5 <= len(tokens) <= 12:
+        if (not _RUN_ID.fullmatch(tokens[2])
+                or any(not re.fullmatch(r"[1-9][0-9]{0,12}", value) for value in tokens[3:])
+                or len(set(tokens[4:])) != len(tokens[4:])):
+            raise IntakeRejected("delivery requires exact Run, numeric PR and unique CI run IDs")
+        return ManualCommand(action, run_id=tokens[2], pr_number=int(tokens[3]),
+                             ci_run_ids=tuple(int(value) for value in tokens[4:]))
     if action in ("cancel", "feedback") and len(tokens) == 3 and not delimiter:
         if not _RUN_ID.fullmatch(tokens[2]):
             raise IntakeRejected("cancel/feedback requires an exact 32-hex attempt Run ID")
@@ -144,8 +154,8 @@ class ManualWorkItemService:
         cmd = parse_manual_command(event.text, event.tenant, default_repo)
         if cmd.action == "help":
             return _HELP
-        if cmd.action == "cancel":
-            raise IntakeRejected("cancel requires the existing Bot's live task owner")
+        if cmd.action in ("cancel", "delivery"):
+            raise IntakeRejected("this command requires the existing Bot's live task owner")
         if cmd.action in ("status", "handoff", "feedback"):
             record = self.store.get_run(cmd.run_id, event)
             if record["repo"] not in authorized:

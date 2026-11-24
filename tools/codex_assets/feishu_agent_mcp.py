@@ -30,7 +30,7 @@ MAX_LINE_BYTES = 65536
 
 class AgentTaskIntake:
     def __init__(self, config: BotConfig, billing_source: Optional[str] = None, *,
-                 github_read_token: str = "", qa_reviewer: str = "",
+                 github_read_token: Optional[str] = None, qa_reviewer: str = "",
                  qa_key_hex: str = "") -> None:
         self.config = config
         self.store = StateStore(config.state_db)
@@ -38,7 +38,9 @@ class AgentTaskIntake:
         self.sender = f"agent:{os.getuid()}"
         source = config.agent_billing_source if billing_source is None else billing_source
         self.billing_source = str(source or "unapproved").strip().lower()
-        self.github_read_token = github_read_token
+        self.github_read_token = (
+            config.agent_github_read_token if github_read_token is None else github_read_token
+        )
         self.qa_reviewer = qa_reviewer
         self.qa_key_hex = qa_key_hex
 
@@ -542,7 +544,6 @@ def load_intake() -> AgentTaskIntake:
     return AgentTaskIntake(
         BotConfig.from_values(values, root),
         billing_source=values.get("FEISHU_AGENT_BILLING_SOURCE", "unapproved"),
-        github_read_token=values.get("FEISHU_AGENT_GITHUB_READ_TOKEN", ""),
         qa_reviewer=values.get("FEISHU_AGENT_QA_REVIEWER", ""),
         qa_key_hex=values.get("FEISHU_AGENT_QA_KEY_HEX", ""),
     )
