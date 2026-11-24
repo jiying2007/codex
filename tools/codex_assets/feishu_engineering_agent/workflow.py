@@ -17,7 +17,7 @@ import uuid
 from typing import Iterable
 
 from .models import EventConflict, InboundEvent, IntakeRejected, WorkItemKey, _check_id, check_repo_alias
-from .sessions import RuntimeGrant
+from .sessions import RuntimeGrant, SessionRegistry
 from .state import RunStore
 
 
@@ -96,6 +96,7 @@ def local_agent_policy_digest(
 class EngineeringWorkflow:
     def __init__(self, store: RunStore):
         self.store = store
+        self.sessions = SessionRegistry(store)
         with contextlib.closing(store._connect()) as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS fea_attempt_links (
@@ -134,9 +135,26 @@ class EngineeringWorkflow:
                     "ADD COLUMN scope_sha256 TEXT NOT NULL DEFAULT ''"
                 )
 
+    def create_continuation(
+        self, previous_run_id: str, event: InboundEvent,
+        allowed_repos: Iterable[str], scope_sha256: str,
+    ) -> dict:
+        previous = self.store.get_run(previous_run_id, event)
+        with contextlib.closing(self.store._connect()) as db:
+            link = db.execute(
+                "SELECT source_run_id FROM fea_attempt_links WHERE attempt_run_id=?",
+                (previous_run_id,),
+            ).fetchone()
+            if link is None:
+                raise IntakeRejected("continuation requires a previous WorkItem attempt")
+        return self.create_attempt(
+            link["source_run_id"], event, previous["mode"], allowed_repos,
+            scope_sha256, resume_from=previous_run_id,
+        )
+
     def create_attempt(
         self, source_run_id: str, event: InboundEvent, mode: str,
-        allowed_repos: Iterable[str], scope_sha256: str = "",
+        allowed_repos: Iterable[str], scope_sha256: str = "", *, resume_from: str = "",
     ) -> dict:
         """One registered WorkItem can have many independent run attempts.
 
@@ -173,6 +191,12 @@ class EngineeringWorkflow:
                         raise IntakeRejected("replayed event cannot change WorkItem source")
                     if previous["scope_sha256"] != scope_sha256:
                         raise IntakeRejected("replayed attempt cannot change approved scope")
+                    followup = db.execute(
+                        "SELECT previous_run_id FROM fea_session_followups WHERE run_id=?",
+                        (previous["attempt_run_id"],),
+                    ).fetchone()
+                    if (followup["previous_run_id"] if followup is not None else "") != resume_from:
+                        raise IntakeRejected("replayed attempt cannot change continuation identity")
                     row = db.execute(
                         "SELECT repo,mode,status FROM fea_runs WHERE run_id=?",
                         (previous["attempt_run_id"],),
@@ -201,6 +225,15 @@ class EngineeringWorkflow:
                     (event.event_key, event.content_digest, source_run_id, child_id,
                      scope_sha256, when),
                 )
+                if resume_from:
+                    previous_source = db.execute(
+                        "SELECT source_run_id FROM fea_attempt_links WHERE attempt_run_id=?",
+                        (resume_from,),
+                    ).fetchone()
+                    if (previous_source is None
+                            or previous_source["source_run_id"] != source_run_id):
+                        raise IntakeRejected("continuation source identity mismatch")
+                    self.sessions.reserve_followup(db, child_id, resume_from)
                 db.commit()
             except Exception:
                 db.rollback()
@@ -251,10 +284,23 @@ class EngineeringWorkflow:
                 ).fetchone()
                 if source is None:
                     raise IntakeRejected("local MCP bridge requires a manually registered WorkItem source")
+                continuation = db.execute(
+                    "SELECT previous_run_id FROM fea_session_followups WHERE run_id=?",
+                    (run_id,),
+                ).fetchone()
                 previous = db.execute(
                     "SELECT * FROM fea_local_agent_approvals WHERE run_id=?",
                     (run_id,),
                 ).fetchone()
+                if continuation is not None and previous is None:
+                    self.sessions.require_successful_predecessor(db, continuation["previous_run_id"])
+                    prior_approval = db.execute(
+                        "SELECT unix_uid,policy_sha256,billing_source FROM fea_local_agent_approvals "
+                        "WHERE run_id=?", (continuation["previous_run_id"],),
+                    ).fetchone()
+                    if (prior_approval is None or tuple(prior_approval) != (
+                            unix_uid, policy_sha256, billing_source)):
+                        raise IntakeRejected("continuation runtime policy changed since the previous turn")
                 if previous is not None:
                     expected = (unix_uid, record["repo"], record["mode"],
                                 scope_sha256, billing_source, policy_sha256)
@@ -347,6 +393,9 @@ class EngineeringWorkflow:
                 ).fetchone()
                 if not linked:
                     raise IntakeRejected("only explicit WorkItem development attempts may queue")
+                if db.execute("SELECT 1 FROM fea_session_followups WHERE run_id=?",
+                              (approval.run_id,)).fetchone() is not None:
+                    raise IntakeRejected("local continuation requires the existing Bot worker approval")
                 prior = db.execute(
                     "SELECT signed_digest FROM fea_run_approvals WHERE run_id=?",
                     (approval.run_id,),

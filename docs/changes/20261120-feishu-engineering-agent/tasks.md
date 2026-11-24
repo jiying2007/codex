@@ -34,7 +34,8 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [ ] `vstrong100` 实测独立 API 凭据、专用 CODEX_HOME、MCP/Bot 同 UID、Codex CLI 实际 provider、资源/费用与故障恢复。
 [x] 既有 worker 对关联 WorkItem 使用持久 `codex exec --json`；精确 thread/终态回执绑定到 AgentRun、host、实际工作目录和专用 CODEX_HOME，通过本机 MCP 查询。
 [x] 飞书 `/wi cancel <attemptRunID>` 使用现有 Bot 精确取消排队任务，或仅请求终止其本机 CLI 进程；不以发送信号冒充已完成中断。
-[ ] 真实主机验证会话持久化及进程终止；同一线程后续远程回合和 App Server turn/interrupt 尚未接线。
+[x] `/wi continue <上一轮RunID> | 新范围` 创建独立待授权的后续回合；沿唯一前序绑定复用本机 Codex thread 和原 worktree，保留历史 commit；精确范围与当前策略重新授权。已有 PR/CI 证据的 edit 不允许复用原分支，已保留后续回合的旧 Run 不再发布或接收 PR/CI 证据。
+[ ] 真实主机验证连续 `codex exec resume`、Git 工作树、会话持久化和进程终止；App Server turn/interrupt 尚未接线。
 
 ## TASK-004 — 真实来源读取可选增强
 [x] `workitems.py`：TAPD Story/Bug + 飞书项目 Meegle 只读适配器，验证来源/空间/类型/版本。

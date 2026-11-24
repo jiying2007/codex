@@ -1376,6 +1376,76 @@ class ExecutionResult:
 
 
 @dataclasses.dataclass(frozen=True)
+class ResumeTarget:
+    thread_id: str
+    working_directory: pathlib.Path
+    root_task_id: int
+    branch_name: str = ""
+    commit_hash: str = ""
+
+
+def resolve_worker_resume(config: BotConfig, store: StateStore, run_store: Any,
+                          run_id: str, policy_sha256: str) -> Optional[ResumeTarget]:
+    """Derive a follow-up only from the persisted lineage and completed worker receipt."""
+    from .feishu_engineering_agent.sessions import SessionRegistry
+    from .feishu_engineering_agent.workflow import EngineeringWorkflow
+
+    plan = SessionRegistry(run_store).followup(run_id)
+    if plan is None:
+        return None
+    run = run_store.get_run(run_id)
+    if plan["completed_at"] is not None:
+        raise FeishuCodexError("continuation already has a completed receipt")
+    if (plan["host"] != socket.gethostname()
+            or plan["codex_home"] != str(config.agent_codex_home)
+            or plan["mode"] != run["mode"]):
+        raise FeishuCodexError("continuation host, Codex home or mode changed")
+    repository = config.repository(run["repo"])
+    workflow = EngineeringWorkflow(run_store)
+    uid = os.getuid()
+    prior = store.agent_run_link_for_run(plan["previous_run_id"])
+    root = store.agent_run_link_for_run(plan["root_run_id"])
+    if (prior is None or root is None or prior["unix_uid"] != uid
+            or root["unix_uid"] != uid):
+        raise FeishuCodexError("continuation lacks trusted local task links")
+    for key in ("previous_run_id", "root_run_id"):
+        approval = workflow.local_agent_approval(plan[key])
+        if (approval["policy_sha256"] != policy_sha256
+                or approval["unix_uid"] != uid
+                or approval["billing_source"] != config.agent_billing_source):
+            raise FeishuCodexError("continuation runtime policy changed")
+    sender = f"agent:{uid}"
+    previous = store.agent_task_detail(prior["task_id"], sender)
+    first = store.agent_task_detail(root["task_id"], sender)
+    expected_mode = {"read": "explain", "review": "review", "edit": "edit"}[run["mode"]]
+    if any(item is None or item["status"] != "completed"
+           or item["repository"] != run["repo"] or item["mode"] != expected_mode
+           for item in (previous, first)):
+        raise FeishuCodexError("previous local execution is not durably completed")
+    cwd = repository.path
+    branch = commit = ""
+    if run["mode"] == "edit":
+        if repository.worktree_root is None:
+            raise FeishuCodexError("continuation has no configured worktree root")
+        cwd = repository.worktree_root / f"task-{root['task_id']}"
+        branch = f"{repository.branch_prefix}-{root['task_id']}"
+        commit = previous["commit_hash"]
+        if (previous["branch_name"] != branch or first["branch_name"] != branch
+                or not re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", commit)):
+            raise FeishuCodexError("continuation previous branch or commit receipt mismatch")
+        with contextlib.closing(run_store._connect()) as db:
+            evidence = db.execute(
+                "SELECT 1 FROM fea_evidence WHERE run_id=? AND evidence_type='commit' "
+                "AND reference=? AND verified=0", (plan["previous_run_id"], commit),
+            ).fetchone()
+        if evidence is None:
+            raise FeishuCodexError("continuation previous commit is not in the Run ledger")
+    if plan["repo_path"] != str(cwd):
+        raise FeishuCodexError("continuation working directory changed")
+    return ResumeTarget(plan["thread_id"], cwd, root["task_id"], branch, commit)
+
+
+@dataclasses.dataclass(frozen=True)
 class PreparedArtifact:
     path: pathlib.Path
     file_name: str
@@ -1560,6 +1630,29 @@ class WorktreeManager:
         self._git(repository.path, ["worktree", "add", "-b", branch, str(worktree), repository.base_ref])
         return worktree, branch
 
+    def require_resume_base(self, target: ResumeTarget, repository: RepositoryPolicy,
+                            *, clean: bool = True) -> None:
+        """Resume only the original registered worktree at the exact prior commit."""
+        if (repository.worktree_root is None or repository.edit_strategy != "worktree"
+                or not repository.commit_enabled
+                or target.working_directory != repository.worktree_root / f"task-{target.root_task_id}"
+                or target.branch_name != f"{repository.branch_prefix}-{target.root_task_id}"
+                or not re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", target.commit_hash)):
+            raise FeishuCodexError("invalid continuation worktree receipt")
+        path = target.working_directory
+        if not path.is_dir() or path.resolve() != path:
+            raise FeishuCodexError("continuation worktree missing or replaced")
+        common = ["rev-parse", "--path-format=absolute", "--git-common-dir"]
+        if (self._git(path, ["rev-parse", "--show-toplevel"]) != str(path)
+                or pathlib.Path(self._git(path, common)).resolve()
+                   != pathlib.Path(self._git(repository.path, common)).resolve()
+                or self._git(path, ["symbolic-ref", "--quiet", "--short", "HEAD"]) != target.branch_name
+                or self._git(path, ["rev-parse", "HEAD"]) != target.commit_hash):
+            raise FeishuCodexError("continuation worktree Git identity or HEAD changed")
+        if clean and self._git(path, ["status", "--porcelain=v1", "--untracked-files=all",
+                                      "--ignore-submodules=none"]):
+            raise FeishuCodexError("continuation worktree has uncommitted changes; reconcile first")
+
     def _check_safe_stage(self, working_directory: pathlib.Path) -> None:
         """Conservative defense before an unattended git add -A.
 
@@ -1705,6 +1798,7 @@ class CodexRunner:
 
     def run(
         self, job: BotJob, source_context: str = "", *, persistent_session: bool = False,
+        resume_target: Optional[ResumeTarget] = None,
     ) -> ExecutionResult:
         if persistent_session and not job.sender_open_id.startswith("agent:"):
             raise FeishuCodexError("持久研发会话必须由已授权的本机 Agent 执行")
@@ -1712,8 +1806,24 @@ class CodexRunner:
         working_directory = repository.path
         branch_name = ""
         before_snapshot = ""
+        if resume_target is not None:
+            import uuid
+            if not persistent_session:
+                raise FeishuCodexError("continuation requires persistent session mode")
+            try:
+                if str(uuid.UUID(resume_target.thread_id)) != resume_target.thread_id:
+                    raise ValueError("non-canonical UUID")
+            except (ValueError, AttributeError) as exc:
+                raise FeishuCodexError("invalid exact continuation thread ID") from exc
+            if job.mode == "edit":
+                self.worktrees.require_resume_base(resume_target, repository)
+                working_directory = resume_target.working_directory
+                branch_name = resume_target.branch_name
+            elif resume_target.working_directory != repository.path:
+                raise FeishuCodexError("read-only continuation repository changed")
         if job.mode == "edit":
-            working_directory, branch_name = self.worktrees.prepare(job.task_id, repository)
+            if resume_target is None:
+                working_directory, branch_name = self.worktrees.prepare(job.task_id, repository)
             before_snapshot = self.worktrees.snapshot(working_directory)
         prompt = build_codex_prompt(
             job.task,
@@ -1731,8 +1841,10 @@ class CodexRunner:
             "workspace-write" if job.mode == "edit" else "read-only",
             "-C",
             str(working_directory),
-            prompt,
         ]
+        if resume_target is not None:
+            codex_arguments.extend(["resume", resume_target.thread_id])
+        codex_arguments.append(prompt)
         command = self._isolated_command(working_directory, codex_arguments)
         try:
             process = subprocess.Popen(
@@ -1781,6 +1893,8 @@ class CodexRunner:
                     raise CodexOutcomeUnknown(
                         "Codex 原生会话或终态回执不完整；禁止自动重试"
                     ) from exc
+                if resume_target is not None and thread_id != resume_target.thread_id:
+                    raise CodexOutcomeUnknown("Codex resumed a different thread; do not retry")
                 thread_cwd = working_directory
             else:
                 rendered = stdout.strip()
@@ -1789,6 +1903,11 @@ class CodexRunner:
                 return ExecutionResult(
                     rendered, thread_id=thread_id, thread_cwd=thread_cwd,
                 )
+            if resume_target is not None:
+                try:
+                    self.worktrees.require_resume_base(resume_target, repository, clean=False)
+                except FeishuCodexError as exc:
+                    raise CodexOutcomeUnknown("continuation Git HEAD or branch changed during the turn") from exc
             commit_hash = self.worktrees.verify_and_commit(
                 working_directory,
                 repository,
@@ -2245,7 +2364,8 @@ class FeishuCodexBot:
             if strict:
                 raise FeishuCodexError("WorkItem AgentRun state could not be advanced") from exc
 
-    def _finish_agent_run(self, job: BotJob, result: ExecutionResult) -> None:
+    def _finish_agent_run(self, job: BotJob, result: ExecutionResult,
+                          resume_target: Optional[ResumeTarget] = None) -> None:
         link = self._agent_run_link(job.task_id)
         if link is None or self._manual_service is None:
             return
@@ -2258,6 +2378,11 @@ class FeishuCodexBot:
             if repository.worktree_root is None:
                 raise CodexOutcomeUnknown("研发会话缺少受控 worktree")
             expected_cwd = repository.worktree_root / f"task-{job.task_id}"
+        if resume_target is not None:
+            expected_cwd = resume_target.working_directory
+            if (result.thread_id != resume_target.thread_id
+                    or (run["mode"] == "edit" and result.branch_name != resume_target.branch_name)):
+                raise CodexOutcomeUnknown("continuation result differs from reserved thread or branch")
         if (not result.thread_id or result.thread_cwd != expected_cwd
                 or (run["mode"] == "edit" and result.worktree_path != expected_cwd)
                 or self.config.agent_codex_home is None):
@@ -2758,10 +2883,26 @@ class FeishuCodexBot:
                     source_context = self.transport.resolve_sources(job.sources)
                     if len(job.task) + len(source_context) > self.config.max_prompt_chars:
                         raise FeishuCodexError("任务与关联上下文超过提示预算；请缩小 range 或减少引用")
-                    if self._agent_run_link(job.task_id) is not None:
-                        result = self.runner.run(
-                            job, source_context, persistent_session=True,
+                    resume_target = None
+                    link = self._agent_run_link(job.task_id)
+                    if link is not None:
+                        from .feishu_engineering_agent.workflow import EngineeringWorkflow
+                        approval = EngineeringWorkflow(
+                            self._manual_service.store,
+                        ).local_agent_approval(link["agent_run_id"])
+                        resume_target = resolve_worker_resume(
+                            self.config, self.store, self._manual_service.store,
+                            link["agent_run_id"], approval["policy_sha256"],
                         )
+                        if resume_target is not None:
+                            result = self.runner.run(
+                                job, source_context, persistent_session=True,
+                                resume_target=resume_target,
+                            )
+                        else:
+                            result = self.runner.run(
+                                job, source_context, persistent_session=True,
+                            )
                     else:
                         result = self.runner.run(job, source_context)
                     if result.worktree_path is not None:
@@ -2773,7 +2914,7 @@ class FeishuCodexBot:
                         )
                     if job.artifact:
                         self._send_artifact(job, result)
-                    self._finish_agent_run(job, result)
+                    self._finish_agent_run(job, result, resume_target)
                     self.store.update_task(job.task_id, "completed")
                     # A failed chat reply must never rewrite a verified execution as failed.
                     try:

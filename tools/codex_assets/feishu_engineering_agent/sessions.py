@@ -124,7 +124,121 @@ class SessionRegistry:
                     bound_at INTEGER NOT NULL,
                     UNIQUE(host,codex_home,thread_id)
                 );
+                CREATE TABLE IF NOT EXISTS fea_session_followups (
+                    run_id TEXT PRIMARY KEY REFERENCES fea_runs(run_id),
+                    previous_run_id TEXT NOT NULL UNIQUE REFERENCES fea_runs(run_id),
+                    root_run_id TEXT NOT NULL REFERENCES fea_sessions(run_id),
+                    completed_at INTEGER
+                );
             """)
+
+    @staticmethod
+    def _binding_row(db, run_id: str):
+        row = db.execute(
+            "SELECT * FROM fea_sessions WHERE run_id=?", (run_id,),
+        ).fetchone()
+        if row is None:
+            row = db.execute(
+                "SELECT s.* FROM fea_session_followups f "
+                "JOIN fea_sessions s ON s.run_id=f.root_run_id "
+                "WHERE f.run_id=? AND f.completed_at IS NOT NULL", (run_id,),
+            ).fetchone()
+        return row
+
+    @staticmethod
+    def _check_scope(run, binding) -> None:
+        keys = ("tenant", "chat", "actor", "repo", "mode")
+        if tuple(run[k] for k in keys) != tuple(binding[k] for k in keys):
+            raise IntakeRejected("session receipt scope mismatch")
+
+    @staticmethod
+    def require_no_successor(db, run_id: str) -> None:
+        if db.execute(
+                "SELECT 1 FROM fea_session_followups WHERE previous_run_id=?",
+                (run_id,),
+        ).fetchone() is not None:
+            raise IntakeRejected("this Run has a reserved continuation; use the successor Run")
+
+    @staticmethod
+    def require_successful_predecessor(db, run_id: str):
+        """Local completed read/review or unpublished local edit only."""
+        previous = db.execute("SELECT * FROM fea_runs WHERE run_id=?", (run_id,)).fetchone()
+        if previous is None or previous["status"] != (
+                "waiting_ci" if previous["mode"] == "edit" else "completed"):
+            raise IntakeRejected("continuation requires a successful previous local turn")
+        binding = SessionRegistry._binding_row(db, run_id)
+        if binding is None:
+            raise IntakeRejected("previous Run lacks a completed native session receipt")
+        SessionRegistry._check_scope(previous, binding)
+        try:
+            if str(uuid.UUID(binding["thread_id"])) != binding["thread_id"]:
+                raise ValueError("non-canonical UUID")
+        except (ValueError, AttributeError) as exc:
+            raise IntakeRejected("continuation requires a canonical native thread ID") from exc
+        if db.execute(
+                "SELECT 1 FROM fea_local_agent_approvals WHERE run_id=?", (run_id,),
+        ).fetchone() is None:
+            raise IntakeRejected("continuation requires a previous local worker approval")
+        if previous["mode"] == "edit":
+            if db.execute(
+                    "SELECT 1 FROM fea_evidence WHERE run_id=? "
+                    "AND evidence_type='commit' AND verified=0", (run_id,),
+            ).fetchone() is None:
+                raise IntakeRejected("previous edit lacks a local commit receipt")
+            # Tables are initialized on demand by the delivery coordinator.
+            for table in ("fea_publications", "fea_delivery_heads"):
+                if (db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                               (table,)).fetchone() is not None
+                        and db.execute("SELECT 1 FROM " + table + " WHERE run_id=?",
+                                       (run_id,)).fetchone() is not None):
+                    raise IntakeRejected("previous edit has entered Git delivery; do not reuse its branch")
+            if db.execute(
+                    "SELECT 1 FROM fea_evidence WHERE run_id=? AND evidence_type IN ('pr','ci','qa')",
+                    (run_id,),
+            ).fetchone() is not None:
+                raise IntakeRejected("previous edit has delivery evidence; do not reuse its branch")
+        return previous, binding
+
+    def reserve_followup(self, db, run_id: str, previous_run_id: str) -> None:
+        """Part of the same transaction that creates a new proposed attempt."""
+        previous, binding = self.require_successful_predecessor(db, previous_run_id)
+        child = db.execute("SELECT * FROM fea_runs WHERE run_id=?", (run_id,)).fetchone()
+        self._check_scope(child, binding)
+        if child["workitem_fp"] != previous["workitem_fp"]:
+            raise IntakeRejected("continuation WorkItem identity mismatch")
+        self.require_no_successor(db, previous_run_id)
+        db.execute(
+            "INSERT INTO fea_session_followups (run_id,previous_run_id,root_run_id) "
+            "VALUES (?,?,?)", (run_id, previous_run_id, binding["run_id"]),
+        )
+
+    def followup(self, run_id: str) -> Optional[dict]:
+        """Return reserved lineage and exact root identity, not execution permission."""
+        run = self.store.get_run(run_id)
+        with contextlib.closing(self.store._connect()) as db:
+            row = db.execute(
+                "SELECT * FROM fea_session_followups WHERE run_id=?", (run_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            binding = db.execute(
+                "SELECT * FROM fea_sessions WHERE run_id=?", (row["root_run_id"],),
+            ).fetchone()
+            if binding is None:
+                raise IntakeRejected("continuation root receipt missing")
+            self._check_scope(run, binding)
+            if row["completed_at"] is None:
+                previous, prior_binding = self.require_successful_predecessor(
+                    db, row["previous_run_id"],
+                )
+                if (prior_binding["run_id"] != row["root_run_id"]
+                        or previous["workitem_fp"] != run["workitem_fp"]):
+                    raise IntakeRejected("continuation predecessor identity mismatch")
+            result = dict(row)
+            result.update({key: binding[key] for key in (
+                "thread_id", "host", "repo_path", "codex_home", "mode",
+            )})
+            return result
 
     def bind(
         self, run_id: str, event: InboundEvent, host: str,
@@ -132,6 +246,8 @@ class SessionRegistry:
     ) -> None:
         """Called ONLY after trusted runtime returns exact, persistent thread ID."""
         run = self.store.get_run(run_id, event)
+        if self.followup(run_id) is not None:
+            raise IntakeRejected("local continuation cannot use the App Server binding path")
         self._bind_record(run, host, repo_path, codex_home, thread_id)
 
     def bind_worker_result(
@@ -142,7 +258,23 @@ class SessionRegistry:
         run = self.store.get_run(run_id)
         if run["status"] != "running":
             raise IntakeRejected("worker receipt requires a running AgentRun")
-        self._bind_record(run, host, repo_path, codex_home, thread_id)
+        followup = self.followup(run_id)
+        if followup is None:
+            self._bind_record(run, host, repo_path, codex_home, thread_id)
+            return
+        if (host, repo_path, codex_home, thread_id) != tuple(
+                followup[key] for key in ("host", "repo_path", "codex_home", "thread_id")):
+            raise IntakeRejected("continuation returned a different native session identity")
+        with contextlib.closing(self.store._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT status FROM fea_runs WHERE run_id=?", (run_id,)).fetchone()
+            if row is None or row["status"] != "running":
+                raise IntakeRejected("continuation is no longer running")
+            db.execute(
+                "UPDATE fea_session_followups SET completed_at=? "
+                "WHERE run_id=? AND completed_at IS NULL", (int(time.time()), run_id),
+            )
+            db.commit()
 
     def _bind_record(
         self, run: dict, host: str, repo_path: str,
@@ -190,14 +322,10 @@ class SessionRegistry:
         """Read binding metadata, not permission to resume a terminal run."""
         run = self.store.get_run(run_id, event)
         with contextlib.closing(self.store._connect()) as db:
-            row = db.execute(
-                "SELECT * FROM fea_sessions WHERE run_id=?", (run_id,),
-            ).fetchone()
+            row = self._binding_row(db, run_id)
         if row is None:
             return None
-        if tuple(row[key] for key in ("tenant", "chat", "actor", "repo", "mode")) != (
-                run["tenant"], run["chat"], run["actor"], run["repo"], run["mode"]):
-            raise IntakeRejected("session receipt scope mismatch")
+        self._check_scope(run, row)
         return {key: row[key] for key in (
             "thread_id", "host", "repo_path", "codex_home", "mode", "bound_at",
         )}

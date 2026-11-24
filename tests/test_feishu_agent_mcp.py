@@ -518,6 +518,104 @@ class FeishuAgentMCPTests(unittest.TestCase):
         target.terminate.assert_called_once()
         other.terminate.assert_not_called()
 
+    def test_workitem_continuation_reuses_exact_native_thread_and_worktree(self) -> None:
+        intake, manual, first_run, scope = self.workitem_attempt()
+        initial = intake.submit_workitem_task(first_run, scope)
+        repo = intake.config.repository("codex")
+        cwd = repo.worktree_root / f"task-{initial['id']}"
+        branch = f"{repo.branch_prefix}-{initial['id']}"
+        runner = mock.Mock()
+        transport = mock.Mock()
+        transport.resolve_sources.return_value = ""
+        bot = feishu_codex_bot.FeishuCodexBot(intake.config, transport, runner, intake.store)
+
+        def worker_once(result):
+            bot.refill_pending()
+            job = bot.jobs.get_nowait()
+            runner.run.reset_mock()
+            runner.run.return_value = result
+            with mock.patch.object(bot.jobs, "get", side_effect=[job, SystemExit]), \
+                    mock.patch.object(bot.jobs, "task_done"):
+                with self.assertRaises(SystemExit):
+                    bot.worker()
+            return job
+
+        worker_once(feishu_codex_bot.ExecutionResult(
+            "首轮完成", branch, "a" * 40, cwd, THREAD_ID, cwd,
+        ))
+        self.assertEqual("waiting_ci", manual.store.get_run(first_run)["status"])
+        next_scope = "补充回归测试"
+        event = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_owner", "om_continue",
+            "/wi continue " + first_run + " | " + next_scope,
+        )
+        reply = manual.handle(event, "codex", {"codex"})
+        next_run = reply.split("新Run：", 1)[1].split("\n", 1)[0]
+        self.assertIn(next_run, manual.handle(event, "codex", {"codex"}))
+        self.assertEqual("proposed", manual.store.get_run(next_run)["status"])
+        fork_event = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_owner", "om_fork",
+            event.text,
+        )
+        with self.assertRaisesRegex(IntakeRejected, "reserved continuation"):
+            manual.handle(fork_event, "codex", {"codex"})
+        with self.assertRaisesRegex(IntakeRejected, "scope"):
+            intake.submit_workitem_task(next_run, next_scope + " drift")
+        submitted = intake.submit_workitem_task(next_run, next_scope)
+        self.assertNotEqual(initial["id"], submitted["id"])
+        next_job = worker_once(feishu_codex_bot.ExecutionResult(
+            "补充完成", branch, "b" * 40, cwd, THREAD_ID, cwd,
+        ))
+        target = runner.run.call_args.kwargs["resume_target"]
+        self.assertEqual(initial["id"], target.root_task_id)
+        self.assertEqual(cwd, target.working_directory)
+        self.assertEqual(THREAD_ID, target.thread_id)
+        self.assertEqual("a" * 40, target.commit_hash)
+        self.assertEqual(submitted["id"], next_job.task_id)
+        final = intake.get_workitem_task(next_run)
+        self.assertEqual("waiting_ci", final["run_status"])
+        self.assertEqual("b" * 40, final["task"]["commit_hash"])
+        self.assertEqual(THREAD_ID, final["session"]["thread_id"])
+        self.assertEqual("a" * 40, intake.get_workitem_task(first_run)["task"]["commit_hash"])
+        self.assertFalse(intake.submit_workitem_task(next_run, next_scope)["created"])
+        # The old branch/commit receipt remains historical, not a second PR.
+        from tools.codex_assets.feishu_engineering_agent.delivery import DeliveryCoordinator
+        delivery = DeliveryCoordinator(manual.store)
+        with self.assertRaisesRegex(IntakeRejected, "reserved continuation"):
+            delivery.verify_git(
+                first_run, event, "pr", "https://example.org/pr/1", "a" * 40,
+                lambda ref: {"repo_alias": "codex", "reference": ref,
+                             "state": "open", "head_sha": "a" * 40},
+            )
+        # Exercise the actual CLI runner without any model/network call.
+        real_runner = feishu_codex_bot.CodexRunner(intake.config)
+        real_runner.worktrees = mock.Mock()
+        real_runner.worktrees.verify_and_commit.return_value = "b" * 40
+        process = mock.Mock()
+        process.returncode = 0
+        frames = [
+            {"type": "thread.started", "thread_id": THREAD_ID},
+            {"type": "turn.started"},
+            {"type": "turn.completed", "usage": {}},
+        ]
+        process.communicate.return_value = ("\n".join(json.dumps(f) for f in frames), "")
+        with mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process) as popen:
+            real_runner.run(next_job, persistent_session=True, resume_target=target)
+        args = popen.call_args.args[0]
+        self.assertEqual(THREAD_ID, args[args.index("resume") + 1])
+        self.assertNotIn("--last", args)
+        self.assertNotIn("--ephemeral", args)
+        real_runner.worktrees.prepare.assert_not_called()
+        real_runner.worktrees.require_resume_base.assert_any_call(target, repo)
+        real_runner.worktrees.verify_and_commit.assert_called_once()
+        frames[0]["thread_id"] = "01979c6c-0354-7000-8000-000000000002"
+        process.communicate.return_value = ("\n".join(json.dumps(f) for f in frames), "")
+        real_runner.worktrees.verify_and_commit.reset_mock()
+        with mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process):
+            with self.assertRaises(feishu_codex_bot.CodexOutcomeUnknown):
+                real_runner.run(next_job, persistent_session=True, resume_target=target)
+        real_runner.worktrees.verify_and_commit.assert_not_called()
+
     def test_jsonrpc_initialize_list_call_and_notifications(self) -> None:
         intake = self.intake()
         def invoke(message: object) -> dict | None:

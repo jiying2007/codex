@@ -16,7 +16,8 @@ import sys
 from typing import Any, Mapping, Optional
 
 from .feishu_codex_bot import (
-    AgentInputPersistError, BotConfig, BotJob, FeishuCodexError, StateStore, merged_environment,
+    AgentInputPersistError, BotConfig, BotJob, FeishuCodexError, StateStore,
+    merged_environment, resolve_worker_resume,
 )
 from .feishu_task_spool import TaskSpool, SpoolError
 
@@ -204,6 +205,11 @@ class AgentTaskIntake:
             max_prompt_chars=self.config.max_prompt_chars,
         )
         workflow = EngineeringWorkflow(store)
+        # Repeated submissions of already-linked continuations are receipt
+        # lookups, not new dispatches. New continuation tasks must resolve
+        # the preceding successful local result before queue admission.
+        if self.store.agent_run_link_for_run(run_id) is None:
+            resolve_worker_resume(self.config, self.store, store, run_id, policy_sha256)
         workflow.authorize_local_agent_queue(
             run_id, event, os.getuid(), {record["repo"]}, repository.agent_allowed_modes,
             scope_sha256, self.billing_source, policy_sha256,

@@ -64,3 +64,6 @@ python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
 Offline regression covers simultaneous same-scope submissions, spool failure with retained UNKNOWN, reserved idempotency namespace, bounded source status, replay of queued attempts and current actor/repository scope. These are source-level tests, not a production host result.
 
 Offline exact WorkItem cancellation tests cover authorized chat queue cancellation, foreign actor and revoked repo denial, repeated cancellation, unrelated queue preservation, exact local process signaling, and no successful terminal status inferred from a signal. The real process tree, sandbox and provider cancellation remain host-qualified checks.
+
+## Continuation path
+Offline worker fixture: one prior successful edit, one exact successor with new scope approval, same thread and root worktree, separate new local commit receipt, duplicate proposal/queue idempotency, fork rejection, and old Run delivery rejection. Mock native subprocess verifies exact `exec resume` UUID and rejects a different thread before Git commit. Worktree identity and clean HEAD are checked on the real worker path; actual installed CLI/provider/session and host Git tests remain required.

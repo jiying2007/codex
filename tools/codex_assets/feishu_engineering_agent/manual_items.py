@@ -32,6 +32,7 @@ _HELP = (
     "/wi cancel <完整尝试Run ID> 在既有 Bot 中取消关联的精确执行任务\n"
     "/wi handoff <完整Run ID> | 当前问题描述、验收要求及复现信息\n"
     "/wi attempt <来源Run ID> <read|review|edit> | 本次研发范围\n"
+    "/wi continue <上一轮成功Run ID> | 下一轮修改或分析要求\n"
     "/wi help；attempt 只创建待授权执行记录，不自动调用 Codex。"
 )
 
@@ -78,6 +79,12 @@ def parse_manual_command(text: str, tenant: str, default_repo: str) -> ManualCom
                 raise IntakeRejected("handoff needs bounded current context")
             return ManualCommand("handoff", summary=current, run_id=tokens[2])
         raise IntakeRejected("status forbids extra text, handoff requires a | summary")
+    if action == "continue" and len(tokens) == 3 and delimiter:
+        current = summary.strip()
+        if (not _RUN_ID.fullmatch(tokens[2]) or not current or len(current) > 4000
+                or any(ord(x) < 32 and x not in "\n\t" for x in current)):
+            raise IntakeRejected("continue requires exact previous Run and bounded scope")
+        return ManualCommand("continue", run_id=tokens[2], summary=current)
     if action == "attempt" and len(tokens) == 4 and delimiter:
         if not _RUN_ID.fullmatch(tokens[2]) or tokens[3] not in ("read", "review", "edit"):
             raise IntakeRejected("attempt requires exact source Run ID and mode")
@@ -194,16 +201,22 @@ class ManualWorkItemService:
                 "代码写入、模型额度、Git 发布及设备操作仍需各自单独批准。"
                 "不得把 CI 通过视为产品/测试验收，也不得自动关闭原工作项。"
             )
-        if cmd.action == "attempt":
+        if cmd.action in ("attempt", "continue"):
             from .workflow import EngineeringWorkflow
-            outcome = EngineeringWorkflow(self.store).create_attempt(
-                cmd.run_id, event, cmd.mode, authorized,
-                scope_sha256=hashlib.sha256(cmd.summary.encode("utf-8")).hexdigest(),
-            )
+            workflow = EngineeringWorkflow(self.store)
+            digest = hashlib.sha256(cmd.summary.encode("utf-8")).hexdigest()
+            if cmd.action == "continue":
+                outcome = workflow.create_continuation(
+                    cmd.run_id, event, authorized, digest,
+                )
+            else:
+                outcome = workflow.create_attempt(
+                    cmd.run_id, event, cmd.mode, authorized, scope_sha256=digest,
+                )
             return (
                 ("已建立独立研发 AgentRun（未执行）：\n"
                  if outcome["created"] else "已有研发 AgentRun（未重复创建或执行）：\n")
-                + "来源Run：" + cmd.run_id + "\n"
+                + ("上一轮Run：" if cmd.action == "continue" else "来源Run：") + cmd.run_id + "\n"
                 + "新Run：" + outcome["run_id"] + "\n"
                 + "模式：" + outcome["mode"] + "；状态：" + outcome["status"] + "\n"
                 + "本次范围（仅用于当前回复，未持久化）：" + cmd.summary + "\n"

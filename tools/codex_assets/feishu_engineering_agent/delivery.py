@@ -18,6 +18,7 @@ from typing import Any, Callable, Mapping, Optional
 
 from .models import InboundEvent, IntakeRejected, _check_id
 from .state import RunStore, _REF
+from .sessions import SessionRegistry
 
 
 class PublicationUnknown(IntakeRejected):
@@ -46,6 +47,7 @@ class DeliveryCoordinator:
 
     def __init__(self, store: RunStore):
         self.store = store
+        SessionRegistry(store)
         with contextlib.closing(store._connect()) as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS fea_publications (
@@ -127,6 +129,7 @@ class DeliveryCoordinator:
         with contextlib.closing(self.store._connect()) as db:
             db.execute("BEGIN IMMEDIATE")
             try:
+                SessionRegistry.require_no_successor(db, run_id)
                 prior = db.execute(
                     "SELECT 1 FROM fea_publications WHERE run_id=?", (run_id,),
                 ).fetchone()
@@ -213,6 +216,7 @@ class DeliveryCoordinator:
         with contextlib.closing(self.store._connect()) as db:
             db.execute("BEGIN IMMEDIATE")
             try:
+                SessionRegistry.require_no_successor(db, run_id)
                 published = db.execute(
                     "SELECT head_sha FROM fea_publications WHERE run_id=?",
                     (run_id,),
