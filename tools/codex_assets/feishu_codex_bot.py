@@ -635,6 +635,43 @@ class BotConfig:
                     raise FeishuCodexError(f"仓库或 worktree 不能位于 deny_read_paths 内: {candidate}")
 
 
+def agent_request_digest(repo: str, mode: str, task: str) -> str:
+    """Canonical digest used at local task publication and worker admission."""
+    return hashlib.sha256(json.dumps(
+        {"repo": repo, "mode": mode, "task": task},
+        ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+
+
+def workitem_policy_digest(config: BotConfig, repository: RepositoryPolicy,
+                           run_mode: str, unix_uid: int) -> str:
+    """One policy fingerprint for approval and every worker dispatch check."""
+    from .feishu_engineering_agent.workflow import local_agent_policy_digest
+    return local_agent_policy_digest(
+        unix_uid, repository.alias, run_mode, config.agent_billing_source,
+        repository.agent_allowed_modes, repository.edit_strategy,
+        repository.commit_enabled,
+        repo_path=str(repository.path),
+        base_ref=repository.base_ref,
+        worktree_root=str(repository.worktree_root or ""),
+        branch_prefix=repository.branch_prefix,
+        allowed_modes=repository.allowed_modes,
+        verification_commands=repository.verification_commands,
+        agent_codex_home=str(config.agent_codex_home or ""),
+        openai_base_url=config.agent_openai_base_url,
+        credential_fingerprint=hashlib.sha256(
+            config.agent_openai_api_key.encode("utf-8")
+        ).hexdigest(),
+        codex_bin=config.codex_bin,
+        isolation_bin=str(config.isolation_bin),
+        deny_push_hooks_path=str(config.deny_push_hooks_path),
+        deny_read_paths=(str(path) for path in config.deny_read_paths),
+        isolation_write_paths=(str(path) for path in config.isolation_write_paths),
+        codex_timeout_sec=config.codex_timeout_sec,
+        max_prompt_chars=config.max_prompt_chars,
+    )
+
+
 def sanitized_subprocess_env(environ: Mapping[str, str]) -> Dict[str, str]:
     safe = dict(environ)
     for key in list(safe):
@@ -1182,6 +1219,22 @@ class StateStore:
             except Exception:
                 connection.rollback()
                 raise
+
+    def queued_task(self, task_id: int) -> Optional[Dict[str, Any]]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT id,message_id,sender_open_id,repository,mode,status,created_at "
+                "FROM tasks WHERE id=? AND status='queued'", (task_id,),
+            ).fetchone()
+        return dict(row) if row is not None else None
+
+    def agent_request_digest(self, task_id: int) -> Optional[str]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT value FROM task_sources WHERE task_id=? AND kind='agent-request-sha256'",
+                (task_id,),
+            ).fetchall()
+        return rows[0]["value"] if len(rows) == 1 else None
 
     def has_agent_run_links(self) -> bool:
         with self._connect() as connection:
@@ -2326,15 +2379,23 @@ class FeishuCodexBot:
                 or job.repository != row["repository"] or job.mode != row["mode"]
                 or job.chat_id != self.config.target_chat_id
                 or not isinstance(job.task, str)
-                or not job.task.strip() or len(job.task) > self.config.max_prompt_chars):
+                or not job.task.strip() or len(job.task) > self.config.max_prompt_chars
+                or "\x00" in job.task):
             raise SpoolError("queued task identity mismatch")
         repository = self.config.repositories.get(job.repository)
         if repository is None or job.mode not in repository.allowed_modes:
             raise SpoolError("queued task no longer authorized by policy")
         if job.sender_open_id.startswith("agent:"):
             if (not self.config.agent_intake_enabled
-                    or job.mode not in repository.agent_allowed_modes):
+                    or job.sender_open_id != f"agent:{os.getuid()}"
+                    or job.mode not in repository.agent_allowed_modes
+                    or (job.mode == "edit" and (repository.edit_strategy != "worktree"
+                                               or not repository.commit_enabled))):
                 raise SpoolError("agent task is no longer authorized")
+            if (job.sources or job.artifact
+                    or self.store.agent_request_digest(job.task_id) !=
+                        agent_request_digest(job.repository, job.mode, job.task)):
+                raise SpoolError("Agent queued payload does not match its persisted request")
             try:
                 self.config.validate_agent_runtime()
             except FeishuCodexError as exc:
@@ -2345,9 +2406,7 @@ class FeishuCodexBot:
                         or self._manual_service is None
                         or job.sender_open_id != f"agent:{link['unix_uid']}"):
                     raise SpoolError("WorkItem AgentRun local identity is no longer authorized")
-                from .feishu_engineering_agent.workflow import (
-                    EngineeringWorkflow, local_agent_policy_digest,
-                )
+                from .feishu_engineering_agent.workflow import EngineeringWorkflow
                 try:
                     run = self._manual_service.store.get_run(link["agent_run_id"])
                     approval = EngineeringWorkflow(self._manual_service.store).local_agent_approval(
@@ -2359,7 +2418,7 @@ class FeishuCodexBot:
                     ) from exc
                 expected_mode = {"read": "explain", "review": "review", "edit": "edit"}.get(run["mode"])
                 if (run["status"] != "queued" or run["repo"] != job.repository
-                        or expected_mode != job.mode
+                        or run["chat"] != job.chat_id or expected_mode != job.mode
                         or approval["unix_uid"] != link["unix_uid"]
                         or approval["repository"] != job.repository
                         or approval["mode"] != run["mode"]
@@ -2370,28 +2429,8 @@ class FeishuCodexBot:
                         or approval["billing_source"] != self.config.agent_billing_source
                         or not self.config.sender_allowed(run["actor"], repository)):
                     raise SpoolError("WorkItem AgentRun execution scope or approval mismatch")
-                expected_policy = local_agent_policy_digest(
-                    link["unix_uid"], job.repository, run["mode"],
-                    approval["billing_source"], repository.agent_allowed_modes,
-                    repository.edit_strategy, repository.commit_enabled,
-                    repo_path=str(repository.path),
-                    base_ref=repository.base_ref,
-                    worktree_root=str(repository.worktree_root or ""),
-                    branch_prefix=repository.branch_prefix,
-                    allowed_modes=repository.allowed_modes,
-                    verification_commands=repository.verification_commands,
-                    agent_codex_home=str(self.config.agent_codex_home or ""),
-                    openai_base_url=self.config.agent_openai_base_url,
-                    credential_fingerprint=hashlib.sha256(
-                        self.config.agent_openai_api_key.encode("utf-8")
-                    ).hexdigest(),
-                    codex_bin=self.config.codex_bin,
-                    isolation_bin=str(self.config.isolation_bin),
-                    deny_push_hooks_path=str(self.config.deny_push_hooks_path),
-                    deny_read_paths=(str(path) for path in self.config.deny_read_paths),
-                    isolation_write_paths=(str(path) for path in self.config.isolation_write_paths),
-                    codex_timeout_sec=self.config.codex_timeout_sec,
-                    max_prompt_chars=self.config.max_prompt_chars,
+                expected_policy = workitem_policy_digest(
+                    self.config, repository, run["mode"], link["unix_uid"],
                 )
                 if approval["policy_sha256"] != expected_policy:
                     raise SpoolError("WorkItem AgentRun repository policy changed after authorization")
@@ -2970,6 +3009,27 @@ class FeishuCodexBot:
                     if self.store.task_status(job.task_id) == "canceled":
                         self._fail_agent_run(job.task_id, "canceled")
                         continue
+                    if job.sender_open_id.startswith("agent:"):
+                        row = self.store.queued_task(job.task_id)
+                        if row is None:
+                            if self.store.task_status(job.task_id) == "canceled":
+                                self._fail_agent_run(job.task_id, "canceled")
+                            continue
+                        try:
+                            # Queue admission may be arbitrarily earlier than
+                            # actual execution while this repo lock is busy.
+                            # Re-read the persisted input and current grant.
+                            decoded = self._decode_job(self.spool.get(job.task_id), row)
+                            if decoded != job:
+                                raise SpoolError("scheduled Agent input changed")
+                        except (OSError, SpoolError, FeishuCodexError):
+                            if self.store.mark_queued_unknown(job.task_id, "AgentDispatchAdmissionChanged"):
+                                self._fail_agent_run(job.task_id, "unknown")
+                                self._send_safe(
+                                    job.chat_id, "任务输入或执行授权已变化，未启动 Codex；请核对后重新提交。",
+                                    job.message_id,
+                                )
+                            continue
                     if not self.store.claim_queued(job.task_id):
                         if self.store.task_status(job.task_id) == "canceled":
                             self._fail_agent_run(job.task_id, "canceled")

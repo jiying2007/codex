@@ -93,3 +93,5 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [x] 迁移备份自动包含 sibling AgentRun DB（若存在），核对 Bot/AgentRun 任务身份及模式，保留私有环境文件可选备份，缺失关联或不匹配拒绝通过；恢复演练双库检查。
 
 [x] Bot/MCP/check 共用 WorkItem ledger 解析；已有任务关联但 sibling DB 缺失拒绝新建空库，明确恢复双库快照；新 Bot SQLite 0600、既有 DB/WAL/SHM 私有检查，systemd UMask=0077。离线回归不重启真实服务。
+
+[x] 收敛 MCP 与 Worker 重复的 WorkItem policy SHA / task digest 计算；保留原 canonical 指纹格式；Worker 获取 repo lock 后、启动模型前重新读取私有 spool 和审批，拒绝排队期间发生的输入/授权/运行身份变化；普通 Agent 任务也核对持久输入摘要。

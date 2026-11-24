@@ -801,6 +801,61 @@ class FeishuAgentMCPTests(unittest.TestCase):
         retained.rename(agent_db)
         self.assertEqual("queued", intake.get_workitem_task(run_id)["run_status"])
 
+    def test_generic_agent_spool_digest_rejects_changed_prompt(self) -> None:
+        intake = self.intake()
+        submitted = intake.submit_task("codex", "review", "原任务", "fixture-tamper-001")
+        payload = intake.spool.get(submitted["id"])
+        intake.spool.discard(submitted["id"])
+        payload["task"] = "替换任务"
+        intake.spool.put(submitted["id"], payload)
+        runner = mock.Mock()
+        bot = feishu_codex_bot.FeishuCodexBot(intake.config, mock.Mock(), runner, intake.store)
+        bot.refill_pending(startup=True)
+        self.assertEqual("unknown", intake.get_task(submitted["id"])["status"])
+        self.assertEqual(0, bot.jobs.qsize())
+        runner.run.assert_not_called()
+
+    def _assert_dispatch_rechecks(self, change) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        submitted = intake.submit_workitem_task(run_id, scope)
+        runner = mock.Mock()
+        transport = mock.Mock()
+        bot = feishu_codex_bot.FeishuCodexBot(intake.config, transport, runner, intake.store)
+        bot.recover_pending()
+        job = bot.jobs.get_nowait()
+        if change == "approval":
+            with sqlite3.connect(str(manual.store.path)) as db:
+                db.execute("DELETE FROM fea_local_agent_approvals WHERE run_id=?", (run_id,))
+        elif change == "payload":
+            payload = intake.spool.get(job.task_id)
+            intake.spool.discard(job.task_id)
+            payload["task"] += "未授权变更"
+            intake.spool.put(job.task_id, payload)
+        else:
+            (self.agent_home / "auth.json").write_text("{}", encoding="utf-8")
+        try:
+            with mock.patch.object(bot.jobs, "get", side_effect=[job, SystemExit]), \
+                    mock.patch.object(bot.jobs, "task_done"):
+                with self.assertRaises(SystemExit):
+                    bot.worker()
+            self.assertEqual("unknown", intake.get_task(submitted["id"])["status"])
+            self.assertEqual("unknown", manual.store.get_run(run_id)["status"])
+            runner.run.assert_not_called()
+            transport.resolve_sources.assert_not_called()
+        finally:
+            auth = self.agent_home / "auth.json"
+            if auth.exists():
+                auth.unlink()
+
+    def test_dispatch_rechecks_revoked_approval(self) -> None:
+        self._assert_dispatch_rechecks("approval")
+
+    def test_dispatch_rechecks_changed_payload(self) -> None:
+        self._assert_dispatch_rechecks("payload")
+
+    def test_dispatch_rechecks_runtime_identity(self) -> None:
+        self._assert_dispatch_rechecks("billing")
+
     def test_jsonrpc_initialize_list_call_and_notifications(self) -> None:
         intake = self.intake()
         def invoke(message: object) -> dict | None:

@@ -79,3 +79,5 @@ The worker-delivery fixture additionally exercises the existing Feishu callback 
 Retained #79 offline native protocol tests cover persistent no-model thread bootstrap, experimental negotiation and mismatched identity rejection. Paired backup tests create a WAL-backed sibling ledger with linked tasks, verify and rehearse both snapshots, and reject missing or mismatched AgentRun records. Private environment contents are not printed. These tests do not qualify the real host or prove a full CODEX_HOME/worktree backup.
 
 Offline tests cover first-create 0600, rejection of wider existing mode and symlink, no silent file chmod, and missing AgentRun DB with an existing linked task. The original queued status is preserved until the retained ledger is restored. Actual old service files and installed unit remain host verification items.
+
+Worker dispatch regression: generic Agent payload substitution, revoked WorkItem approval after scheduling, changed scheduled input, and unexpected personal auth file after scheduling all fail closed without model invocation or source lookup. No change to the existing canonical approval fingerprint format.

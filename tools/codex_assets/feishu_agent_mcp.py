@@ -18,7 +18,8 @@ from typing import Any, Mapping, Optional
 
 from .feishu_codex_bot import (
     AgentInputPersistError, BotConfig, BotJob, FeishuCodexError, StateStore,
-    merged_environment, open_workitem_service, resolve_worker_resume,
+    agent_request_digest, merged_environment, open_workitem_service,
+    resolve_worker_resume, workitem_policy_digest,
 )
 from .feishu_task_spool import TaskSpool, SpoolError
 
@@ -87,10 +88,7 @@ class AgentTaskIntake:
         if (not task.strip() or len(task) > self.config.max_prompt_chars
                 or "\x00" in task):
             raise FeishuCodexError("Agent 任务为空、包含 NUL 或超出提示预算")
-        digest = hashlib.sha256(json.dumps(
-            {"repo": repo, "mode": mode, "task": task},
-            ensure_ascii=False, sort_keys=True, separators=(",", ":"),
-        ).encode("utf-8")).hexdigest()
+        digest = agent_request_digest(repo, mode, task)
         message_id = "agent:" + hashlib.sha256(
             (self.sender + "\0" + idempotency_key).encode("utf-8")
         ).hexdigest()
@@ -161,7 +159,8 @@ class AgentTaskIntake:
             raise FeishuCodexError("invalid WorkItem Run ID or bounded task text")
         record = store.get_run(run_id)
         repository = self.config.repositories.get(record["repo"])
-        if repository is None or not self.config.sender_allowed(record["actor"], repository):
+        if (repository is None or record["chat"] != self.config.target_chat_id
+                or not self.config.sender_allowed(record["actor"], repository)):
             raise FeishuCodexError("WorkItem owner or repository access is no longer authorized")
         run_mode = record["mode"]
         bot_mode = {"read": "explain", "review": "review", "edit": "edit"}.get(run_mode)
@@ -173,9 +172,7 @@ class AgentTaskIntake:
             raise FeishuCodexError("WorkItem edit requires an isolated, locally committable worktree")
         scope_sha256 = hashlib.sha256(task.encode("utf-8")).hexdigest()
         from .feishu_engineering_agent.models import InboundEvent
-        from .feishu_engineering_agent.workflow import (
-            EngineeringWorkflow, local_agent_policy_digest,
-        )
+        from .feishu_engineering_agent.workflow import EngineeringWorkflow
         event_id = "local-agent-" + hashlib.sha256(
             (run_id + "\0" + self.sender).encode("utf-8")
         ).hexdigest()[:32]
@@ -183,28 +180,8 @@ class AgentTaskIntake:
             "feishu_message", record["tenant"], record["chat"],
             record["actor"], event_id, task,
         )
-        policy_sha256 = local_agent_policy_digest(
-            os.getuid(), record["repo"], run_mode, self.billing_source,
-            repository.agent_allowed_modes, repository.edit_strategy,
-            repository.commit_enabled,
-            repo_path=str(repository.path),
-            base_ref=repository.base_ref,
-            worktree_root=str(repository.worktree_root or ""),
-            branch_prefix=repository.branch_prefix,
-            allowed_modes=repository.allowed_modes,
-            verification_commands=repository.verification_commands,
-            agent_codex_home=str(self.config.agent_codex_home or ""),
-            openai_base_url=self.config.agent_openai_base_url,
-            credential_fingerprint=hashlib.sha256(
-                self.config.agent_openai_api_key.encode("utf-8")
-            ).hexdigest(),
-            codex_bin=self.config.codex_bin,
-            isolation_bin=str(self.config.isolation_bin),
-            deny_push_hooks_path=str(self.config.deny_push_hooks_path),
-            deny_read_paths=(str(path) for path in self.config.deny_read_paths),
-            isolation_write_paths=(str(path) for path in self.config.isolation_write_paths),
-            codex_timeout_sec=self.config.codex_timeout_sec,
-            max_prompt_chars=self.config.max_prompt_chars,
+        policy_sha256 = workitem_policy_digest(
+            self.config, repository, run_mode, os.getuid(),
         )
         workflow = EngineeringWorkflow(store)
         # Repeated submissions of already-linked continuations are receipt
