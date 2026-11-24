@@ -219,9 +219,19 @@ class ManualWorkItemBotBridgeTest(unittest.TestCase):
             self.assertIn("未启用",self.transport.send_text.call_args.args[1])
         self.runner.run.assert_not_called()
 
-    def test_nonmanual_input_uses_original_gate(self):
+    def test_natural_input_uses_new_intake_without_unapproved_model(self):
         bot = self.bot(True)
-        with mock.patch.object(bot.gate, "accept", return_value=None) as gate:
+        with self.immediate_threads(), mock.patch.object(
+            bot.gate,"accept",side_effect=AssertionError("legacy gate reached")
+        ):
+            bot.on_message(self.event(text="分析启动日志"))
+        self.assertIn("未配置独立模型执行授权",self.transport.send_text.call_args.args[1])
+        self.assertTrue(bot.jobs.empty())
+        self.runner.run.assert_not_called()
+
+    def test_disabled_migration_mode_retains_old_gate(self):
+        bot = self.bot(False)
+        with mock.patch.object(bot.gate,"accept",return_value=None) as gate:
             bot.on_message(self.event(text="分析启动日志"))
         gate.assert_called_once()
         self.runner.run.assert_not_called()
