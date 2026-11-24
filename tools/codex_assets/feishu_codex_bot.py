@@ -1874,9 +1874,17 @@ class CodexRunner:
             self.config.isolation_bin,
             "--die-with-parent",
             "--new-session",
+            # The native Codex Linux sandbox creates a nested user namespace.
+            # Its uid_map/gid_map writes cannot use the recursively read-only
+            # host /proc inherited through --ro-bind / /. Give this outer
+            # sandbox its own PID namespace and procfs, never a writable bind
+            # of the host's /proc. Keep the host filesystem read-only.
+            "--unshare-pid",
             "--ro-bind",
             "/",
             "/",
+            "--proc",
+            "/proc",
         ]
         for writable in self.config.isolation_write_paths:
             command.extend(["--bind", str(writable), str(writable)])

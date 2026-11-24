@@ -452,3 +452,7 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 待授权回合由可信同 UID [MCP](feishu-agent-mcp.md) 提交精确范围；聊天提案本身不批准模型费用。独立 QA 后仅完成研发 Run，产品/测试在原系统决定是否关闭。卡片、企业 API、App Server 不是文本 + CLI 路径的前置条件。部署前暂停原 Bot 与所有 MCP 写入，按 [现场操作说明](changes/20261120-feishu-engineering-agent/pilot.md) 对双数据库、spool、配置备份并演练恢复；保留专用 CODEX_HOME 与活跃 worktree。不创建第二个 systemd 服务。
 
 **部署权限注意：** 新版 Bot 状态 SQLite 新建为 0600，既有 DB、WAL/SHM 均须为服务用户拥有的私有普通文件；旧实例可能由较宽 umask 创建。暂停 Bot 与本机 MCP 写入，核对实际路径和所有者，再由操作者将相关现有文件权限收紧为 0600，不删除 WAL 或重建数据库。仓库 unit 新增 `UMask=0077`，不会自动更新用户已安装的 unit。`check` 会验证/初始化私有数据库和 spool；已有 WorkItem 任务关联但 sibling 数据库缺失时拒绝继续，先恢复配对备份。
+
+### Linux 嵌套沙箱兼容性
+
+现场 Codex CLI 0.171.0 在旧外层 Bubblewrap 的递归只读根挂载内运行时，内层 Bubblewrap 报 `setting up uid map: Read-only file system`。外层命令使用独立 PID namespace（`--unshare-pid`），在只读根之后挂载自身的 `/proc`（`--proc /proc`），不直接可写绑定宿主机 procfs。保留原有秘密目录掩蔽、受控 writable roots、Codex 内层 sandbox 和 systemd 安全配置。主机需要实际通过嵌套无模型 shell 探针；参数回归测试不能替代真实 Linux 命名空间验收。

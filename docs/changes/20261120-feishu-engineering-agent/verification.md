@@ -81,3 +81,6 @@ Retained #79 offline native protocol tests cover persistent no-model thread boot
 Offline tests cover first-create 0600, rejection of wider existing mode and symlink, no silent file chmod, and missing AgentRun DB with an existing linked task. The original queued status is preserved until the retained ledger is restored. Actual old service files and installed unit remain host verification items.
 
 Worker dispatch regression: generic Agent payload substitution, revoked WorkItem approval after scheduling, changed scheduled input, and unexpected personal auth file after scheduling all fail closed without model invocation or source lookup. No change to the existing canonical approval fingerprint format.
+
+## 现场故障修复候选：嵌套 UID map
+vstrong100（Codex CLI 0.171.0）普通 shell、单独 Codex sandbox、单独外层 Bubblewrap 均成功；嵌套失败 `bwrap: setting up uid map: Read-only file system`，固定 TMPDIR 和私有 /dev 无效。修复候选在外层添加 `--unshare-pid` 与根挂载后的 `--proc /proc`，不绑定可写宿主机 procfs。新增命令结构回归（保留只读根、秘密目录 mask、原 Codex 参数及进程生命周期标志）。实际修复须由 vstrong100 无模型 nested probe 与服务环境验收确认，不能凭离线 CI 宣称通过。

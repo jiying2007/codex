@@ -502,6 +502,32 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertTrue(limiter.allow("ou_other", now=2))
         self.assertTrue(limiter.allow("ou_owner", now=61))
 
+    def test_outer_sandbox_uses_private_pid_namespace_and_procfs(self) -> None:
+        config = self.config()
+        runner = feishu_codex_bot.CodexRunner(config)
+        args = ["exec", "--sandbox", "read-only", "-C", str(config.workdir), "fixture"]
+        cmd = runner._isolated_command(config.workdir, args)
+        root = cmd.index("--ro-bind")
+        proc = cmd.index("--proc")
+        sep = cmd.index("--")
+        self.assertIn("--unshare-pid", cmd[:root])
+        self.assertEqual(["--ro-bind", "/", "/"], cmd[root:root + 3])
+        self.assertGreater(proc, root + 2)
+        self.assertEqual("/proc", cmd[proc + 1])
+        self.assertLess(proc, sep)
+        self.assertIn("--die-with-parent", cmd[:sep])
+        self.assertIn("--new-session", cmd[:sep])
+        for index, arg in enumerate(cmd[:sep]):
+            if arg in ("--bind", "--ro-bind", "--dev-bind"):
+                self.assertNotEqual("/proc", cmd[index + 1])
+                self.assertNotEqual("/proc", cmd[index + 2])
+        for denied in config.deny_read_paths:
+            self.assertTrue(any(
+                cmd[i:i + 2] == ["--tmpfs", str(denied)]
+                for i in range(proc + 2, sep)
+            ))
+        self.assertEqual([config.codex_bin, *args], cmd[sep + 1:])
+
     def test_codex_runner_is_read_only_fixed_to_alias_and_strips_secrets(self) -> None:
         runner = feishu_codex_bot.CodexRunner(self.config())
         job = feishu_codex_bot.BotJob(
