@@ -459,6 +459,65 @@ class FeishuAgentMCPTests(unittest.TestCase):
         self.assertTrue(canceled["queued_cancelled"])
         self.assertEqual("canceled", manual.store.get_run(run_id)["status"])
 
+    def test_feishu_workitem_cancel_is_exact_scoped_and_idempotent(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        item = intake.submit_workitem_task(run_id, scope)
+        unrelated = intake.submit_task("codex", "review", "其他任务", "cancel-other-001")
+        runner = mock.Mock()
+        bot = feishu_codex_bot.FeishuCodexBot(
+            intake.config, mock.Mock(), runner,
+            feishu_codex_bot.StateStore(intake.config.state_db),
+        )
+        owner = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_owner", "om_cancel",
+            "/wi cancel " + run_id,
+        )
+        attacker = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_other", "om_foreign_cancel",
+            owner.text,
+        )
+        with self.assertRaises(IntakeRejected):
+            bot._cancel_workitem(run_id, attacker, frozenset({"codex"}))
+        with self.assertRaises(IntakeRejected):
+            bot._cancel_workitem(run_id, owner, frozenset())
+        self.assertEqual("queued", intake.get_task(item["id"])["status"])
+        bot._run_manual_message(owner, owner.actor, frozenset({"codex"}))
+        self.assertIn("已取消排队任务", bot.transport.send_text.call_args.args[1])
+        self.assertEqual("canceled", intake.get_task(item["id"])["status"])
+        self.assertEqual("canceled", manual.store.get_run(run_id)["status"])
+        self.assertEqual("queued", intake.get_task(unrelated["id"])["status"])
+        self.assertFalse((intake.spool.root / f"{item['id']}.json").exists())
+        runner.cancel_task.assert_not_called()
+        bot._run_manual_message(owner, owner.actor, frozenset({"codex"}))
+        self.assertIn("没有可取消", bot.transport.send_text.call_args.args[1])
+
+    def test_running_workitem_cancel_requests_only_exact_process(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        item = intake.submit_workitem_task(run_id, scope)
+        self.assertTrue(intake.store.claim_queued(item["id"]))
+        record = manual.store.get_run(run_id)
+        manual.store.transition(run_id, record["revision"], "running", record["actor"])
+        runner = feishu_codex_bot.CodexRunner(intake.config)
+        target, other = mock.Mock(), mock.Mock()
+        target.poll.return_value = other.poll.return_value = None
+        runner._running[item["id"]] = (intake.sender, target)
+        runner._running[item["id"] + 100] = (intake.sender, other)
+        bot = feishu_codex_bot.FeishuCodexBot(
+            intake.config, mock.Mock(), runner, intake.store,
+        )
+        owner = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_owner", "om_cancel_live",
+            "/wi cancel " + run_id,
+        )
+        self.assertFalse(runner.cancel_task(item["id"], "agent:999999"))
+        reply = bot._cancel_workitem(run_id, owner, frozenset({"codex"}))
+        self.assertIn("发送终止请求", reply)
+        self.assertEqual("running", manual.store.get_run(run_id)["status"])
+        self.assertEqual("running", intake.get_task(item["id"])["status"])
+        self.assertIn("发送终止请求", bot._cancel_workitem(run_id, owner, frozenset({"codex"})))
+        target.terminate.assert_called_once()
+        other.terminate.assert_not_called()
+
     def test_jsonrpc_initialize_list_call_and_notifications(self) -> None:
         intake = self.intake()
         def invoke(message: object) -> dict | None:

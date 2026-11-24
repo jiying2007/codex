@@ -1814,16 +1814,35 @@ class CodexRunner:
         finally:
             with self._lock:
                 self._running.pop(job.task_id, None)
+                self._canceled.discard(job.task_id)
+
+    def _cancel_task_locked(self, task_id: int, sender: str) -> bool:
+        entry = self._running.get(task_id)
+        if entry is None or entry[0] != sender:
+            return False
+        process = entry[1]
+        if task_id in self._canceled:
+            return True  # request already sent, not a completed cancellation
+        if process.poll() is not None:
+            return False
+        try:
+            process.terminate()
+        except ProcessLookupError:
+            return False
+        self._canceled.add(task_id)
+        return True
+
+    def cancel_task(self, task_id: int, sender: str) -> bool:
+        """Request termination of one exact active subprocess, not a UID-wide stop."""
+        with self._lock:
+            return self._cancel_task_locked(task_id, sender)
 
     def cancel_sender(self, sender: str) -> int:
-        canceled = 0
         with self._lock:
-            for task_id, (owner, process) in list(self._running.items()):
-                if owner == sender and process.poll() is None:
-                    self._canceled.add(task_id)
-                    process.terminate()
-                    canceled += 1
-        return canceled
+            return sum(
+                self._cancel_task_locked(task_id, sender)
+                for task_id in list(self._running)
+            )
 
 
 class FeishuTransport:
@@ -2419,14 +2438,63 @@ class FeishuCodexBot:
         for chunk in split_reply(text, self.config.reply_chunk_chars):
             self.transport.send_text(chat_id, chunk, "" if message_id.startswith("agent:") else message_id)
 
+    def _cancel_workitem(self, run_id: str, inbound: Any,
+                         allowed: FrozenSet[str]) -> str:
+        """Only the exact WorkItem owner may cancel its linked local task.
+
+        No global Agent UID cancellation. A successful process signal is a
+        request, not evidence of rollback, zero charges or a completed turn.
+        """
+        from .feishu_engineering_agent.models import IntakeRejected
+        if self._manual_service is None:
+            raise IntakeRejected("WorkItem commands disabled")
+        record = self._manual_service.store.get_run(run_id, inbound)
+        if (record["repo"] not in allowed
+                or not self.config.sender_allowed(inbound.actor, self.config.repository(record["repo"]))):
+            raise IntakeRejected("repository access has changed")
+        link = self.store.agent_run_link_for_run(run_id)
+        if link is None:
+            return "该 Run 没有关联的本机执行任务；未取消其他任务。"
+        if link["unix_uid"] != os.getuid():
+            raise IntakeRejected("local task belongs to another Unix user")
+        task_id = link["task_id"]
+        sender = f"agent:{link['unix_uid']}"
+        task = self.store.agent_task_detail(task_id, sender)
+        if task is None or task["repository"] != record["repo"]:
+            raise IntakeRejected("exact linked task ownership mismatch")
+        if record["status"] not in ("queued", "running"):
+            return "当前 AgentRun 状态：" + record["status"] + "；没有可取消的执行。"
+        if self.store.cancel_agent_queued(task_id, sender):
+            self._fail_agent_run(task_id, "canceled")
+            current = self._manual_service.store.get_run(run_id, inbound)
+            try:
+                self.spool.discard(task_id)
+            except OSError:
+                return "排队任务已取消；私有输入清理失败，需人工核对。"
+            if current["status"] != "canceled":
+                return "排队任务已取消；AgentRun 状态同步需要人工核对。"
+            return "已取消排队任务；未启动 Codex，未自动重放。"
+        if self.store.task_status(task_id) == "running":
+            if self.runner.cancel_task(task_id, sender):
+                return (
+                    "已向精确任务发送终止请求；请查询最终状态。"
+                    "可能已有费用或部分改动，未确认回滚，不会自动重试。"
+                )
+            return "任务处于启动或收尾阶段，当前没有可终止的进程；未确认取消。请查询状态。"
+        return "任务状态：" + self.store.task_status(task_id) + "；未发送终止请求。"
+
     def _run_manual_message(self, inbound: Any, actor: str,
                             allowed: FrozenSet[str]) -> None:
         """Run SQLite work off the Feishu WS callback thread (3s deadline)."""
+        from .feishu_engineering_agent.manual_items import parse_manual_command
         from .feishu_engineering_agent.models import IntakeRejected
         try:
-            reply = self._manual_service.handle(
-                inbound, self.gate.default_repository(actor), allowed,
-            )
+            default_repo = self.gate.default_repository(actor)
+            cmd = parse_manual_command(inbound.text, inbound.tenant, default_repo)
+            if cmd.action == "cancel":
+                reply = self._cancel_workitem(cmd.run_id, inbound, allowed)
+            else:
+                reply = self._manual_service.handle(inbound, default_repo, allowed)
         except IntakeRejected as exc:
             print(f"[WARN] manual_workitem_denied kind={type(exc).__name__}", flush=True)
             reply = "工作项命令被拒绝：来源、权限、格式或工作项身份无效；没有执行模型。"

@@ -62,3 +62,5 @@ python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
 
 ## WorkItem queue publication and text status
 Offline regression covers simultaneous same-scope submissions, spool failure with retained UNKNOWN, reserved idempotency namespace, bounded source status, replay of queued attempts and current actor/repository scope. These are source-level tests, not a production host result.
+
+Offline exact WorkItem cancellation tests cover authorized chat queue cancellation, foreign actor and revoked repo denial, repeated cancellation, unrelated queue preservation, exact local process signaling, and no successful terminal status inferred from a signal. The real process tree, sandbox and provider cancellation remain host-qualified checks.
