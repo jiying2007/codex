@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -51,9 +52,19 @@ CLUSTERS = (
      ("embedded-build-release-check",)),
     ("hardware_contract", ("原理图", "引脚", "pinmux", "飞线", "gpio"),
      ("adk-driver-bringup-checklist",)),
+    ("goal_convergence", ("goal", "长任务", "重规划", "续行"),
+     ("adk-planning-execution-loop", "adk-context-compress-handoff")),
+    ("skill_distribution", ("技能分发", "skill分发", "skill 分发", "skill 安装", "应用adk", "应用 adk", "source-to-live"),
+     ("skill-asset-manager",)),
+    ("verification_rework", ("验证返工", "全量回归", "重复验证", "回归门禁", "ci门禁", "ci 门禁"),
+     ("adk-verification-before-completion", "adk-test-flakiness-triage")),
+    ("team_delivery", ("团队交付", "团队技能", "团队仓库", "runtime bundle", "独立试点"),
+     ("adk-pilot-framework",)),
 )
 
 LOCAL_TIME = timezone(timedelta(hours=8))
+PROJECT_ID = re.compile(r"[a-z0-9][a-z0-9-]{0,95}\Z")
+THREAD_ID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\Z")
 
 
 def observed_time(value: str) -> datetime:
@@ -95,7 +106,20 @@ def load_rows(path: Path, start: date, end: date) -> list[dict[str, str]]:
     return rows
 
 
-def make_report(rows: list[dict[str, str]], start: date, end: date, limit: int) -> dict[str, Any]:
+def _main_thread(thread: str, parents: dict[str, str | None]) -> str | None:
+    seen = set()
+    while thread and thread in parents and thread not in seen:
+        parent = parents[thread]
+        if parent is None:
+            return thread
+        seen.add(thread)
+        thread = parent
+    return None
+
+
+def make_report(rows: list[dict[str, str]], start: date, end: date, limit: int, *,
+                parents: dict[str, str | None] | None = None, include_examples: bool = False,
+                include_thread_refs: bool = False) -> dict[str, Any]:
     latest: dict[str, dict[str, str]] = {}
     unidentified = []
     for row in rows:
@@ -118,6 +142,9 @@ def make_report(rows: list[dict[str, str]], start: date, end: date, limit: int) 
         if not matched:
             continue
         by_day = Counter(row["date"] for row in matched)
+        anchored = ([_main_thread(row.get("thread_id", ""), parents) for row in matched]
+                    if parents is not None else None)
+        main_threads = set(anchored or ()) - {None}
         clusters.append(
             {
                 "name": name,
@@ -125,11 +152,18 @@ def make_report(rows: list[dict[str, str]], start: date, end: date, limit: int) 
                 "identified_threads": sum(bool(row.get("thread_id")) for row in matched),
                 "days": len(by_day),
                 "coverage_hints": list(coverage),
-                "examples": [" ".join(row["title"].split())[:100] for row in matched[:limit]],
+                "examples": sorted({term for term in terms if any(term in row["title"].casefold()
+                                    for row in matched)})[:limit] if include_examples else [],
+                "mapped_main_threads": len(main_threads) if anchored is not None else None,
+                "unmapped_title_rows": anchored.count(None) if anchored is not None else None,
                 "source": "session_index_title_only",
                 "decision": "review-current-coverage",
             }
         )
+        if include_thread_refs:
+            clusters[-1]["main_thread_refs"] = sorted(
+                thread for thread in main_threads if THREAD_ID.fullmatch(thread)
+            )[:min(limit, 20)]
     clusters.sort(key=lambda item: (-item["count"], item["name"]))
     return {
         "schema_version": 2,
@@ -152,7 +186,8 @@ def make_report(rows: list[dict[str, str]], start: date, end: date, limit: int) 
     }
 
 
-def metadata_coverage(root: Path, start: date, end: date) -> dict[str, Any]:
+def metadata_coverage(root: Path, start: date, end: date, *,
+                      parents: dict[str, str | None] | None = None) -> dict[str, Any]:
     """Read bounded session_meta headers only; never inspect session bodies."""
     main, children = set(), set()
     files = invalid = 0
@@ -173,13 +208,20 @@ def metadata_coverage(root: Path, start: date, end: date) -> dict[str, Any]:
             if not isinstance(meta, dict):
                 raise ValueError("invalid metadata payload")
             day = observed_time(meta["timestamp"]).date()
-            if not start <= day <= end:
-                continue
             identity = meta.get("id")
             if not isinstance(identity, str) or not identity:
                 raise ValueError("missing thread id")
-            files += 1
             source = meta.get("source")
+            if parents is not None:
+                if isinstance(source, str):
+                    parents[identity] = None
+                elif isinstance(source, dict) and isinstance(source.get("subagent"), dict):
+                    spawn = source["subagent"].get("thread_spawn")
+                    parent = spawn.get("parent_thread_id") if isinstance(spawn, dict) else None
+                    parents[identity] = parent if isinstance(parent, str) else ""
+            if not start <= day <= end:
+                continue
+            files += 1
             if isinstance(source, str):
                 main.add(identity)
             elif isinstance(source, dict) and "subagent" in source:
@@ -196,6 +238,64 @@ def metadata_coverage(root: Path, start: date, end: date) -> dict[str, Any]:
             "reason": "created-at inventory and updated-at index have different denominators"}
 
 
+def receipt_coverage(paths: list[Path], start: date, end: date, *,
+                     project_id: str | None = None) -> dict[str, Any]:
+    """Consume explicit sanitized Provider input files, without reading Hub internals."""
+    if len(paths) > 32:
+        raise CodexAssetError("too many activity receipt inputs (max 32)")
+    if project_id is not None and not PROJECT_ID.fullmatch(project_id):
+        raise CodexAssetError("activity project must be an explicit canonical project ID")
+    items: dict[tuple[str, str, str], set[str]] = {}
+    excluded: dict[str, set[tuple[str, str, str]]] = {
+        "out_of_window": set(), "missing_project": set(), "different_project": set(),
+    }
+    for path in paths:
+        if path.is_symlink() or not path.is_file():
+            raise CodexAssetError("activity receipt must be a regular file")
+        with path.open("rb") as stream:
+            raw = stream.read(1024 * 1024 + 1)
+        if len(raw) > 1024 * 1024:
+            raise CodexAssetError("activity receipt exceeds 1 MiB")
+        try:
+            receipt = json.loads(raw)
+            if (receipt["schema_version"] != 2 or receipt["kind"] != "activity-session-receipt"
+                    or receipt["raw_content_stored"] is not False or not isinstance(receipt["work_items"], list)):
+                raise ValueError("wrong receipt schema")
+            for item in receipt["work_items"]:
+                if (item["schema_version"] != 2 or item["kind"] != "work-activity-item"
+                        or item["raw_content_stored"] is not False):
+                    raise ValueError("wrong work item schema")
+                day = parse_day(item["activity_date"], "activity_date")
+                fields = (item["subject_id"], item["project_id"], item["item_id"], item["title"])
+                if not all(isinstance(value, str) for value in fields) or not all(fields[i] for i in (0, 2, 3)):
+                    raise ValueError("wrong work item fields")
+                key = fields[:3]
+                if not start <= day <= end:
+                    excluded["out_of_window"].add(key)
+                elif project_id is not None and fields[1] != project_id:
+                    reason = "different_project" if fields[1] else "missing_project"
+                    excluded[reason].add(key)
+                else:
+                    items.setdefault(key, set()).update(
+                        name for name, terms, _ in CLUSTERS if any(t in fields[3].casefold() for t in terms))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise CodexAssetError("invalid activity receipt v2") from exc
+    counts = Counter(name for themes in items.values() for name in themes)
+    result = {"source": "caller-supplied-sanitized-activity-receipts", "window_basis": "activity-date",
+            "receipts": len(paths), "distinct_work_items": len(items),
+            "explicit_project_count": len({key[1] for key in items if key[1]}),
+            "theme_counts": dict(sorted(counts.items())), "independent_sessions_verified": False}
+    if project_id is not None:
+        result["project_filter"] = {
+            "project_id": project_id,
+            "status": "matched" if items else "zero-hit",
+            "excluded_distinct_items_by_reason": {
+                reason: len(keys) for reason, keys in excluded.items()
+            },
+        }
+    return result
+
+
 def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--from", dest="start", required=True)
     parser.add_argument("--to", dest="end", required=True)
@@ -203,6 +303,12 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--limit", type=int, default=5)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--session-root", help="optional session_meta-only inventory; no body access")
+    parser.add_argument("--activity-receipt", action="append", default=[], type=Path,
+                        help="sanitized activity-session-receipt v2 input; repeatable")
+    parser.add_argument("--activity-project", help="filter receipts by exact Provider project ID")
+    parser.add_argument("--include-thread-refs", action="store_true",
+                        help="include bounded main thread IDs from session headers; requires --session-root")
+    parser.add_argument("--include-match-terms", action="store_true", help="include matching vocabulary, never raw titles")
 
 
 def run(args: argparse.Namespace) -> int:
@@ -212,15 +318,29 @@ def run(args: argparse.Namespace) -> int:
         raise CodexAssetError("--to 不能早于 --from")
     if args.limit < 1:
         raise CodexAssetError("--limit 必须大于 0")
+    if args.activity_project and not args.activity_receipt:
+        raise CodexAssetError("--activity-project requires --activity-receipt")
+    if args.include_thread_refs and not (args.session_root and args.json):
+        raise CodexAssetError("--include-thread-refs requires --session-root and --json")
     path = Path(args.session_index).expanduser().resolve()
     if not path.is_file():
         raise CodexAssetError(f"session index 不存在: {path}")
-    report = make_report(load_rows(path, start, end), start, end, args.limit)
+    receipts = (receipt_coverage(args.activity_receipt, start, end, project_id=args.activity_project)
+                if args.activity_receipt else None)
+    parents: dict[str, str | None] | None = {} if args.session_root else None
+    inventory = None
     if args.session_root:
         root = Path(args.session_root).expanduser().resolve()
         if not root.is_dir():
             raise CodexAssetError("session root 不存在")
-        report["metadata_inventory"] = metadata_coverage(root, start, end)
+        inventory = metadata_coverage(root, start, end, parents=parents)
+    report = make_report(load_rows(path, start, end), start, end, args.limit,
+                         parents=parents, include_examples=args.include_match_terms,
+                         include_thread_refs=args.include_thread_refs)
+    if inventory is not None:
+        report["metadata_inventory"] = inventory
+    if receipts is not None:
+        report["activity_receipt_inventory"] = receipts
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0

@@ -38,7 +38,7 @@ Runtime Binding Contract 保留既有所有门禁，新增 27 项审计回归与
 
 候选对比有两种显式维护入口：workflow_dispatch 设置 `audit_adk_candidate=true`；或由维护者为本仓分支的 PR 添加 `adk-candidate-audit` 标签。后者会在添加标签及后续 PR 更新时按新 commit 重新比较；fork PR 即使带标签也不走该入口。标签只是要求只读比较，不是资产采用、发布或权限批准。关闭维护 PR 或移除标签即结束该 PR 的后续候选比较。
 
-两种入口均只对照固定 ADK 7.0.31 commit `7367ef84787de75bb751940b32c9e80009660e47`。普通无标签 PR/push 不下载候选，不把跨仓网络检查加入日常必经链。候选比较只在 Python3.11 job 执行一次；两个 Python 版本都执行单元回归。报告绑定 consumer commit、manifest/lock digests 和 candidate commit，并作为 Actions artifact 留存。
+两种入口均对照签名版 ADK 11.4.17 的精确提交 `3ab45d2d4d7607f1d6c46c7c6726b8551603a017`。普通无标签 PR/push 运行本仓回归。跨仓比较由 Python 3.11 作业执行，Python 3.8、3.11 和 3.12 均运行单元回归。报告绑定 consumer commit、manifest/lock digests 和 candidate commit，并作为 Actions artifact 留存。
 
 ```bash
 gh workflow run runtime-binding-contract.yml \
@@ -50,7 +50,7 @@ gh workflow run runtime-binding-contract.yml \
 
 ### 首批实际导入（2026-09-24）
 
-已从上述固定 7.0.31 源码导入 `adk-runtime-router` 2.1.0、
+首批从 ADK 7.0.31 的精确提交 `7367ef84787de75bb751940b32c9e80009660e47` 导入 `adk-runtime-router` 2.1.0、
 `adk-code-review-loop` 1.7.0、`adk-verification-before-completion` 1.7.0。
 三个目录共 8 个文件，包含新增的 3 个 references 文档；旧版本目录退役，
 既有 profile/target/owner 不变，安装源 registry.csv 的对应版本同步更新。

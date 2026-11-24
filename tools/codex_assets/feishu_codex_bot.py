@@ -18,7 +18,8 @@ import stat
 import subprocess
 import threading
 import time
-from typing import Any, Callable, Deque, Dict, FrozenSet, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from contextlib import contextmanager
+from typing import Any, Callable, Deque, Dict, FrozenSet, Iterable, Iterator, List, Mapping, Optional, Sequence, Set, Tuple, Union
 from urllib.parse import urlsplit
 
 from .feishu_task_spool import TaskSpool, SpoolError
@@ -30,6 +31,10 @@ from .feishu_documents import (
 
 class FeishuCodexError(RuntimeError):
     pass
+
+
+class AgentInputPersistError(FeishuCodexError):
+    """A task was reserved but its private input could not be published."""
 
 
 class TaskCanceled(FeishuCodexError):
@@ -826,10 +831,15 @@ class StateStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(str(self.path), timeout=5)
-        connection.row_factory = sqlite3.Row
-        return connection
+        try:
+            connection.row_factory = sqlite3.Row
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -1016,8 +1026,20 @@ class StateStore:
     def create_agent_task(
         self, message_id: str, sender: str, repository: str, mode: str,
         input_digest: str, queue_limit: int,
+        *, agent_run_id: str = "",
+        publish_payload: Optional[Callable[[int], None]] = None,
     ) -> Tuple[int, bool]:
-        """Atomically enforce queue budget and deduplicate the same local request."""
+        """Publish a new local task only after its link and payload are durable.
+
+        Keep the SQLite writer transaction through the private spool write.
+        Concurrent submissions cannot observe a half-published queued row.
+        The optional callback is local disk I/O only; never call a model or
+        remote service here.
+        """
+        if agent_run_id and (
+                not re.fullmatch(r"[a-f0-9]{32}", agent_run_id)
+                or sender != f"agent:{os.getuid()}" or publish_payload is None):
+            raise FeishuCodexError("invalid atomic WorkItem task publication")
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             old = connection.execute(
@@ -1050,6 +1072,27 @@ class StateStore:
                 "INSERT INTO task_sources(task_id,kind,value) VALUES (?,'agent-request-sha256',?)",
                 (task_id, input_digest),
             )
+            if agent_run_id:
+                connection.execute(
+                    "INSERT INTO agent_run_task_links "
+                    "(agent_run_id,task_id,unix_uid,created_at) VALUES (?,?,?,?)",
+                    (agent_run_id, task_id, os.getuid(), now),
+                )
+            if publish_payload is not None:
+                try:
+                    publish_payload(task_id)
+                except (OSError, SpoolError):
+                    # Retain the receipt and its identity. Never expose a
+                    # queued row with incomplete input or reuse its task ID.
+                    connection.execute(
+                        "UPDATE tasks SET status='unknown',"
+                        "error_kind='AgentInputPersistFailed',updated_at=? WHERE id=?",
+                        (int(time.time()), task_id),
+                    )
+                    connection.commit()
+                    raise AgentInputPersistError(
+                        "任务输入持久化失败，禁止自动重复执行"
+                    ) from None
             return task_id, True
 
     def link_agent_run_task(self, agent_run_id: str, task_id: int, unix_uid: int) -> None:
@@ -2236,7 +2279,7 @@ class FeishuCodexBot:
             if run["mode"] != "edit" or run["status"] not in (
                     "waiting_ci", "waiting_qa", "completed"):
                 return False
-            with contextlib.closing(self.store._connect()) as bot_db:
+            with self.store._connect() as bot_db:
                 result = bot_db.execute(
                     "SELECT commit_hash FROM task_results WHERE task_id=?",
                     (task_id,),
@@ -2315,10 +2358,16 @@ class FeishuCodexBot:
                 row["message_id"],
             )
         self.refill_pending(startup=True)
-        pending_ids = {row["id"] for row in self.store.pending()}
-        for task_id in self.spool.ids():
-            if task_id not in pending_ids:
-                self.spool.discard(task_id)
+        # Serialize orphan cleanup with local MCP publication: a payload
+        # may already exist while its queued row is still uncommitted.
+        with self.store._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            pending_ids = {row["id"] for row in connection.execute(
+                "SELECT id FROM tasks WHERE status IN ('queued','running')"
+            )}
+            for task_id in self.spool.ids():
+                if task_id not in pending_ids:
+                    self.spool.discard(task_id)
 
     def refill_pending(self, *, startup: bool = False) -> None:
         for row in self.store.pending():

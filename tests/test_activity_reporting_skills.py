@@ -16,7 +16,7 @@ class ActivityReportingSkillTest(unittest.TestCase):
     def test_active_versions_and_workflow_are_registered(self) -> None:
         skills = {row["name"]: row for row in read_json("manifests/skills.json")["skills"]}
         expected = {
-            "activity-report": "1.2.0",
+            "activity-report": "1.2.1",
             "git-activity-summary": "1.0.0",
             "session-wrap": "4.1.0",
             "chronicle-workflow-miner": "1.4.0",
@@ -35,11 +35,11 @@ class ActivityReportingSkillTest(unittest.TestCase):
     def test_reporting_skill_is_facts_first_and_privacy_bounded(self) -> None:
         skill = (
             ROOT
-            / "src/codex-home/vendor/skills/activity-report/1.2.0/SKILL.md"
+            / "src/codex-home/vendor/skills/activity-report/1.2.1/SKILL.md"
         ).read_text(encoding="utf-8")
         contract = (
             ROOT
-            / "src/codex-home/vendor/skills/activity-report/1.2.0/references/facts-contract.md"
+            / "src/codex-home/vendor/skills/activity-report/1.2.1/references/facts-contract.md"
         ).read_text(encoding="utf-8")
         self.assertIn("Activity Facts v2", skill)
         self.assertIn("不能批量保存会话正文", skill)
@@ -49,6 +49,22 @@ class ActivityReportingSkillTest(unittest.TestCase):
         self.assertIn("work item 必须为 schema v2", contract)
         self.assertIn("身份推断", contract)
         self.assertIn("needs-review", contract)
+
+    def test_weekly_report_defaults_match_configured_feishu_sources(self) -> None:
+        profile = read_json("manifests/activity_report_sources.json")
+        self.assertTrue(profile["enabled"])
+        self.assertTrue(profile["subject"]["team_display_name"])
+        self.assertEqual(
+            {"feishu-personal-weekly", "feishu-management-weekly"},
+            {row["id"] for row in profile["sources"]},
+        )
+        skill_dir = ROOT / "src/codex-home/vendor/skills/activity-report/1.2.1"
+        skill = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("默认交付个人与团队两份", skill)
+        self.assertIn("默认通过 `feishu-readonly` 拉取", skill)
+        output = (skill_dir / "references/output-contract.md").read_text(encoding="utf-8")
+        self.assertIn("对话中交付的周报默认使用通用纯文本", output)
+        self.assertIn("飞书表格只决定取材范围", output)
 
     def test_session_receipt_is_bounded_and_chronicle_uses_it_first(self) -> None:
         session_wrap = (

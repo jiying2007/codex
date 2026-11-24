@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 寄存器映射设计"
+  short_description: "依据芯片手册和勘误设计寄存器字段、访问约束与复位语义，不猜测硬件地址。"

@@ -1,0 +1,1998 @@
+{
+  "license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+  "provider_commit": "3ab45d2d4d7607f1d6c46c7c6726b8551603a017",
+  "provider_repository": "jiying2007/agent-dev-kit",
+  "release": "v11.4.17",
+  "skills": {
+    "adk-adr-writer": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 架构决策记录",
+          "short_description": "将明确的技术决定写成独立可读的 ADR，保留取舍依据和未决风险，不编造方案。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-adr-writer/SKILL.md",
+      "target_rel": "skills/adk-adr-writer",
+      "tree": {
+        "SKILL.md": {
+          "blob": "2ce4fdd95ec15130a55e9244da63b22ec874de4c",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "237fa65fee7eb56d58f86d778acb430be294b27e",
+          "mode": "100644"
+        }
+      },
+      "version": "1.2.3"
+    },
+    "adk-after-action-review": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 任务复盘与经验提炼",
+          "short_description": "按已完成任务的真实结果复盘问题和返工，长期知识晋级仍须单独审核。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-after-action-review/SKILL.md",
+      "target_rel": "skills/adk-after-action-review",
+      "tree": {
+        "SKILL.md": {
+          "blob": "8195e1dd603a80fd6dfd37fabfda231e522a27cf",
+          "mode": "100644"
+        },
+        "references/after-action-review.md": {
+          "blob": "2ee16e7a98784ae293daf427b0465d37ac7f2474",
+          "mode": "100644"
+        },
+        "references/codify-decision.md": {
+          "blob": "52b1b474f54bc76b3d6fba1e8304e53e8f6d63ea",
+          "mode": "100644"
+        },
+        "references/memory-candidate.md": {
+          "blob": "702aced3a49cc5adddf33686afc081b7b1e8fb44",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "7d886412272e6a5d6c763e4b8b1239e082b87999",
+          "mode": "100644"
+        }
+      },
+      "version": "1.3.1"
+    },
+    "adk-archive-governance": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 归档资料治理",
+          "short_description": "只读审查已存在归档的元数据、主题与摘要一致性，不负责新建知识笔记。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-archive-governance/SKILL.md",
+      "target_rel": "skills/adk-archive-governance",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "777dc00b02aa03d642041fb71a3e54a66ab94333",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "74071cb5a91805239a08865e815eede99b376b41",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "1e66fa8e4e1b2c0762b843751c958abddcaa4e2f",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.7"
+    },
+    "adk-artifact-gating": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 交付物状态门禁",
+          "short_description": "跨角色交付时核实实现、评审与测试产物的状态和证据，不替代独立签核。"
+        },
+        "policy": {
+          "allow_implicit_invocation": false
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-artifact-gating/SKILL.md",
+      "target_rel": "skills/adk-artifact-gating",
+      "tree": {
+        "SKILL.md": {
+          "blob": "d86cf7f79a6f0fbd935dbbe16772bd7636289902",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "190c8b805e42bebfc480a2df8b5aa74ba4d75c24",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "a69ee94f6e2718d586a34a0e377ac3c132f9a231",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.4"
+    },
+    "adk-branch-closeout": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 分支与 PR 收尾",
+          "short_description": "在验证完成后处理 PR 创建、合并和保留决策，不擅自删除工作树或分支。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-branch-closeout/SKILL.md",
+      "target_rel": "skills/adk-branch-closeout",
+      "tree": {
+        "SKILL.md": {
+          "blob": "0eafef3292f33ddd49bb7189f5dc8d8688487ff5",
+          "mode": "100644"
+        },
+        "references/closeout-options.md": {
+          "blob": "4357bb2f6bb30e76734fd5954ef17c47d804468d",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "c1fef30e5eb213be5d68b96990a55f1ee22c6bfa",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.3"
+    },
+    "adk-bsp-analysis": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · BSP 源码分析",
+          "short_description": "只读追踪板级启动、探测、时钟和历史补丁依赖，输出可追溯的移植风险。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-bsp-analysis/SKILL.md",
+      "target_rel": "skills/adk-bsp-analysis",
+      "tree": {
+        "SKILL.md": {
+          "blob": "0143ecbfa9286268361b84a49e78bd282f4576f3",
+          "mode": "100644"
+        },
+        "references/bsp-analysis-details.md": {
+          "blob": "b9016cd4f521354f72a6ec2abbf6a7b8fd425c67",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "17ae2dd07f0fd84c66d308d8f555d49f4ea9bbec",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.3"
+    },
+    "adk-bsp-porting-playbook": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · BSP 移植实施",
+          "short_description": "迁移 SoC 或板级 BSP 的配置与启动链并保留回滚，不擅自刷写设备存储。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-bsp-porting-playbook/SKILL.md",
+      "target_rel": "skills/adk-bsp-porting-playbook",
+      "tree": {
+        "SKILL.md": {
+          "blob": "5cee450e33628b1c6ddaf56d61922d74ddf49c56",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "409f1a120c9e46dc8dbc20d407e84241643b2726",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.3"
+    },
+    "adk-cmake-cross-build": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · CMake 交叉构建",
+          "short_description": "按工具链和二进制目录执行可复现交叉构建，保护既有缓存与用户工作区。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-cmake-cross-build/SKILL.md",
+      "target_rel": "skills/adk-cmake-cross-build",
+      "tree": {
+        "SKILL.md": {
+          "blob": "79222b0a19ceef3dece53c89dafb19fac6df8c48",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "d0055330dfe3645e04ad4527fa1df510413fd706",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.8"
+    },
+    "adk-code-review-loop": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 代码审查与反馈闭环",
+          "short_description": "按真实差异审查代码及设计风险、核实反馈误报，不自动批准或修改未授权内容。"
+        }
+      },
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-code-review-loop/SKILL.md",
+      "target_rel": "skills/adk-code-review-loop",
+      "tree": {
+        "SKILL.md": {
+          "blob": "f0810f08a3efc4b6abe5e6a6df93b356b0bbcf2a",
+          "mode": "100644"
+        },
+        "references/review-communication-guidance.md": {
+          "blob": "d52dfdd9db9f2a465df26414e8bb0023a9f45379",
+          "mode": "100644"
+        },
+        "references/review-evidence-template.md": {
+          "blob": "e8da43d1088a062d5f353a2f9b2adafe67e7d4ff",
+          "mode": "100644"
+        },
+        "references/review-feedback-fixtures.md": {
+          "blob": "1a2fbe90cfc177f585aca0a67cef46bb4ce4d088",
+          "mode": "100644"
+        },
+        "references/review-governance-details.md": {
+          "blob": "1eeaf76eb70ec4abd2e1d2de646eaf3a544444b5",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "c91823d5860ea081a7d3e4ca5230d31f3cfaf40d",
+          "mode": "100644"
+        }
+      },
+      "version": "1.7.14"
+    },
+    "adk-code-simplification": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 代码简化",
+          "short_description": "保持外部行为不变地减少理解和修改负担，先固定测试基线再进行局部重构。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-code-simplification/SKILL.md",
+      "target_rel": "skills/adk-code-simplification",
+      "tree": {
+        "SKILL.md": {
+          "blob": "6e71fda0617a66ace9be420f23dfd46c1efe2475",
+          "mode": "100644"
+        },
+        "references/deep-module-design.md": {
+          "blob": "7a294528019411649dfc84f5f5e79a7ab82e195f",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "4f5ec1be3bb629581b05a7849c8e5234a23adaf8",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "c10d644c4ca28d78d7c221930c19cf60486162e4",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.3"
+    },
+    "adk-commit-pr-quality-gate": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 提交与 PR 质量门禁",
+          "short_description": "根据当前操作检查提交信息、改动范围和验证回执，不替代代码审查或合并授权。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-commit-pr-quality-gate/SKILL.md",
+      "target_rel": "skills/adk-commit-pr-quality-gate",
+      "tree": {
+        "SKILL.md": {
+          "blob": "e64350b66f50c279301d402c5cb556eff0377b25",
+          "mode": "100644"
+        },
+        "references/pr-risk-gates.md": {
+          "blob": "cbd8582597fdc5d53b5d34701e48ed536f8cfde4",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "dbf158fdf153ac0a1fb24532989bc0a83dae7ae4",
+          "mode": "100644"
+        }
+      },
+      "version": "1.2.2"
+    },
+    "adk-component-api-stability": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 组件 API 稳定性",
+          "short_description": "检查组件接口的源码、二进制和行为兼容风险，明确消费者影响及迁移条件。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-component-api-stability/SKILL.md",
+      "target_rel": "skills/adk-component-api-stability",
+      "tree": {
+        "SKILL.md": {
+          "blob": "f177aa970e424b9bc54ccca840585349a8359140",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "33debb2f4d7a26d987f8735dac8b7bd3257ad9b1",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.3"
+    },
+    "adk-context-compress-handoff": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 上下文压缩与接力",
+          "short_description": "长任务或跨会话恢复时保留目标、实际进展、证据和下一动作，不替代原始验证。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-context-compress-handoff/SKILL.md",
+      "target_rel": "skills/adk-context-compress-handoff",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "d1bf34ae8e15fa825bf64a85853bb639b61df22d",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "ece505929265aa0e02e8c3d72b0a5f63df00f24f",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "d40c1594d9db66a0ca5810d8c777b9a1861c99c9",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.4"
+    },
+    "adk-context-engineering": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 上下文工程",
+          "short_description": "按任务阶段组织稳定规则、动态状态与按需证据，避免无关内容占用上下文。"
+        },
+        "policy": {
+          "allow_implicit_invocation": false
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-context-engineering/SKILL.md",
+      "target_rel": "skills/adk-context-engineering",
+      "tree": {
+        "SKILL.md": {
+          "blob": "6e7f97445359227f79ffc29a8d4c52029f74d0cc",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "df4bd1646ecbcb428e21c58c6d05fdacb05798ed",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.5"
+    },
+    "adk-cross-team-handoff": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 跨团队交接",
+          "short_description": "明确产品、研发和测试之间的交付责任与验收，不把文档签收当权限批准。"
+        },
+        "policy": {
+          "allow_implicit_invocation": false
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-cross-team-handoff/SKILL.md",
+      "target_rel": "skills/adk-cross-team-handoff",
+      "tree": {
+        "SKILL.md": {
+          "blob": "38b6a47d03fe1dd18293ba7fb1eb02afd0ed5f12",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "d62992d2680e97957192d9abe5a16d6ae42614c5",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.2"
+    },
+    "adk-data-fetch": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 外部数据获取路由",
+          "short_description": "按明确来源选择已安装的 URL 或邮件只读获取技能，不隐式安装或访问其他资源。"
+        },
+        "policy": {
+          "allow_implicit_invocation": false
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-data-fetch/SKILL.md",
+      "target_rel": "skills/adk-data-fetch",
+      "tree": {
+        "SKILL.md": {
+          "blob": "2e9dad05a42b82a92894fef092f542c32357b79c",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "97271c5d692c0e0145b28792cecb7983ed8897c7",
+          "mode": "100644"
+        },
+        "adk-email-imap-fetch/SKILL.md": {
+          "blob": "574d4423588d8cd7750d24c3bac63fedc1ea67e4",
+          "mode": "100644"
+        },
+        "adk-email-imap-fetch/agents/openai.yaml": {
+          "blob": "161706ea4f37177f401694300c7a87a484e74ff4",
+          "mode": "100644"
+        },
+        "adk-fetch-url-content/SKILL.md": {
+          "blob": "4745cbba7bf0f339b8978f2d76bd93ba20993a68",
+          "mode": "100644"
+        },
+        "adk-fetch-url-content/agents/openai.yaml": {
+          "blob": "e5290d402a7a66d9fc385cc3e61c6b0f121cbc43",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.4"
+    },
+    "adk-driver-bringup-checklist": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 驱动上板调通",
+          "short_description": "按板级依赖验证驱动初始化、寄存器、中断和恢复路径，不把源码构建当上板成功。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-driver-bringup-checklist/SKILL.md",
+      "target_rel": "skills/adk-driver-bringup-checklist",
+      "tree": {
+        "SKILL.md": {
+          "blob": "16d37a1593de47b69a9d3f03a91719eb306f3ee6",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "3a2d01d9e2a5495b17ec0662f7cb5e5f937bf7b6",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.4"
+    },
+    "adk-driver-implementation": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 嵌入式驱动实现",
+          "short_description": "实现 MCU 或 Linux 设备驱动并验证边界错误，真实硬件写入仍需独立授权。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-driver-implementation/SKILL.md",
+      "target_rel": "skills/adk-driver-implementation",
+      "tree": {
+        "SKILL.md": {
+          "blob": "03dab786433fce3fb12487701cb9a206ddc2416c",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "0a15647ba29d91d446ab505482df2328767cf684",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.3"
+    },
+    "adk-email-imap-fetch": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · IMAP 邮件只读获取",
+          "short_description": "按账号和检索范围通过 IMAP 只读提取邮件，不发送、移动或修改邮箱状态。"
+        },
+        "policy": {
+          "allow_implicit_invocation": false
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-data-fetch/adk-email-imap-fetch/SKILL.md",
+      "target_rel": "skills/adk-email-imap-fetch",
+      "tree": {
+        "SKILL.md": {
+          "blob": "574d4423588d8cd7750d24c3bac63fedc1ea67e4",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "161706ea4f37177f401694300c7a87a484e74ff4",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.6"
+    },
+    "adk-embedded-debug-transport": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 设备调试通道",
+          "short_description": "治理串口、ADB、SSH 或 GDB 调试连接及命令风险，不默认取得设备写权限。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-debug-transport/SKILL.md",
+      "target_rel": "skills/adk-embedded-debug-transport",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "c975880282efd85f55780b4c423efcedcdf58edf",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "293b0664c59d5069af03a92983357943dd5f0d52",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "a7aab07187c75a7718e421e14a97a3039b930224",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.3"
+    },
+    "adk-embedded-diagnostic-harness": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 嵌入式诊断框架",
+          "short_description": "建立可复用诊断命令、返回码和 HIL 证据，限制目标设备操作副作用。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-diagnostic-harness/SKILL.md",
+      "target_rel": "skills/adk-embedded-diagnostic-harness",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "6005feb11ddfc27c5db48f421e1e3e6986c0d04d",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "6f7a7813bb420f04ce96f4acc2078500ea7f3850",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "52e203e11ddc71cc905bdf184bc83a16c0726c79",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.3"
+    },
+    "adk-embedded-release-orchestration": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 嵌入式发布编排",
+          "short_description": "准备固件发布包、签名及回滚链路，发布到外部目标与刷机需分别授权。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-release-orchestration/SKILL.md",
+      "target_rel": "skills/adk-embedded-release-orchestration",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "f093c89f695ebc73ecb8895680aab8bfd6ea0804",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "d97c42deae89a3e8f9be7204296e67a442e8f101",
+          "mode": "100644"
+        },
+        "references/multi-mcu-ota-recovery.md": {
+          "blob": "ba9fd82c7e172aec3c58a666e7f4aad614f65367",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "5911d1d0d5ef7ddabb4b02ede06583489bacbdb3",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.4"
+    },
+    "adk-embedded-remote-debug-log-triage": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 嵌入式日志排障",
+          "short_description": "分析嵌入式设备连接、串口、内核和应用日志，先取证再区分修复动作。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-remote-debug-log-triage/SKILL.md",
+      "target_rel": "skills/adk-embedded-remote-debug-log-triage",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "b8ad51e75a696100dfc4381cba5db3c50b1fd7a4",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "eea9374be54518c1a9e16729f82d063b4cc13ea5",
+          "mode": "100644"
+        },
+        "references/remote-adb-hil-contract.md": {
+          "blob": "6b573675b3a48548fdbda7649397c0304af69d43",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "dadba7923c480a5766e16e070cea6a5cd28e210e",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.2"
+    },
+    "adk-embedded-storage-layout-migration": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 存储布局迁移",
+          "short_description": "评估设备分区和闪存布局升级及掉电恢复，不在缺少回滚证据时执行写入。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-embedded-storage-layout-migration/SKILL.md",
+      "target_rel": "skills/adk-embedded-storage-layout-migration",
+      "tree": {
+        "SKILL.md": {
+          "blob": "c34fbf64df1ef04563f3e912deaac74614a42ef7",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "95d18a223e1b55d147a7533f416208025f962fe4",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.5"
+    },
+    "adk-engineering-growth-review": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 工程习惯成长复盘",
+          "short_description": "基于获准的交付证据分析长期编码习惯，避免推断个人属性或无依据评价。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-engineering-growth-review/SKILL.md",
+      "target_rel": "skills/adk-engineering-growth-review",
+      "tree": {
+        "LICENSE": {
+          "blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "689f3c5d738954df8e27c1daa992dba2318f01b8",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "eb6ec5ed04d90371e3aa8bae3870ddb74915905c",
+          "mode": "100644"
+        },
+        "references/growth-evidence-boundaries.md": {
+          "blob": "e6540e1e825e08448da2f7721aec84baa5663837",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "8595366d700e574de7578303edbd1013d8964aeb",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.3"
+    },
+    "adk-external-practice-absorption": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 外部实践吸收治理",
+          "short_description": "审查外部工程实践的来源、安全、重复能力与采纳证据，不自动安装发布。",
+          "default_prompt": "请使用 $adk-external-practice-absorption 处理当前任务，按来源证据、权限边界和完成标准交付结果。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-external-practice-absorption/SKILL.md",
+      "target_rel": "skills/adk-external-practice-absorption",
+      "tree": {
+        "SKILL.md": {
+          "blob": "de2f97c599879be5e1e657354af211ddf8fac8f2",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "da4058d2119e298a5307b0ab6a59d7d2fa634340",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.3"
+    },
+    "adk-fault-injection-recovery": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 故障注入与恢复",
+          "short_description": "设计超时、掉电或资源异常的注入实验，检查可恢复性及清理与安全边界。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-fault-injection-recovery/SKILL.md",
+      "target_rel": "skills/adk-fault-injection-recovery",
+      "tree": {
+        "SKILL.md": {
+          "blob": "8d80fda79a9c7755ee9a379c630667152f526a16",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "08e110eb6d829b5c2428856465f62f45510cfbdb",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.5"
+    },
+    "adk-fetch-url-content": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 网页正文安全提取",
+          "short_description": "提取已授权公开网页的正文与结构化链接，拒绝内网探测和受限内容绕过。"
+        },
+        "policy": {
+          "allow_implicit_invocation": false
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-data-fetch/adk-fetch-url-content/SKILL.md",
+      "target_rel": "skills/adk-fetch-url-content",
+      "tree": {
+        "SKILL.md": {
+          "blob": "4745cbba7bf0f339b8978f2d76bd93ba20993a68",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "e5290d402a7a66d9fc385cc3e61c6b0f121cbc43",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.5"
+    },
+    "adk-goal-authoring": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · Goal 目标合同生成",
+          "short_description": "新建或实质修改 Goal 时定义可验证验收与批次，不重置已有执行历史或预算。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-goal-authoring/SKILL.md",
+      "target_rel": "skills/adk-goal-authoring",
+      "tree": {
+        "SKILL.md": {
+          "blob": "3842be279ec9fc128136c021cb7253ee68308af3",
+          "mode": "100644"
+        },
+        "references/goal-plan.json": {
+          "blob": "7f35ee1caeb659b47cbc805f0107dd3284f123db",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "3739e390e1110f0fdc65a3d04c21c3925c31f054",
+          "mode": "100644"
+        }
+      },
+      "version": "0.1.5"
+    },
+    "adk-hardware-debugging": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 硬件故障定位",
+          "short_description": "依据板级现象、测量和数据手册定位硬件故障，不以猜测取代实测证据。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-hardware-debugging/SKILL.md",
+      "target_rel": "skills/adk-hardware-debugging",
+      "tree": {
+        "SKILL.md": {
+          "blob": "a2c5a0b60e226edcd78cb0ecafbe2a282a376625",
+          "mode": "100644"
+        },
+        "references/mcu-fault-reset-wakeup.md": {
+          "blob": "722fdb6ebfd3d5c68b48662a5750de5069c181f4",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "dd3439c0b84d2e161609e8828540ecdfb2637dc2",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.4"
+    },
+    "adk-incident-rca-report": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 事故根因分析报告",
+          "short_description": "将已核实事故的时间线、根因与恢复证据形成报告，不臆造未知原因。"
+        },
+        "policy": {
+          "allow_implicit_invocation": false
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-incident-rca-report/SKILL.md",
+      "target_rel": "skills/adk-incident-rca-report",
+      "tree": {
+        "SKILL.md": {
+          "blob": "6ee3c722ef6f7798e6d32ed1c30340aec09b805f",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "87b3da5581552bd9af82eceb0380d2a3dbe586df",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.2"
+    },
+    "adk-integration-hil-sil": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · SIL 与 HIL 集成验证",
+          "short_description": "组合软件仿真和硬件在环测试，明确环境、覆盖范围和不可替代的板端结果。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-integration-hil-sil/SKILL.md",
+      "target_rel": "skills/adk-integration-hil-sil",
+      "tree": {
+        "SKILL.md": {
+          "blob": "ade320cb66e3e813b249d77dd0c3d021775b58bc",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "cd0890a6bed3e6a4068423835b248b9b3d0fa99b",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.5"
+    },
+    "adk-interface-contract-design": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 接口契约设计",
+          "short_description": "设计跨模块接口与正反向验收，保留兼容、失败和迁移边界，不代替实际编码。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-interface-contract-design/SKILL.md",
+      "target_rel": "skills/adk-interface-contract-design",
+      "tree": {
+        "SKILL.md": {
+          "blob": "b01e02a69b8161d1518329cb1e7c297775bc8f83",
+          "mode": "100644"
+        },
+        "references/design-quality-methods.md": {
+          "blob": "720070607935eea1aff0eddb779b9702e8c12428",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "a617bf5c439c4cd3f808f0d904ffb4a810ea340f",
+          "mode": "100644"
+        },
+        "references/lifecycle-operation-contract.md": {
+          "blob": "dac285c357b87bda2cc468d64fc38d931330aa51",
+          "mode": "100644"
+        },
+        "references/spec-code-bidirectional.md": {
+          "blob": "12b0ea0bec197ae0e9db6d4c59d93772efdf29e9",
+          "mode": "100644"
+        },
+        "references/tool-effect-contract.md": {
+          "blob": "64865b9122ebf281971818bdea4f6446a1758ff0",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "a4af06545aada1bbe601285952145f4f5cd56864",
+          "mode": "100644"
+        }
+      },
+      "version": "1.3.9"
+    },
+    "adk-interrupt-dma-patterns": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 中断与 DMA 设计",
+          "short_description": "检查中断、DMA、缓存一致性及并发竞态，基于目标平台约束给出实现方法。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-interrupt-dma-patterns/SKILL.md",
+      "target_rel": "skills/adk-interrupt-dma-patterns",
+      "tree": {
+        "SKILL.md": {
+          "blob": "aa2644981bd2b9ff5bb710f30c8a6e096216c2b1",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "59b883b26bdd3a3dd27c4845ffa344e938aab24d",
+          "mode": "100644"
+        },
+        "references/rtos-isr-dma-diagnostics.md": {
+          "blob": "671a11e2df2fe49f98d2bdcd5401c123982d950d",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "93ba2c43cc080e2a41df6d0606f39c36dcd248b7",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.4"
+    },
+    "adk-knowledge-archive": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 知识笔记归档",
+          "short_description": "将研究、排障与决策整理为可检索脱敏笔记，不自动提升为全局规则。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-knowledge-archive/SKILL.md",
+      "target_rel": "skills/adk-knowledge-archive",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "de534394e4358dc6812dd3ac3a3d40410648d6c6",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "5f67580e169c9b5c0687db35f954e98b73c5e10a",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "8295e6bc98e4f5a87760190e1f84fc1cca72fbd9",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.1"
+    },
+    "adk-lightweight-planning": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 轻量只读计划",
+          "short_description": "用户只需计划而暂不修改代码时生成最短可验证步骤，不启动长任务执行。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-lightweight-planning/SKILL.md",
+      "target_rel": "skills/adk-lightweight-planning",
+      "tree": {
+        "LICENSE": {
+          "blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "411c8973c5fb8f81a24cdf9b11604b40a399eec7",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "7de09d80e4c1f267c9b3592702c964a12b384863",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "797853030fb220d3e2af50ed88680ce8bc5596e1",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.1"
+    },
+    "adk-memory-curator": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 长期记忆候选整理",
+          "short_description": "审计经授权的历史记录与知识源并形成记忆候选，不静默改写长期记忆。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-memory-curator/SKILL.md",
+      "target_rel": "skills/adk-memory-curator",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "a90db02f1be4fa9f456e24f4a931cdad259a6903",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "5da39061de48e197503d06321b5dfeb59da78859",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "de70720f56ddd2cdc2f5ac7e23c75a177c6ec718",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.4"
+    },
+    "adk-offline-core-dump-triage": {
+      "installed_license_blob": "7623a54f553866c55b1187a9c3777c5e31fc0afe",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 离线 Core Dump 分析",
+          "short_description": "匹配嵌入式 Core Dump、符号和 Build ID，定位崩溃而不编造完整调用栈。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-offline-core-dump-triage/SKILL.md",
+      "target_rel": "skills/adk-offline-core-dump-triage",
+      "tree": {
+        "SKILL.md": {
+          "blob": "67e73b15716488dd8736f2635fe13c2d2bd7782e",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "73847bd016e8e64c9ba21aca9fbe8837bc18570a",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.3"
+    },
+    "adk-parallel-agent-governance": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 并行代理治理",
+          "short_description": "评估可独立写入和验证的并行任务边界，避免共享文件冲突与无收益并行。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-parallel-agent-governance/SKILL.md",
+      "target_rel": "skills/adk-parallel-agent-governance",
+      "tree": {
+        "SKILL.md": {
+          "blob": "554bd0f42d10832a0aa4c898f73bc4a216b2d9fe",
+          "mode": "100644"
+        },
+        "references/parallel-worktree-task-package.md": {
+          "blob": "23a0cdd096c6d6e85b51d5bbe6e0362fd2244555",
+          "mode": "100644"
+        },
+        "references/subagent-review-checklist.md": {
+          "blob": "561939020cf66fc215d87105ea7e1b8383e3a659",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "1418c2f49a02b12613b46858a591b1bf9121687d",
+          "mode": "100644"
+        }
+      },
+      "version": "1.5.3"
+    },
+    "adk-performance-profiling-embedded": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 嵌入式性能分析",
+          "short_description": "在可比负载下测量 CPU、内存与时延热点，区分主机估算和目标板真实数据。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-performance-profiling-embedded/SKILL.md",
+      "target_rel": "skills/adk-performance-profiling-embedded",
+      "tree": {
+        "SKILL.md": {
+          "blob": "16c824a9b88d80bf4f55a5cdf3c3e990ac17a2b4",
+          "mode": "100644"
+        },
+        "references/mcu-memory-footprint.md": {
+          "blob": "2c9c7b05532d2b28dc9d9585ee8e7a8788610700",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "e0de5933a8bfcd84d58a336a4bd73b47e688ee45",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.9"
+    },
+    "adk-pilot-framework": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 实际任务试点验证",
+          "short_description": "在受控环境运行真实小规模任务并比较验收结果，不把静态检查当试点成功。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-pilot-framework/SKILL.md",
+      "target_rel": "skills/adk-pilot-framework",
+      "tree": {
+        "SKILL.md": {
+          "blob": "643418c1b28f0085e4a1ca502682748d24888a2b",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "e0a681a96a5a86b32dc8dd7f591657b0d42e8560",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "204498f5106dd5b16f05dc5cce23e8c495785f77",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.3"
+    },
+    "adk-planning-execution-loop": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 长任务持续执行",
+          "short_description": "按已批准计划推进真实代码、定向验证和断点恢复，不把轮询或计划当作完成。"
+        }
+      },
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-planning-execution-loop/SKILL.md",
+      "target_rel": "skills/adk-planning-execution-loop",
+      "tree": {
+        "SKILL.md": {
+          "blob": "9912783e5cdcf3cd5ab339804b4d993405b2de76",
+          "mode": "100644"
+        },
+        "references/long-task-recovery.md": {
+          "blob": "6b049e78595726b66853cd88f2e7ef0be87ecdfb",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "3ae19373b4df569c2925f911b1391593c5a26225",
+          "mode": "100644"
+        }
+      },
+      "version": "1.4.7"
+    },
+    "adk-production-field-readiness": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 量产与现场就绪检查",
+          "short_description": "审核嵌入式产测、OTA、诊断和现场恢复证据，不把构建成功当量产认证。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-production-field-readiness/SKILL.md",
+      "target_rel": "skills/adk-production-field-readiness",
+      "tree": {
+        "SKILL.md": {
+          "blob": "cbe3c52844c2021654fed0e913f754cbcf3ef8c1",
+          "mode": "100644"
+        },
+        "references/pilot-measurement-evidence.md": {
+          "blob": "8b1253f3a77ff253b97b5d879954726217518b5c",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "e3dd9ee5319fb0a40a3fbb5c161a4eb18f0d299b",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.6"
+    },
+    "adk-prose-revision": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 中文文稿润色",
+          "short_description": "在保持事实、结构与专业判断不变的前提下改善中文表达，不代替业务决策。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-prose-revision/SKILL.md",
+      "target_rel": "skills/adk-prose-revision",
+      "tree": {
+        "SKILL.md": {
+          "blob": "7f969f0e4b4648eea61bc5b70544e89bc635197b",
+          "mode": "100644"
+        },
+        "references/review-cases.md": {
+          "blob": "5feb15f8f3d14a0bb97a4f5156ac2d099e4766c6",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "fc388470ecdbe422b22c42b7f0149a2781569ab1",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.1"
+    },
+    "adk-protocol-stack-integration": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 协议栈集成",
+          "short_description": "实现或评估嵌入式通信协议的状态、超时与故障恢复，保留实际传输证据。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-protocol-stack-integration/SKILL.md",
+      "target_rel": "skills/adk-protocol-stack-integration",
+      "tree": {
+        "SKILL.md": {
+          "blob": "ae16d728b57e25db1eb497850947eadad9861462",
+          "mode": "100644"
+        },
+        "references/transport-boundaries.md": {
+          "blob": "d2208cf38c5a57788237be1872ecdb95080a76d6",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "12ca38141cdc4e9308fc9630c7ae4e36c5d78d61",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.7"
+    },
+    "adk-register-map-design": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 寄存器映射设计",
+          "short_description": "依据芯片手册和勘误设计寄存器字段、访问约束与复位语义，不猜测硬件地址。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-register-map-design/SKILL.md",
+      "target_rel": "skills/adk-register-map-design",
+      "tree": {
+        "SKILL.md": {
+          "blob": "37c46017dad979cde1519b895f57f0f03b2e962a",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "1dcdee53bfaf19715b7bdbd65a546950d46cc7aa",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.6"
+    },
+    "adk-release-versioning": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 版本与发布准备",
+          "short_description": "核对语义版本、变更记录、制品和回滚基线，真实发布仍受独立门禁约束。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-release-versioning/SKILL.md",
+      "target_rel": "skills/adk-release-versioning",
+      "tree": {
+        "SKILL.md": {
+          "blob": "735f3854b89ef31248e3eee85718f588aa64f492",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "b2c501842e5f22694538391f5d2ee617809290ee",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "5184cd3a46a55b19607377d6186b0ae0f313c4e3",
+          "mode": "100644"
+        }
+      },
+      "version": "1.4.5"
+    },
+    "adk-repo-drift-remediation": {
+      "installed_license_blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 仓库漂移治理",
+          "short_description": "定位架构、文档、配置和兼容残留的不一致，按证据最小修复并保护已有改动。"
+        }
+      },
+      "profiles": [
+        "solo-dev",
+        "team-collab"
+      ],
+      "source_path": "skills/adk-repo-drift-remediation/SKILL.md",
+      "target_rel": "skills/adk-repo-drift-remediation",
+      "tree": {
+        "LICENSE": {
+          "blob": "1c326f3a91d2e3889cb5259af82a3fdd96a4ba72",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "bbb9ffc101cd6ac54317dac5183bd3ee015d85ea",
+          "mode": "100644"
+        },
+        "SKILL.md": {
+          "blob": "a4b5eda8cfbab427ad5528edd878b6bd80b32eba",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "c86dc66ae7bcf9ab2a42e7e6184d5e368ee571d4",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.5"
+    },
+    "adk-repo-prompt-analysis": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 提示词来源审查",
+          "short_description": "只读分析参考仓的提示词组装、调用链及信任边界，不执行外部脚本或复制指令。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-repo-prompt-analysis/SKILL.md",
+      "target_rel": "skills/adk-repo-prompt-analysis",
+      "tree": {
+        "SKILL.md": {
+          "blob": "874c69c6d1df32b6460c2ad285cb3ca85645dcc9",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "db2bb01f484803744ad78c7cf048acc743553eac",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.6"
+    },
+    "adk-requirements-triage": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 需求澄清与验收",
+          "short_description": "将尚不明确的需求整理为边界、验收标准和交付条件，已有明确计划时不重启访谈。"
+        }
+      },
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-requirements-triage/SKILL.md",
+      "target_rel": "skills/adk-requirements-triage",
+      "tree": {
+        "SKILL.md": {
+          "blob": "6da898609dd635ae982fedeed2471b4abc307eac",
+          "mode": "100644"
+        },
+        "references/embedded-discovery-brief.md": {
+          "blob": "b3983557b95917a1093ffa0d64ffebc2e5fd332b",
+          "mode": "100644"
+        },
+        "references/exploratory-requirements-brief.md": {
+          "blob": "c2358903d236fba94ecc1dba697386638280c37d",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "4b155e9c1357013e3607dbc6684b628490c12252",
+          "mode": "100644"
+        }
+      },
+      "version": "1.4.1"
+    },
+    "adk-rtos-task-design": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · RTOS 任务设计",
+          "short_description": "设计实时任务优先级、周期、栈与共享资源，明确可证明的调度与时序假设。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-rtos-task-design/SKILL.md",
+      "target_rel": "skills/adk-rtos-task-design",
+      "tree": {
+        "SKILL.md": {
+          "blob": "d392cad67d76298418debc6e2acfb33a25b5d299",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "392cee947263e5d0b2d301e45c57b5457e085ce4",
+          "mode": "100644"
+        }
+      },
+      "version": "2.0.5"
+    },
+    "adk-runtime-router": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 任务路由",
+          "short_description": "根据当前任务、风险和资源选择唯一主技能与可用配置，不隐式授权工具或外部写入。"
+        }
+      },
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-runtime-router/SKILL.md",
+      "target_rel": "skills/adk-runtime-router",
+      "tree": {
+        "SKILL.md": {
+          "blob": "931a57565c65028f42ac68fc7346de2adc54fb61",
+          "mode": "100644"
+        },
+        "references/runtime-routing-details.md": {
+          "blob": "f30031e24580c72f1247119cab40dc52d366ca88",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "e118117278dd27c0afa7716755f5fdad07e9dc39",
+          "mode": "100644"
+        }
+      },
+      "version": "2.1.6"
+    },
+    "adk-security-supply-chain": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 供应链安全审查",
+          "short_description": "核查外部代码或 Skill 的依赖、许可证和风险来源，不自动安装未验证内容。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-security-supply-chain/SKILL.md",
+      "target_rel": "skills/adk-security-supply-chain",
+      "tree": {
+        "SKILL.md": {
+          "blob": "ee812e64e5ba17913211b85049bcd7632a3b44ba",
+          "mode": "100644"
+        },
+        "references/skill-scan-coverage.md": {
+          "blob": "4646b0d5d1383cadacea0576f91e7e1e44aab404",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "4972b30f9b0a9fc27fd8fcdbe5b8bb8d36565534",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.8"
+    },
+    "adk-skill-composition-governance": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · Skill 组合与治理",
+          "short_description": "评估 Skill 触发、组合、重复和退役证据，守住权限与真实效果验证边界。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-skill-composition-governance/SKILL.md",
+      "target_rel": "skills/adk-skill-composition-governance",
+      "tree": {
+        "SKILL.md": {
+          "blob": "43b577717aa8f101cb4b9c79af511938d068007b",
+          "mode": "100644"
+        },
+        "references/adk-skill-lifecycle.md": {
+          "blob": "3a2d589dea36e6c6b4d5030661ae0e32b783a952",
+          "mode": "100644"
+        },
+        "references/skill-behavior-evaluation.md": {
+          "blob": "33227521a94ebf56ff2419fae7828c4f7e3527eb",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "581819c8085cb7394c8efadfc636365a0c2d797c",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.12"
+    },
+    "adk-skill-deep-analysis": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · Skill 方法深度分析",
+          "short_description": "只读对标外部 Skill 的来源、方法与可迁移价值，不自动安装或采纳外部资产。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-skill-deep-analysis/SKILL.md",
+      "target_rel": "skills/adk-skill-deep-analysis",
+      "tree": {
+        "SKILL.md": {
+          "blob": "d85f4df49326ae5c64bc8348c1fbef5f0f785ba3",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "744430c8df357ad4cc16cf192cf37fa9554c5d9d",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "40a7a7de8108c9729d253d23b837052d382cb4ca",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.6"
+    },
+    "adk-static-analysis-c-cpp": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · C/C++ 静态分析",
+          "short_description": "运行适用的 C/C++ 编译器与静态检查并验证告警，不把工具退出码当缺陷证据。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-static-analysis-c-cpp/SKILL.md",
+      "target_rel": "skills/adk-static-analysis-c-cpp",
+      "tree": {
+        "SKILL.md": {
+          "blob": "c5f3a3ac90c6354800bc5a2f20d284e2c445b8af",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "cbbf11160893bfcd8cfe0242ef4d64b151e53674",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.7"
+    },
+    "adk-structured-requirements-questioning": {
+      "installed_license_blob": "71d274570517f7ae711a6b7393d4862a3b3dc028",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 头脑风暴与设计拷问",
+          "short_description": "通过探索和反例拷问收敛关键决策，适合方案未定场景，不替代已批准实施。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-structured-requirements-questioning/SKILL.md",
+      "target_rel": "skills/adk-structured-requirements-questioning",
+      "tree": {
+        "SKILL.md": {
+          "blob": "d6c1f98230088215cfc779145e7641e93156983f",
+          "mode": "100644"
+        },
+        "references/prototype-as-experiment.md": {
+          "blob": "654a449ba2d86c2ff16fd14a88a309ccc337faa1",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "8dd27af073a2b5b9eeef4e6b91b0b0e46e346b41",
+          "mode": "100644"
+        }
+      },
+      "version": "1.2.3"
+    },
+    "adk-systematic-debugging": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 系统化故障调试",
+          "short_description": "根因不明时建立复现、假设与单变量验证，不靠盲目重试或扩大修改范围。"
+        }
+      },
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-systematic-debugging/SKILL.md",
+      "target_rel": "skills/adk-systematic-debugging",
+      "tree": {
+        "SKILL.md": {
+          "blob": "6d5d6359e67da57d7a5b1c943e4f1b64948f8a61",
+          "mode": "100644"
+        },
+        "references/embedded-diagnosis-branches.md": {
+          "blob": "099940f7dad76c01971be181caab997a93897e50",
+          "mode": "100644"
+        },
+        "references/sanitizer-validation.md": {
+          "blob": "fe9d0ac7e8bd9c53f7cedeca4a5d26ab64e8dbf5",
+          "mode": "100644"
+        },
+        "references/tight-feedback-loop.md": {
+          "blob": "a8f806a520b6a45b6738bae52927ccf90fbe25ae",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "4373e509843a6be365058e9eb985db88d9f2dc94",
+          "mode": "100644"
+        }
+      },
+      "version": "1.2.7"
+    },
+    "adk-task-breakdown": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 复杂任务拆解",
+          "short_description": "将复杂需求拆成可验证的纵向任务与依赖，单点小修无需生成完整任务包。"
+        }
+      },
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-task-breakdown/SKILL.md",
+      "target_rel": "skills/adk-task-breakdown",
+      "tree": {
+        "SKILL.md": {
+          "blob": "c7d809a4346546e7679603bbbaf63270042491a5",
+          "mode": "100644"
+        },
+        "references/task-packaging.md": {
+          "blob": "048aa854b8d385fa906950c9f978c80d52759ac8",
+          "mode": "100644"
+        },
+        "references/vertical-slice-planning.md": {
+          "blob": "1b0977d635e23911bd42a55e0b8354f78c11a0af",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "581103340bc6b96be729de060a300990bd078b7b",
+          "mode": "100644"
+        }
+      },
+      "version": "1.5.2"
+    },
+    "adk-test-flakiness-triage": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 偶发测试失败诊断",
+          "short_description": "定位重复测试中的非确定性失败，保留失败证据，不把隔离用例算作通过。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "optional-skills/adk-test-flakiness-triage/SKILL.md",
+      "target_rel": "skills/adk-test-flakiness-triage",
+      "tree": {
+        "SKILL.md": {
+          "blob": "acb462baee059c291dc197cb326349dcd285babd",
+          "mode": "100644"
+        },
+        "references/details.md": {
+          "blob": "2fa2291cc5ba327857678769f1427da9706ca950",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "d2d6dd5e4073504ed79311de638f71418c8c37c8",
+          "mode": "100644"
+        }
+      },
+      "version": "1.0.8"
+    },
+    "adk-test-strategy": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 测试策略设计",
+          "short_description": "按风险与验收选择单测、集成、属性及故障测试，避免无关的全量测试负担。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-test-strategy/SKILL.md",
+      "target_rel": "skills/adk-test-strategy",
+      "tree": {
+        "SKILL.md": {
+          "blob": "49818a624e959070a94955e288df1e50dbdcb168",
+          "mode": "100644"
+        },
+        "references/high-value-tdd.md": {
+          "blob": "05c40e1f1d6b19a3b98519dd3c542b4f2d3cde63",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "cdc0244e35e55e0fd25f0a9e036d2a2b5eca2d45",
+          "mode": "100644"
+        }
+      },
+      "version": "2.2.3"
+    },
+    "adk-token-context-governance": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · Token 上下文治理",
+          "short_description": "治理过长日志、读取预算和原始证据回退，不允许为省 Token 跳过高风险验证。"
+        }
+      },
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-token-context-governance/SKILL.md",
+      "target_rel": "skills/adk-token-context-governance",
+      "tree": {
+        "SKILL.md": {
+          "blob": "7e172f799cafc5c571226eb226570e772a6ba6e4",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "f78b224eb629a73e8cbff1cf11321219dee5a32c",
+          "mode": "100644"
+        }
+      },
+      "version": "1.3.5"
+    },
+    "adk-unit-test-embedded": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 嵌入式单元测试",
+          "short_description": "针对 MCU、RTOS 或驱动补充分层单测，区分主机、模拟器与实际板端证据。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-unit-test-embedded/SKILL.md",
+      "target_rel": "skills/adk-unit-test-embedded",
+      "tree": {
+        "SKILL.md": {
+          "blob": "ed38bc23be18b6840b0c5d2dfb1056ec4afcfff0",
+          "mode": "100644"
+        },
+        "references/embedded-tdd-matrix.md": {
+          "blob": "c1fa37aa190a10f549117442b93abe053f2464d4",
+          "mode": "100644"
+        },
+        "references/property-stateful-tests.md": {
+          "blob": "83c5ad4c600bf8a6e46dcdfd7f693e399ddfbc10",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "fdee49c1eaf9d7d5d1b8f177c8e93828935df2cb",
+          "mode": "100644"
+        }
+      },
+      "version": "1.1.9"
+    },
+    "adk-verification-before-completion": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 完成前证据核验",
+          "short_description": "声明完成之前复查实际命令、测试结果与风险，缺少验证时不得标记通过。"
+        }
+      },
+      "profiles": [
+        "team-collab",
+        "default"
+      ],
+      "source_path": "skills/adk-verification-before-completion/SKILL.md",
+      "target_rel": "skills/adk-verification-before-completion",
+      "tree": {
+        "SKILL.md": {
+          "blob": "0ce29b5b2be5488b76c70d668bd6d544fb85ff07",
+          "mode": "100644"
+        },
+        "references/verification-governance-details.md": {
+          "blob": "611dc0ab9757c0b7faa45339b7000d9592db40a9",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "8aedd3b6621fb2d6a3df741efaab3a646a0bffc5",
+          "mode": "100644"
+        }
+      },
+      "version": "1.8.4"
+    },
+    "adk-worktree-governance": {
+      "installed_license_blob": "3c2826303420c300cf2a933bd8c440bc511eeb77",
+      "openai_source": {
+        "interface": {
+          "display_name": "ADK · 工作树隔离治理",
+          "short_description": "有明确隔离需求时规划 Git Worktree 与变更保护，禁止擅自清理用户工作区。"
+        }
+      },
+      "profiles": [
+        "team-collab"
+      ],
+      "source_path": "skills/adk-worktree-governance/SKILL.md",
+      "target_rel": "skills/adk-worktree-governance",
+      "tree": {
+        "SKILL.md": {
+          "blob": "57567ec35ba9ca2eca51766a9df8d2fff115014f",
+          "mode": "100644"
+        },
+        "references/parallel-worktree-task-package.md": {
+          "blob": "bde4c96c974fdac56a09b50dd945e153081b6b4d",
+          "mode": "100644"
+        },
+        "references/worktree-operation-boundaries.md": {
+          "blob": "38d304e35e38587df7ee2e5e6313e3434cc1809c",
+          "mode": "100644"
+        },
+        "agents/openai.yaml": {
+          "blob": "a190b10eb098e597373fcfcf1cbe58ce0179ac9e",
+          "mode": "100644"
+        }
+      },
+      "version": "1.3.2"
+    }
+  }
+}

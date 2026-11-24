@@ -147,10 +147,13 @@ def main() -> int:
             errors.append(f"{skill_dir}: 不应包含内嵌 .git")
 
         text = skill_md.read_text(encoding="utf-8")
-        for match in LINK.finditer(text):
-            rel = match.group(1).strip()
-            if not (skill_dir / rel).exists():
-                errors.append(f"{skill_md}: 引用文件不存在 {rel}")
+        for line in text.splitlines():
+            for match in LINK.finditer(line):
+                if line.startswith("本 Skill 不提供 ") and match.group().startswith("`"):
+                    continue
+                rel = match.group(1).strip()
+                if not (skill_dir / rel).exists():
+                    errors.append(f"{skill_md}: 引用文件不存在 {rel}")
         if re.search(r"~/.agents/skills|assets/codex|apply-to-codex|scan-codex-skills", text):
             errors.append(f"{skill_md}: 包含旧路径或旧入口")
 

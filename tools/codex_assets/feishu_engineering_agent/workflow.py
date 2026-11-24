@@ -174,7 +174,7 @@ class EngineeringWorkflow:
                     if previous["scope_sha256"] != scope_sha256:
                         raise IntakeRejected("replayed attempt cannot change approved scope")
                     row = db.execute(
-                        "SELECT repo,mode FROM fea_runs WHERE run_id=?",
+                        "SELECT repo,mode,status FROM fea_runs WHERE run_id=?",
                         (previous["attempt_run_id"],),
                     ).fetchone()
                     if (row is None or row["repo"] != parent["repo"]
@@ -182,7 +182,8 @@ class EngineeringWorkflow:
                         raise IntakeRejected("replayed attempt no longer matches scope")
                     db.rollback()
                     return {"run_id": previous["attempt_run_id"],
-                            "created": False, "model_invoked": False}
+                            "created": False, "status": row["status"],
+                            "mode": row["mode"], "model_invoked": False}
                 db.execute(
                     "INSERT INTO fea_runs "
                     "(run_id,tenant,chat,actor,repo,mode,provider,workspace,kind,"
@@ -392,8 +393,11 @@ class EngineeringWorkflow:
             approval.billing_source, approval.expires_at, approval.approval_ref,
         )
 
-    def status_for_source(self, source_run_id: str, event: InboundEvent) -> dict:
-        """Return source + all same-owner attempts, no raw user description."""
+    def status_for_source(self, source_run_id: str, event: InboundEvent,
+                          limit: int = 5) -> dict:
+        """Return recent same-owner attempts, bounded and without raw task text."""
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 20:
+            raise IntakeRejected("invalid WorkItem status limit")
         source = self.store.get_run(source_run_id, event)
         with contextlib.closing(self.store._connect()) as db:
             links = db.execute(
@@ -401,10 +405,13 @@ class EngineeringWorkflow:
                 "FROM fea_attempt_links a JOIN fea_runs r "
                 "ON r.run_id=a.attempt_run_id "
                 "WHERE a.source_run_id=? AND r.tenant=? AND r.chat=? AND r.actor=? "
-                "ORDER BY a.created_at,a.attempt_run_id",
-                (source_run_id, event.tenant, event.chat, event.actor),
+                "AND r.repo=? AND r.workitem_fp=? "
+                "ORDER BY r.updated_at DESC,a.created_at DESC,a.attempt_run_id DESC LIMIT ?",
+                (source_run_id, event.tenant, event.chat, event.actor,
+                 source["repo"], source["workitem_fp"], limit + 1),
             ).fetchall()
         return {"source_run_id": source_run_id,
                 "workitem_fp": source["workitem_fp"],
-                "attempts": [dict(r) for r in links],
+                "attempts": [dict(r) for r in links[:limit]],
+                "has_more": len(links) > limit,
                 "workitem_closed": False}

@@ -1,0 +1,5 @@
+interface:
+  display_name: "ADK · IMAP 邮件只读获取"
+  short_description: "按账号和检索范围通过 IMAP 只读提取邮件，不发送、移动或修改邮箱状态。"
+policy:
+  allow_implicit_invocation: false

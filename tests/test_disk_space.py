@@ -56,6 +56,60 @@ class DiskSpaceTest(unittest.TestCase):
         row = next(x for x in result["top_paths"] if x["path"] == str(f))
         self.assertIn("recent-change", row["reasons"])
 
+    def test_usage_protects_regular_file_access_but_ignores_directory_atime(self):
+        folder = self.root / "编译 old tree"
+        folder.mkdir()
+        child = folder / "output"
+        child.touch()
+        old_time = child.stat().st_mtime
+        os.utime(str(folder), (self.future, old_time))
+        with self.subTest("directory enumeration does not make it recent"):
+            result = self.inventory(candidate_type="directory", age_basis="usage")
+            self.assertEqual("review-required", result["candidate_selection"]["items"][0]["decision"])
+        os.utime(str(child), (self.future, old_time))
+        changed_only = self.inventory(candidate_type="directory")["candidate_selection"]["items"][0]
+        usage = self.inventory(candidate_type="directory", age_basis="usage")["candidate_selection"]["items"][0]
+        self.assertEqual("review-required", changed_only["decision"])
+        self.assertEqual("retain", usage["decision"])
+        self.assertIn("recent-access", usage["reasons"])
+        self.assertNotIn("recent-change", usage["reasons"])
+
+    def test_candidate_paths_are_complete_and_preserve_exact_names(self):
+        paths = [self.root / "旧 周报.txt", self.root / "old;file", self.root / "x64 host fixed 2it426mw"]
+        paths[0].touch()
+        paths[1].touch()
+        paths[2].mkdir()
+        (paths[2] / "nested.bin").touch()
+        (self.root / "alias").symlink_to(paths[0])
+        for kind, expected in (("file", paths[:2]), ("directory", paths[2:]), ("both", paths)):
+            result = self.inventory(candidate_type=kind, top=1)
+            self.assertEqual(1, len(result["top_paths"]))
+            items = result["candidate_selection"]["items"]
+            self.assertEqual({str(p) for p in expected}, {i["path"] for i in items})
+        self.assertEqual([], self.inventory(candidate_type="both", candidate_uid=os.getuid() + 1)
+                         ["candidate_selection"]["items"])
+
+    def test_candidates_hold_hardlinks_and_private_entries(self):
+        f = self.root / "old-log"
+        f.touch()
+        os.link(str(f), str(self.root / "second-log"))
+        profile = self.root / "old-profile"
+        profile.mkdir()
+        (profile / "cookies.sqlite").touch()
+        result = self.inventory(candidate_type="both")
+        rows = {Path(i["path"]).name: i for i in result["candidate_selection"]["items"]}
+        self.assertIn("hardlink", rows["old-log"]["reasons"])
+        self.assertIn("protected-name", rows["old-profile"]["reasons"])
+
+    def test_candidate_list_marks_incomplete_directories_and_files(self):
+        for name in ("first", "second", "third"):
+            (self.root / name).touch()
+        result = self.inventory(candidate_type="file", max_entries=2)
+        selection = result["candidate_selection"]
+        self.assertEqual("partial", selection["filesystem_coverage"])
+        self.assertTrue(selection["items"])
+        self.assertTrue(all(x["decision"] == "retain" for x in selection["items"]))
+
     def test_nested_git_is_protected(self):
         folder = self.root / "copy" / "nested"
         folder.mkdir(parents=True)
@@ -150,6 +204,7 @@ class DiskSpaceTest(unittest.TestCase):
             partial = process_refs(str(self.root), proc=str(proc))
         self.assertEqual("partial", partial["state"])
         self.assertEqual(1, partial["coverage"]["denied"])
+        self.assertTrue(any(x["kind"] == "map" for x in partial["references"]))
 
     def test_mount_escapes_and_path_boundaries(self):
         info = self.root / "mountinfo"
@@ -158,6 +213,30 @@ class DiskSpaceTest(unittest.TestCase):
         self.assertIn("/media/a b", mounts)
         self.assertEqual("/", filesystem_root("/tmp", mounts))
         self.assertFalse(contains("/tmp/a", "/tmp/ab"))
+
+    def test_candidate_reference_check_covers_paths_beyond_display_limit(self):
+        pid = self.root / "proc" / "123"
+        (pid / "fd").mkdir(parents=True)
+        mapped = self.root / "hold with 空格"
+        command = self.root / "cmdline evidence"
+        command.touch()
+        mapped.touch()
+        (pid / "cmdline").write_bytes(b"test\0--input=" + os.fsencode(command) + b"\0")
+        (pid / "maps").write_text(
+            ("123 123 0 0 0 " + str(self.root / "other") + "\n") * 201
+            + "123 123 0 0 0 " + str(mapped) + "\n")
+        proc = process_refs(str(self.root), proc=str(pid.parent), protect_top_level=True)
+        self.assertTrue(proc["references_truncated"])
+        self.assertIn(str(command), proc["protected_top_level_paths"])
+        self.assertIn(str(mapped), proc["protected_top_level_paths"])
+        args = self.sudo_args("--path", str(self.root), "--candidate-type", "file", "--top", "1")
+        with patch("tools.codex_assets.disk_space.process_refs", return_value=proc):
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(0, run(args))
+        selection = json.loads(output.getvalue())["candidate_selection"]
+        self.assertEqual("partial", selection["process_coverage"])
+        self.assertEqual(2, len(selection["items"]))
+        self.assertTrue(all("process-reference" in x["reasons"] for x in selection["items"]))
 
     def test_deleted_open_file_is_counted_once(self):
         gone = self.root / "gone"
@@ -240,6 +319,12 @@ class DiskSpaceTest(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(0, run(args))
         execute.assert_not_called()
+
+    def test_candidate_cli_disallows_ambiguous_scope(self):
+        for options in (("--candidate-uid", "0"), ("--candidate-type", "file", "--candidate-uid", "-1"),
+                        ("--candidate-type", "directory", "--filesystem")):
+            with self.subTest(options=options), self.assertRaises(CodexAssetError):
+                run(self.sudo_args(*options))
 
     def test_sudo_identity_preserves_original_uid(self):
         with patch.dict(os.environ, {"SUDO_UID": "12345"}):

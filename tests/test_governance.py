@@ -763,6 +763,16 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertEqual("session-wrap", route["primary_skill"])
         self.assertEqual(["memory-curator"], route["supporting_skills"])
 
+    def test_workflow_route_requires_nonempty_qualifier_terms(self) -> None:
+        root = make_repo(self)
+        manifest = add_valid_workflow_route(root)
+        route = manifest["workflows"][0]["routes"][0]
+        for invalid in (None, [], [" "], [1], "暂存差异"):
+            with self.subTest(invalid=invalid):
+                route["requires_any"] = invalid
+                write_json(root / "manifests/workflows.json", manifest)
+                self.assertTrue(any("requires_any" in error for error in validate_repo(root)))
+
     def test_project_template_rejects_unknown_workflow(self) -> None:
         root = make_repo(self)
         manifest = json.loads((root / "manifests/project-templates.json").read_text())
@@ -914,7 +924,7 @@ class GovernanceValidationTest(unittest.TestCase):
         self.assertEqual(["docs-to-agents"], report["guidance_promotions"])
         self.assertEqual(2, report["schema_version"])
         self.assertNotIn("runtime_control", report)
-        self.assertEqual("8.2.0", report["execution_policy"]["engine_version"])
+        self.assertEqual("11.4.16", report["execution_policy"]["engine_version"])
         self.assertEqual("routing", report["eval_suite_links"]["routing-eval"]["kind"])
         self.assertEqual("/review", report["cli_command_contract_links"]["review-command"]["command"])
         self.assertEqual("agents", report["guidance_promotion_links"]["docs-to-agents"]["destination"])

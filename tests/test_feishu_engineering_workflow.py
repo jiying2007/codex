@@ -79,6 +79,41 @@ class WorkflowContractTest(unittest.TestCase):
         with sqlite3.connect(str(self.db)) as db:
             self.assertEqual(2, db.execute("SELECT COUNT(*) FROM fea_runs").fetchone()[0])
 
+    def test_chat_status_lists_bounded_attempts_and_replay_uses_actual_state(self):
+        event, child_id = self.attempt()
+        scope = hashlib.sha256("实现修复并回归测试".encode("utf-8")).hexdigest()
+        policy = local_agent_policy_digest(
+            1000, "robot-app", "edit", "external_api_key", {"edit"}, "worktree", True,
+        )
+        self.workflow.authorize_local_agent_queue(
+            child_id, event, 1000, {"robot-app"}, {"edit"}, scope,
+            "external_api_key", policy,
+        )
+        replay = self.manual.handle(event, "robot-app", {"robot-app"})
+        self.assertIn("状态：queued", replay)
+        self.assertIn("未重复创建或执行", replay)
+        status = InboundEvent(
+            "feishu_message", "tenantA", "oc_team", "ou_owner", "om_status",
+            "/wi status " + self.source_id,
+        )
+        reply = self.manual.handle(status, "robot-app", {"robot-app"})
+        self.assertIn(child_id + " edit queued", reply)
+        self.assertNotIn("实现修复并回归测试", reply)
+        for i in range(6):
+            self.attempt(event_id="om_more_" + str(i))
+        limited = self.workflow.status_for_source(self.source_id, status)
+        self.assertEqual(5, len(limited["attempts"]))
+        self.assertTrue(limited["has_more"])
+        self.assertIn("仅显示最近 5 条", self.manual.handle(status, "robot-app", {"robot-app"}))
+        with self.assertRaises(IntakeRejected):
+            self.manual.handle(status, "robot-app", {"other-repo"})
+        foreign = InboundEvent(
+            "feishu_message", "tenantA", "oc_team", "ou_other", "om_foreign_status",
+            status.text,
+        )
+        with self.assertRaises(IntakeRejected):
+            self.manual.handle(foreign, "robot-app", {"robot-app"})
+
     def test_attempt_replay_and_scope_changes_are_denied(self):
         event, child_id = self.attempt()
         different = InboundEvent(

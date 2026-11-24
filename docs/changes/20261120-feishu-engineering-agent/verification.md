@@ -59,3 +59,6 @@ python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
 - 数据库、卡片和聊天不作为飞书项目/TAPD 的业务权威；GitHub Issue 不是需求/缺陷主入口。
 - 外部 PR、评论、模型执行、部署/烧录、合并分别验证作用域和授权。远端结果不明时先核对，不盲重试。
 - **没有 SOURCE PASS 不进入集中现场验证；SOURCE PASS 不等于 HOST/DELIVERY/WORKITEM PASS。**
+
+## WorkItem queue publication and text status
+Offline regression covers simultaneous same-scope submissions, spool failure with retained UNKNOWN, reserved idempotency namespace, bounded source status, replay of queued attempts and current actor/repository scope. These are source-level tests, not a production host result.

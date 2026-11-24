@@ -38,7 +38,7 @@ on:
   workflow_dispatch:
     inputs:
       audit_adk_candidate:
-        description: Compare Skills against the exact pinned ADK 7.0.31 source (read-only)
+        description: Compare Skills against the exact signed ADK 11.4.17 source (read-only)
         type: boolean
         default: false
 
@@ -96,7 +96,7 @@ jobs:
           PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.codex_assets execution-policy --root "$GITHUB_WORKSPACE" --thread-id ci-command-contract gate --help
       - name: Validate Codex Execution Policy adapter
         run: python -m unittest tests.test_execution_policy tests.test_context_maintenance
-      - name: Validate exact ADK 7.0.31 Execution Policy source set and replay
+      - name: Validate the independent Execution Policy source set and replay
         run: python -m unittest tests.test_execution_policy_source_set tests.test_execution_policy_migration
       - name: Validate thin Session Bootstrap and daily independence
         run: python -m unittest tests.test_session_bootstrap tests.test_session_bootstrap_independence tests.test_session_bootstrap_contract
@@ -128,7 +128,7 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           repository: jiying2007/agent-dev-kit
-          ref: 7367ef84787de75bb751940b32c9e80009660e47
+          ref: 3ab45d2d4d7607f1d6c46c7c6726b8551603a017
           path: .adk-upgrade-source
           persist-credentials: false
       - name: Compare exact candidate Skill trees without installing
@@ -143,7 +143,7 @@ jobs:
           import json, os, subprocess
           from pathlib import Path
           from tools.codex_assets.adk_skill_audit import audit, summary
-          report = audit(Path.cwd(), Path('.adk-upgrade-source'), '7367ef84787de75bb751940b32c9e80009660e47')
+          report = audit(Path.cwd(), Path('.adk-upgrade-source'), '3ab45d2d4d7607f1d6c46c7c6726b8551603a017')
           report['consumer_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
           directory = Path(os.environ['RUNNER_TEMP']) / 'adk-skill-audit'
           (directory / 'candidate.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

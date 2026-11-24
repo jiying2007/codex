@@ -108,22 +108,25 @@ class DoctorPolicyContractTests(unittest.TestCase):
         path.unlink()
         self.assert_rejected()
 
-    def test_independent_policy_lock_is_required_and_binds_both_sources(self) -> None:
+    def test_independent_policy_lock_binds_both_sources_and_is_required_when_split(self) -> None:
         provider_path = self.root / "manifests/provider-locks/agent-dev-kit.json"
         data = json.loads(provider_path.read_text(encoding="utf-8"))
-        # Preserve the currently reviewed provider release. The independent
-        # policy lock's consumer pointer must match *this* exact source;
-        # rewriting it to a historical release would falsely reject an
-        # otherwise valid signed Skill-only promotion.
-        reviewed = ROOT / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
         lock_path = self.root / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
-        # The disposable governance fixture includes the reviewed lock by default:
-        # remove it to prove an undecided split is rejected.
+        template = json.loads(lock_path.read_text())
+        self.assertEqual([], validate_repo(self.root))
+
+        source = template["source"]
+        self.assertNotEqual(source["commit"], data["provider_commit"])
         lock_path.unlink()
         self.assert_rejected()
-        shutil.copyfile(reviewed, lock_path)
+        same_release = {**data, "version": source["version"], "release_tag": source["release_tag"],
+                        "provider_commit": source["commit"], "provider_tree": source["tree"],
+                        "manifest_blob": source["manifest_blob"], "release_artifact": source["release_artifact"]}
+        write_json(provider_path, same_release)
         self.assertEqual([], validate_repo(self.root))
-        template = json.loads(lock_path.read_text())
+        write_json(provider_path, data)
+        write_json(lock_path, template)
+        self.assertEqual([], validate_repo(self.root))
         for label, change in (
             ("engine", lambda d: d["source"].update(commit="0" * 40)),
             ("artifact", lambda d: d["source"]["release_artifact"].update(sha256="0" * 64)),

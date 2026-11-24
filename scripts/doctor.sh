@@ -10,5 +10,4 @@ for script in "$ROOT"/scripts/*.sh; do
 done
 
 rtk python3 -m py_compile "$ROOT"/tools/codex_assets/*.py
-exec env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" \
-  rtk python3 -m tools.codex_assets doctor --root "$ROOT" "$@"
+exec rtk python3 "$ROOT/tools/codex_assets/entrypoint.py" doctor --root "$ROOT" "$@"

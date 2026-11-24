@@ -1,7 +1,9 @@
 """Offline local MCP intake tests; never call a model or Feishu network."""
 from __future__ import annotations
 
+import concurrent.futures
 import hashlib
+import threading
 import json
 import pathlib
 import sqlite3
@@ -261,6 +263,55 @@ class FeishuAgentMCPTests(unittest.TestCase):
         self.assertEqual("unknown", manual.store.get_run(run_id)["status"])
         self.assertIsNone(intake.store.agent_run_link_for_task(task_id))
 
+    def test_concurrent_workitem_submission_publishes_one_ready_task(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        other = self.intake()
+        started = threading.Event()
+        release = threading.Event()
+        original = intake.spool.put
+
+        def slow_put(task_id, payload):
+            started.set()
+            if not release.wait(3):
+                raise RuntimeError("test publication timed out")
+            original(task_id, payload)
+
+        with mock.patch.object(intake.spool, "put", side_effect=slow_put):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                first = pool.submit(intake.submit_workitem_task, run_id, scope)
+                try:
+                    self.assertTrue(started.wait(3))
+                    # The task and link cannot be observed before spool publication.
+                    self.assertIsNone(other.store.agent_run_link_for_run(run_id))
+                    self.assertEqual([], other.store.pending())
+                    second = pool.submit(other.submit_workitem_task, run_id, scope)
+                finally:
+                    release.set()
+                a, b = first.result(timeout=5), second.result(timeout=5)
+        self.assertEqual(a["id"], b["id"])
+        self.assertEqual([False, True], sorted([a["created"], b["created"]]))
+        self.assertEqual("queued", manual.store.get_run(run_id)["status"])
+        self.assertEqual(scope, intake.spool.get(a["id"])["task"])
+
+    def test_failed_spool_publication_is_unknown_and_not_replayed(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        with mock.patch.object(intake.spool, "put", side_effect=OSError("fixture")):
+            with self.assertRaises(feishu_codex_bot.AgentInputPersistError):
+                intake.submit_workitem_task(run_id, scope)
+        link = intake.store.agent_run_link_for_run(run_id)
+        self.assertIsNotNone(link)
+        self.assertEqual("unknown", intake.get_task(link["task_id"])["status"])
+        self.assertEqual("unknown", manual.store.get_run(run_id)["status"])
+        self.assertEqual([], intake.store.pending())
+        with self.assertRaises(IntakeRejected):
+            intake.submit_workitem_task(run_id, scope)
+
+    def test_generic_task_cannot_claim_workitem_idempotency_namespace(self) -> None:
+        intake, _, run_id, scope = self.workitem_attempt()
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "workitem-"):
+            intake.submit_task("codex", "edit", scope, "workitem-" + run_id)
+        self.assertEqual([], intake.store.pending())
+
     def test_workitem_run_queues_through_existing_bot_and_tracks_ci_gate(self) -> None:
         intake, manual, run_id, scope = self.workitem_attempt()
         with mock.patch.object(feishu_codex_bot.subprocess, "Popen") as popen:
@@ -344,13 +395,10 @@ class FeishuAgentMCPTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "scope"):
             intake.submit_workitem_task(run_id, scope + " 改动")
         self.assertEqual("proposed", manual.store.get_run(run_id)["status"])
-        connection = intake.store._connect()
-        try:
+        with intake.store._connect() as connection:
             task_count = connection.execute(
                 "SELECT COUNT(*) FROM tasks"
             ).fetchone()[0]
-        finally:
-            connection.close()
         self.assertEqual(0, task_count)
         shared = feishu_agent_mcp.AgentTaskIntake(
             intake.config, billing_source="codex_shared",

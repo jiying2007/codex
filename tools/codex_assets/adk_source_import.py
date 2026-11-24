@@ -25,10 +25,12 @@ from .adk_skill_audit import (
     _candidate,
     _digest,
     _provider,
+    _skill_source_name,
     _source_tree,
     _tree,
     audit,
 )
+from .check_skills import validate_openai_metadata
 
 
 class ImportError(ValueError):
@@ -47,6 +49,7 @@ PROTECTED_PREFIXES = (
     "src/codex-home/vendor/skills/",
     "src/codex-home/vendor/agents/agent-dev-kit/",
     "src/codex-home/skills/registry.csv",
+    "tests/fixtures/adk-skill-sources-",
     "tools/codex_assets/execution_policy/",
 )
 
@@ -69,14 +72,15 @@ def _git(root: Path, *args: str) -> str:
     )
     if completed.returncode:
         raise ImportError(completed.stderr.strip() or "git inspection failed")
-    return completed.stdout.strip()
+    return completed.stdout.rstrip("\n")
 
 
 def _check_target_clean(root: Path) -> None:
     if _git(root, "branch", "--show-current") in ("", "main", "master"):
         raise ImportError("source import requires an isolated candidate branch")
-    for line in _git(root, "status", "--porcelain=v1", "--untracked-files=all").splitlines():
-        path = line[3:].split(" -> ")[-1]
+    status = _git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames")
+    for line in status.split("\0"):
+        path = line[3:]
         if any(path == prefix or path.startswith(prefix) for prefix in PROTECTED_PREFIXES):
             raise ImportError(f"import target has pre-existing changes: {path}")
 
@@ -292,14 +296,8 @@ def _local_readme_identities(root: Path, manifest: dict[str, Any],
     return identities
 
 
-def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
-         attestation_path: Path, trusted_root: Path, artifact_sha256: str,
-         *, allow_reviewed_native_ui: bool = False,
-         preserve_execution_policy: bool = False) -> dict[str, Any]:
-    root = root.resolve()
-    provider_root = provider_root.resolve()
-    provider = _provider(provider_root, commit)
-    provider["root"] = provider_root
+def _verify_promotion(provider: dict[str, Any], evidence_path: Path,
+                      attestation_path: Path, trusted_root: Path, artifact_sha256: str) -> None:
     if not re.fullmatch(r"[0-9a-f]{64}", artifact_sha256):
         raise ImportError("exact release artifact SHA256 is required")
     if (trusted_root.is_symlink() or not trusted_root.is_file()
@@ -318,6 +316,17 @@ def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
     )
     if verifier.returncode or "Verified OK" not in verifier.stdout + verifier.stderr:
         raise ImportError("Sigstore promotion verification failed")
+
+
+def plan(root: Path, provider_root: Path, commit: str, evidence_path: Path,
+         attestation_path: Path, trusted_root: Path, artifact_sha256: str,
+         *, allow_reviewed_native_ui: bool = False,
+         preserve_execution_policy: bool = False) -> dict[str, Any]:
+    root = root.resolve()
+    provider_root = provider_root.resolve()
+    provider = _provider(provider_root, commit)
+    provider["root"] = provider_root
+    _verify_promotion(provider, evidence_path, attestation_path, trusted_root, artifact_sha256)
     _check_target_clean(root)
     independent_policy = _independent_policy_snapshot(root) if preserve_execution_policy else None
     report = audit(root, provider_root, commit)
@@ -674,6 +683,132 @@ def write_source_fixture(root: Path, provider_root: Path, commit: str, baseline_
     return destination
 
 
+def complete_team_collab(root: Path, provider_root: Path, commit: str, evidence: Path,
+                         attestation: Path, trusted_root: Path, release_archive: Path,
+                         *, write: bool) -> dict[str, Any]:
+    """Add Skills declared by the already-pinned release to team-collab."""
+    root, provider_root = root.resolve(), provider_root.resolve()
+    provider = _provider(provider_root, commit)
+    provider["root"] = provider_root
+    lock = _json(root / "manifests/provider-locks/agent-dev-kit.json")
+    artifact_sha256 = hashlib.sha256(release_archive.read_bytes()).hexdigest()
+    version = provider["version"]
+    if (lock.get("repository") != REPOSITORY or lock.get("version") != version
+            or lock.get("provider_commit") != commit
+            or lock.get("provider_tree") != _git(provider_root, "rev-parse", "HEAD^{tree}")
+            or lock.get("manifest_blob") != provider["tracked"]["manifest.json"]["blob"]
+            or lock.get("release_artifact", {}).get("sha256") != artifact_sha256):
+        raise ImportError("profile completion requires the already-locked release and archive")
+    _verify_promotion(provider, evidence, attestation, trusted_root, artifact_sha256)
+    _check_target_clean(root)
+    if audit(root, provider_root, commit)["status"] != "consistent":
+        raise ImportError("existing ADK Skill audit is not consistent")
+
+    manifest_path = root / "manifests/skills.json"
+    manifest = _json(manifest_path)
+    by_name = {row["name"]: row for row in manifest["skills"]}
+    fixture_path = root / "tests/fixtures" / f"adk-skill-sources-{version}.json"
+    fixture = _json(fixture_path)
+    if fixture.get("provider_commit") != commit:
+        raise ImportError("source fixture differs from the locked release")
+    registry_path = root / "src/codex-home/skills/registry.csv"
+    with registry_path.open(encoding="utf-8", newline="") as stream:
+        reader = csv.DictReader(stream)
+        fields = reader.fieldnames
+        registry = {row["name"]: row for row in reader}
+    if fields != ["name", "version", "status", "owner"]:
+        raise ImportError("Skill registry columns changed")
+    upstream = _json(provider_root / "manifest.json")
+    declared = upstream["skills"] + upstream["optional_skills"]
+    if len(declared) != len({row["name"] for row in declared}):
+        raise ImportError("duplicate provider Skill name")
+    license_content = (provider_root / "LICENSE").read_bytes()
+    if _blob(license_content) != provider["tracked"]["LICENSE"]["blob"]:
+        raise ImportError("provider license differs from the exact Git blob")
+    todo = []
+    for row in declared:
+        name, source = row["name"], row["path"]
+        if _skill_source_name(source) != name:
+            raise ImportError(f"provider Skill name differs from its entrypoint: {name}")
+        old = by_name.get(name)
+        if old and old["enabled"]:
+            if old.get("source_ref") != commit or old.get("source_path") != source:
+                raise ImportError(f"enabled Skill does not match this release: {name}")
+            if "team-collab" not in old["profiles"]:
+                old["profiles"].append("team-collab")
+                fixture["skills"][name]["profiles"] = old["profiles"]
+            continue
+        if old and (old.get("owner") != "agent-dev-kit" or old.get("profiles")):
+            raise ImportError(f"existing Skill needs an independent review: {name}")
+        tree = _candidate(provider_root, source, provider)
+        source_dir = provider_root / PurePosixPath(source).parent
+        skill_version = _skill_version(source_dir / "SKILL.md")
+        vendor_rel = f"vendor/skills/{name}/{skill_version}"
+        target_rel = f"skills/{name}"
+        destination = root / "src/codex-home" / vendor_rel
+        retired = root / "src/codex-home" / old["vendor_rel"] if old else None
+        if destination.exists() or destination.is_symlink():
+            raise ImportError(f"Skill source destination already exists: {vendor_rel}")
+        if retired and (retired.parent != destination.parent or not retired.is_dir() or retired.is_symlink()):
+            raise ImportError(f"inactive Skill source location needs review: {name}")
+        metadata_path = source_dir / "agents/openai.yaml"
+        ui = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
+        errors = []
+        validate_openai_metadata(metadata_path, errors)
+        if errors:
+            raise ImportError(errors[0])
+        item = {
+            "name": name, "enabled": True, "source_kind": "vendor", "version": skill_version,
+            "vendor_rel": vendor_rel, "target_rel": target_rel, "profiles": ["team-collab"],
+            "tags": ["agent-dev-kit", "adk", row["category"]], "owner": "agent-dev-kit",
+            "source_repo": REPOSITORY, "source_ref": commit, "source_path": source,
+            "imported_at": date.today().isoformat(), "review_status": "accepted",
+            "source_blob": tree["SKILL.md"]["blob"], "source_tree_sha256": _digest(tree),
+            "source_release": f"v{version}",
+        }
+        todo.append((item, source_dir, tree, destination, retired))
+        by_name[name] = item
+        registry[name] = {"name": name, "version": skill_version, "status": "active", "owner": "agent-dev-kit"}
+        fixture["skills"][name] = {
+            "installed_license_blob": tree.get("LICENSE", {}).get("blob", _blob(license_content)),
+            "openai_source": ui, "profiles": item["profiles"], "source_path": source,
+            "target_rel": target_rel, "tree": tree, "version": skill_version,
+        }
+    if write:
+        for item, source_dir, tree, destination, retired in todo:
+            shutil.copytree(source_dir, destination)
+            packaging = {}
+            if "LICENSE" not in tree:
+                (destination / "LICENSE").write_bytes(license_content)
+                packaging["LICENSE"] = {"source": None, "installed": {"mode": "100644", "blob": _blob(license_content)}}
+            if "README.md" not in tree:
+                readme = (
+                    f"# {item['name']}\n\n"
+                    f"- Skill version: `{item['version']}`\n"
+                    f"- Provider: `{REPOSITORY}`\n"
+                    f"- Source commit: `{commit}`\n"
+                    f"- Source path: `{item['source_path']}`\n"
+                ).encode("utf-8")
+                (destination / "README.md").write_bytes(readme)
+                packaging["README.md"] = {"source": None, "installed": {"mode": "100644", "blob": _blob(readme)}}
+            item["distribution_metadata"] = packaging
+            if _source_tree(item, _tree(destination)) != tree:
+                raise ImportError(f"installed package differs from exact upstream: {item['name']}")
+            if retired is not None:
+                shutil.rmtree(retired)
+        manifest["skills"] = list(by_name.values())
+        _write_json(manifest_path, manifest)
+        with registry_path.open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(registry.values())
+        fixture["skills"] = dict(sorted(fixture["skills"].items()))
+        _write_json(fixture_path, fixture)
+    return {"status": "imported" if write else "planned", "provider_commit": commit,
+            "core": len(upstream["skills"]), "optional": len(upstream["optional_skills"]),
+            "added": [item["name"] for item, *_ in todo]}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
@@ -693,8 +828,21 @@ def main() -> int:
     parser.add_argument("--allow-reviewed-native-ui", action="store_true",
                         help="Explicitly accept signed, non-escalating Chinese UI source metadata")
     parser.add_argument("--summary-json", action="store_true")
+    parser.add_argument("--complete-team-collab", type=Path, metavar="SIGNED_RELEASE_ARCHIVE",
+                        help="Import all Skills from the already-locked signed release into team-collab")
     args = parser.parse_args()
     try:
+        if args.complete_team_collab is not None:
+            if args.write_source_fixture or args.refresh_distribution_metadata:
+                raise ImportError("profile completion cannot be combined with another import operation")
+            lock = _json(args.root / "manifests/provider-locks/agent-dev-kit.json")
+            if args.release_artifact_sha256 != lock["release_artifact"]["sha256"]:
+                raise ImportError("declared release archive digest differs from the provider lock")
+            result = complete_team_collab(
+                args.root, args.provider_root, args.expected_provider_commit, args.promotion_evidence,
+                args.promotion_attestation, args.trusted_root, args.complete_team_collab, write=args.apply)
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+            return 0
         if args.refresh_distribution_metadata:
             if args.apply or args.write_source_fixture:
                 raise ImportError("README refresh must be a separate operation")

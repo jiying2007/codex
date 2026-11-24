@@ -136,13 +136,29 @@ class ManualWorkItemService:
             if record["repo"] not in authorized:
                 raise IntakeRejected("repository access has changed")
             if cmd.action == "status":
-                return (
-                    "任务：" + record["run_id"] + "\n"
-                    "项目：" + record["repo"] + "\n"
-                    "状态：" + record["status"] + "\n"
-                    "工作项来源：用户提供，未通过原系统 API 核验\n"
-                    "执行授权：未由本命令授予；需求/缺陷仍在原系统验收。"
-                )
+                from .sessions import SessionRegistry
+                from .workflow import EngineeringWorkflow
+                linked = EngineeringWorkflow(self.store).status_for_source(cmd.run_id, event)
+                receipt = SessionRegistry(self.store).receipt(cmd.run_id, event)
+                lines = [
+                    "任务：" + record["run_id"],
+                    "项目：" + record["repo"],
+                    "状态：" + record["status"],
+                    "工作项来源：用户提供，未通过原系统 API 核验",
+                ]
+                if linked["attempts"]:
+                    lines.append("最近研发尝试（登记状态不代表研发完成）：")
+                    lines.extend(
+                        item["attempt_run_id"] + " " + item["mode"] + " " + item["status"]
+                        for item in linked["attempts"]
+                    )
+                    if linked["has_more"]:
+                        lines.append("仅显示最近 5 条；可用完整 Run ID 查询单条。")
+                if receipt is not None:
+                    lines.append("Codex thread：" + receipt["thread_id"])
+                    lines.append("已记录原生会话标识；不代表已获得继续执行授权。")
+                lines.append("执行授权：未由本命令授予；需求/缺陷仍在原系统验收。")
+                return "\n".join(lines)
             if record["status"] in ("unknown", "canceled", "blocked"):
                 raise IntakeRejected("cannot hand off an unknown/canceled/blocked run")
             with contextlib.closing(self.store._connect()) as db:
@@ -178,12 +194,13 @@ class ManualWorkItemService:
                 scope_sha256=hashlib.sha256(cmd.summary.encode("utf-8")).hexdigest(),
             )
             return (
-                "已建立独立研发 AgentRun（未执行）：\n"
+                ("已建立独立研发 AgentRun（未执行）：\n"
+                 if outcome["created"] else "已有研发 AgentRun（未重复创建或执行）：\n")
                 + "来源Run：" + cmd.run_id + "\n"
                 + "新Run：" + outcome["run_id"] + "\n"
-                + "模式：" + cmd.mode + "；状态：proposed\n"
+                + "模式：" + outcome["mode"] + "；状态：" + outcome["status"] + "\n"
                 + "本次范围（仅用于当前回复，未持久化）：" + cmd.summary + "\n"
-                + "仍需可信审批方签署精确任务范围、模型额度与执行权限；"
+                + "执行须由可信入口核验精确任务范围、模型额度与执行权限；"
                 + "机器人消息不能直接审批或启动模型。"
             )
         if cmd.action == "list":

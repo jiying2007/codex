@@ -1,0 +1,5 @@
+interface:
+  display_name: "ADK · 外部数据获取路由"
+  short_description: "按明确来源选择已安装的 URL 或邮件只读获取技能，不隐式安装或访问其他资源。"
+policy:
+  allow_implicit_invocation: false

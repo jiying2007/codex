@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · BSP 源码分析"
+  short_description: "只读追踪板级启动、探测、时钟和历史补丁依赖，输出可追溯的移植风险。"

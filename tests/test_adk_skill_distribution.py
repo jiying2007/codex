@@ -12,7 +12,7 @@ import yaml
 from tests import test_adk_skill_audit as fixtures
 from tools.codex_assets.adk_skill_audit import _digest, _source_tree, _tree, audit
 from tools.codex_assets.check_skills import validate_openai_metadata
-from tools.codex_assets.core import Repo, parse_frontmatter
+from tools.codex_assets.core import Repo, nested_adk_skill_patterns, parse_frontmatter
 from tools.codex_assets.skill_catalog import search_skills
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,7 +110,7 @@ class CompleteAdkImportTests(unittest.TestCase):
 
     def test_remaining_sources_match_exact_upstream_files_and_modes(self) -> None:
         self.assertEqual(COMMIT, self.golden["provider_commit"])
-        self.assertEqual(41, len(self.golden["skills"]))
+        self.assertEqual(65, len(self.golden["skills"]))
         self.assertEqual(set(self.records), set(self.golden["skills"]))
         for name, record in self.records.items():
             expected = self.golden["skills"][name]
@@ -150,7 +150,7 @@ class CompleteAdkImportTests(unittest.TestCase):
         self.assertEqual({}, report["gap_counts"])
         self.assertEqual("consistent", report["status"])
         self.assertEqual(VERSION, report["provider_lock_version"])
-        self.assertEqual(41, report["skills_matching_provider_lock_commit"])
+        self.assertEqual(65, report["skills_matching_provider_lock_commit"])
         self.assertFalse(report["claims"]["runtime_qualified"])
 
     def test_moved_handoff_is_the_same_named_skill_not_a_guessed_replacement(self) -> None:
@@ -158,14 +158,40 @@ class CompleteAdkImportTests(unittest.TestCase):
         self.assertEqual("skills/adk-cross-team-handoff/SKILL.md", record["source_path"])
         self.assertEqual(["team-collab"], record["profiles"])
 
+    def test_complete_team_collab_preserves_optional_activation_boundaries(self) -> None:
+        self.assertTrue(all("team-collab" in item["profiles"] for item in self.records.values()))
+        wrapper = self.records["adk-data-fetch"]["vendor_rel"]
+        self.assertEqual(
+            {f"{wrapper}/{name}" for name in ("adk-email-imap-fetch", "adk-fetch-url-content")},
+            set(nested_adk_skill_patterns(Repo.from_path(ROOT).source, list(self.records.values()))),
+        )
+        for name in ("adk-email-imap-fetch", "adk-fetch-url-content"):
+            with self.subTest(skill=name):
+                self.assertEqual(
+                    f"optional-skills/adk-data-fetch/{name}/SKILL.md", self.records[name]["source_path"])
+                ui = self.golden["skills"][name]["openai_source"]
+                self.assertFalse(ui["policy"]["allow_implicit_invocation"])
+
     def test_revised_natural_language_triggers_resolve_without_extra_profiles(self) -> None:
-        cases = {"生成Goal": "adk-goal-authoring", "跨会话恢复": "adk-context-engineering", "编写驱动": "adk-driver-implementation",
+        cases = {"生成Goal": "adk-goal-authoring", "跨会话恢复": "adk-context-compress-handoff",
+                 "使用 adk-context-engineering": "adk-context-engineering", "编写驱动": "adk-driver-implementation",
                  "嵌入式发布编排": "adk-embedded-release-orchestration", "第三方引入": "adk-security-supply-chain"}
         with tempfile.TemporaryDirectory() as home:
             for query, name in cases.items():
                 with self.subTest(query=query):
                     result = search_skills(Repo.from_path(ROOT), query, "team-collab", codex_home=home)
                     self.assertEqual(name, result["candidates"][0]["name"])
+
+    def test_disabled_nested_skill_is_still_excluded_from_parent(self) -> None:
+        wrapper = self.records["adk-data-fetch"]["vendor_rel"]
+        records = list(self.records.values())
+        child = self.records["adk-email-imap-fetch"]
+        source = Repo.from_path(ROOT).source
+        changed = {**child, "enabled": False, "source_ref": "0" * 40}
+        updated = [changed if record is child else record for record in records]
+        removed = [record for record in records if record is not child]
+        for inventory in (updated, removed):
+            self.assertIn(f"{wrapper}/{child['name']}", nested_adk_skill_patterns(source, inventory))
 
 
 if __name__ == "__main__":

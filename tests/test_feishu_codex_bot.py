@@ -388,6 +388,25 @@ class FeishuCodexBotTest(unittest.TestCase):
         summary = store.summary("ou_owner")
         self.assertEqual(1, summary["counts"]["canceled"])
 
+    def test_state_store_closes_connections_after_commit_and_rollback(self) -> None:
+        store = feishu_codex_bot.StateStore(self.config().state_db)
+        insert = "INSERT INTO messages (message_id, received_at) VALUES (?, ?)"
+        with store._connect() as committed:
+            committed.execute(insert, ("committed", 1))
+        with self.assertRaises(sqlite3.ProgrammingError):
+            committed.execute("SELECT 1")
+
+        with self.assertRaisesRegex(RuntimeError, "rollback"):
+            with store._connect() as rolled_back:
+                rolled_back.execute(insert, ("rolled-back", 1))
+                raise RuntimeError("rollback")
+        with self.assertRaises(sqlite3.ProgrammingError):
+            rolled_back.execute("SELECT 1")
+
+        with store._connect() as connection:
+            rows = connection.execute("SELECT message_id FROM messages").fetchall()
+        self.assertEqual(["committed"], [row[0] for row in rows])
+
     def test_user_default_repository_persists_and_can_be_cleared(self) -> None:
         store = feishu_codex_bot.StateStore(self.config().state_db)
         self.assertEqual("", store.default_repository("ou_owner"))

@@ -16,7 +16,7 @@ import sys
 from typing import Any, Mapping, Optional
 
 from .feishu_codex_bot import (
-    BotConfig, BotJob, FeishuCodexError, StateStore, merged_environment,
+    AgentInputPersistError, BotConfig, BotJob, FeishuCodexError, StateStore, merged_environment,
 )
 from .feishu_task_spool import TaskSpool, SpoolError
 
@@ -91,43 +91,33 @@ class AgentTaskIntake:
         message_id = "agent:" + hashlib.sha256(
             (self.sender + "\0" + idempotency_key).encode("utf-8")
         ).hexdigest()
-        task_id, created = self.store.create_agent_task(
-            message_id, self.sender, repo, mode, digest, self.config.queue_size,
-        )
-        if agent_run_id:
-            if not created:
-                existing_link = self.store.agent_run_link_for_task(task_id)
-                if (existing_link is None
-                        or existing_link["agent_run_id"] != agent_run_id
-                        or existing_link["unix_uid"] != os.getuid()):
-                    # A crash may have left a legacy task row before its
-                    # AgentRun link was committed. It is ambiguous, not safe
-                    # to adopt or replay under a different WorkItem identity.
-                    self.store.update_task(task_id, "unknown", "AgentRunLinkMissingOrConflict")
-                    self._mark_workitem_run_unknown(agent_run_id)
-                    if existing_link is not None:
-                        self._mark_workitem_run_unknown(existing_link["agent_run_id"])
-                    raise FeishuCodexError(
-                        "existing task has no matching AgentRun receipt; marked UNKNOWN, reconcile manually, never rebind"
-                    )
-            else:
-                try:
-                    self.store.link_agent_run_task(agent_run_id, task_id, os.getuid())
-                except Exception:
-                    self.store.update_task(task_id, "unknown", "AgentRunLinkFailed")
-                    self._mark_workitem_run_unknown(agent_run_id)
-                    raise
-        if created:
+        def publish(task_id: int) -> None:
             job = BotJob(task_id, message_id, self.config.target_chat_id, self.sender,
                          "task", repo, mode, task)
-            try:
-                self.spool.put(task_id, dataclasses.asdict(job))
-            except (OSError, SpoolError):
-                self.store.update_task(task_id, "unknown", "AgentInputPersistFailed")
-                if agent_run_id:
-                    self._mark_workitem_run_unknown(agent_run_id)
-                raise FeishuCodexError("任务输入持久化失败，禁止自动重复执行") from None
-        elif agent_run_id:
+            self.spool.put(task_id, dataclasses.asdict(job))
+
+        try:
+            task_id, created = self.store.create_agent_task(
+                message_id, self.sender, repo, mode, digest, self.config.queue_size,
+                agent_run_id=agent_run_id, publish_payload=publish,
+            )
+        except AgentInputPersistError:
+            if agent_run_id:
+                self._mark_workitem_run_unknown(agent_run_id)
+            raise
+        if agent_run_id and not created:
+            existing_link = self.store.agent_run_link_for_task(task_id)
+            if (existing_link is None
+                    or existing_link["agent_run_id"] != agent_run_id
+                    or existing_link["unix_uid"] != os.getuid()):
+                # Legacy orphan: only invalidate an unlinked queued row.
+                # Never modify another WorkItem or an already running task.
+                if existing_link is None:
+                    self.store.mark_queued_unknown(task_id, "AgentRunLinkMissingOrConflict")
+                self._mark_workitem_run_unknown(agent_run_id)
+                raise FeishuCodexError(
+                    "existing task has no matching AgentRun receipt; marked UNKNOWN, reconcile manually, never rebind"
+                )
             detail = self.store.agent_task_detail(task_id, self.sender)
             if detail is None:
                 raise FeishuCodexError("existing local Agent task is not owned by this Unix user")
@@ -135,9 +125,11 @@ class AgentTaskIntake:
                 try:
                     self.spool.get(task_id)
                 except (FileNotFoundError, OSError, SpoolError):
-                    self.store.update_task(task_id, "unknown", "AgentQueuedPayloadUnavailable")
-                    self._mark_workitem_run_unknown(agent_run_id)
-                    raise FeishuCodexError("既有任务缺少可信输入，状态已置为 UNKNOWN，禁止重放") from None
+                    # The worker may have claimed or completed it after the
+                    # snapshot. Only a still-queued row is invalidated.
+                    if self.store.mark_queued_unknown(task_id, "AgentQueuedPayloadUnavailable"):
+                        self._mark_workitem_run_unknown(agent_run_id)
+                        raise FeishuCodexError("既有任务缺少可信输入，状态已置为 UNKNOWN，禁止重放") from None
         result = self.get_task(task_id)
         result["created"] = created
         return result
@@ -145,6 +137,8 @@ class AgentTaskIntake:
     def submit_task(self, repo: str, mode: str, task: str, idempotency_key: str) -> dict[str, Any]:
         self._enabled()
         self._require_billing_source()
+        if isinstance(idempotency_key, str) and idempotency_key.startswith("workitem-"):
+            raise FeishuCodexError("workitem- 幂等键仅供精确 WorkItem 入口使用")
         return self._queue_task(repo, mode, task, idempotency_key)
 
     def submit_workitem_task(self, run_id: str, task: str) -> dict[str, Any]:

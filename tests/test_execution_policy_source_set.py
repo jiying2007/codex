@@ -15,9 +15,9 @@ from tools.codex_assets.execution_policy.reducer import reduce_events
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SOURCE_BLOBS = {
     "__init__.py": "677b83c8f18254bea0b07a497ceef0941fe766ce",
-    "contracts.py": "93977bd4f53283f53205a60ab01cc2981127783f",
-    "decision.py": "61179126b3f623f8aa6c2bc603afb4689da9c78c",
-    "reducer.py": "3446508aa08b5a541be11a283f725b9298fc0a81"
+    "contracts.py": "10139ff831beb12468363e35982be87c9b87701c",
+    "decision.py": "63215b0d7a8a7b0d354dc1f463d96c788b69e0e8",
+    "reducer.py": "65659cd0b739c9c582dd166c4d76050d8e6c4996"
 }
 
 def git_blob_sha(path: pathlib.Path) -> str:
@@ -26,7 +26,7 @@ def git_blob_sha(path: pathlib.Path) -> str:
 
 
 class ExecutionPolicySourceSetTest(unittest.TestCase):
-    def test_vendored_execution_policy_remains_explicitly_pinned_820(self) -> None:
+    def test_vendored_execution_policy_is_explicitly_pinned_to_11416(self) -> None:
         directory = ROOT / "tools/codex_assets/execution_policy"
         self.assertEqual(set(SOURCE_BLOBS), {p.name for p in directory.glob("*.py")})
         for filename, expected in SOURCE_BLOBS.items():
@@ -35,8 +35,8 @@ class ExecutionPolicySourceSetTest(unittest.TestCase):
         self.assertRegex(provider["version"], r"^[0-9]+\.[0-9]+\.[0-9]+$")
         self.assertRegex(provider["provider_commit"], r"^[0-9a-f]{40}$")
         behavior=json.loads((ROOT/"manifests/execution_policy.json").read_text())["engine"]["behavior_baseline"]
-        self.assertEqual("8.2.0", behavior["version"])
-        self.assertEqual("22e6c790d1ed191cecc3083dc001a6ccfed264f6", behavior["commit"])
+        self.assertEqual("11.4.16", behavior["version"])
+        self.assertEqual("c41f7c933f653dd702b0d8042ae9df38807430dc", behavior["commit"])
         split=json.loads((ROOT/"manifests/provider-locks/agent-dev-kit-execution-policy.json").read_text())
         self.assertEqual("codex-execution-policy-source-lock/v1", split["schema"])
         self.assertEqual(behavior["commit"], split["source"]["commit"])

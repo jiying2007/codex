@@ -1,0 +1,3 @@
+interface:
+  display_name: "ADK · 嵌入式性能分析"
+  short_description: "在可比负载下测量 CPU、内存与时延热点，区分主机估算和目标板真实数据。"

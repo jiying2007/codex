@@ -76,3 +76,6 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [ ] 以上源码补丁仍需本次新 HEAD 全量 CI 才可标记为已验证；生产主机与真实模型/设备现场试验统一后移。
 
 [x] 模型执行授权收据保存签名时精确到期时间；真实分发不能通过手工扩大 RuntimeGrant 有效期，CI 负向测试无模型副作用。
+
+[x] WorkItem 文本状态列出最近五个同权限研发尝试，精确 Run 查询可见已记录 thread ID；重复 attempt 返回真实状态而不重复执行。
+[x] 本机 MCP 发布在既有 Bot SQLite writer 事务中创建 task/link 并写入私有 spool，防止并发观察半发布状态；失败保留 UNKNOWN，启动清理与发布串行；仍需精确 HEAD CI 核验。

@@ -315,6 +315,11 @@ def validate_workflow_routes(item: dict[str, Any], skill_names: set[str], errors
 
         match_any = list_value(route, "match_any")
         exclude_any = list_value(route, "exclude_any")
+        if "requires_any" in route:
+            required_terms = route["requires_any"]
+            if (not isinstance(required_terms, list) or not required_terms
+                    or any(not isinstance(term, str) or not term.strip() for term in required_terms)):
+                errors.append(f"{label} requires_any 必须包含至少一个非空字符串")
         if not match_any:
             errors.append(f"{label} match_any 不能为空")
         normalized_excludes = {term.strip().casefold() for term in exclude_any if term.strip()}

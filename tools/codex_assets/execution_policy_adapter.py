@@ -28,13 +28,13 @@ from .execution_policy.reducer import reduce_events
 UTC = timezone.utc
 ENGINE_BASELINE = {
     "repository": "jiying2007/agent-dev-kit",
-    "version": "8.2.0",
-    "commit": "22e6c790d1ed191cecc3083dc001a6ccfed264f6",
+    "version": "11.4.16",
+    "commit": "c41f7c933f653dd702b0d8042ae9df38807430dc",
     "source_blobs": {
         "__init__.py": "677b83c8f18254bea0b07a497ceef0941fe766ce",
-        "contracts.py": "93977bd4f53283f53205a60ab01cc2981127783f",
-        "decision.py": "61179126b3f623f8aa6c2bc603afb4689da9c78c",
-        "reducer.py": "3446508aa08b5a541be11a283f725b9298fc0a81"
+        "contracts.py": "10139ff831beb12468363e35982be87c9b87701c",
+        "decision.py": "63215b0d7a8a7b0d354dc1f463d96c788b69e0e8",
+        "reducer.py": "65659cd0b739c9c582dd166c4d76050d8e6c4996"
     }
 }
 
@@ -45,14 +45,14 @@ ENGINE_BASELINE = {
 # This is an exact source pin, not an executable compatibility shim.
 PINNED_POLICY_SOURCE = {
     "repository": "jiying2007/agent-dev-kit",
-    "version": "8.2.0",
-    "commit": "22e6c790d1ed191cecc3083dc001a6ccfed264f6",
-    "release_tag": "v8.2.0",
-    "tree": "0408ce042b9692d2f553bdd11f041267a86b6fc9",
-    "manifest_blob": "d60a3f920993698a02ebf5b53c1d05d8e90fd9f0",
+    "version": "11.4.16",
+    "commit": "c41f7c933f653dd702b0d8042ae9df38807430dc",
+    "release_tag": "v11.4.16",
+    "tree": "d8927518b9f5fafb944ba9e08a14a62dad5cb495",
+    "manifest_blob": "65990ada947d4bb78e8c997db689d037a64050b2",
     "release_artifact": {
-        "name": "agent-dev-kit-8.2.0.tar.gz",
-        "sha256": "fd4ec6175c088494c87a71a6113ecc9ed6f3a7a2418b9a12d67e065e00222f1e"
+        "name": "agent-dev-kit-11.4.16.tar.gz",
+        "sha256": "66107c68a2ac76488cd06238bc582114dcc4c595aa691da3d6114743b534d59b"
     }
 }
 
@@ -147,9 +147,11 @@ def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
             or not isinstance(provider.get("version"), str)
             or not isinstance(provider.get("provider_commit"), str)):
         raise ExecutionPolicyAdapterError("Execution Policy provider identity drift")
-    # Prior one-source deployments remain exact: no independent lock is needed.
-    # For an advanced Skills provider require a reviewed, two-sided identity lock.
-    if (provider["version"] != ENGINE_BASELINE["version"]
+    # One-source deployments may omit the split lock. If present, validate it
+    # even when both identities match so stale bindings cannot go unnoticed.
+    split_lock = root / "manifests/provider-locks/agent-dev-kit-execution-policy.json"
+    if (split_lock.exists() or split_lock.is_symlink()
+            or provider["version"] != ENGINE_BASELINE["version"]
             or provider["provider_commit"] != ENGINE_BASELINE["commit"]):
         _verify_split_policy_source(root, provider)
     retired_engine = root / "tools/codex_assets/execution_policy/engine.py"

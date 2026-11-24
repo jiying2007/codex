@@ -97,6 +97,8 @@ rtk bash scripts/skill-search.sh --query "<任务>" --profile default --limit 3 
 
 只有在 `why_selected` 足以区分相邻候选后才读取 `load_path`。已停用 Superpowers 运行依赖；不得通过 `--include-fallback` 重新激活旧框架。需要旧式完整 catalog 时可构建并 apply `team-collab`，但 catalog 只在新线程刷新。
 
+Workflow 路由可用 `requires_any` 指定 `match_any` 意图直接作用的对象。两组在本轮请求中明确相连时，优先于单组匹配。历史统计、否定请求和历史用法中的「如何审查」按原有规则推荐 Skill。历史会话作为本轮暂存审查的佐证时，目录仍优先推荐代码审查。
+
 ### Profile 切换操作边界
 
 - `build.sh --profile <name>` 只更新 `build/codex-home`；只有 apply 才会修改 `~/.codex`。
@@ -487,3 +489,14 @@ rollback 处理 plan 中记录的 copy、overwrite 和 delete 项：新增文件
 本机 JSON 包含 `schema_version=1`、`profile`、`target=rules/default.rules`、`base_sha256` 和 `extra_rules`。每行只允许声明 `prefix_rule(pattern=[...], decision=...)`，不会执行输入代码。生成的 managed state 保存 `machine_inputs`，后续 build 检查重新核对输入。个人权限输入保持本地，不成为团队发布默认权限。
 
 实际应用将个人输入保存在原源仓的 `local/exec-rules.json`，该路径由 Git 忽略；build 与 doctor 通过显式输入哈希核验它。临时审查目录只用于资格验证，发布后的运行和重建使用原源仓中的稳定输入。
+### 查看单个 ADK Skill 的分发状态
+
+从 Codex 源仓运行以下只读检查。`--provider-root` 读取上游仓库中与 Provider lock 一致的 Git 对象。`--profile` 是要检查的 Codex Runtime Profile。`--build` 和 `--live` 可指定隔离目录。
+
+```bash
+rtk python3 -m tools.codex_assets.adk_skill_audit \
+  --skill adk-prose-revision --profile team-collab \
+  --provider-root /path/to/agent-dev-kit --summary-json
+```
+
+`upstream` 显示上游声明。`distribution` 显示启用、Profile 选择与来源 SHA。`build` 和 `live` 读回各自受管回执、链接和入口内容。`different-profile` 表示该目录是用另一 Profile 构建或应用的。源清单移除 Skill 后，`unregistered-entrypoint` 表示目录中仍留有入口，`unregistered-managed-entry` 表示受管状态仍有记录。`host_discovery=unobserved` 表示尚需在目标宿主的新会话核对实际目录发现。

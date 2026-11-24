@@ -9,6 +9,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class OwnedEntrypointTests(unittest.TestCase):
+    def test_caller_tools_package_cannot_shadow_doctor(self):
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp)
+            (cwd / "tools").mkdir()
+            (cwd / "tools/__init__.py").write_text("raise RuntimeError('caller tools imported')")
+            result = subprocess.run(
+                ["bash", str(ROOT / "scripts/doctor.sh"), "--help"],
+                cwd=cwd, env=dict(os.environ, PYTHONPATH=str(cwd)),
+                capture_output=True, text=True, timeout=20,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn("--scope", result.stdout)
+
     def test_caller_tools_package_cannot_shadow_policy_cli(self):
         with tempfile.TemporaryDirectory() as temp:
             cwd = Path(temp)
