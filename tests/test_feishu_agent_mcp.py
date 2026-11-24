@@ -783,6 +783,24 @@ class FeishuAgentMCPTests(unittest.TestCase):
                 parse_manual_command("/wi delivery " + run_id + " " + suffix,
                                      "tenantA", "codex")
 
+    def test_existing_workitem_links_do_not_allow_empty_agent_ledger_recreation(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt()
+        submitted = intake.submit_workitem_task(run_id, scope)
+        agent_db = pathlib.Path(manual.store.path)
+        retained = agent_db.with_name("retained-agent.sqlite3")
+        agent_db.rename(retained)
+        self.assertFalse(agent_db.exists())
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "restore paired backup"):
+            feishu_codex_bot.FeishuCodexBot(
+                intake.config, mock.Mock(), mock.Mock(), intake.store,
+            )
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "restore paired backup"):
+            intake.get_workitem_task(run_id)
+        self.assertFalse(agent_db.exists())
+        self.assertEqual("queued", intake.get_task(submitted["id"])["status"])
+        retained.rename(agent_db)
+        self.assertEqual("queued", intake.get_workitem_task(run_id)["run_status"])
+
     def test_jsonrpc_initialize_list_call_and_notifications(self) -> None:
         intake = self.intake()
         def invoke(message: object) -> dict | None:

@@ -388,6 +388,22 @@ class FeishuCodexBotTest(unittest.TestCase):
         summary = store.summary("ou_owner")
         self.assertEqual(1, summary["counts"]["canceled"])
 
+    def test_state_store_creates_private_db_and_refuses_unsafe_existing_state(self) -> None:
+        config = self.config()
+        store = feishu_codex_bot.StateStore(config.state_db)
+        self.assertEqual(0o600, config.state_db.stat().st_mode & 0o777)
+        store.create_task("om_private", "ou_owner", "codex", "explain")
+        config.state_db.chmod(0o644)
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "0600"):
+            feishu_codex_bot.StateStore(config.state_db)
+        self.assertEqual(0o644, config.state_db.stat().st_mode & 0o777)
+        config.state_db.chmod(0o600)
+        link = self.tmp / "linked.sqlite3"
+        link.symlink_to(config.state_db)
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "0600"):
+            feishu_codex_bot.StateStore(link)
+        self.assertEqual("queued", feishu_codex_bot.StateStore(config.state_db).task_status(1))
+
     def test_state_store_closes_connections_after_commit_and_rollback(self) -> None:
         store = feishu_codex_bot.StateStore(self.config().state_db)
         insert = "INSERT INTO messages (message_id, received_at) VALUES (?, ?)"

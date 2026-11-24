@@ -91,3 +91,5 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 
 [x] 合并 #79 原生 App Server 协议改进至唯一 #80 候选；该协议仅用于离线资格测试，生产执行统一使用既有 CodexRunner CLI，不新增第二个运行时。
 [x] 迁移备份自动包含 sibling AgentRun DB（若存在），核对 Bot/AgentRun 任务身份及模式，保留私有环境文件可选备份，缺失关联或不匹配拒绝通过；恢复演练双库检查。
+
+[x] Bot/MCP/check 共用 WorkItem ledger 解析；已有任务关联但 sibling DB 缺失拒绝新建空库，明确恢复双库快照；新 Bot SQLite 0600、既有 DB/WAL/SHM 私有检查，systemd UMask=0077。离线回归不重启真实服务。

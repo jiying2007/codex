@@ -18,7 +18,7 @@ from typing import Any, Mapping, Optional
 
 from .feishu_codex_bot import (
     AgentInputPersistError, BotConfig, BotJob, FeishuCodexError, StateStore,
-    merged_environment, resolve_worker_resume,
+    merged_environment, open_workitem_service, resolve_worker_resume,
 )
 from .feishu_task_spool import TaskSpool, SpoolError
 
@@ -58,13 +58,7 @@ class AgentTaskIntake:
             )
 
     def _manual_store(self):
-        if not self.config.manual_workitems_enabled:
-            raise FeishuCodexError("WorkItem AgentRun bridge is disabled")
-        from .feishu_engineering_agent.manual_items import ManualWorkItemService
-        manual_db = self.config.state_db.with_name("feishu-engineering-agent.sqlite3")
-        if manual_db == self.config.state_db:
-            raise FeishuCodexError("AgentRun DB must be separate from legacy Bot state")
-        return ManualWorkItemService(manual_db).store
+        return open_workitem_service(self.config, self.store).store
 
     def _mark_workitem_run_unknown(self, run_id: str) -> None:
         try:

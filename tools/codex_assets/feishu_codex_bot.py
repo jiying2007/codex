@@ -853,6 +853,28 @@ class StateStore:
     def __init__(self, path: pathlib.Path) -> None:
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
+        # SQLite otherwise inherits the process umask on first creation.
+        # Never silently chmod or replace an existing production state file.
+        try:
+            descriptor = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            pass
+        else:
+            os.close(descriptor)
+        for candidate in (path, path.with_name(path.name + "-wal"),
+                          path.with_name(path.name + "-shm")):
+            try:
+                info = candidate.lstat()
+            except FileNotFoundError:
+                if candidate == path:
+                    raise FeishuCodexError("Bot 状态数据库缺失") from None
+                continue
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                    or info.st_nlink != 1 or info.st_mode & 0o077):
+                raise FeishuCodexError(
+                    "Bot 状态数据库及 WAL/SHM 必须为服务用户私有普通文件 (0600)；"
+                    "暂停服务后核对现有文件权限"
+                )
         self._initialize()
 
     @contextmanager
@@ -1160,6 +1182,12 @@ class StateStore:
             except Exception:
                 connection.rollback()
                 raise
+
+    def has_agent_run_links(self) -> bool:
+        with self._connect() as connection:
+            return connection.execute(
+                "SELECT 1 FROM agent_run_task_links LIMIT 1"
+            ).fetchone() is not None
 
     def agent_run_link_for_task(self, task_id: int) -> Optional[Dict[str, Any]]:
         with self._connect() as connection:
@@ -2228,6 +2256,23 @@ class FeishuTransport:
         client.start()
 
 
+def open_workitem_service(config: BotConfig, store: StateStore):
+    """One sibling ledger resolver shared by the Bot, preflight and local MCP."""
+    from .feishu_engineering_agent.manual_items import ManualWorkItemService
+    from .feishu_engineering_agent.models import IntakeRejected
+    if not config.manual_workitems_enabled:
+        raise FeishuCodexError("WorkItem AgentRun bridge is disabled")
+    manual_db = config.state_db.with_name("feishu-engineering-agent.sqlite3")
+    if manual_db == config.state_db:
+        raise FeishuCodexError("manual WorkItem DB must differ from legacy Bot DB")
+    if store.has_agent_run_links() and not manual_db.is_file():
+        raise FeishuCodexError("linked WorkItems require the existing AgentRun DB; restore paired backup")
+    try:
+        return ManualWorkItemService(manual_db)
+    except (IntakeRejected, OSError, sqlite3.DatabaseError) as exc:
+        raise FeishuCodexError("WorkItem AgentRun DB is unavailable or unsafe") from exc
+
+
 class FeishuCodexBot:
     def __init__(self, config: BotConfig, transport: FeishuTransport, runner: CodexRunner, store: StateStore) -> None:
         self.config = config
@@ -2244,12 +2289,7 @@ class FeishuCodexBot:
         self._schedule_lock = threading.Lock()
         self._manual_service = None
         if config.manual_workitems_enabled:
-            from .feishu_engineering_agent.manual_items import ManualWorkItemService
-            # Separate 0600 SQLite file, never the legacy task DB/WAL/spool.
-            manual_db = config.state_db.with_name("feishu-engineering-agent.sqlite3")
-            if manual_db == config.state_db:
-                raise FeishuCodexError("manual WorkItem DB must differ from legacy Bot DB")
-            self._manual_service = ManualWorkItemService(manual_db)
+            self._manual_service = open_workitem_service(config, store)
         self._card_publisher = None
         if config.engineering_cards_enabled:
             if (self._manual_service is None
@@ -3091,7 +3131,10 @@ def run(args: argparse.Namespace) -> int:
     if args.action == "check":
         config.validate_runtime()
         version = runner.check()
-        StateStore(config.state_db)
+        store = StateStore(config.state_db)
+        if config.manual_workitems_enabled:
+            open_workitem_service(config, store)
+        TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         print(
             f"[PASS] config chat_id_suffix={config.target_chat_id[-6:]} "
             f"repos={len(config.repositories)} default_repo={config.default_repo} "

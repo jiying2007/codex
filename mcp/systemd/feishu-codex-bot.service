@@ -5,6 +5,7 @@ After=network-online.target
 
 [Service]
 Type=simple
+UMask=0077
 WorkingDirectory=%h/codex
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=%h/codex/scripts/feishu-codex-bot.sh start
