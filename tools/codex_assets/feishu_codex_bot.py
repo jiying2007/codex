@@ -493,8 +493,9 @@ class BotConfig:
             normal_codex_home = pathlib.Path(
                 values.get("CODEX_HOME", str(pathlib.Path.home() / ".codex"))
             ).expanduser().resolve()
-            if agent_codex_home == normal_codex_home:
-                raise FeishuCodexError("Agent 专用 CODEX_HOME 不得复用个人 Codex 登录目录")
+            if (agent_codex_home == normal_codex_home or agent_codex_home in normal_codex_home.parents
+                    or normal_codex_home in agent_codex_home.parents):
+                raise FeishuCodexError("Agent 专用 CODEX_HOME 不得复用或嵌套个人 Codex 登录目录")
             if (agent_codex_home / "auth.json").exists() or (agent_codex_home / "auth.json").is_symlink():
                 raise FeishuCodexError(
                     "Agent 专用 CODEX_HOME 不得包含 ChatGPT/个人账户 auth.json；仅使用独立 API 凭据"
@@ -1132,6 +1133,7 @@ class StateStore:
         self, message_id: str, sender: str, repository: str, mode: str,
         input_digest: str, queue_limit: int,
         *, agent_run_id: str = "",
+        remote_context: Optional[Mapping[str, Any]] = None,
         publish_payload: Optional[Callable[[int], None]] = None,
     ) -> Tuple[int, bool]:
         """Publish a new local task only after its link and payload are durable.
@@ -1145,6 +1147,10 @@ class StateStore:
                 not re.fullmatch(r"[a-f0-9]{32}", agent_run_id)
                 or sender != f"agent:{os.getuid()}" or publish_payload is None):
             raise FeishuCodexError("invalid atomic WorkItem task publication")
+        if remote_context is not None and (agent_run_id or sender != f"agent:{os.getuid()}"
+                or publish_payload is None or set(remote_context) != {
+                    "context_id","event_key","policy_sha256","sources_sha256","previous_task_id","latest_task_id"}):
+            raise FeishuCodexError("invalid remote context publication")
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             old = connection.execute(
@@ -1160,7 +1166,34 @@ class StateStore:
                         or old["mode"] != mode or previous is None
                         or previous["value"] != input_digest):
                     raise FeishuCodexError("Agent 幂等键复用但任务内容不同")
+                if remote_context is not None:
+                    prior = connection.execute(
+                        "SELECT context_id,event_key,policy_sha256,sources_sha256,previous_task_id "
+                        "FROM engineering_context_tasks WHERE task_id=?", (old["id"],),
+                    ).fetchone()
+                    if prior is None or any(prior[key] != remote_context[key] for key in prior.keys()):
+                        raise FeishuCodexError("remote event conflicts with existing task receipt")
                 return int(old["id"]), False
+            if remote_context is not None:
+                receipt = connection.execute(
+                    "SELECT c.repo,e.message_id FROM engineering_context_events e "
+                    "JOIN engineering_contexts c ON c.context_id=e.context_id "
+                    "WHERE e.event_key=? AND c.context_id=?",
+                    (remote_context["event_key"],remote_context["context_id"]),
+                ).fetchone()
+                if receipt is None or receipt["message_id"]!=message_id or receipt["repo"]!=repository:
+                    raise FeishuCodexError("remote context changed before atomic queue publication")
+                latest = connection.execute(
+                    "SELECT x.task_id,t.status,t.mode FROM engineering_context_tasks x JOIN tasks t ON t.id=x.task_id "
+                    "WHERE x.context_id=? ORDER BY x.task_id DESC LIMIT 1",
+                    (remote_context["context_id"],),
+                ).fetchone()
+                if ((latest["task_id"] if latest else 0)!=remote_context["latest_task_id"]
+                        or (latest and latest["status"] in ("queued","running","unknown"))
+                        or (remote_context["previous_task_id"] and (
+                            latest is None or latest["task_id"]!=remote_context["previous_task_id"]
+                            or latest["status"]!="completed" or latest["mode"]!=mode))):
+                    raise FeishuCodexError("remote context already has a different active or prior execution")
             count = connection.execute(
                 "SELECT COUNT(*) FROM tasks WHERE status='queued'"
             ).fetchone()[0]
@@ -1182,6 +1215,12 @@ class StateStore:
                     "INSERT INTO agent_run_task_links "
                     "(agent_run_id,task_id,unix_uid,created_at) VALUES (?,?,?,?)",
                     (agent_run_id, task_id, os.getuid(), now),
+                )
+            if remote_context is not None:
+                connection.execute(
+                    "INSERT INTO engineering_context_tasks(task_id,context_id,event_key,policy_sha256,sources_sha256,previous_task_id) VALUES (?,?,?,?,?,?)",
+                    (task_id,remote_context["context_id"],remote_context["event_key"],
+                     remote_context["policy_sha256"],remote_context["sources_sha256"],remote_context["previous_task_id"]),
                 )
             if publish_payload is not None:
                 try:
@@ -1461,6 +1500,8 @@ class MessageGate:
             ArtifactManager.validate_reference(repository, command.artifact)
         task_id = 0
         if command.action == "task":
+            if self.config.manual_workitems_enabled:
+                raise FeishuCodexError("研发入口要求明确范围和独立计费授权；请直接发送研发链接或明确分析/修复指令。未启动 Codex。")
             created = self.store.create_message_task(
                 message_id,
                 open_id,
@@ -1883,7 +1924,8 @@ class CodexRunner:
             raise FeishuCodexError("Codex CLI 版本检查失败")
         return completed.stdout.strip()
 
-    def _isolated_command(self, working_directory: pathlib.Path, codex_arguments: Sequence[str]) -> List[str]:
+    def _isolated_command(self, working_directory: pathlib.Path, codex_arguments: Sequence[str],
+                          *, dedicated: bool = False, writable_workdir: bool = True) -> List[str]:
         command = [
             self.config.isolation_bin,
             "--die-with-parent",
@@ -1900,11 +1942,38 @@ class CodexRunner:
             "--proc",
             "/proc",
         ]
-        for writable in self.config.isolation_write_paths:
+        writable_paths = self.config.isolation_write_paths
+        deny_paths = list(self.config.deny_read_paths)
+        deny_files = []
+        if dedicated:
+            if self.config.agent_codex_home is None:
+                raise FeishuCodexError("独立执行目录未配置")
+            writable_paths = (self.config.agent_codex_home,)
+            home = pathlib.Path.home()
+            for path in (
+                    home / ".codex", pathlib.Path(os.environ.get("CODEX_HOME",str(home/".codex"))).expanduser(),
+                    home / ".ssh", home / ".config/gh", home / ".aws", home / ".config/gcloud", home / ".kube"):
+                if path.exists():
+                    resolved = path.resolve()
+                    if any(resolved == target or resolved in target.parents or target in resolved.parents
+                           for target in (self.config.agent_codex_home,working_directory)):
+                        raise FeishuCodexError("个人凭据目录与独立研发工作区重叠")
+                    if resolved.is_dir() and resolved not in deny_paths:
+                        deny_paths.append(resolved)
+            for path in (home/".git-credentials",home/".netrc"):
+                if path.exists():
+                    if path.is_symlink() or not path.is_file():
+                        raise FeishuCodexError("个人凭据文件身份异常")
+                    deny_files.append(path)
+        for writable in writable_paths:
             command.extend(["--bind", str(writable), str(writable)])
-        command.extend(["--bind", str(working_directory), str(working_directory), "--tmpfs", "/tmp"])
-        for denied in self.config.deny_read_paths:
+        if writable_workdir:
+            command.extend(["--bind", str(working_directory), str(working_directory)])
+        command.extend(["--tmpfs", "/tmp"])
+        for denied in deny_paths:
             command.extend(["--tmpfs", str(denied)])
+        for denied in deny_files:
+            command.extend(["--ro-bind", "/dev/null", str(denied)])
         command.extend(["--chdir", str(working_directory), "--", self.config.codex_bin, *codex_arguments])
         return command
 
@@ -1980,7 +2049,9 @@ class CodexRunner:
         if resume_target is not None:
             codex_arguments.extend(["resume", resume_target.thread_id])
         codex_arguments.append(prompt)
-        command = self._isolated_command(working_directory, codex_arguments)
+        dedicated = job.sender_open_id.startswith("agent:")
+        command = self._isolated_command(working_directory,codex_arguments,
+            dedicated=dedicated,writable_workdir=(not dedicated or job.mode=="edit"))
         try:
             process = subprocess.Popen(
                 command,
@@ -2275,6 +2346,32 @@ class FeishuTransport:
             raise DocumentReadError("飞书正文响应缺少 data")
         return data
 
+    def read_engineering_note(self, message_id: str, actor: str, chat: str,
+                              topic: str, expected_sha256: str) -> str:
+        """Re-read only the exact already-received text under its original scope."""
+        from .feishu_engineering_agent.service import topic_key
+        request = self.GetMessageRequest.builder().message_id(message_id).build()
+        response = self.client.im.v1.message.get(request)
+        items = list(response.data.items or []) if response.success() and response.data else []
+        if len(items)!=1:
+            raise FeishuCodexError("关联消息不可读取")
+        message = items[0]
+        sender = getattr(message,"sender",None)
+        if (getattr(message,"message_id",None)!=message_id
+                or getattr(message,"chat_id",None)!=chat
+                or getattr(message,"msg_type",None)!="text"
+                or getattr(sender,"id",None)!=actor or getattr(sender,"id_type",None)!="open_id"):
+            raise FeishuCodexError("关联消息身份无法核验")
+        actual_topic = topic_key(message_id,str(getattr(message,"root_id","") or ""),
+                                 str(getattr(message,"thread_id","") or ""),
+                                 str(getattr(message,"parent_id","") or ""))
+        body = getattr(message,"body",None)
+        keys = [str(getattr(x,"key","") or "") for x in (getattr(message,"mentions",None) or [])]
+        text = extract_text(str(getattr(body,"content","") or ""),keys)
+        if actual_topic!=topic or hashlib.sha256(text.encode("utf-8")).hexdigest()!=expected_sha256:
+            raise FeishuCodexError("关联消息内容或话题已改变")
+        return text
+
     def resolve_sources(self, sources: Sequence[SourceRef]) -> str:
         if sum(source.kind == "doc" for source in sources) > MAX_DOCUMENTS:
             raise FeishuCodexError(f"每条任务最多读取 {MAX_DOCUMENTS} 个飞书文档链接")
@@ -2372,10 +2469,13 @@ class FeishuCodexBot:
         self._schedule_lock = threading.Lock()
         self._manual_service = None
         self._link_service = None
+        self._engineering_executor = None
         if config.manual_workitems_enabled:
             self._manual_service = open_workitem_service(config, store)
             from .feishu_engineering_agent.service import LinkContextService
             self._link_service = LinkContextService(store)
+            from .feishu_engineering_agent.executor import EngineeringExecutor
+            self._engineering_executor = EngineeringExecutor(config,store,self.spool,transport,runner)
         self._card_publisher = None
         if config.engineering_cards_enabled:
             if (self._manual_service is None
@@ -2425,10 +2525,19 @@ class FeishuCodexBot:
                     or (job.mode == "edit" and (repository.edit_strategy != "worktree"
                                                or not repository.commit_enabled))):
                 raise SpoolError("agent task is no longer authorized")
-            if (job.sources or job.artifact
+            remote = (self._engineering_executor.binding(job.task_id)
+                      if self._engineering_executor is not None else None)
+            if ((job.sources and remote is None) or job.artifact
                     or self.store.agent_request_digest(job.task_id) !=
                         agent_request_digest(job.repository, job.mode, job.task)):
                 raise SpoolError("Agent queued payload does not match its persisted request")
+            if remote is not None:
+                try:
+                    self._engineering_executor.validate_job(job)
+                except FeishuCodexError as exc:
+                    raise SpoolError("remote engineering task authorization changed") from exc
+            elif not job.message_id.startswith("agent:"):
+                raise SpoolError("remote task missing authenticated context binding")
             try:
                 self.config.validate_agent_runtime()
             except FeishuCodexError as exc:
@@ -2467,8 +2576,8 @@ class FeishuCodexBot:
                 )
                 if approval["policy_sha256"] != expected_policy:
                     raise SpoolError("WorkItem AgentRun repository policy changed after authorization")
-        elif not self.config.sender_allowed(job.sender_open_id, repository):
-            raise SpoolError("queued task sender is no longer authorized")
+        elif self.config.manual_workitems_enabled or not self.config.sender_allowed(job.sender_open_id, repository):
+            raise SpoolError("legacy remote task is not authorized under engineering intake")
         if job.artifact:
             ArtifactManager.validate_reference(repository, job.artifact)
         return job
@@ -2894,8 +3003,15 @@ class FeishuCodexBot:
                 inbound, topic, allowed, self.config.link_repositories,
             )
             reply = result.reply if result.consumed else (
-                "当前回复没有已关联的研发事项；请在本话题提供需求、缺陷或文档链接。未启动 Codex。"
+                "当前回复没有已关联的研发事项；请在本话题提供需求、缺陷或文档链接及明确范围。未启动 Codex。"
             )
+            if result.consumed and result.intent:
+                try:
+                    action = (self._engineering_executor.cancel(inbound,result) if result.intent == "cancel"
+                              else self._engineering_executor.submit(inbound,result))
+                    reply = (reply + "\n" if reply else "") + action
+                except FeishuCodexError as exc:
+                    reply = (reply + "\n" if reply else "") + str(exc)
         except (IntakeRejected, ValueError):
             reply = "研发来源或话题关联被拒绝：请核对链接、工作项唯一性、仓库和权限。未启动 Codex。"
         except (sqlite3.DatabaseError, OSError):
@@ -2909,7 +3025,7 @@ class FeishuCodexBot:
     def _try_link_context(self, data: Any) -> bool:
         """Consume supported links and linked-topic replies before legacy task intake."""
         from .feishu_engineering_agent.models import InboundEvent, IntakeRejected
-        from .feishu_engineering_agent.service import topic_key
+        from .feishu_engineering_agent.service import topic_key, intent_for
         from .feishu_engineering_agent.sources import candidate_urls
         event = getattr(data, "event", None)
         message = getattr(event, "message", None)
@@ -2934,7 +3050,7 @@ class FeishuCodexBot:
         if self._link_service is None:
             if not workitem_like:
                 return False
-        elif not urls and not (root or thread or parent):
+        elif not urls and not (root or thread or parent) and not intent_for(body)[0]:
             return False
         sender_id = getattr(getattr(event,"sender",None),"sender_id",None)
         actor = str(getattr(sender_id,"open_id","") or "")
@@ -3027,7 +3143,7 @@ class FeishuCodexBot:
             "/repo reset 恢复系统默认项目\n"
             "/status 查看任务状态\n"
             "/cancel 取消本人排队中或运行中的任务\n"
-            "研发链接：直接发送飞书项目 issue/story、TAPD 或 Wiki/Docx/Sheets 链接；在同话题补充资料、/repo 定位仓库及 /status 查询（当前仅无模型关联）。\n"
+            "研发链接：直接发送飞书项目 issue/story、TAPD 或 Wiki/Docx/Sheets 链接；在同话题补充资料、/repo 定位仓库及 /status 查询。明确分析、审查、修复、开发或继续推进；只有独立计费与仓库授权满足才排队。\n"
             "/wi help 旧工作项诊断入口（迁移期间保留）\n"
             f"系统默认项目：{self.config.default_repo}\n"
             f"仓库别名：{repositories}"
@@ -3108,6 +3224,10 @@ class FeishuCodexBot:
                 if self.store.task_status(job.task_id) == "canceled":
                     self._fail_agent_run(job.task_id, "canceled")
                     continue
+                if self.config.manual_workitems_enabled and not job.sender_open_id.startswith("agent:"):
+                    self.store.mark_queued_unknown(job.task_id,"LegacyRemoteExecutionDisabled")
+                    self._send_safe(job.chat_id,"旧远程任务入口已停止；未启动 Codex，请使用新的研发入口。",job.message_id)
+                    continue
                 self._send_safe(
                     job.chat_id,
                     f"{self.config.bot_name} 已接收任务：repo={job.repository}, mode={job.mode}。",
@@ -3153,7 +3273,13 @@ class FeishuCodexBot:
                         raise FeishuCodexError("任务与关联上下文超过提示预算；请缩小 range 或减少引用")
                     resume_target = None
                     link = self._agent_run_link(job.task_id)
-                    if link is not None:
+                    remote = (self._engineering_executor.binding(job.task_id)
+                              if self._engineering_executor is not None else None)
+                    if remote is not None:
+                        resume_target = self._engineering_executor.resume_target(job)
+                        result = self.runner.run(job,source_context,persistent_session=True,
+                                                 resume_target=resume_target)
+                    elif link is not None:
                         from .feishu_engineering_agent.workflow import EngineeringWorkflow
                         approval = EngineeringWorkflow(
                             self._manual_service.store,
@@ -3182,7 +3308,10 @@ class FeishuCodexBot:
                         )
                     if job.artifact:
                         self._send_artifact(job, result)
-                    self._finish_agent_run(job, result, resume_target)
+                    if remote is not None:
+                        self._engineering_executor.finish(job,result,resume_target)
+                    else:
+                        self._finish_agent_run(job, result, resume_target)
                     self.store.update_task(job.task_id, "completed")
                     # A failed chat reply must never rewrite a verified execution as failed.
                     try:
