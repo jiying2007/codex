@@ -19,6 +19,7 @@ _CONTROL = {
     "/status", "status", "状态", "当前进度", "查看进度", "查看状态",
     "/help", "help", "帮助", "/cancel", "cancel", "取消", "停止任务",
     "/new", "/repo", "当前项目",
+    "检查 ci", "检查ci", "检查交付", "交付反馈", "生成研发反馈", "查看交付",
 }
 _REPO = re.compile(r"\A(?:/repo\s+|repo=)([a-z][a-z0-9_-]{0,31})(?=\s|\Z)", re.I)
 
@@ -116,6 +117,12 @@ class LinkContextService:
                 );
                 CREATE INDEX IF NOT EXISTS engineering_context_tasks_context
                     ON engineering_context_tasks(context_id,task_id);
+                CREATE TABLE IF NOT EXISTS engineering_context_delivery (
+                    task_id INTEGER PRIMARY KEY REFERENCES engineering_context_tasks(task_id),
+                    head_sha TEXT NOT NULL, repository TEXT NOT NULL,
+                    pr_number INTEGER NOT NULL, proof_json TEXT NOT NULL,
+                    verified_at INTEGER NOT NULL
+                );
             """)
 
     def exists(self, event: InboundEvent, topic: str) -> bool:
@@ -227,6 +234,9 @@ class LinkContextService:
                 if latest is None:
                     return IntakeResult(True, "当前链接事项没有关联的执行任务；未取消其他话题的任务。")
                 return IntakeResult(True, "", cid, repo, "cancel", "", topic)
+            if body.lower() in ("检查 ci","检查ci","检查交付","查看交付","交付反馈","生成研发反馈"):
+                return IntakeResult(True,"",cid,repo,
+                    "feedback" if body.lower() in ("交付反馈","生成研发反馈") else "delivery","",topic)
             lines = ["已关联当前话题的研发事项（未启动 Codex）。"]
             if primary:
                 source = primary[0]

@@ -98,6 +98,48 @@ class GitHubTransport:
             # Never log bearer tokens or raw response bodies.
             raise GitHubApiFailure("GitHub API unavailable or denied") from exc
 
+    def _read_discovery(self, path: str, expected_type):
+        # Paths are built only by the two exact-SHA helpers below, not supplied
+        # by chat or the model. No redirect or write capability.
+        headers = {"Accept":"application/vnd.github+json",
+                   "X-GitHub-Api-Version":"2026-03-10",
+                   "User-Agent":"feishu-engineering-agent"}
+        if self.token:
+            headers["Authorization"] = "Bearer " + self.token
+        req = urllib.request.Request("https://api.github.com"+self.root+path,
+                                     method="GET",headers=headers)
+        try:
+            with self.opener.open(req,timeout=10) as response:
+                if 'rel="next"' in (response.headers.get("Link","") or ""):
+                    raise GitHubApiFailure("discovery result exceeds one bounded page")
+                raw = response.read(2*1024*1024+1)
+                if len(raw)>2*1024*1024:
+                    raise GitHubApiFailure("oversized GitHub discovery response")
+                value = json.loads(raw.decode("utf-8"))
+                if not isinstance(value,expected_type):
+                    raise GitHubApiFailure("invalid discovery response")
+                return value
+        except (urllib.error.URLError, ValueError, OSError) as exc:
+            raise GitHubApiFailure("GitHub discovery unavailable or denied") from exc
+
+    def associated_prs(self, head_sha: str):
+        if not isinstance(head_sha,str) or not _SHA.fullmatch(head_sha):
+            raise GitHubApiFailure("invalid exact commit")
+        result = self._read_discovery("/commits/"+head_sha+"/pulls?per_page=100",list)
+        if len(result)>=100:
+            raise GitHubApiFailure("ambiguous or incomplete PR discovery")
+        return result
+
+    def runs_for_head(self, head_sha: str):
+        if not isinstance(head_sha,str) or not _SHA.fullmatch(head_sha):
+            raise GitHubApiFailure("invalid exact commit")
+        result = self._read_discovery("/actions/runs?head_sha="+head_sha+"&per_page=100",dict)
+        rows = result.get("workflow_runs")
+        if (not isinstance(rows,list) or type(result.get("total_count")) is not int
+                or result["total_count"]!=len(rows) or len(rows)>=100):
+            raise GitHubApiFailure("ambiguous or incomplete CI discovery")
+        return rows
+
 
 class GitHubForge:
     """A qualified Git evidence adapter for one configured repository."""
@@ -162,6 +204,62 @@ class GitHubForge:
             "head_sha": payload["head_sha"],
             "repo_full_name": self.repo_full_name,
         }
+
+    def discover_delivery(self, branch: str, head_sha: str, required_workflows: Sequence[str]) -> dict:
+        required = validate_delivery_config(self.repo_full_name,self.base_branch,required_workflows)
+        self._head_branch("refs/heads/"+branch)
+        if not _SHA.fullmatch(head_sha):
+            raise GitHubApiFailure("invalid local commit SHA")
+        expected = self.repo_full_name.lower()
+        def repo_matches(value):
+            return (isinstance(value,Mapping) and isinstance(value.get("full_name"),str)
+                    and value["full_name"].lower()==expected)
+        if not callable(getattr(self.request,"associated_prs",None)) or not callable(getattr(self.request,"runs_for_head",None)):
+            raise GitHubApiFailure("trusted discovery transport required")
+        candidates = []
+        for pr in self.request.associated_prs(head_sha):
+            if not isinstance(pr,Mapping):
+                raise GitHubApiFailure("invalid associated PR")
+            head,base = pr.get("head"),pr.get("base")
+            if (isinstance(head,Mapping) and isinstance(base,Mapping)
+                    and repo_matches(head.get("repo")) and repo_matches(base.get("repo"))
+                    and head.get("sha")==head_sha and head.get("ref")==branch
+                    and base.get("ref")==self.base_branch
+                    and (pr.get("state")=="open" or (pr.get("state")=="closed" and pr.get("merged_at")))):
+                if type(pr.get("number")) is not int:
+                    raise GitHubApiFailure("invalid PR number")
+                candidates.append(pr["number"])
+        if len(set(candidates))!=1:
+            raise GitHubApiFailure("exact PR missing or ambiguous; no proof")
+        pr_number=candidates[0]
+        by_path={}
+        for ci in self.request.runs_for_head(head_sha):
+            if not isinstance(ci,Mapping):
+                raise GitHubApiFailure("invalid CI discovery item")
+            path,event=ci.get("path"),ci.get("event")
+            associated=ci.get("pull_requests")
+            if (path not in required or not repo_matches(ci.get("repository"))
+                    or not repo_matches(ci.get("head_repository"))
+                    or ci.get("head_sha")!=head_sha or ci.get("head_branch")!=branch
+                    or event not in ("pull_request","push")
+                    or (event=="pull_request" and (not isinstance(associated,list)
+                        or not any(isinstance(p,Mapping) and p.get("number")==pr_number for p in associated)))):
+                continue
+            if any(type(ci.get(field)) is not int or ci[field]<=0 for field in ("run_number","run_attempt","id")):
+                raise GitHubApiFailure("CI ordering receipt invalid")
+            rank=(ci["run_number"],ci["run_attempt"])
+            old=by_path.get(path)
+            if old is not None and rank==(old["run_number"],old["run_attempt"]) and old["id"]!=ci["id"]:
+                raise GitHubApiFailure("ambiguous latest CI run")
+            if old is None or rank>(old["run_number"],old["run_attempt"]):
+                by_path[path]=ci
+        if set(by_path)!=set(required):
+            raise GitHubApiFailure("required CI discovery incomplete")
+        if any(ci.get("status")!="completed" or ci.get("conclusion")!="success" for ci in by_path.values()):
+            raise GitHubApiFailure("latest required CI is pending or unsuccessful")
+        ids=[by_path[path]["id"] for path in required]
+        # Re-read the chosen PR and every run through the existing strict verifier.
+        return self.observe_delivery(pr_number,ids,branch,head_sha,required)
 
     def observe_delivery(
         self, pr_number: int, ci_run_ids: Sequence[int], branch: str,

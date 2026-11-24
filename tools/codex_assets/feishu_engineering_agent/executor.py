@@ -85,6 +85,12 @@ class EngineeringExecutor:
             if (latest["repository"] != result.repo or latest["policy_sha256"] != policy
                     or not latest["thread_id"] or not latest["root_task_id"]):
                 raise FeishuCodexError("原生会话绑定或当前策略已变化；请另起明确范围的新话题。")
+            if mode=="edit":
+                with self.store._connect() as db:
+                    sealed = db.execute("SELECT 1 FROM engineering_context_delivery WHERE task_id=?",
+                                        (latest["task_id"],)).fetchone()
+                if sealed is not None:
+                    raise FeishuCodexError("该编辑版本已有独立交付证据；请另起新话题，避免覆盖已核验版本。")
             previous = latest["task_id"]
         # Cross-mode execution must start a new thread, never resume read-only as edit.
         with self.store._connect() as db:

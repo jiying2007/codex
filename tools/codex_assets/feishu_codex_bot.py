@@ -3007,11 +3007,20 @@ class FeishuCodexBot:
             )
             if result.consumed and result.intent:
                 try:
-                    action = (self._engineering_executor.cancel(inbound,result) if result.intent == "cancel"
-                              else self._engineering_executor.submit(inbound,result))
+                    if result.intent in ("delivery","feedback"):
+                        from .feishu_engineering_agent.delivery import ContextDelivery
+                        delivery = ContextDelivery(self.config,self._engineering_executor)
+                        action = (delivery.verify(inbound,result) if result.intent=="delivery"
+                                  else delivery.feedback(inbound,result))
+                    elif result.intent=="cancel":
+                        action = self._engineering_executor.cancel(inbound,result)
+                    else:
+                        action = self._engineering_executor.submit(inbound,result)
                     reply = (reply + "\n" if reply else "") + action
                 except FeishuCodexError as exc:
                     reply = (reply + "\n" if reply else "") + str(exc)
+                except IntakeRejected:
+                    reply = (reply + "\n" if reply else "") + "交付或研发资格核验未通过（缺少精确 PR/CI、权限或本地证据）；未执行模型或远端写操作。"
         except (IntakeRejected, ValueError):
             reply = "研发来源或话题关联被拒绝：请核对链接、工作项唯一性、仓库和权限。未启动 Codex。"
         except (sqlite3.DatabaseError, OSError):

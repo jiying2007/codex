@@ -460,3 +460,5 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 ### 链接与话题入口（终态重构第一阶段）
 
 在现有 `manual_workitems_enabled=true` 时，直接发送 `https://project.feishu.cn/example-space/issue/detail/1000000001`、`story/detail/1000000002` 或租户 Wiki/Docx/Sheets 链接，程序先于普通任务入口识别引用。示例均为合成数据。TAPD 支持常见 `/{workspace}/prong/stories/view/{id}` 和 `/{workspace}/bugtrace/bugs/view/{id}` 形式，未进行企业租户接口现场验证。可在私有策略增加 `link_repositories`（来源 `feishu_project:<space>`/`tapd:<workspace>` -> 已授权仓库别名数组），不存在映射或有多个候选则在话题内 `/repo <alias>`。以 SDK root/thread、租户、chat、actor 精确隔离。同话题重复链接去重，不自动选择其他工作项或仓库；新事项另起话题。链接单独输入只登记。明确分析、审查、修复、开发或继续推进时，既有 agent_intake_enabled、独立计费身份及逐仓模式授权均满足才原子入队；Worker 再核对策略与来源摘要，文档复用既有 API 读取器，已补充的历史消息仅按精确身份/哈希读取，失败明确拒绝而不是丢弃。普通旧聊天模型入口在工程模式启用时停止。旧 /wi 命令仍为迁移诊断接口。远程队列及原生会话候选需完整 CI 和现场验证；旧 DB 合并、交付与冗余删除仍未完成。
+
+同一研发话题发送“检查 CI”会从实际本地 edit 的 branch+commit 查找唯一关联 PR 和最新必需 workflow，并复用严格只读证据核验；没有配置仓库 GitHub delivery、PR/CI 不完整、当前版本变化时不宣称 PASS。“交付反馈”只返回当前本地提交及已观察的精确证据，不写原系统、不宣称产品验收。

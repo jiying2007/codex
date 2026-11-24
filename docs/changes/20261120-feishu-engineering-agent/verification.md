@@ -18,3 +18,6 @@ ACC-18..19：生产可达路径、迁移/恢复、单 consumer；删除冗余后
 
 ## 本次 G2 实质代码候选
 现有 Bot SQLite 同一原子 create_agent_task 发布接口新增远程 context/event/policy/source 绑定；明确操作在管理员开启且独立模型身份、用户、仓库、模式授权满足时排队。Worker 复核绑定及原输入，复用 CodexRunner persistent CLI 与 exact prior native thread，记录实际回执；未成功/UNKNOWN 不猜测续接。同话题精确取消；普通旧聊天入口在工程模式开启时不绕过独立身份。独立执行不挂载个人 CODEX_HOME 为可写，已知个人凭据路径掩蔽，read 不可写仓库；仍需主机实际隔离、计费及 provider 授权验证。本候选不调用真实模型，不宣称真实研发成功；完整迁移和交付仍待实施。
+
+## G3 只读交付发现候选
+从已完成本地 edit 的精确 task_result/branch/commit，使用固定 GitHub API 的 commit associated PR、head_sha runs 有界查询，严格 repo/base/head/branch/required path 与最新 run/attempt；重新读 PR 及所有选择的 CI，原子记录同一生产状态库证据。同话题检查 CI/交付反馈不调用模型、不推送、不关闭原工单。生产访问权限、真实交付与独立 QA 尚待验收；旧双 DB 迁移和删除未完成。
