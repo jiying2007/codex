@@ -160,15 +160,15 @@ class ExecutionPolicyMigrationTests(unittest.TestCase):
             path.unlink()
             path.write_bytes(data)
 
-    def test_project_owned_cli_goal_completes_without_digital_worker_authority(self) -> None:
+    def test_native_cli_goal_completes_with_local_authority(self) -> None:
         fixture = adapter_fixtures.ExecutionPolicyAdapterTest()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
-        arguments = tuple("project-owner" if value == "digital-worker" else value
-                          for value in fixture.start_args("project-goal"))
-        result = fixture.run_cli(*arguments)
+        result = fixture.run_cli(*fixture.start_args("project-goal"))
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertEqual("project-owner", json.loads(result.stdout)["goal"]["mode_authority_id"])
+        status = fixture.run_cli("goal", "status")
+        self.assertEqual(0, status.returncode, status.stderr)
+        self.assertEqual("codex-project-routing", json.loads(status.stdout)["goal"]["mode_authority_id"])
         for command in (
             ("progress", "--revision", "1"),
             ("evidence", "--evidence-id", "tests", "--sha256", "c" * 64),

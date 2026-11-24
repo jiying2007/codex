@@ -11,7 +11,7 @@
 - 项目：需求与验收、源码、测试/设备事实、代码审查与接受决定；复用 Issue/PR/现有项目记录，不另建一套 Work/Run。
 - Knowledge Hub：来源清楚的知识与 reviewing candidate；检索结果不是批准，未确认结论不自动提升 active。
 - llm_agent：研究、评估与改进建议；不进入每次任务的执行前置链。
-- 历史 Pilot/R2：仅供保留来源和原始结论，不再提供活跃 Digital Worker 集成或新建正式 Work/Run。
+- 历史 Pilot/R2：仅从 Git 历史核对原始证据；现役源码和 CI 不携带其执行入口或回执协议。
 
 ## 日常任务闭环
 

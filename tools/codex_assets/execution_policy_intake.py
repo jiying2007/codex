@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import fcntl
 import hashlib
 import json
 import os
@@ -217,21 +216,15 @@ def ensure(args: argparse.Namespace) -> int:
         raise adapter.ExecutionPolicyAdapterError("ensure cannot register a different thread from the current environment")
     root, config, paths, thread, journal = adapter._active_context(args)
     request_sha256 = hashlib.sha256(_checked_request(Path(args.request_file).expanduser())).hexdigest()
-    from .execution_policy_authority import routing_record
-    routing = routing_record(root, thread, request_sha256, args.task_mode,
-                             args.success_criterion, args.required_evidence, args.open_items)
-    routing_sha256 = hashlib.sha256(json.dumps(routing, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    goal_id = "task-" + routing_sha256[:24]
-    decision_id = "routing-" + routing_sha256[:24]
-    start_args = argparse.Namespace(**vars(args))
-    start_args.goal_id = goal_id
-    start_args.request_sha256 = request_sha256
-    start_args.routing_decision_sha256 = routing_sha256
-    start_args.authority_id = "codex-project-routing"
-    start_args.source_id = "codex-project-routing"
-    start_args.source_version = "v2"
-    start_args.decision_id = decision_id
-    start_args.issued_at = ""
+    from .execution_policy_authority import routing_binding
+    from .execution_policy_journal import journal_lock
+
+    binding = routing_binding(root, thread, request_sha256, args.task_mode,
+                              args.success_criterion, args.required_evidence, args.open_items)
+    goal_id = binding["goal_id"]
+    routing_sha256 = binding["routing_decision_sha256"]
+    start_args = argparse.Namespace(**{**vars(args), **binding,
+                                      "request_sha256": request_sha256, "issued_at": ""})
 
     # The exact native engine still owns stop/replan and requires positive
     # goal.started.token_budget. We never change that engine or its lock.
@@ -261,13 +254,7 @@ def ensure(args: argparse.Namespace) -> int:
             state = dict(state, goal={"status": "idle"})
         return _result(adapter, state, goal_id, request_sha256, routing_sha256, args,
                        suggested_budget=initial_budget, budget_basis=budget_basis)
-    journal.parent.mkdir(parents=True, exist_ok=True)
-    lock = journal.with_suffix(".intake.lock")
-    fd = os.open(str(lock), os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0), 0o600)
-    try:
-        if not stat.S_ISREG(os.fstat(fd).st_mode):
-            raise adapter.ExecutionPolicyAdapterError("intake lock must be a regular file")
-        fcntl.flock(fd, fcntl.LOCK_EX)
+    with journal_lock(journal):
         events = adapter.load_journal(journal)
         state = adapter._engine_state(events + [adapter.usage_event(thread)])
         if (state["goal"].get("goal_id") == goal_id
@@ -276,7 +263,6 @@ def ensure(args: argparse.Namespace) -> int:
                        suggested_budget=initial_budget, budget_basis=budget_basis)
         if events and not state["goal"].get("goal_id"):
             raise adapter.ExecutionPolicyAdapterError("ensure refuses to reset a journal without a valid goal")
-        # Actual local routing authority, not an invented human or Digital Worker attestation.
         event = started_event()
         adapter._engine_state(events + [event])
         if events:
@@ -289,8 +275,7 @@ def ensure(args: argparse.Namespace) -> int:
             raise adapter.ExecutionPolicyAdapterError("intake readback failed")
         return _result(adapter, state, goal_id, request_sha256, routing_sha256, args,
                        created=True, suggested_budget=initial_budget, budget_basis=budget_basis)
-    finally:
-        os.close(fd)
+
 
 
 def _result(adapter, state, goal_id, request_hash, routing_hash, args, created=False,

@@ -12,8 +12,6 @@ sys.path.insert(0, str(ROOT))
 ADK = ROOT / "manifests/provider-locks/agent-dev-kit.json"
 RUNTIME = ROOT / "manifests/execution_policy.json"
 HUB = ROOT / "manifests/provider-locks/knowledge-hub.json"
-RECEIPT_V2 = ROOT / "schemas/runtime-execution-receipt.v2.schema.json"
-RECEIPT_V1 = ROOT / "schemas/runtime-execution-receipt.schema.json"
 ADAPTER = ROOT / "scripts/knowledge-provider.sh"
 PROVIDER_MODULE = ROOT / "tools/codex_assets/knowledge_provider_adapter.py"
 AGENTS = ROOT / "AGENTS.md"
@@ -88,28 +86,14 @@ def validate_runtime_source(runtime: dict[str, object]) -> None:
             "runtime config validation must use the same canonical source")
 
 
-def validate_historical_receipt_schema(receipt: dict[str, object]) -> None:
-    # Frozen v2 receipts may still be read as historical evidence, but no new
-    # Digital Worker L2 sessions can be bootstrapped or authorized.
-    require(receipt.get("additionalProperties") is False, "historical receipt schema must stay closed")
-    fields = receipt.get("required")
-    require(isinstance(fields, list), "historical receipt required fields missing")
-    for field in ("execution_source_set_identity", "digital_worker_governance_identity",
-                  "runtime_binding", "agent_assets"):
-        require(field in fields, f"historical receipt schema lost {field}")
-    text = RECEIPT_V2.read_text(encoding="utf-8")
-    for claim in ("verification_pass", "release_ready", "domain_gate_pass"):
-        require(claim in text, f"historical receipt does not forbid {claim}")
-
 def main() -> None:
-    for path in [ADK, RUNTIME, HUB, RECEIPT_V2, RECEIPT_V1, ADAPTER, AGENTS,
+    for path in [ADK, RUNTIME, HUB, ADAPTER, AGENTS,
                  ROOT / "manifests/session_bootstrap.json"]:
         require(path.is_file(), f"missing runtime binding asset: {path.relative_to(ROOT)}")
     adk = json.loads(ADK.read_text(encoding="utf-8"))
     runtime = json.loads(RUNTIME.read_text(encoding="utf-8"))
     hub = json.loads(HUB.read_text(encoding="utf-8"))
     bootstrap = json.loads((ROOT / "manifests/session_bootstrap.json").read_text(encoding="utf-8"))
-    receipt_v2 = json.loads(RECEIPT_V2.read_text(encoding="utf-8"))
     require(bootstrap.get("contract_version") == "2.0" and
             set(bootstrap.get("modes", {})) == {"L0", "L1"} and
             bootstrap.get("status") == "active",
@@ -120,7 +104,6 @@ def main() -> None:
 
     validate_adk_lock(adk)
     validate_runtime_source(runtime)
-    validate_historical_receipt_schema(receipt_v2)
 
     require(hub["repository"] == "jiying2007/knowledge-hub", "Knowledge Hub canonical repository required")
     require(re.fullmatch(r"[0-9a-f]{40}", hub["provider_commit"]) is not None, "Hub provider commit must be exact")

@@ -54,7 +54,7 @@ Codex CLI 配置字段、profile 策略和升级核验流程见 `docs/codex-cli-
 - `eval_suites`：登记 routing、governance、completion 和 prompt eval 的 cases、通过率、负例和 promotion gate。
 - `cli_command_contracts`：登记 slash command 控制面的输入、允许动作、禁止动作、输出和验证契约。
 - `guidance_promotions`：登记从会话、归档、manifest、测试或官方资料提升到长期规则、skill、archive 或 memory 的审查路径。
-- `runtime_control`：唯一登记 Runtime Control Engine 制品、事件源、Journal、策略、门禁和保留契约。
+- `execution_policy`：唯一登记 Execution Policy 源码制品、事件源、Journal、策略、门禁和保留契约。
 - `prompt_experiments`：登记 AGENTS、skill 和 prompt 指导规则实验、样例、grader、人工评审和回退。
 - `trace_eval_contracts`：登记过程轨迹评分契约、必要事件、禁止事件、rubric 和最低分。
 - `context_state_contracts`：登记 stable、dynamic、evidence 和 excluded context 的状态契约。
@@ -336,40 +336,19 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 - `--until`
 - `--rebuild-index`
 
-## Runtime Control
+## Execution Policy
 
-任务、Token、上下文、进度、心跳、重试、checkpoint、证据和完成门禁统一由一套 Runtime Control 管理：
-
-- ADK wheel 中的 `agent_dev_kit.runtime_control` 是唯一状态归约和决策 Engine。
-- `tools.codex_assets.runtime_control` 只负责读取 `~/.codex/state_5.sqlite`、session rollout 与 Runtime Control Journal，并调用 Engine；不得复制阈值或决策逻辑。
-- `~/.codex/runtime-control/<thread-hash>.jsonl` 是唯一任务控制 Journal；只保存结构化事件，不保存 prompt、消息正文、目标原文或真实工作目录。
-- `manifests/runtime_control.json` 是唯一运行策略和制品绑定，wheel 版本与 SHA-256 不匹配时 fail closed。
-- `scripts/runtime-control.sh` 是唯一用户入口；旧任务监控、用量面板和完成门禁入口不保留。
-
-常用入口：
-
-```bash
-rtk bash scripts/runtime-control.sh snapshot
-rtk bash scripts/runtime-control.sh watch
-rtk bash scripts/runtime-control.sh goal start --goal-id <id> --token-budget <n> --time-budget-seconds <n> --success-criterion <id> --required-evidence <id> --open-items <n>
-rtk bash scripts/runtime-control.sh progress --revision <n>
-rtk bash scripts/runtime-control.sh goal update --open-items <n> [--token-budget <n>] [--time-budget-seconds <n>]
-rtk bash scripts/runtime-control.sh checkpoint --revision <n>
-rtk bash scripts/runtime-control.sh gate --event apply
-rtk bash scripts/runtime-control.sh gate --event final
-```
-
-`snapshot` 和 `watch` 输出同一 `runtime_control.decision/v1`，`goal status` 输出 `runtime_control.state/v1`。建议动作只有 `continue`、`checkpoint`、`compact`、`replan`、`stop`、`pass`；门禁只消费同一决策，不另建完成判定。
+任务、Token、上下文、进度、checkpoint、证据与完成门禁由唯一的 Execution Policy 管理。任务登记使用 `ensure`，规则和状态归约复用锁定的 ADK 源码；本机适配器只提供真实会话输入和凭据核验。配置、命令和验收口径统一见 [Execution Policy](execution-policy.md)。
 
 ## Codex 省 Token 操作规范
 
 - 一个主题尽量一个线程；主题切换、目标变化或验收点完成后，优先收口再新开线程。
-- Runtime Control 建议 `checkpoint`、`compact`、`replan` 或 `stop` 时，先执行对应动作并记录事件，不要绕过决策继续滚大上下文。
+- Execution Policy 建议 `checkpoint`、`compact`、`replan` 或 `stop` 时，先执行对应动作并记录事件，不要绕过决策继续滚大上下文。
 - 先定位再读取：优先 `rg` 缩小范围，再读命中文件片段，不直接全仓扫描。
 - 控制工具输出：大日志、大 JSON、大 diff 默认先裁剪，只看关键窗口或关键字段。
 - 非必要不并行：高耦合问题、单点 bug、核心文件集中修改时，优先单线程处理。
 - 提问和任务定义尽量收敛：明确模块、文件、目标和验收标准，减少来回改口造成的重复消耗。
-- 先用 `rtk bash scripts/runtime-control.sh snapshot` 或 `watch` 观察任务、Token 和上下文状态，再按同一决策决定 checkpoint、压缩、重规划或停止。
+- 先用 `rtk bash scripts/codex-policy.sh snapshot` 或 `watch` 观察任务、Token 和上下文状态，再按同一决策决定 checkpoint、压缩、重规划或停止。
 
 ### 分阶段回答压缩与输出裁剪
 
@@ -379,7 +358,7 @@ rtk bash scripts/runtime-control.sh gate --event final
 - `verification` / `wrap-up` / `archive` 阶段默认最严格压缩，只保留结论、验证结果、风险和后续动作。
 - 默认压缩对象：过渡语、寒暄、重复解释、大段工具输出复述、已确认事实的重复说明。
 - 默认保留对象：方案对比、设计边界、关键权衡、风险分析、计划依赖、验收标准。
-- 当 Runtime Control 建议 `compact`、`replan` 或 `stop` 时，即使还在设计阶段，也只允许“受控展开”：讲清关键取舍，不做无边界铺陈，并及时记录 checkpoint。
+- 当 Execution Policy 建议 `compact`、`replan` 或 `stop` 时，即使还在设计阶段，也只允许“受控展开”：讲清关键取舍，不做无边界铺陈，并及时记录 checkpoint。
 - 输出裁剪也按阶段处理：探索/设计阶段可保留支撑结论的必要证据；实现和验证阶段默认先给摘要、关键窗口、关键字段，需要时再展开全文。
 - 推荐读取范式：
   - 定位优先：`rg`
