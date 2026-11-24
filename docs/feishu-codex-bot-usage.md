@@ -456,3 +456,7 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 ### Linux 嵌套沙箱兼容性
 
 现场 Codex CLI 0.171.0 在旧外层 Bubblewrap 的递归只读根挂载内运行时，内层 Bubblewrap 报 `setting up uid map: Read-only file system`。外层命令使用独立 PID namespace（`--unshare-pid`），在只读根之后挂载自身的 `/proc`（`--proc /proc`），不直接可写绑定宿主机 procfs。保留原有秘密目录掩蔽、受控 writable roots、Codex 内层 sandbox 和 systemd 安全配置。主机需要实际通过嵌套无模型 shell 探针；参数回归测试不能替代真实 Linux 命名空间验收。
+
+### 链接与话题入口（终态重构第一阶段）
+
+在现有 `manual_workitems_enabled=true` 时，直接发送 `https://project.feishu.cn/example-space/issue/detail/1000000001`、`story/detail/1000000002` 或租户 Wiki/Docx/Sheets 链接，程序先于普通任务入口识别引用。示例均为合成数据。TAPD 支持常见 `/{workspace}/prong/stories/view/{id}` 和 `/{workspace}/bugtrace/bugs/view/{id}` 形式，未进行企业租户接口现场验证。可在私有策略增加 `link_repositories`（来源 `feishu_project:<space>`/`tapd:<workspace>` -> 已授权仓库别名数组），不存在映射或有多个候选则在话题内 `/repo <alias>`。以 SDK root/thread、租户、chat、actor 精确隔离。同话题重复链接去重，不自动选择其他工作项或仓库；新事项另起话题。当前阶段只记录来源及消息摘要、状态，不读取正文、不调用模型、不自动提交原工单；旧 /wi 命令为临时迁移诊断接口。实际远程执行、完整 session 及旧 DB 合并仍需后续实现和现场验收。

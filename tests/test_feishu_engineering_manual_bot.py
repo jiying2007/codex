@@ -178,6 +178,47 @@ class ManualWorkItemBotBridgeTest(unittest.TestCase):
             self.assertEqual(5, db.execute("SELECT COUNT(*) FROM fea_runs").fetchone()[0])
         self.runner.run.assert_not_called()
 
+    def test_real_link_intake_precedes_model_gate_and_persists_topic(self):
+        bot = self.bot(True)
+        root = self.event(msg_id="om_link", text=(
+            "分析 https://project.feishu.cn/example-space/issue/detail/1000000001 "
+            "https://tenant-example.feishu.cn/wiki/ExampleWikiToken123?from=copy"
+        ))
+        with self.immediate_threads(), mock.patch.object(
+            bot.gate,"accept",side_effect=AssertionError("legacy gate reached")
+        ):
+            bot.on_message(root)
+            self.assertIn("缺陷 #1000000001", self.transport.send_text.call_args.args[1])
+            self.assertIn("待定位", self.transport.send_text.call_args.args[1])
+            self.assertIn("尚未读取", self.transport.send_text.call_args.args[1])
+            self.transport.reset_mock()
+            bot.on_message(root)
+            self.transport.send_text.assert_not_called()
+            bot = self.bot(True)  # actual DB reuse, new service object
+            reply = self.event(msg_id="om_followup",text="/repo robot-app")
+            reply.event.message.root_id = "om_link"
+            bot.on_message(reply)
+            self.assertIn("研发仓库：robot-app", self.transport.send_text.call_args.args[1])
+            status = self.event(msg_id="om_state", text="/status")
+            status.event.message.root_id = "om_link"
+            bot.on_message(status)
+            self.assertIn("关联文档：1", self.transport.send_text.call_args.args[1])
+        self.runner.run.assert_not_called()
+        self.assertTrue(bot.jobs.empty())
+        with sqlite3.connect(str(self.root/"bot_state.sqlite3")) as db:
+            self.assertEqual(1,db.execute("SELECT COUNT(*) FROM engineering_contexts").fetchone()[0])
+            self.assertEqual(2,db.execute("SELECT COUNT(*) FROM engineering_context_sources").fetchone()[0])
+            self.assertEqual(0,db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
+
+    def test_project_link_when_disabled_does_not_fall_through(self):
+        bot = self.bot(False)
+        with self.immediate_threads(), mock.patch.object(
+            bot.gate,"accept",side_effect=AssertionError("legacy gate reached")
+        ):
+            bot.on_message(self.event(text="https://project.feishu.cn/example-space/story/detail/1000000002"))
+            self.assertIn("未启用",self.transport.send_text.call_args.args[1])
+        self.runner.run.assert_not_called()
+
     def test_nonmanual_input_uses_original_gate(self):
         bot = self.bot(True)
         with mock.patch.object(bot.gate, "accept", return_value=None) as gate:

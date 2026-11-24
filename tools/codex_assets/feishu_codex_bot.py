@@ -227,6 +227,7 @@ class BotConfig:
     agent_openai_base_url: str = ""
     agent_github_read_token: str = dataclasses.field(default="", repr=False)
     manual_workitems_enabled: bool = False  # requires no Feishu Project/TAPD API
+    link_repositories: Mapping[str, Tuple[str, ...]] = dataclasses.field(default_factory=dict)
     engineering_cards_enabled: bool = False
     card_verification_token: str = ""
     card_signing_key_hex: str = ""
@@ -532,6 +533,18 @@ class BotConfig:
                     )
             if agent_codex_home not in isolation_write_paths:
                 isolation_write_paths = (*isolation_write_paths, agent_codex_home)
+        raw_link_routes = payload.get("link_repositories", {})
+        if not isinstance(raw_link_routes, dict):
+            raise FeishuCodexError("link_repositories 必须是来源到仓库列表的对象")
+        link_repositories = {}
+        for source, aliases in raw_link_routes.items():
+            if (not isinstance(source, str)
+                    or not re.fullmatch(r"(?:feishu_project|tapd):[A-Za-z0-9][A-Za-z0-9_-]{0,63}", source)
+                    or not isinstance(aliases, list) or not aliases
+                    or any(not isinstance(alias, str) or alias not in repositories for alias in aliases)
+                    or len(set(aliases)) != len(aliases)):
+                raise FeishuCodexError("link_repositories 包含无效来源或仓库别名")
+            link_repositories[source] = tuple(aliases)
         return cls(
             app_id=values["FEISHU_APP_ID"].strip(),
             app_secret=values["FEISHU_APP_SECRET"].strip(),
@@ -561,6 +574,7 @@ class BotConfig:
             agent_openai_base_url=agent_openai_base_url,
             agent_github_read_token=values.get("FEISHU_AGENT_GITHUB_READ_TOKEN", "").strip(),
             manual_workitems_enabled=manual_workitems_enabled,
+            link_repositories=link_repositories,
             engineering_cards_enabled=cards_enabled,
             card_verification_token=token if cards_enabled else "",
             card_signing_key_hex=signing_hex if cards_enabled else "",
@@ -2357,8 +2371,11 @@ class FeishuCodexBot:
         self._scheduled: Set[int] = set()
         self._schedule_lock = threading.Lock()
         self._manual_service = None
+        self._link_service = None
         if config.manual_workitems_enabled:
             self._manual_service = open_workitem_service(config, store)
+            from .feishu_engineering_agent.service import LinkContextService
+            self._link_service = LinkContextService(store)
         self._card_publisher = None
         if config.engineering_cards_enabled:
             if (self._manual_service is None
@@ -2869,9 +2886,83 @@ class FeishuCodexBot:
             ).start()
         return True
 
+    def _run_link_message(self, inbound: Any, topic: str,
+                          allowed: FrozenSet[str]) -> None:
+        from .feishu_engineering_agent.models import IntakeRejected
+        try:
+            result = self._link_service.handle(
+                inbound, topic, allowed, self.config.link_repositories,
+            )
+            reply = result.reply if result.consumed else (
+                "当前回复没有已关联的研发事项；请在本话题提供需求、缺陷或文档链接。未启动 Codex。"
+            )
+        except (IntakeRejected, ValueError):
+            reply = "研发来源或话题关联被拒绝：请核对链接、工作项唯一性、仓库和权限。未启动 Codex。"
+        except (sqlite3.DatabaseError, OSError):
+            reply = "研发上下文状态不可用；未启动 Codex。"
+        except Exception as exc:
+            print(f"[ERROR] link_intake_failed kind={type(exc).__name__}", flush=True)
+            reply = "研发链接处理异常；未启动 Codex。"
+        if reply is not None:
+            self._send_safe(inbound.chat, reply, inbound.event_id)
+
+    def _try_link_context(self, data: Any) -> bool:
+        """Consume supported links and linked-topic replies before legacy task intake."""
+        from .feishu_engineering_agent.models import InboundEvent, IntakeRejected
+        from .feishu_engineering_agent.service import topic_key
+        from .feishu_engineering_agent.sources import candidate_urls
+        event = getattr(data, "event", None)
+        message = getattr(event, "message", None)
+        chat = str(getattr(message, "chat_id", "") or "")
+        if chat != self.config.target_chat_id or getattr(message, "message_type", "") != "text":
+            return False
+        try:
+            keys = [str(getattr(x,"key","") or "") for x in (getattr(message,"mentions",None) or [])]
+            body = extract_text(str(getattr(message,"content","") or ""), keys)
+        except FeishuCodexError:
+            return False
+        urls = candidate_urls(body)
+        root = str(getattr(message,"root_id","") or "")
+        thread = str(getattr(message,"thread_id","") or "")
+        parent = str(getattr(message,"parent_id","") or "")
+        mid = str(getattr(message,"message_id","") or "")
+        # During migration retain the old document-only path if link intake is
+        # disabled, but never pass a project/TAPD link to the generic model path.
+        workitem_like = any("project.feishu.cn" in url.lower()
+                            or "project.larksuite.com" in url.lower()
+                            or "tapd.cn" in url.lower() for url in urls)
+        if self._link_service is None:
+            if not workitem_like:
+                return False
+        elif not urls and not (root or thread or parent):
+            return False
+        sender_id = getattr(getattr(event,"sender",None),"sender_id",None)
+        actor = str(getattr(sender_id,"open_id","") or "")
+        allowed = frozenset(alias for alias, repo in self.config.repositories.items()
+                            if self.config.sender_allowed(actor,repo))
+        if not actor or not allowed:
+            return True
+        if self._link_service is None:
+            reply = "研发链接入口未启用；未启动 Codex。"
+        elif not self.manual_limiter.allow(actor):
+            reply = "研发上下文操作过于频繁；未启动 Codex。"
+        else:
+            try:
+                tenant = str(getattr(getattr(data,"header",None),"tenant_key","") or "")
+                inbound = InboundEvent("feishu_message",tenant,chat,actor,mid,body)
+                topic = topic_key(mid,root,thread,parent)
+            except (ValueError, IntakeRejected):
+                reply = "无法验证租户或话题身份；请直接发送研发链接。未启动 Codex。"
+            else:
+                threading.Thread(target=self._run_link_message,
+                                 args=(inbound,topic,allowed),daemon=True).start()
+                return True
+        threading.Thread(target=self._send_safe,args=(chat,reply,mid),daemon=True).start()
+        return True
+
     def on_message(self, data: Any) -> None:
         try:
-            if self._try_manual_workitem(data):
+            if self._try_manual_workitem(data) or self._try_link_context(data):
                 return
             job = self.gate.accept(data)
             if job is None:
@@ -2936,7 +3027,8 @@ class FeishuCodexBot:
             "/repo reset 恢复系统默认项目\n"
             "/status 查看任务状态\n"
             "/cancel 取消本人排队中或运行中的任务\n"
-            "/wi help 查看无企业项目 API 的需求/缺陷人工登记（需管理员启用）\n"
+            "研发链接：直接发送飞书项目 issue/story、TAPD 或 Wiki/Docx/Sheets 链接；在同话题补充资料、/repo 定位仓库及 /status 查询（当前仅无模型关联）。\n"
+            "/wi help 旧工作项诊断入口（迁移期间保留）\n"
             f"系统默认项目：{self.config.default_repo}\n"
             f"仓库别名：{repositories}"
         )

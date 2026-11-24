@@ -64,5 +64,10 @@
   "agent_intake_enabled": false,
   "agent_codex_home": "/absolute/private/path/to/agent-codex-home",
   "manual_workitems_enabled": false,
-  "engineering_cards_enabled": false
+  "engineering_cards_enabled": false,
+  "link_repositories": {
+    "feishu_project:example-space": [
+      "codex"
+    ]
+  }
 }
