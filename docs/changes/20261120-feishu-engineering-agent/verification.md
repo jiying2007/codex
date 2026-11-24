@@ -1,26 +1,33 @@
 # 终态验证记录
 
-## 已有证据
-- 目标 Ubuntu 主机 旧现场 HEAD 19a697c81b45666b8794171182c968e256725771，systemd active、UMask=0077、NoNewPrivileges=yes、PrivateTmp=yes、Codex 0.171.0；/help、/status、/wi help/list/add 现场正常。用户提供的本地 smoke 工作项状态 proposed，未调用模型。
-- #81 候选 ba6f13ab 全部 CI 通过；合并 a72071fb674c5126226e4732a30ed061ce95673f。
-- #82 候选 19c14f23b851875a7b4ff1f15c6ae8009100673a：Full Regression 45319808217、Runtime Binding Contract 45319808143、Profile Context Contract 45319808287 均成功。用户现场原始嵌套失败 setting up uid map: Read-only file system；加入 --unshare-pid 和 --proc /proc，setpriv --no-new-privs 测试 returncode=0, nested_shell_ok=True。合并 76305a78fc3483cc23054c2387b274f4b238a4bf。现场探针不是新版服务/模型验收。
-- 生产仍须统一部署两个修复；合并后独立 CI 回执待复核。
+## 状态口径
 
-## 新验收矩阵
-ACC-01..06,11：真实链接样例、畸形/伪域名/多工单/重复事件、话题隔离、仓库映射/权限、无 API 文本答复。无模型集成测试+真实 Feishu 文本。
-ACC-07..14：权限正反例、原生 exact resume、独立身份与凭据 mask、编辑 worktree、queue crash/cancel/restart 和政策漂移；实际主机无模型 probe 后才使用批准计费。
-ACC-15..17,20：真实需求/缺陷、文档与跨仓研发，真实代码及精确 PR/CI、测试/QA；不能用 mock 或历史提交代替。
-ACC-18..19：生产可达路径、迁移/恢复、单 consumer；删除冗余后完整回归。
-每次记录精确 SHA、运行链接、实际结果、未通过和外部阻塞；未观察不宣称 PASS。禁止使用共享模型额度。
+源码候选、离线 CI、实际主机、实际模型/账单、业务 QA 分别记账。未观察的现场项保持 `NOT_RUN`；不把模型 mock、帮助探针或 CI 成功当作生产验收。[PR #83](https://github.com/jiying2007/codex/pull/83) 的精确 head、合并提交和 Actions 链接是本批提交身份的权威回执。
 
-## 本次代码候选：G1 无模型链接入口
-新增 sources/service 与现有 Bot 消息处理及现有 Bot SQLite 集成；链接来源和消息摘要、根话题按租户/chat/actor 持久化，严格解析、重复/权限、多个主工单拒绝、项目映射与 `/repo`，不会把识别的链接传给普通模型入口。现有独立 RunStore 仅迁移期间保留；未实现正文读取、真实模型执行、原生续接及完整 DB 迁移。测试候选与现场分别记账。
+## 已核对的历史基线
 
-## 本次 G2 实质代码候选
-现有 Bot SQLite 同一原子 create_agent_task 发布接口新增远程 context/event/policy/source 绑定；明确操作在管理员开启且独立模型身份、用户、仓库、模式授权满足时排队。Worker 复核绑定及原输入，复用 CodexRunner persistent CLI 与 exact prior native thread，记录实际回执；未成功/UNKNOWN 不猜测续接。同话题精确取消；普通旧聊天入口在工程模式开启时不绕过独立身份。独立执行不挂载个人 CODEX_HOME 为可写，已知个人凭据路径掩蔽，read 不可写仓库；仍需主机实际隔离、计费及 provider 授权验证。本候选不调用真实模型，不宣称真实研发成功；完整迁移和交付仍待实施。
+- #81 合并 `a72071fb674c5126226e4732a30ed061ce95673f`；#82 合并 `76305a78fc3483cc23054c2387b274f4b238a4bf`。
+- #82 候选 `19c14f23b851875a7b4ff1f15c6ae8009100673a`：Full Regression 45319808217、Runtime Binding Contract 45319808143、Profile Context Contract 45319808287 成功。历史现场 no-new-privileges 嵌套沙箱探针成功，不等于新版服务部署。
+- 本轮启动时已核对上一候选 `d89ae769992967d541b6ed64d62319c1d816bac4` 的 [Full Regression](https://github.com/jiying2007/codex/actions/runs/45325338003)、[Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45325338015)、[Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45325338020) 全部成功。此结果不继承给后续提交。
 
-## G3 只读交付发现候选
-从已完成本地 edit 的精确 task_result/branch/commit，使用固定 GitHub API 的 commit associated PR、head_sha runs 有界查询，严格 repo/base/head/branch/required path 与最新 run/attempt；重新读 PR 及所有选择的 CI，原子记录同一生产状态库证据。同话题检查 CI/交付反馈不调用模型、不推送、不关闭原工单。生产访问权限、真实交付与独立 QA 尚待验收；旧双 DB 迁移和删除未完成。
+## 本批修复及验证范围
 
-## G3 单状态库迁移候选
-新增明确的 quiesced unify 命令：验证配对备份+恢复演练、实时逻辑内容、spool、私有策略/环境及单实例锁；拒绝待处理/UNKNOWN/待交付未核对状态；同一事务归档旧 ledger 元数据、历史链接、去重身份和一次性标记。旧 DB/备份不删除。生产启动/check 与旧 WorkItem MCP 识别 marker，停用旧运行路径；新链接入口对历史消息 fail-closed，不把旧 Run 自动冒充真实话题/会话。此为源码迁移候选，实际主机尚未执行，旧模块物理删除待完整替代/恢复/现场证据。
+| 范围 | 验证的实际行为 | 未覆盖的现场事实 |
+|---|---|---|
+| 入口与授权 | 旧 /wi、卡片、普通共享执行与 run-once 不调用模型；链接去重、话题恢复和权限拒绝；MCP 仅 submit/get/cancel queued | 飞书租户实际权限与生产消息 |
+| 队列与执行 | 本机/远程请求和策略摘要复核；凭据/预算/输入漂移拒绝；精确 native UUID、多仓独立工作区；中断与完成回执缺失保持 UNKNOWN | 真实模型产出及主机隔离资格 |
+| 验证隔离 | 验证命令强制 Bubblewrap、无网络和模型/服务凭据、临时 HOME、`.git` 指针只读；失败不在主机重试；Git/worktree/commit 使用实际合成仓库验证 | 当前容器真实 bwrap 探针被 `NETLINK_ROUTE socket: Operation not permitted` 拒绝；目标主机越界写测试仍需执行 |
+| 预算 | 本地 HTTP fixture 核验 self key info、身份/模型/金额；禁止重定向和环境代理；本地准备失败不占 before 回执；执行后存储失败和 CLI 非零退出为 UNKNOWN；同一任务不重复启动 | 实际独占 key、网关预留、故障拒绝、定价和最终账单 |
+| 交付 | 固定本地提交、PR/branch/base、所有必需工作流的最新实际结果；禁止旧绿回退；联合版本集合；事务阻止续接修改已封存版本 | 真实多仓联调、项目 QA、原工单关闭 |
+| 迁移 | 原始历史 SQLite fixture；配对备份、恢复演练、一次归档、去重保留；拒绝错锁、持有锁、环境漂移、宽松 WAL/SHM 权限和未决发布；无完整迁移标记不能启动旧状态 | 真实 writers 冻结、实际 DB 备份/恢复/切换 |
+| 精简 | 13 个旧模块删除；旧模块专用测试删除，有效断言迁入现役测试；无旧模块运行依赖 | 生产已安装源码版本 |
+
+本机已执行无模型 CLI 版本/帮助探针：`codex-cli 0.172.0-alpha.2` 的 `--version`、`exec --help`、`exec resume --help` 可用，`qualified_for_model_calls=false`。这只描述当前验证环境，不证明目标主机 0.171.0 的运行资格。
+
+最终完整回归和精确提交结果随 PR 更新；任何失败必须修复后重新核对相应候选。测试使用合成数据，不读取真实业务正文、生产凭据或计费网关。
+
+## 外部阻塞
+
+当前没有目标主机操作通道，也没有批准的真实模型/网关调用。本轮不停止或重启生产服务。实际迁移、部署、费用和业务验收均为 `NOT_RUN`。
+
+本地 Knowledge Provider 查询返回 `SOURCE_DRIFT`，Execution Policy `ensure` 返回 `Codex state database is unavailable`；未改写配置、伪造线程状态或补造成功回执。因此没有声称完成 Knowledge Provider 归档或本地 Runtime conformance；Git/CI 代码证据另行核验。

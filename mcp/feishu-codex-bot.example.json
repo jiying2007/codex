@@ -1,39 +1,26 @@
 {
   "schema_version": 1,
-  "default_repo": "llm_apps",
+  "engineering_enabled": true,
+  "agent_intake_enabled": false,
+  "default_repo": "app",
   "allowed_open_ids": [
-    "ou_replace_with_owner_open_id"
+    "ou_example_owner"
   ],
   "repositories": {
-    "codex": {
-      "path": "/absolute/path/to/codex",
-      "allowed_modes": [
-        "explain",
-        "review"
-      ],
-      "allowed_open_ids": [],
-      "agent_allowed_modes": []
-    },
-    "llm_apps": {
-      "path": "/absolute/path/to/llm_apps",
+    "app": {
+      "path": "/srv/feishu-agent/repos/example-app",
       "allowed_modes": [
         "explain",
         "review",
         "edit"
       ],
       "allowed_open_ids": [],
-      "edit_strategy": "in_place",
-      "commit_enabled": false,
-      "artifact_upload": {
-        "enabled": true,
-        "allowed_roots": [
-          "android-prototype/dist/android"
-        ],
-        "allowed_extensions": [
-          ".apk"
-        ],
-        "max_bytes": 31457280
-      },
+      "agent_allowed_modes": [],
+      "edit_strategy": "worktree",
+      "worktree_root": "/srv/feishu-agent/worktrees/app",
+      "base_ref": "main",
+      "branch_prefix": "feishu/app",
+      "commit_enabled": true,
       "verification_commands": [
         [
           "git",
@@ -41,17 +28,59 @@
           "--check"
         ]
       ],
-      "agent_allowed_modes": []
+      "github_delivery": {
+        "repository": "example-org/example-app",
+        "base_branch": "main",
+        "required_workflows": [
+          ".github/workflows/verify.yml"
+        ]
+      }
+    },
+    "firmware": {
+      "path": "/srv/feishu-agent/repos/example-firmware",
+      "allowed_modes": [
+        "explain",
+        "review",
+        "edit"
+      ],
+      "allowed_open_ids": [],
+      "agent_allowed_modes": [],
+      "edit_strategy": "worktree",
+      "worktree_root": "/srv/feishu-agent/worktrees/firmware",
+      "base_ref": "main",
+      "branch_prefix": "feishu/firmware",
+      "commit_enabled": true,
+      "verification_commands": [
+        [
+          "git",
+          "diff",
+          "--check"
+        ]
+      ],
+      "github_delivery": {
+        "repository": "example-org/example-firmware",
+        "base_branch": "main",
+        "required_workflows": [
+          ".github/workflows/verify.yml"
+        ]
+      }
     }
   },
-  "deny_push_hooks_path": "/absolute/path/to/codex/mcp/git-hooks",
-  "isolation_bin": "/usr/local/bin/bwrap",
+  "link_repositories": {
+    "feishu_project:example-space": [
+      "app",
+      "firmware"
+    ],
+    "tapd:10000001": [
+      "app"
+    ]
+  },
+  "deny_push_hooks_path": "/home/service/codex/mcp/git-hooks",
+  "isolation_bin": "bwrap",
   "deny_read_paths": [
-    "/absolute/path/to/codex/mcp/secrets"
+    "/srv/feishu-agent/private"
   ],
-  "isolation_write_paths": [
-    "/home/user/.codex"
-  ],
+  "isolation_write_paths": [],
   "worker_count": 1,
   "queue_size": 20,
   "rate_limit_count": 5,
@@ -59,15 +88,7 @@
   "codex_timeout_sec": 900,
   "max_prompt_chars": 12000,
   "reply_chunk_chars": 3500,
-  "state_db": "/absolute/path/to/mcp/secrets/feishu-codex-state.sqlite3",
-  "lock_file": "/absolute/path/to/mcp/secrets/feishu-codex-bot.lock",
-  "agent_intake_enabled": false,
-  "agent_codex_home": "/absolute/private/path/to/agent-codex-home",
-  "manual_workitems_enabled": false,
-  "engineering_cards_enabled": false,
-  "link_repositories": {
-    "feishu_project:example-space": [
-      "codex"
-    ]
-  }
+  "state_db": "/srv/feishu-agent/private/feishu-codex-state.sqlite3",
+  "lock_file": "/srv/feishu-agent/private/feishu-codex-bot.lock",
+  "agent_codex_home": "/srv/feishu-agent/runtime/codex-home"
 }

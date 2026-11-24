@@ -1,93 +1,151 @@
-"""Concrete optional GitHub PR/CI REST shapes, no HTTP network in tests."""
+"""Exact read-only GitHub evidence; no HTTP network or publication in tests."""
 from __future__ import annotations
 
+import copy
+import json
 import unittest
 from unittest import mock
 
 from tools.codex_assets.feishu_engineering_agent.github_adapter import (
     GitHubApiFailure, GitHubForge, GitHubTransport,
 )
-from tools.codex_assets.feishu_engineering_agent.delivery import PublicationGrant
 
 SHA = "0123456789abcdef0123456789abcdef01234567"
+REPOSITORY = "example-org/robot-app"
+BRANCH = "agent-42"
+WORKFLOW = ".github/workflows/verify.yml"
 
 
 class GitHubAdapterContractTest(unittest.TestCase):
     def setUp(self):
         self.calls = []
+        repo = {"full_name": REPOSITORY}
+        self.pr = {
+            "number": 73, "state": "open", "merged_at": None,
+            "head": {"sha": SHA, "ref": BRANCH, "repo": repo},
+            "base": {"ref": "main", "repo": repo},
+        }
+        self.ci = {
+            "id": 12345, "path": WORKFLOW, "status": "completed",
+            "conclusion": "success", "head_sha": SHA, "head_branch": BRANCH,
+            "repository": repo, "head_repository": repo,
+            "event": "pull_request", "pull_requests": [{"number": 73}],
+        }
         def request(method, path, payload):
             self.calls.append((method, path, payload))
-            if "/git/ref/heads/" in path:
-                return {"object": {"sha": SHA, "type": "commit"}}
-            if method == "POST" and path.endswith("/pulls"):
-                return {"number": 73, "head": {"sha": SHA}}
-            if "/pulls/" in path:
-                return {"number": 73, "state": "open", "merged_at": None,
-                        "head": {"sha": SHA}}
-            if "/actions/runs/" in path:
-                return {"status": "completed", "conclusion": "success",
-                        "head_sha": SHA}
-            raise AssertionError("unexpected GitHub REST route")
-        self.forge = GitHubForge(
-            "robot-app", "jiying2007/robot-app", request,
-            remote_write_enabled=False,
-        )
+            self.assertEqual("GET", method)
+            self.assertIsNone(payload)
+            if path.endswith("/pulls/73"):
+                return copy.deepcopy(self.pr)
+            if path.endswith("/actions/runs/12345"):
+                return copy.deepcopy(self.ci)
+            raise AssertionError("unexpected GitHub evidence route")
+        self.forge = GitHubForge("robot-app", REPOSITORY, request)
 
-    def test_default_disabled_does_not_post_or_push(self):
-        request = {
-            "run_id": "a" * 32, "repo_full_name": "jiying2007/robot-app",
-            "head_sha": SHA, "target_ref": "refs/heads/feat/bugfix",
-            "approval_ref": "approved",
-        }
+    def observe(self):
+        return self.forge.observe_delivery(73, [12345], BRANCH, SHA, [WORKFLOW])
+
+    def test_exact_pr_head_and_every_required_ci_are_observed(self):
+        proof = self.observe()
+        self.assertEqual(SHA, proof["head_sha"])
+        self.assertEqual({WORKFLOW: 12345}, proof["workflows"])
+        self.assertEqual("open", proof["pr_state"])
+        self.assertEqual([
+            ("GET", "/repos/" + REPOSITORY + "/pulls/73", None),
+            ("GET", "/repos/" + REPOSITORY + "/actions/runs/12345", None),
+            ("GET", "/repos/" + REPOSITORY + "/pulls/73", None),
+        ], self.calls)
+
+    def test_wrong_repository_branch_base_or_commit_never_passes(self):
+        original = copy.deepcopy(self.pr)
+        for section, field, value in (
+            ("head", "sha", "b" * 40),
+            ("head", "ref", "different-branch"),
+            ("head", "repo", {"full_name": "other-org/robot-app"}),
+            ("base", "ref", "wrong-base"),
+            ("base", "repo", {"full_name": "other-org/robot-app"}),
+        ):
+            with self.subTest(section=section, field=field):
+                self.pr = copy.deepcopy(original)
+                self.pr[section][field] = value
+                with self.assertRaises(GitHubApiFailure):
+                    self.observe()
+
+    def test_ci_failure_wrong_head_wrong_workflow_or_wrong_pr_is_not_proof(self):
+        original = copy.deepcopy(self.ci)
+        for field, value in (
+            ("conclusion", "failure"), ("status", "in_progress"),
+            ("head_sha", "b" * 40), ("head_branch", "different-branch"),
+            ("path", ".github/workflows/unrelated.yml"), ("id", 999),
+            ("repository", {"full_name": "other-org/robot-app"}),
+            ("head_repository", {"full_name": "other-org/robot-app"}),
+            ("pull_requests", [{"number": 74}]), ("event", "workflow_dispatch"),
+        ):
+            with self.subTest(field=field):
+                self.ci = copy.deepcopy(original)
+                self.ci[field] = value
+                with self.assertRaises(GitHubApiFailure):
+                    self.observe()
+
+    def test_pr_head_is_rechecked_after_ci_reads(self):
+        calls = []
+        def changing(method, path, payload):
+            calls.append(path)
+            if path.endswith("/actions/runs/12345"):
+                self.pr["head"]["sha"] = "b" * 40
+                return copy.deepcopy(self.ci)
+            return copy.deepcopy(self.pr)
+        self.forge.request = changing
         with self.assertRaises(GitHubApiFailure):
-            self.forge.publish(request)
+            self.observe()
+        self.assertEqual(3, len(calls))
+
+    def test_ambiguous_or_incomplete_identifiers_fail_before_http(self):
+        for run_ids in ([], [12345, 12345], [True]):
+            with self.subTest(run_ids=run_ids), self.assertRaises(GitHubApiFailure):
+                self.forge.observe_delivery(73, run_ids, BRANCH, SHA, [WORKFLOW])
+        with self.assertRaises(GitHubApiFailure):
+            self.forge.observe_delivery(73, [12345], "../unsafe", SHA, [WORKFLOW])
         self.assertEqual([], self.calls)
-        self.forge.remote_write_enabled = True
-        published = self.forge.publish(request)
-        self.assertEqual("73", published["pr_id"])
-        self.assertEqual("GET", self.calls[0][0])
-        self.assertEqual("POST", self.calls[1][0])
-        self.assertTrue(self.calls[1][2]["draft"])
-        self.assertEqual("main", self.calls[1][2]["base"])
-        self.assertFalse(any("/git/push" in path for _, path, _ in self.calls))
 
-    def test_observed_pr_and_ci_have_exact_sha(self):
-        pr = self.forge.observe_pr("github://pr/73")
-        self.assertEqual("open", pr["state"])
-        self.assertEqual("robot-app", pr["repo_alias"])
-        self.assertEqual(SHA, pr["head_sha"])
-        ci = self.forge.observe_ci("github://ci/12345")
-        self.assertEqual("success", ci["conclusion"])
-        self.assertEqual(SHA, ci["head_sha"])
-        self.assertTrue(all(method == "GET" for method, _, _ in self.calls))
+    def test_transport_is_get_only_even_with_a_private_token(self):
+        transport = GitHubTransport(REPOSITORY, "fixture-read-only-token")
+        transport.opener = mock.Mock()
+        for method in ("POST", "PATCH", "PUT", "DELETE"):
+            with self.subTest(method=method), self.assertRaises(GitHubApiFailure):
+                transport(method, "/repos/" + REPOSITORY + "/pulls", {})
+        with self.assertRaises(GitHubApiFailure):
+            transport("GET", "/repos/" + REPOSITORY + "/pulls/73", {})
+        transport.opener.open.assert_not_called()
 
-    def test_unknown_refs_and_remote_sha_discrepancy_fail_closed(self):
-        with self.assertRaises(GitHubApiFailure):
-            self.forge.observe_pr("http://example.com/73")
-        with self.assertRaises(GitHubApiFailure):
-            self.forge.observe_ci("github://pr/73")
-        self.forge.remote_write_enabled = True
-        with self.assertRaises(GitHubApiFailure):
-            self.forge.publish({
-                "run_id": "a" * 32, "repo_full_name": "bad-owner/repo",
-                "head_sha": SHA, "target_ref": "refs/heads/test",
-            })
-        with self.assertRaises(GitHubApiFailure):
-            self.forge.publish({
-                "run_id": "a" * 32, "repo_full_name": "jiying2007/robot-app",
-                "head_sha": SHA, "target_ref": "refs/heads/../../unsafe",
-            })
-
-    def test_transport_only_accepts_fixed_api_origin_and_write_token(self):
-        transport = GitHubTransport("jiying2007/robot-app")
-        with self.assertRaises(GitHubApiFailure):
-            transport("POST", "/repos/jiying2007/robot-app/pulls", {})
-        with self.assertRaises(GitHubApiFailure):
-            transport("GET", "/repos/other_owner/project/actions/runs/1", None)
-        with self.assertRaises(GitHubApiFailure):
-            transport("GET", "/repos/jiying2007/robot-app/../secrets", None)
+    def test_transport_rejects_foreign_or_non_evidence_paths(self):
+        transport = GitHubTransport(REPOSITORY)
+        transport.opener = mock.Mock()
+        for path in (
+            "/repos/other-org/project/actions/runs/1",
+            "/repos/" + REPOSITORY + "/../secrets",
+            "/repos/" + REPOSITORY + "/contents/private",
+            "/repos/" + REPOSITORY + "/pulls/73?extra=1",
+            "https://example.com/pulls/73",
+        ):
+            with self.subTest(path=path), self.assertRaises(GitHubApiFailure):
+                transport("GET", path)
+        transport.opener.open.assert_not_called()
         with self.assertRaises(GitHubApiFailure):
             GitHubTransport("https://github.com/bad/path")
+
+    def test_transport_sends_only_exact_get_without_body(self):
+        transport = GitHubTransport(REPOSITORY)
+        response = mock.Mock()
+        response.read.return_value = json.dumps(self.pr).encode("utf-8")
+        transport.opener = mock.Mock()
+        transport.opener.open.return_value.__enter__ = mock.Mock(return_value=response)
+        transport.opener.open.return_value.__exit__ = mock.Mock(return_value=False)
+        self.assertEqual(self.pr, transport("GET", "/repos/" + REPOSITORY + "/pulls/73"))
+        request = transport.opener.open.call_args.args[0]
+        self.assertEqual("GET", request.get_method())
+        self.assertIsNone(request.data)
+        self.assertEqual("https://api.github.com/repos/" + REPOSITORY + "/pulls/73", request.full_url)
 
 
 if __name__ == "__main__":

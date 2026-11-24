@@ -42,7 +42,7 @@ class EngineeringExecutor:
             return dict(row) if row else None
 
     def _policy(self, repo, mode, actor, chat):
-        from ..feishu_codex_bot import FeishuCodexError, workitem_policy_digest
+        from ..feishu_codex_bot import FeishuCodexError, engineering_policy_digest
         if not self.config.agent_intake_enabled:
             raise FeishuCodexError("未配置独立模型执行授权；已关联研发事项，不启动 Codex。")
         self.config.validate_agent_runtime()
@@ -53,8 +53,7 @@ class EngineeringExecutor:
             raise FeishuCodexError("当前用户、仓库或研发模式未获授权；未启动 Codex。")
         if mode == "edit" and (repository.edit_strategy != "worktree" or not repository.commit_enabled):
             raise FeishuCodexError("远程编辑需要已授权的隔离 worktree 和受控本地提交。")
-        return workitem_policy_digest(self.config,repository,
-                {"explain":"read","review":"review","edit":"edit"}[mode],os.getuid())
+        return engineering_policy_digest(self.config, repository, mode, os.getuid())
 
     def _latest(self, context_id, repository):
         with self.store._connect() as db:
@@ -166,7 +165,8 @@ class EngineeringExecutor:
             self.spool.put(task_id,dataclasses.asdict(job))
         task_id, created = self.store.create_agent_task(
             event.event_id,sender,result.repo,mode,agent_request_digest(result.repo,mode,task),
-            self.config.queue_size,remote_context=binding,publish_payload=publish,
+            self.config.queue_size, policy_sha256=policy,
+            remote_context=binding, publish_payload=publish,
         )
         return ("已通过远程研发准入，任务 #" + str(task_id) + " " + self.store.task_status(task_id)
                 + "；" + title + "。仅表示已登记执行，未宣称模型或研发成功。")

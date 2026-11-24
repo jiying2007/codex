@@ -1,4 +1,5 @@
 """Read-only, provider-backed budget admission. No model calls in this module."""
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
@@ -81,14 +82,37 @@ def read_key_info(url, key):
 
 
 def observe_budget(config, phase):
+    if phase not in ("before", "after"):
+        raise BudgetError("invalid observation phase")
     url, approved = _policy(config)
     payload = read_key_info(url, config.agent_openai_api_key)
     info = payload.get("info") if isinstance(payload, dict) else None
-    if (phase not in ("before", "after") or not isinstance(info, dict)
+    fingerprint = hashlib.sha256(config.agent_openai_api_key.encode("utf-8")).hexdigest()
+    # LiteLLM's self lookup returns the authenticated key (normally its hash).
+    # Require explicit evidence: absent fields and permissive model groups do
+    # not establish this adapter's dedicated, non-resetting key policy.
+    if (not isinstance(info, dict)
+            or payload.get("key") not in (config.agent_openai_api_key, fingerprint)
             or info.get("key_alias") != config.agent_budget_key_alias
-            or info.get("blocked") is True
-            or info.get("budget_duration") not in (None, "")):
+            or info.get("blocked") is not False
+            or "budget_duration" not in info or info["budget_duration"] is not None
+            or ("status" in info and info["status"] != "active")):
         raise BudgetError("key identity or non-resetting budget not verified")
+    models = info.get("models")
+    if (not isinstance(models, list) or not models
+            or any(not isinstance(model, str) for model in models)
+            or config.agent_model not in models):
+        raise BudgetError("dedicated model access not verified")
+    expires = info.get("expires")
+    if expires is not None:
+        try:
+            if not isinstance(expires, str):
+                raise ValueError("invalid expiry")
+            expiry = datetime.fromisoformat(expires.replace("Z", "+00:00"))
+            if expiry.tzinfo is None or expiry <= datetime.now(timezone.utc):
+                raise ValueError("expired key")
+        except ValueError:
+            raise BudgetError("key expiry not verified") from None
     cap = _amount(info.get("max_budget"))
     spend = _amount(info.get("spend"))
     if cap <= 0 or cap > approved or (phase == "before" and spend >= cap):
@@ -96,7 +120,7 @@ def observe_budget(config, phase):
     return {
         "backend": "litellm", "gateway": url, "model": config.agent_model,
         "key_alias": config.agent_budget_key_alias,
-        "key_fingerprint": hashlib.sha256(config.agent_openai_api_key.encode("utf-8")).hexdigest(),
+        "key_fingerprint": fingerprint,
         "approved_usd": str(approved), "provider_cap_usd": str(cap),
         "provider_cumulative_spend_usd": str(spend),
         "exhausted": spend >= cap,

@@ -81,6 +81,8 @@ class MigrationContractTest(unittest.TestCase):
                 INSERT INTO agent_run_task_links VALUES ('fixture-run',1,1000);
             """)
             db.commit()
+        descriptor = os.open(str(agent), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.close(descriptor)
         with contextlib.closing(sqlite3.connect(str(agent))) as db:
             db.execute("PRAGMA journal_mode=WAL")
             db.execute("CREATE TABLE fea_runs(run_id TEXT PRIMARY KEY,repo TEXT,mode TEXT)")
@@ -120,6 +122,24 @@ class MigrationContractTest(unittest.TestCase):
         agent.chmod(0o600)
         with self.assertRaisesRegex(MigrationRejected, "snapshot linkage mismatch"):
             self.plan.backup(self.root / "mismatched-backup")
+
+    def test_wal_and_shm_must_be_private_before_reading_or_backing_up(self):
+        with contextlib.closing(sqlite3.connect(str(self.db))) as db:
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("INSERT INTO jobs VALUES (2,'completed')")
+            db.commit()
+            for suffix in ("-wal", "-shm"):
+                sidecar = self.db.with_name(self.db.name + suffix)
+                self.assertTrue(sidecar.exists())
+                sidecar.chmod(0o644)
+                with self.assertRaisesRegex(MigrationRejected, "owner-private"):
+                    self.plan.inspect()
+                target=self.root/("unsafe"+suffix)
+                with self.assertRaisesRegex(MigrationRejected, "owner-private"):
+                    self.plan.backup(target)
+                self.assertFalse(target.exists())
+                sidecar.chmod(0o600)
+        self.assertEqual(1,self.plan.inspect()["spool_count"])
 
     def test_cutover_gate_never_starts_services(self):
         result = MigrationPlan.cutover_gate(

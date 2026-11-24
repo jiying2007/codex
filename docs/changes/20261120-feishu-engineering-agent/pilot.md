@@ -1,19 +1,118 @@
-# 生产运行与验收
+# 主机迁移与现场验收指引
 
-## 日常目标操作
-直接发送飞书项目需求/缺陷链接或 Wiki/Docx/Sheets，附“分析”“修复”“按方案开发”。只有引用时不付费。缺正文时补充描述/复现或授权文档。同一可信话题内“继续推进”“当前进度”“停止任务”。/help /status /cancel /repo /new 为最小快捷入口，内部 ID 仅诊断。不声称当前所有目标已实现。
+本文是待操作指引。源码修改、合并或离线测试不代表已经操作真实主机；本轮不执行生产停服、迁移、重启或真实模型调用。执行证据只记录在 [verification.md](verification.md)，未观察的项目保持 `NOT_RUN`。
 
-## 主机
-现有 目标 Ubuntu 主机、~/codex、feishu-codex-bot.service、Linger=yes。保留真实私有 policy/env 和 state/spool，不输出凭据；先核验 HEAD、dirty、pending、备份和恢复，再更新已验证 main，停止旧 Bot 与 MCP 写入，确保一消费者。保持 UMask=0077、NoNewPrivileges=yes、双层沙箱私有 procfs。非清洁工作树停止处理，不自动 reset/clean/stash。不得升级覆盖用户配置。
+所有示例路径、账号、仓库和域名均为合成数据，必须替换为实际部署值。保留已有唯一 `feishu-codex-bot.service`，不新增 Bot、MCP 后台 Worker 或第二个消费者。
 
-## 资格
-管理员明确配置租户/用户/chat、repo/模块、mode/worktree、外部 API/gateway/self-hosted 计费和专用 private CODEX_HOME；不复制个人 auth.json，不扩大读写范围；未批准只提供无模型入口。现有现场仅 codex explain/review，未配置独立身份。工单 API 可选，Wiki 读取独立权限。实际项目库与映射由管理员确认。若用户无法提供权限，保留真实 blocked 状态，不绕过。
+## 1. 先确认部署类型与边界
 
-## 验收
-G0：更新后 /help /status、错误命令、嵌套 probe（无模型）。
-G1：真实 issue/story/wiki 引用、同话题补充上下文、重复与权限拒绝。
-G2：独立身份隔离及 remote enqueue、真实批准只读 turn、连续、edit、cancel、restart；其他任务不允许消费共享额度。
-G3/G4：私有备份及迁移恢复演练，真实 feature/bug、文档及跨仓验证，精确 Git/PR/CI 与独立人工验收，生成原工单反馈。无 API 不回写，不宣称关闭。回滚冻结消费者并核对新发生的任务/副作用，不能盲恢复旧 DB 丢失记录。
+无旧 `feishu-engineering-agent.sqlite3`、旧关联记录或相关 WAL/SHM 遗留的新部署，不需要 `unify`。按 [新配置](../../../mcp/feishu-codex-bot.example.json) 建立私有目录，先保持 `agent_intake_enabled=false`、`agent_allowed_modes=[]`，可开启 `engineering_enabled=true` 验证无模型话题入口。
 
-## 统一生产状态库（源码候选）
-在单一服务与所有可信本机写入确实冻结、旧 queued/running/UNKNOWN 与待交付状态核对后，使用当前 migration_cli backup 与 rehearse 对真实 DB/spool/private policy/env 做一份新备份。使用 `unify --db <真实BotDB> --spool <真实spool> --private-policy <私有策略> --private-env <私有环境> --backup-dir <此次已验证备份> --lock-file <真实单实例锁> --consumer-paused`。策略需启用工程文本入口、关闭旧卡片；锁必须 owner-private。unify 获取真实单实例锁，核对 live 与 backup 的逻辑内容/配对，事务归档旧 fea_* 元数据、原消息去重和关联 Run，写入一次性迁移标记；不自动绑定旧原生线程，不删除旧 DB 或备份，不重启服务。新版看到 marker 后停止旧 /wi 与旧 WorkItem MCP 写路径，单一生产 DB；旧文件保留仅供离线恢复，后续备份不作为 live ledger。所有未确认外部效果须先人工核对，不可通过清空记录绕过。实际停服/恢复/迁移仍需真实主机回执。
+已有旧 ledger 的部署必须离线迁移。新版 Bot、`check` 和 MCP 检测到未迁移历史会拒绝准入；删除旧 DB、改状态或重新命名文件都不能代替迁移。旧代码已删除，历史数据库及备份仍保留作审计和离线恢复。
+
+开始前核对实际源提交、工作树改动、服务账号、Python/SDK、`rtk`、Codex CLI、Bubblewrap、unit/drop-in、state/spool、环境文件和锁路径。更新源码不覆盖用户私有配置，不对脏工作树自动 reset、clean 或 stash。已有生产服务状态须重新观察，不能继承历史的 active 或 Linger 结论。
+
+## 2. 迁移前冻结与未决任务
+
+1. 禁止新任务入队，停止全部本机 MCP 写入进程及其调用方；Bot 的单实例锁不能证明这些写入方已经停止。
+2. 记录旧任务、spool 和外部效果，核对 queued/running/unknown 以及旧 waiting_ci/waiting_qa。只进行已授权的完成、精确取消或人工核对；不得为清空门禁新增模型调用，也不得把未知结果改成成功。
+3. 在主机操作获准后停止已有唯一 Bot。确认进程及实际服务锁均已释放，全部写入方持续保持冻结，直至迁移和配置切换结束。
+
+待操作的服务命令示例：
+
+```bash
+rtk systemctl --user stop feishu-codex-bot.service
+rtk systemctl --user status feishu-codex-bot.service
+```
+
+停止命令成功不等于所有 MCP、模型子进程或外部效果已消失，仍须核对实际进程和任务。锁被占用、数据库变化或存在未决状态时，迁移拒绝继续。
+
+## 3. 冻结配置与配对备份
+
+迁移读取原私有 policy/env，不依赖新 Bot 配置解析。旧 `manual_workitems_enabled=true` 可以用于离线 `unify`；`engineering_cards_enabled` 必须为 false。也可使用明确开启 `engineering_enabled` 的已冻结配置。
+
+在备份前确认原私有策略显式记录实际绝对路径 `state_db` 与 `lock_file`。原环境文件和当前命令环境中的 `FEISHU_STATE_DB`、`FEISHU_LOCK_FILE` 若存在，必须与这两个路径一致。不得用新建的无关锁文件冒充真实服务锁。若原配置依赖隐含默认值，须先在服务冻结状态下核实、固定这些有效路径，再备份。
+
+原 DB、WAL/SHM、spool 和配置必须属于服务账号；私有文件 0600、目录 0700。先在冻结状态核对权限，不对运行中的数据库自动改权限。备份包含 SQLite 一致快照、对应旧 ledger、spool 及所提供的私有 policy/env；SQLite backup API 将已提交的 WAL 数据纳入快照，不靠只复制主 DB 文件。
+
+以下命令从任意工作目录运行，使用同一源码与实际 Python 环境。备份父目录须已存在并为 0700；本次目标目录须尚不存在且不在 spool 内，由 backup 创建：
+
+```bash
+rtk env PYTHONPATH=/home/service/codex python3 -m tools.codex_assets.feishu_engineering_agent.migration_cli inspect \
+  --db /srv/feishu-agent/private/feishu-codex-state.sqlite3 \
+  --spool /srv/feishu-agent/private/feishu-pending-jobs \
+  --private-policy /srv/feishu-agent/private/policy.json \
+  --private-env /srv/feishu-agent/private/feishu.env
+
+rtk env PYTHONPATH=/home/service/codex python3 -m tools.codex_assets.feishu_engineering_agent.migration_cli backup \
+  --db /srv/feishu-agent/private/feishu-codex-state.sqlite3 \
+  --spool /srv/feishu-agent/private/feishu-pending-jobs \
+  --private-policy /srv/feishu-agent/private/policy.json \
+  --private-env /srv/feishu-agent/private/feishu.env \
+  --backup-dir /srv/feishu-agent/backups/example-cutover \
+  --consumer-paused
+
+rtk env PYTHONPATH=/home/service/codex python3 -m tools.codex_assets.feishu_engineering_agent.migration_cli rehearse \
+  --backup-dir /srv/feishu-agent/backups/example-cutover
+```
+
+`--consumer-paused` 是操作者对真实冻结状态的声明，不会停止进程。`rehearse` 在新临时目录恢复并核对完整性、摘要和双库关联，不覆盖生产路径，也不证明实际服务已切换。失败时保留源数据与备份供检查；不要自动覆盖或删除。
+
+## 4. 统一状态，随后转换新配置
+
+备份后不修改 policy/env、state 或 spool；有任何变化必须重新核对并制作新配对备份。全部写入方仍冻结时执行：
+
+```bash
+rtk env PYTHONPATH=/home/service/codex python3 -m tools.codex_assets.feishu_engineering_agent.migration_cli unify \
+  --db /srv/feishu-agent/private/feishu-codex-state.sqlite3 \
+  --spool /srv/feishu-agent/private/feishu-pending-jobs \
+  --private-policy /srv/feishu-agent/private/policy.json \
+  --private-env /srv/feishu-agent/private/feishu.env \
+  --backup-dir /srv/feishu-agent/backups/example-cutover \
+  --lock-file /srv/feishu-agent/private/feishu-codex-bot.lock \
+  --consumer-paused
+```
+
+`unify` 再做恢复演练，核对当前数据与配对备份、配置和真实锁，事务归档旧 `fea_*` 历史、消息去重及任务关联，最后写入一次性迁移标记。它不创建原生 thread、不恢复旧模型执行、不删除旧数据库，也不启动服务。重复导入拒绝，任何失败回滚当前事务。
+
+取得成功回执后，才转换运行配置：
+
+- 删除退役的 `manual_workitems_enabled`、`engineering_cards_enabled` 及卡片、旧 QA/工作流专用凭据配置。
+- 使用 `engineering_enabled=true`。先保持 `agent_intake_enabled=false`、各仓 `agent_allowed_modes=[]`，完成无模型现场验证。
+- 保持同一 state、spool、锁及服务账号；私有路径与实际 unit 一致。若采用本文的独立 env 路径，unit 的 ExecStart 必须向脚本传同一个 `--env-file`，不能让预检和服务分别读取两份配置。
+- 不复制个人 `auth.json`；`isolation_write_paths` 不指向个人 HOME。专用执行目录、仓库与各 worktree 互不重叠。
+
+旧数据库保留为离线历史；新版不再执行它，后续正常备份只包含一个活动 Bot DB。不得删除真实历史或私自把旧线程绑定为新会话。
+
+## 5. 无模型现场验证
+
+先对新私有配置运行 `check`；它可能初始化状态结构，但不启动模型。再在已获准的窗口更新并启动原唯一服务：
+
+```bash
+rtk bash /home/service/codex/scripts/feishu-codex-bot.sh check \
+  --env-file /srv/feishu-agent/private/feishu.env
+
+rtk systemctl --user daemon-reload
+rtk systemctl --user start feishu-codex-bot.service
+rtk systemctl --user status feishu-codex-bot.service
+```
+
+这些是待操作示例，本轮未执行。实际核验包括：
+
+| 项目 | 所需真实证据 |
+|---|---|
+| 唯一服务 | 正确提交与 unit、同一状态/锁、单消费者；UMask=0077、NoNewPrivileges、私有 procfs 与嵌套沙箱实际探针 |
+| 无模型话题 | 白名单用户的 issue/story/TAPD/文档链接、同话题补充、重复消息、错误命令和拒绝越权 |
+| 退役入口 | `/wi`、旧卡片、旧 MCP 和 `run-once` 不恢复旧执行；缺独立授权不回退共享额度 |
+| 文档权限 | 独立 `read-source --dry-run`，以及获准后的实际 API 读取；正文不进入公共日志 |
+| 恢复 | 新状态的备份与恢复演练，排队输入及去重，运行中未知状态不自动重试 |
+
+CLI version/help 成功只说明命令存在，不证明主机沙箱、模型兼容性或费用资格。不得把 `check`、测试全绿或模拟对象当作现场完成。
+
+## 6. 真实费用与工程验收仍需单独完成
+
+实际模型适配器仅支持 LiteLLM 外部网关。专用 `FEISHU_AGENT_*` 字段、`key/alias/models/blocked/budget_duration` 和金额规则见 [使用指南](../../feishu-codex-bot-usage.md#5-独立模型身份与预算)。当前真实独占身份、模型映射、网关请求级拒绝/在途预留、异步费用及最终账单验证均为 `NOT_RUN`。累计 key spend 不代表原子硬 cap 或单任务最终结算。
+
+只有取得实际调用授权并核验费用通道后，才由操作者开启执行和必要仓库模式，验证低风险需求、缺陷、文档驱动任务及跨仓多轮研发。记录精确 native thread、工作区/提交、取消、重启、PR/全部必需 CI 以及真正的项目测试/QA。配置 CI 通过不自动完成跨仓联调或关闭原工单。
+
+若需要回滚，先重新冻结所有写入方并保存切换后状态，核对新发生的任务、提交、模型费用和远端效果，再选择匹配版本及配对状态。不能盲覆盖旧 DB 丢失新记录，更不能靠重放未知任务“恢复成功”。

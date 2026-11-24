@@ -51,10 +51,13 @@ class RemoteEngineeringTest(unittest.TestCase):
             bot_name="研发助手",repositories={"robot-app":policy},
             default_repo="robot-app",allowed_open_ids=frozenset(("ou_owner","ou_other")),
             state_db=self.private/"bot.sqlite3",lock_file=self.private/"bot.lock",
-            manual_workitems_enabled=True,agent_intake_enabled=True,
+            engineering_enabled=True,agent_intake_enabled=True,
             link_repositories={"feishu_project:example-space":("robot-app",)},
-            agent_billing_source="external_api_key",agent_codex_home=self.agent_home,
+            agent_billing_source="external_gateway",agent_codex_home=self.agent_home,
             agent_openai_api_key=synthetic_identity,
+            agent_openai_base_url="https://gateway.example/v1",
+            agent_budget_backend="litellm", agent_budget_max_usd="10",
+            agent_budget_key_alias="fixture-agent", agent_model="fixture-model",
             deny_read_paths=(self.private,),isolation_write_paths=(self.agent_home,),
         )
         self.store=bot_module.StateStore(self.config.state_db)
@@ -134,6 +137,33 @@ class RemoteEngineeringTest(unittest.TestCase):
             ex.submit(event,result)
         self.assertEqual([],self.store.pending())
         self.transport.read_engineering_note.assert_not_called()
+        self.runner.run.assert_not_called()
+
+    def test_delivery_sealed_during_context_read_rejects_edit_continuation(self):
+        self.intake("om_root", ISSUE)
+        self.submit("om_edit", "修复 初始化失败并增加回归测试")
+        row = self.latest()
+        bot, job = self.decode(row)
+        self.assertTrue(self.store.claim_queued(job.task_id))
+        worktree = self.root / "worktrees" / "task-1"
+        worktree.mkdir(parents=True)
+        result = bot_module.ExecutionResult("fixture", "agent-1", "a" * 40, worktree, THREAD, worktree)
+        self.store.record_result(job.task_id, result.branch_name, result.commit_hash, worktree)
+        self.executor.finish(job, result, None)
+        self.store.update_task(job.task_id, "completed")
+        self.intake("om_note", "补充说明：保留现有错误码")
+        event, followup = self.intake("om_continue", "继续推进")
+        def seal_during_read(*args):
+            with self.store._connect() as db:
+                db.execute("INSERT INTO engineering_context_delivery VALUES (?,?,?,?,?,?)",
+                           (job.task_id, "a" * 40, "example-org/robot", 1, "{}", 1))
+            return "补充说明：保留现有错误码"
+        self.transport.read_engineering_note.side_effect = seal_during_read
+        with self.assertRaisesRegex(bot_module.FeishuCodexError, "封存"):
+            self.executor.submit(event, followup)
+        self.assertEqual([], self.store.pending())
+        with self.store._connect() as db:
+            self.assertEqual(1, db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
         self.runner.run.assert_not_called()
 
     def test_scope_source_and_policy_tampering_denied(self):

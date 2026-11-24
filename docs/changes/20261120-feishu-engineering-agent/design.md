@@ -17,7 +17,17 @@
 只复用 CLI 执行和精确 thread/resume，不接管个人线程、不用 --last。工作区/模式切换不能冒充原生恢复；创建关联新会话并交接审核摘要。仓库规范、ADK 与 Knowledge Provider 负责研发方法；任务复杂度决定是否 SDD。
 
 ## 交付与恢复
-精确 Git head/PR/required CI 关联，独立测试/QA；完成执行≠交付≠原工单关闭。可复制反馈默认，授权 comment 可选。排队持久化、防重复，running interrupted UNKNOWN，取消精确进程及队列身份。状态库迁移须离线冻结、私有备份、restore rehearsal、验证 source ids/evidence/receipt/queue/spool、回滚；不能清理用户文件或盲回放。旧入口替代并迁移验证后删除，不长期双轨。
+精确 Git head/PR/required CI 关联，独立测试/QA；完成执行≠交付≠原工单关闭。反馈为可复制文本，当前 GitHub 适配器仅 GET，不负责发布或回写。排队持久化、防重复，running interrupted UNKNOWN，取消精确进程及队列身份。任何已启动 CLI 的非零退出、执行后计费/完成回执缺失均为 UNKNOWN，不自动重放。交付封存与编辑续接在同一入队事务再次核验，避免并发改写已核验版本。
+
+迁移先冻结旧 Bot 及全部本机写入方，再做私有备份、恢复演练与统一归档。锁和 DB 路径必须与冻结 policy/env 一致，主 DB/WAL/SHM 均核验身份与权限。历史仅通过原生 SQLite 归档；新程序发现旧 ledger/关联记录而无完整迁移标记时拒绝启动。旧 DB/备份保留供离线恢复，新部署无旧记录无需迁移。持有 Bot 锁不等于已经证明全部外部写入方停止。
 
 ## 模块
-保留 Bot transport/worker/spool、文档读取及最小 MCP。收敛 models/config/channel/sources/service/policy/store/executor/delivery 职责；精简或删除重复 offline router/store、local-only workflow、AppServer/runtime_bridge、card/actions、独立跨仓 contract。先保留生产中不可替代的安全/历史数据关系；按引用与验证删除，而非按文件数量。
+保留 Bot transport/worker/StateStore/spool、文档读取及最小 MCP；工程包保留 sources/service/executor/delivery、只读 GitHub 证据、预算、精确 CLI 回执、策略摘要与离线迁移。AppServer/runtime_bridge/card/actions、旧 offline router/RunStore/manual_items、HMAC 授权工作流和独立跨仓契约执行模块已删除。旧结构仅以固定历史 SQLite fixture 验证迁移，不以可运行旧模块维持兼容。
+
+## 当前配置与执行边界
+
+`engineering_enabled` 控制远程话题入口，`agent_intake_enabled` 控制独立模型执行。本机 MCP 仅保留 submit/get/cancel queued。所有模型执行均使用同 UID Agent 身份、持久请求和策略摘要；旧普通聊天、`/wi`、卡片和 `run-once` 不再提供模型回退。MCP 与远程任务共用同一队列，策略、专用凭据或预算配置变化使既有排队任务失效。编辑必须使用可提交的独立 worktree。
+
+当前金额适配器只支持 LiteLLM external_gateway。专用环境命名空间配置 key、网关、模型、key alias 和批准金额；key info 必须证明 bearer、模型白名单、未阻止且无自动重置，并提供有效额度和累计消费。所有本地准备完成后、启动进程前保存 before 观察，正常返回后保存 after；这些是累计消费观察，不是单任务最终账单或原子硬限额。真实网关请求预留、故障拒绝和结算是现场资格，不由本地 fixture 代替。
+
+模型改过的测试/构建脚本按非可信代码处理；验证复用现有 Bubblewrap，默认无网络、无服务或模型密钥，专用 Agent 历史也被屏蔽，只允许工作区和临时空间写入。沙箱不可用时拒绝，不降级到主机执行。依赖和工具链预先安装，`.git` 指针只读，受控提交由控制器执行。

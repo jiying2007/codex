@@ -16,10 +16,10 @@ from .migration import MigrationPlan, MigrationRejected
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Feishu Agent safe migration prep")
     parser.add_argument("action", choices=("inspect", "backup", "rehearse", "unify"))
-    parser.add_argument("--lock-file", default="", help="exact existing service singleton lock for unify")
+    parser.add_argument("--lock-file", default="", help="existing service lock matching the backed-up policy lock_file; unify only")
     parser.add_argument("--db", default="")
     parser.add_argument("--spool", default="")
-    parser.add_argument("--private-policy", default="")
+    parser.add_argument("--private-policy", default="", help="unify requires explicit absolute state_db and lock_file in this policy")
     parser.add_argument("--private-env", default="", help="optional private environment file; backup remains sensitive")
     parser.add_argument("--backup-dir", default="")
     parser.add_argument("--consumer-paused", action="store_true",
@@ -34,7 +34,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             report = MigrationPlan.rehearse_restore(pathlib.Path(args.backup_dir))
         else:
             if not args.db or not args.spool:
-                parser.error("inspect/backup require --db and --spool")
+                parser.error("inspect/backup/unify require --db and --spool")
             plan = MigrationPlan(
                 pathlib.Path(args.db), pathlib.Path(args.spool),
                 pathlib.Path(args.private_policy) if args.private_policy else None,
