@@ -83,3 +83,6 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [x] 本机 MCP 发布在既有 Bot SQLite writer 事务中创建 task/link 并写入私有 spool，防止并发观察半发布状态；失败保留 UNKNOWN，启动清理与发布串行；仍需精确 HEAD CI 核验。
 
 [x] 连续研发状态包含前序与有效后续 Run；未授权的 proposed 后续回合可撤销并释放预留关联，保留取消记录，不重复执行。真实 Git fixture 验证同一 worktree 后续提交及拒绝脏工作区/漂移 HEAD。
+
+[x] 既有本机 MCP 增加 `verify_workitem_delivery` 与 `accept_workitem_qa`；从完成的 Bot task 读取精确 commit/branch，按每仓配置的 GitHub 仓库/基线/全部必需 workflow 校验已存在 PR 及 CI，原子记录证据并进入 waiting_qa；独立签名 QA 前再次读取原证据，完成研发 Run 后不关闭原工单。
+[x] `/wi feedback <attemptRunID>` 输出可复制的真实已核验交付引用；无企业 API 依赖；仍需精确 HEAD CI 与实际主机/API/QA 验证。

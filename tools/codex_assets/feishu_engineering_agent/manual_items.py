@@ -30,6 +30,7 @@ _HELP = (
     "/wi add feishu_project 需求 <空间ID> <工作项ID> [repo=仓库别名] | 需求与验收描述\n"
     "/wi list 最近登记；/wi status <完整Run ID> 查询状态\n"
     "/wi cancel <完整尝试Run ID> 在既有 Bot 中取消关联的精确执行任务\n"
+    "/wi feedback <完整尝试Run ID> 生成可复制的研发交付反馈\n"
     "/wi handoff <完整Run ID> | 当前问题描述、验收要求及复现信息\n"
     "/wi attempt <来源Run ID> <read|review|edit> | 本次研发范围\n"
     "/wi continue <上一轮成功Run ID> | 下一轮修改或分析要求\n"
@@ -63,10 +64,10 @@ def parse_manual_command(text: str, tenant: str, default_repo: str) -> ManualCom
         return ManualCommand("help")
     if action == "list" and len(tokens) == 2 and not delimiter:
         return ManualCommand("list")
-    if action == "cancel" and len(tokens) == 3 and not delimiter:
+    if action in ("cancel", "feedback") and len(tokens) == 3 and not delimiter:
         if not _RUN_ID.fullmatch(tokens[2]):
-            raise IntakeRejected("cancel requires an exact 32-hex attempt Run ID")
-        return ManualCommand("cancel", run_id=tokens[2])
+            raise IntakeRejected("cancel/feedback requires an exact 32-hex attempt Run ID")
+        return ManualCommand(action, run_id=tokens[2])
     if action in ("status", "handoff") and len(tokens) == 3:
         if not _RUN_ID.fullmatch(tokens[2]):
             raise IntakeRejected("status/handoff requires an exact 32-hex Run ID")
@@ -145,10 +146,13 @@ class ManualWorkItemService:
             return _HELP
         if cmd.action == "cancel":
             raise IntakeRejected("cancel requires the existing Bot's live task owner")
-        if cmd.action in ("status", "handoff"):
+        if cmd.action in ("status", "handoff", "feedback"):
             record = self.store.get_run(cmd.run_id, event)
             if record["repo"] not in authorized:
                 raise IntakeRejected("repository access has changed")
+            if cmd.action == "feedback":
+                from .feedback import SourceFeedback
+                return SourceFeedback(self.store).draft(cmd.run_id, event)
             if cmd.action == "status":
                 from .sessions import SessionRegistry
                 from .workflow import EngineeringWorkflow

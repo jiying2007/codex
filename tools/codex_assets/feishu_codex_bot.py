@@ -188,6 +188,9 @@ class RepositoryPolicy:
     artifact_max_bytes: int
     verification_commands: Tuple[Tuple[str, ...], ...]
     agent_allowed_modes: FrozenSet[str] = frozenset()
+    github_repository: str = ""
+    github_base_branch: str = ""
+    github_required_workflows: Tuple[str, ...] = ()
 
     @property
     def edit_enabled(self) -> bool:
@@ -394,6 +397,22 @@ class BotConfig:
                 if not isinstance(command, list) or not command or not all(isinstance(arg, str) and arg for arg in command):
                     raise FeishuCodexError(f"仓库 {alias} verification_commands 包含无效命令")
                 verification_commands.append(tuple(command))
+            delivery = item.get("github_delivery")
+            github_repository = github_base_branch = ""
+            github_required_workflows: Tuple[str, ...] = ()
+            if delivery is not None:
+                from .feishu_engineering_agent.github_adapter import validate_delivery_config
+                if (not isinstance(delivery, dict)
+                        or set(delivery) != {"repository", "base_branch", "required_workflows"}):
+                    raise FeishuCodexError("github_delivery 必须明确仓库、基线分支和必需 workflow")
+                github_repository = delivery["repository"]
+                github_base_branch = delivery["base_branch"]
+                try:
+                    github_required_workflows = validate_delivery_config(
+                        github_repository, github_base_branch, delivery["required_workflows"],
+                    )
+                except ValueError as exc:
+                    raise FeishuCodexError("github_delivery 配置无效") from exc
             repositories[alias] = RepositoryPolicy(
                 alias=alias,
                 path=path,
@@ -410,6 +429,9 @@ class BotConfig:
                 artifact_max_bytes=artifact_max_bytes,
                 verification_commands=tuple(verification_commands),
                 agent_allowed_modes=agent_modes,
+                github_repository=github_repository,
+                github_base_branch=github_base_branch,
+                github_required_workflows=github_required_workflows,
             )
 
         default_repo = str(payload.get("default_repo", "")).strip()

@@ -12,6 +12,7 @@ import json
 import os
 import pathlib
 import re
+import sqlite3
 import sys
 from typing import Any, Mapping, Optional
 
@@ -28,13 +29,18 @@ MAX_LINE_BYTES = 65536
 
 
 class AgentTaskIntake:
-    def __init__(self, config: BotConfig, billing_source: Optional[str] = None) -> None:
+    def __init__(self, config: BotConfig, billing_source: Optional[str] = None, *,
+                 github_read_token: str = "", qa_reviewer: str = "",
+                 qa_key_hex: str = "") -> None:
         self.config = config
         self.store = StateStore(config.state_db)
         self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         self.sender = f"agent:{os.getuid()}"
         source = config.agent_billing_source if billing_source is None else billing_source
         self.billing_source = str(source or "unapproved").strip().lower()
+        self.github_read_token = github_read_token
+        self.qa_reviewer = qa_reviewer
+        self.qa_key_hex = qa_key_hex
 
     def _enabled(self) -> None:
         if not self.config.agent_intake_enabled:
@@ -248,18 +254,107 @@ class AgentTaskIntake:
         if approval["unix_uid"] != os.getuid():
             raise FeishuCodexError("AgentRun belongs to another local Unix user")
         record = store.get_run(run_id)
+        repository = self.config.repositories.get(record["repo"])
+        if (repository is None or record["chat"] != self.config.target_chat_id
+                or not self.config.sender_allowed(record["actor"], repository)):
+            raise FeishuCodexError("WorkItem owner or repository access changed")
         link = self.store.agent_run_link_for_run(run_id)
         task = None
         if link is not None:
+            if link["unix_uid"] != os.getuid():
+                raise FeishuCodexError("WorkItem task link owner mismatch")
             task = self.store.agent_task_detail(link["task_id"], self.sender)
             if task is None:
                 raise FeishuCodexError("linked Agent task is not owned by this local Unix user")
         from .feishu_engineering_agent.sessions import SessionRegistry
         sessions = SessionRegistry(store)
         session = sessions.receipt(run_id)
+        from .feishu_engineering_agent.delivery import DeliveryCoordinator
+        from .feishu_engineering_agent.models import InboundEvent
+        event = InboundEvent("feishu_message", record["tenant"], record["chat"],
+                             record["actor"], "local-delivery-status", "read delivery status")
         return {"agent_run_id": run_id, "run_status": record["status"],
                 "task": task, "billing_source": approval["billing_source"],
-                "session": session, "lineage": sessions.lineage(run_id)}
+                "session": session, "lineage": sessions.lineage(run_id),
+                "delivery": DeliveryCoordinator(store).snapshot(run_id, event)}
+
+    def _delivery_context(self, run_id: str):
+        """Resolve the exact existing local result; callers cannot supply a SHA."""
+        from .feishu_engineering_agent.delivery import DeliveryCoordinator
+        from .feishu_engineering_agent.github_adapter import GitHubForge, GitHubTransport
+        from .feishu_engineering_agent.models import InboundEvent
+        if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id):
+            raise FeishuCodexError("invalid exact WorkItem Run ID")
+        detail = self.get_workitem_task(run_id)
+        store = self._manual_store()
+        run = store.get_run(run_id)
+        repository = self.config.repository(run["repo"])
+        task = detail["task"]
+        if (run["mode"] != "edit" or run["status"] not in ("waiting_ci", "waiting_qa", "completed")
+                or task is None or task["status"] != "completed" or task["mode"] != "edit"
+                or task["repository"] != run["repo"] or detail["session"] is None
+                or not re.fullmatch(r"[a-f0-9]{40}", task["commit_hash"])
+                or not task["branch_name"]):
+            raise FeishuCodexError("delivery requires an exact completed local edit receipt")
+        if not repository.github_repository or not repository.github_required_workflows:
+            raise FeishuCodexError("该仓库未配置 GitHub 交付核验")
+        event = InboundEvent("feishu_message", run["tenant"], run["chat"], run["actor"],
+                             "local-delivery", "verify exact local delivery")
+        forge = GitHubForge(
+            run["repo"], repository.github_repository,
+            GitHubTransport(repository.github_repository, self.github_read_token),
+            base_branch=repository.github_base_branch,
+        )
+        return DeliveryCoordinator(store), event, repository, task, forge
+
+    def verify_workitem_delivery(self, run_id: str, pr_number: int,
+                                 ci_run_ids: list[int]) -> dict[str, Any]:
+        """Observe an existing PR and every configured required workflow; GET only."""
+        delivery, event, repository, task, forge = self._delivery_context(run_id)
+        return delivery.verify_github_delivery(
+            run_id, event, task["commit_hash"], task["branch_name"], forge,
+            pr_number, ci_run_ids, repository.github_required_workflows,
+        )
+
+    def accept_workitem_qa(self, run_id: str, reviewer: str, evidence_ref: str,
+                           attested_at: int, signature: str) -> dict[str, Any]:
+        """Verify an out-of-band QA signature; never mint it in the MCP server."""
+        delivery, event, repository, task, forge = self._delivery_context(run_id)
+        if not self.qa_reviewer or reviewer != self.qa_reviewer or reviewer == event.actor:
+            raise FeishuCodexError("需要配置的独立 QA 审核人")
+        try:
+            key = bytes.fromhex(self.qa_key_hex)
+        except (ValueError, TypeError):
+            raise FeishuCodexError("私有 QA 验证凭据未配置") from None
+        if len(key) < 32 or type(attested_at) is not int:
+            raise FeishuCodexError("私有 QA 验证凭据或时间无效")
+        proof = delivery.snapshot(run_id, event)
+        if proof["run_status"] != "waiting_qa" or proof["head_sha"] != task["commit_hash"]:
+            raise FeishuCodexError("需要已核验的本地提交、PR 和 CI；QA 完成后请查询状态")
+        # Re-observe the same immutable proof references, not a replacement set
+        # supplied by the caller. Reject a PR whose head changed since CI.
+        root = "https://github.com/" + repository.github_repository
+        pr_refs = [row["reference"] for row in proof["evidence"] if row["evidence_type"] == "pr"]
+        ci_refs = [row["reference"] for row in proof["evidence"] if row["evidence_type"] == "ci"]
+        pr_match = re.fullmatch(re.escape(root) + r"/pull/([1-9][0-9]{0,12})", pr_refs[0]) if len(pr_refs) == 1 else None
+        ci_matches = [re.fullmatch(re.escape(root) + r"/actions/runs/([1-9][0-9]{0,12})", ref)
+                      for ref in ci_refs]
+        if pr_match is None or any(match is None for match in ci_matches):
+            raise FeishuCodexError("已记录的 GitHub 证据不符合当前仓库配置")
+        delivery.verify_github_delivery(
+            run_id, event, task["commit_hash"], task["branch_name"], forge,
+            int(pr_match.group(1)), [int(match.group(1)) for match in ci_matches],
+            repository.github_required_workflows,
+        )
+        delivery.accept_manual_qa(
+            run_id, event, task["commit_hash"], reviewer, evidence_ref,
+            attested_at, signature, key,
+        )
+        delivery.complete_engineering_only(run_id, event)
+        from .feishu_engineering_agent.feedback import SourceFeedback
+        result = delivery.snapshot(run_id, event)
+        result["feedback"] = SourceFeedback(delivery.store).draft(run_id, event)
+        return result
 
     def cancel_queued_task(self, task_id: int) -> dict[str, Any]:
         self.get_task(task_id)
@@ -330,6 +425,37 @@ TOOLS = [
         },
     },
     {
+        "name": "verify_workitem_delivery",
+        "description": "Read-only verification of an existing GitHub PR and every configured required workflow against the exact local edit commit; advances to waiting_qa, not product closure.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "run_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+                "pr_number": {"type": "integer", "minimum": 1},
+                "ci_run_ids": {"type": "array", "minItems": 1, "maxItems": 8,
+                               "uniqueItems": True, "items": {"type": "integer", "minimum": 1}},
+            },
+            "required": ["run_id", "pr_number", "ci_run_ids"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "accept_workitem_qa",
+        "description": "Verify configured independent reviewer HMAC for the exact verified delivery head, recheck GitHub proof, and complete only the engineering Run. No signer or external workitem write.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "run_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+                "reviewer": {"type": "string"},
+                "evidence_ref": {"type": "string"},
+                "attested_at": {"type": "integer", "minimum": 1},
+                "signature": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            },
+            "required": ["run_id", "reviewer", "evidence_ref", "attested_at", "signature"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "get_task",
         "description": "Read bounded status / Git result metadata for this local user's submitted task, not prompt or model output.",
         "inputSchema": {
@@ -378,6 +504,8 @@ def handle_request(request: Any, intake: AgentTaskIntake) -> Optional[dict[str, 
                 "submit_task": {"repo", "mode", "task", "idempotency_key"},
                 "submit_workitem_task": {"run_id", "task"},
                 "get_workitem_task": {"run_id"},
+                "verify_workitem_delivery": {"run_id", "pr_number", "ci_run_ids"},
+                "accept_workitem_qa": {"run_id", "reviewer", "evidence_ref", "attested_at", "signature"},
                 "get_task": {"task_id"}, "cancel_queued_task": {"task_id"},
             }
             if not isinstance(args, dict) or name not in known or set(args) != known[name]:
@@ -388,12 +516,16 @@ def handle_request(request: Any, intake: AgentTaskIntake) -> Optional[dict[str, 
                 value = intake.submit_workitem_task(**args)
             elif name == "get_workitem_task":
                 value = intake.get_workitem_task(**args)
+            elif name == "verify_workitem_delivery":
+                value = intake.verify_workitem_delivery(**args)
+            elif name == "accept_workitem_qa":
+                value = intake.accept_workitem_qa(**args)
             elif name == "get_task":
                 value = intake.get_task(**args)
             else:
                 value = intake.cancel_queued_task(**args)
             result = {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False)}], "isError": False}
-        except (FeishuCodexError, OSError, ValueError) as exc:
+        except (FeishuCodexError, OSError, ValueError, sqlite3.DatabaseError) as exc:
             note = str(exc)[:180] if isinstance(exc, FeishuCodexError) else "本机任务状态不可用"
             result = {"content": [{"type": "text", "text": note}], "isError": True}
     else:
@@ -410,6 +542,9 @@ def load_intake() -> AgentTaskIntake:
     return AgentTaskIntake(
         BotConfig.from_values(values, root),
         billing_source=values.get("FEISHU_AGENT_BILLING_SOURCE", "unapproved"),
+        github_read_token=values.get("FEISHU_AGENT_GITHUB_READ_TOKEN", ""),
+        qa_reviewer=values.get("FEISHU_AGENT_QA_REVIEWER", ""),
+        qa_key_hex=values.get("FEISHU_AGENT_QA_KEY_HEX", ""),
     )
 
 

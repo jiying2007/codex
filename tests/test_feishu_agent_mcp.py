@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import concurrent.futures
 import hashlib
+import hmac
+import time
 import threading
 import json
 import pathlib
@@ -641,6 +643,115 @@ class FeishuAgentMCPTests(unittest.TestCase):
                 real_runner.run(next_job, persistent_session=True, resume_target=target)
         real_runner.worktrees.verify_and_commit.assert_not_called()
 
+    def test_existing_worker_delivers_exact_pr_all_ci_and_independent_qa(self) -> None:
+        self.policy["repositories"]["codex"]["github_delivery"] = {
+            "repository": "fixture/codex", "base_branch": "main",
+            "required_workflows": [".github/workflows/test.yml", ".github/workflows/lint.yml"],
+        }
+        intake, manual, run_id, scope = self.workitem_attempt()
+        submitted = intake.submit_workitem_task(run_id, scope)
+        repo = intake.config.repository("codex")
+        cwd = repo.worktree_root / f"task-{submitted['id']}"
+        branch = f"{repo.branch_prefix}-{submitted['id']}"
+        sha = "a" * 40
+        runner = mock.Mock()
+        transport = mock.Mock()
+        runner.run.return_value = feishu_codex_bot.ExecutionResult(
+            "local result", branch, sha, cwd, THREAD_ID, cwd,
+        )
+        transport.resolve_sources.return_value = ""
+        bot = feishu_codex_bot.FeishuCodexBot(intake.config, transport, runner, intake.store)
+        bot.recover_pending()
+        job = bot.jobs.get_nowait()
+        with mock.patch.object(bot.jobs, "get", side_effect=[job, SystemExit]), \
+                mock.patch.object(bot.jobs, "task_done"):
+            with self.assertRaises(SystemExit):
+                bot.worker()
+        self.assertEqual("waiting_ci", manual.store.get_run(run_id)["status"])
+        name = "fixture/codex"
+        root = "/repos/" + name
+        identity = {"full_name": name}
+        pr = {"number": 12, "head": {"repo": identity, "sha": sha, "ref": branch},
+              "base": {"repo": identity, "ref": "main"}, "state": "open"}
+        def ci(run_id, path):
+            return {"id": run_id, "repository": identity, "head_repository": identity,
+                    "head_sha": sha, "head_branch": branch, "status": "completed",
+                    "conclusion": "success", "event": "pull_request",
+                    "pull_requests": [{"number": 12}], "path": path}
+        a = ci(31, ".github/workflows/test.yml")
+        b = ci(32, ".github/workflows/lint.yml")
+        responses = {root + "/pulls/12": pr, root + "/actions/runs/31": a,
+                     root + "/actions/runs/32": b}
+        def request(method, path, payload=None):
+            self.assertEqual("GET", method)
+            self.assertIsNone(payload)
+            return responses[path]
+        api = mock.Mock(side_effect=request)
+        from tools.codex_assets.feishu_engineering_agent import github_adapter
+        from tools.codex_assets.feishu_engineering_agent.delivery import DeliveryCoordinator
+        from tools.codex_assets.feishu_engineering_agent.models import IntakeRejected
+        qa_key = b"fixture-independent-review-key-32bytes"
+        verifier = feishu_agent_mcp.AgentTaskIntake(
+            intake.config, qa_reviewer="ou_qa", qa_key_hex=qa_key.hex(),
+        )
+        with mock.patch.object(github_adapter, "GitHubTransport", return_value=api):
+            with self.assertRaises(IntakeRejected):
+                verifier.verify_workitem_delivery(run_id, 12, [31])
+            b["conclusion"] = "failure"
+            with self.assertRaises(IntakeRejected):
+                verifier.verify_workitem_delivery(run_id, 12, [31, 32])
+            b["conclusion"] = "success"
+            b["head_sha"] = "b" * 40
+            with self.assertRaises(IntakeRejected):
+                verifier.verify_workitem_delivery(run_id, 12, [31, 32])
+            b["head_sha"] = sha
+            b["path"] = a["path"]
+            with self.assertRaises(IntakeRejected):
+                verifier.verify_workitem_delivery(run_id, 12, [31, 32])
+            b["path"] = ".github/workflows/lint.yml"
+            b["pull_requests"] = [{"number": 13}]
+            with self.assertRaises(IntakeRejected):
+                verifier.verify_workitem_delivery(run_id, 12, [31, 32])
+            b["pull_requests"] = [{"number": 12}]
+            self.assertEqual("waiting_ci", manual.store.get_run(run_id)["status"])
+            self.assertEqual([], verifier.get_workitem_task(run_id)["delivery"]["evidence"])
+            result = verifier.verify_workitem_delivery(run_id, 12, [31, 32])
+            self.assertEqual("waiting_qa", result["run_status"])
+            self.assertEqual(sha, result["head_sha"])
+            self.assertEqual(3, len(result["evidence"]))
+            self.assertFalse(result["workitem_closed"])
+            again = verifier.verify_workitem_delivery(run_id, 12, [32, 31])
+            self.assertEqual(result["evidence"], again["evidence"])
+            now = int(time.time())
+            ref = "qa://fixture/verified"
+            message = DeliveryCoordinator.qa_message(
+                run_id, result["workitem_fingerprint"], sha, "ou_qa", ref, now,
+            )
+            signature = hmac.new(qa_key, message, hashlib.sha256).hexdigest()
+            with self.assertRaises(feishu_codex_bot.FeishuCodexError):
+                verifier.accept_workitem_qa(run_id, "ou_owner", ref, now, signature)
+            with self.assertRaises(IntakeRejected):
+                verifier.accept_workitem_qa(run_id, "ou_qa", ref, now, "0" * 64)
+            pr["head"]["sha"] = "c" * 40
+            with self.assertRaises(IntakeRejected):
+                verifier.accept_workitem_qa(run_id, "ou_qa", ref, now, signature)
+            pr["head"]["sha"] = sha
+            self.assertEqual("waiting_qa", manual.store.get_run(run_id)["status"])
+            final = verifier.accept_workitem_qa(run_id, "ou_qa", ref, now, signature)
+            self.assertEqual("completed", final["run_status"])
+            self.assertFalse(final["workitem_closed"])
+            self.assertIn("https://github.com/fixture/codex/pull/12", final["feedback"])
+            self.assertIn(ref, final["feedback"])
+            self.assertEqual("completed", verifier.get_workitem_task(run_id)["run_status"])
+        feedback = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_owner", "om_feedback",
+            "/wi feedback " + run_id,
+        )
+        self.assertIn(ref, manual.handle(feedback, "codex", {"codex"}))
+        with self.assertRaises(IntakeRejected):
+            manual.handle(feedback, "codex", set())
+        runner.run.assert_called_once()
+
     def test_jsonrpc_initialize_list_call_and_notifications(self) -> None:
         intake = self.intake()
         def invoke(message: object) -> dict | None:
@@ -650,6 +761,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
         listing = invoke({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         self.assertEqual(
             {"submit_task", "submit_workitem_task", "get_workitem_task",
+             "verify_workitem_delivery", "accept_workitem_qa",
              "get_task", "cancel_queued_task"},
             {tool["name"] for tool in listing["result"]["tools"]},
         )

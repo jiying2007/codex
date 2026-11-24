@@ -11,7 +11,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Callable, Mapping, Optional
+from typing import Callable, Mapping, Optional, Sequence
 
 from .models import IntakeRejected
 
@@ -19,6 +19,21 @@ _OWNER_REPO = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0
 _SHA = re.compile(r"\A[a-f0-9]{40}\Z")
 _PR_REF = re.compile(r"\Agithub://pr/([1-9][0-9]{0,12})\Z")
 _CI_REF = re.compile(r"\Agithub://ci/([1-9][0-9]{0,12})\Z")
+_WORKFLOW_PATH = re.compile(r"\A\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml\Z")
+
+
+def validate_delivery_config(repository, base_branch, workflows):
+    if (not isinstance(repository, str) or not _OWNER_REPO.fullmatch(repository)
+            or ".." in repository or not isinstance(base_branch, str)
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,99}", base_branch)
+            or ".." in base_branch or "//" in base_branch or base_branch.endswith("/")):
+        raise IntakeRejected("invalid configured GitHub delivery repository or base")
+    if (not isinstance(workflows, (list, tuple)) or not 1 <= len(workflows) <= 8
+            or any(not isinstance(path, str) or not _WORKFLOW_PATH.fullmatch(path)
+                   or ".." in path for path in workflows)
+            or len(set(workflows)) != len(workflows)):
+        raise IntakeRejected("configure one to eight unique required GitHub workflow paths")
+    return tuple(sorted(workflows))
 
 
 class GitHubApiFailure(IntakeRejected):
@@ -146,6 +161,79 @@ class GitHubForge:
             "pr_id": str(new_pr["number"]),
             "head_sha": payload["head_sha"],
             "repo_full_name": self.repo_full_name,
+        }
+
+    def observe_delivery(
+        self, pr_number: int, ci_run_ids: Sequence[int], branch: str,
+        head_sha: str, required_workflows: Sequence[str],
+    ) -> dict:
+        """Strict read-only proof for one local commit, branch and required CI set.
+
+        The caller supplies IDs, never conclusions, workflow names, or a
+        repository override. Both PR reads must identify the same exact head.
+        """
+        required = validate_delivery_config(
+            self.repo_full_name, self.base_branch, required_workflows,
+        )
+        self._head_branch("refs/heads/" + branch)
+        if not _SHA.fullmatch(head_sha):
+            raise GitHubApiFailure("invalid local commit SHA")
+        if (type(pr_number) is not int or not 0 < pr_number < 10**13
+                or not isinstance(ci_run_ids, (list, tuple))
+                or len(ci_run_ids) != len(required)
+                or any(type(value) is not int or not 0 < value < 10**13 for value in ci_run_ids)
+                or len(set(ci_run_ids)) != len(ci_run_ids)):
+            raise GitHubApiFailure("one unique CI run ID per required workflow is needed")
+        expected_repo = self.repo_full_name.lower()
+
+        def repo_matches(value):
+            return (isinstance(value, Mapping)
+                    and isinstance(value.get("full_name"), str)
+                    and value["full_name"].lower() == expected_repo)
+
+        def read_pr():
+            pr = self.request("GET", self.root + "/pulls/" + str(pr_number), None)
+            head = pr.get("head") if isinstance(pr, Mapping) else None
+            base = pr.get("base") if isinstance(pr, Mapping) else None
+            if (not isinstance(head, Mapping) or not isinstance(base, Mapping)
+                    or pr.get("number") != pr_number
+                    or not repo_matches(head.get("repo")) or not repo_matches(base.get("repo"))
+                    or head.get("sha") != head_sha or head.get("ref") != branch
+                    or base.get("ref") != self.base_branch
+                    or not (pr.get("state") == "open"
+                            or (pr.get("state") == "closed" and pr.get("merged_at")))):
+                raise GitHubApiFailure("PR repository, branch, base, state or exact head mismatch")
+            return "merged" if pr.get("merged_at") else "open"
+
+        read_pr()
+        by_path = {}
+        for run_id in ci_run_ids:
+            ci = self.request("GET", self.root + "/actions/runs/" + str(run_id), None)
+            if not isinstance(ci, Mapping):
+                raise GitHubApiFailure("invalid CI run receipt")
+            path = ci.get("path")
+            event = ci.get("event")
+            associated = ci.get("pull_requests")
+            if (ci.get("id") != run_id or not repo_matches(ci.get("repository"))
+                    or not repo_matches(ci.get("head_repository"))
+                    or ci.get("head_sha") != head_sha or ci.get("head_branch") != branch
+                    or ci.get("status") != "completed" or ci.get("conclusion") != "success"
+                    or path not in required or path in by_path
+                    or event not in ("pull_request", "push")
+                    or (event == "pull_request" and (
+                        not isinstance(associated, list) or not any(
+                            isinstance(pr, Mapping) and pr.get("number") == pr_number
+                            for pr in associated)))):
+                raise GitHubApiFailure("CI run does not prove a required workflow on this exact PR head")
+            by_path[path] = run_id
+        if set(by_path) != set(required):
+            raise GitHubApiFailure("required GitHub workflow set incomplete")
+        state = read_pr()
+        return {
+            "repo_alias": self.repo_alias, "repo_full_name": self.repo_full_name,
+            "base_branch": self.base_branch, "branch": branch, "head_sha": head_sha,
+            "pr_number": pr_number, "pr_state": state,
+            "workflows": by_path,
         }
 
     def observe_pr(self, reference: str) -> dict:
