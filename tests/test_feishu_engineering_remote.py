@@ -44,6 +44,8 @@ class RemoteEngineeringTest(unittest.TestCase):
             artifact_roots=(),artifact_extensions=frozenset(),artifact_max_bytes=0,
             verification_commands=(),
         )
+        # Synthetic noncredential fixture, never sourced from a real account.
+        synthetic_identity = "fixture-" + "not-a-credential"
         self.config = bot_module.BotConfig(
             app_id="cli_test",app_secret="fixture-secret",target_chat_id="oc_test",
             bot_name="研发助手",repositories={"robot-app":policy},
@@ -52,7 +54,7 @@ class RemoteEngineeringTest(unittest.TestCase):
             manual_workitems_enabled=True,agent_intake_enabled=True,
             link_repositories={"feishu_project:example-space":("robot-app",)},
             agent_billing_source="external_api_key",agent_codex_home=self.agent_home,
-            agent_openai_api_key="fixture-api-not-real",
+            agent_openai_api_key=synthetic_identity,
             deny_read_paths=(self.private,),isolation_write_paths=(self.agent_home,),
         )
         self.store=bot_module.StateStore(self.config.state_db)
@@ -144,7 +146,7 @@ class RemoteEngineeringTest(unittest.TestCase):
         payload["sources"]=[]
         with self.assertRaises(SpoolError):
             bot._decode_job(payload,row)
-        config=dataclasses.replace(self.config,agent_openai_api_key="changed-fixture-key")
+        config=dataclasses.replace(self.config,agent_openai_api_key=self.config.agent_openai_api_key+"-changed")
         changed=bot_module.FeishuCodexBot(config,self.transport,self.runner,self.store)
         with self.assertRaises(SpoolError):
             changed._decode_job(self.spool.get(job.task_id),row)
