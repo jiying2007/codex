@@ -763,6 +763,14 @@ def parse_command(text: str, default_repo: str) -> ParsedCommand:
         if not ALIAS_PATTERN.fullmatch(repository):
             raise FeishuCodexError("仓库别名格式无效")
         return ParsedCommand("set_repo", repository, "explain", "")
+    # A leading standalone slash word is a control command, not a model
+    # prompt. The /wi handler consumes valid WorkItem commands upstream.
+    # Do not spend model quota on an unknown or mistyped command; explicit
+    # repo=/mode= task prefixes and multi-component absolute paths remain usable.
+    if re.match(r"\A/[A-Za-z][A-Za-z0-9_-]*(?=\s|\Z)", normalized):
+        raise FeishuCodexError(
+            "未知或格式错误的控制命令；发送 /help 或 /wi help 查看用法。未启动 Codex。"
+        )
     parts = normalized.split()
     repository = default_repo
     mode = "explain"

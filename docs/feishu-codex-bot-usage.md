@@ -143,6 +143,7 @@ rtk bash ~/codex/scripts/feishu-codex-bot.sh read-source --url 'https://example.
 - `/repo reset`：清除个人设置，恢复系统默认项目 `llm_apps`。
 - `/status`：显示本人任务的状态统计、最近任务、任务分支和提交。
 - `/cancel`：取消本人排队中或运行中的任务，不影响其他用户任务。
+- 以独立斜杠命令开头的未知或错误命令（例如 `/wl help`，末尾为小写 l）直接拒绝，不进入 Codex。正确工作项帮助命令为 `/wi help`（末尾为 i）。需要把斜杠词当作分析文本时，显式使用 `mode=explain` 或 `repo=<别名>` 前缀。
 
 未指定 `repo=` 时，优先使用发送者的个人默认项目；未设置或个人别名已经从白名单移除时，回退到策略文件的 `default_repo`，当前为 `llm_apps`。命令中的 `repo=<别名>` 只覆盖当前任务，不修改个人默认项目。未指定 `mode` 时默认使用 `explain`。
 
