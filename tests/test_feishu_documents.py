@@ -191,7 +191,8 @@ class DocumentTransportTest(unittest.TestCase):
             config = dataclasses.replace(config, allowed_open_ids=frozenset(), repositories={
                 "codex": dataclasses.replace(config.repository("codex"), allowed_open_ids=frozenset({"ou_other"}))})
             message.content = json.dumps({"text": "总结 " + DOCX})
-            self.assertIsNotNone(bot.MessageGate(config, store).accept(data))
+            with self.assertRaisesRegex(bot.FeishuCodexError, "旧任务入口"):
+                bot.MessageGate(config, store).accept(data)
 
     def test_read_source_uses_credentials_without_loading_bot_repository_policy(self):
         args = argparse.Namespace(root="/nonexistent", action="read-source", url=DOCX, dry_run=False,

@@ -7,10 +7,12 @@ A host operator chooses when to call backup/rehearsal after service inspection.
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import hashlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import sqlite3
 import stat
@@ -26,10 +28,27 @@ class MigrationRejected(IntakeRejected):
 
 
 def _private_file(file_path: pathlib.Path) -> None:
-    if (file_path.is_symlink() or not file_path.is_file()
-            or file_path.stat().st_uid != os.getuid()
-            or (stat.S_IMODE(file_path.stat().st_mode) & 0o077)):
+    try:
+        info = file_path.lstat()
+    except FileNotFoundError:
+        raise MigrationRejected("required private source file is missing") from None
+    if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+            or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) & 0o077):
         raise MigrationRejected("source file must be owner-private regular file")
+
+
+def _private_database(path: pathlib.Path) -> None:
+    _private_file(path)
+    for suffix in ("-wal", "-shm"):
+        sidecar = path.with_name(path.name + suffix)
+        if sidecar.exists() or sidecar.is_symlink():
+            _private_file(sidecar)
+
+
+def _database_present(path: pathlib.Path) -> bool:
+    """Orphan WAL/SHM still represents state that must be reconciled."""
+    return any(candidate.exists() or candidate.is_symlink() for candidate in (
+        path, path.with_name(path.name + "-wal"), path.with_name(path.name + "-shm")))
 
 
 def _digest(path: pathlib.Path) -> str:
@@ -44,6 +63,7 @@ def _digest(path: pathlib.Path) -> str:
 
 
 def _sqlite_check(path: pathlib.Path, *, immutable: bool = False) -> None:
+    _private_database(path)
     uri = path.as_uri() + "?mode=ro" + ("&immutable=1" if immutable else "")
     with contextlib.closing(sqlite3.connect(uri, uri=True, timeout=5)) as db:
         check = db.execute("PRAGMA quick_check").fetchone()
@@ -52,13 +72,61 @@ def _sqlite_check(path: pathlib.Path, *, immutable: bool = False) -> None:
 
 
 def _snapshot(source: pathlib.Path, destination: pathlib.Path) -> None:
-    _private_file(source)
+    _private_database(source)
     with contextlib.closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True, timeout=5)) as src:
         with contextlib.closing(sqlite3.connect(str(destination), timeout=5)) as dst:
             src.backup(dst)
             dst.commit()
     os.chmod(str(destination), 0o600)
     _sqlite_check(destination, immutable=True)
+
+
+def _unified(db) -> bool:
+    exists=db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='engineering_state_migrations'").fetchone()
+    return bool(exists and db.execute(
+        "SELECT 1 FROM engineering_state_migrations WHERE migration='unified-state-v1'").fetchone())
+
+
+def ensure_engineering_migrated(bot_db: pathlib.Path) -> None:
+    """Refuse legacy state before starting a new consumer; never open it writable."""
+    path = pathlib.Path(bot_db)
+    if not path.is_absolute():
+        raise MigrationRejected("explicit absolute Bot database path required")
+    legacy = path.with_name("feishu-engineering-agent.sqlite3")
+    has_legacy = _database_present(legacy)
+    if not path.exists() and not path.is_symlink():
+        if _database_present(path):
+            raise MigrationRejected("orphan Bot WAL/SHM requires recovery before startup")
+        if has_legacy:
+            raise MigrationRejected("legacy ledger requires offline backup, rehearsal and unify before startup")
+        return
+    _private_database(path)
+    try:
+        with contextlib.closing(sqlite3.connect(path.as_uri()+"?mode=ro", uri=True, timeout=5)) as db:
+            if _unified(db):
+                # A marker is valid only with its complete archive. A damaged
+                # marker-only database must not silently drop old event dedup.
+                recorded = db.execute("SELECT archived_runs,archived_records FROM engineering_state_migrations WHERE migration='unified-state-v1'").fetchone()
+                actual = (db.execute("SELECT COUNT(*) FROM engineering_legacy_runs").fetchone()[0],
+                          db.execute("SELECT COUNT(*) FROM engineering_legacy_records").fetchone()[0])
+                db.execute("SELECT message_id FROM engineering_legacy_events LIMIT 1")
+                if tuple(recorded) != actual:
+                    raise MigrationRejected("Bot migration archive does not match its completion receipt")
+                return
+            links = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='agent_run_task_links'").fetchone()
+            if has_legacy or (links and db.execute("SELECT 1 FROM agent_run_task_links LIMIT 1").fetchone()):
+                raise MigrationRejected("legacy ledger requires offline backup, rehearsal and unify before startup")
+    except sqlite3.Error:
+        raise MigrationRejected("Bot migration state cannot be verified") from None
+
+
+def _logical_digest(db) -> str:
+    """Compare logical contents of quiesced live DB and the exact backup."""
+    h=hashlib.sha256()
+    for line in db.iterdump():
+        h.update(line.encode("utf-8"))
+        h.update(b"\n")
+    return h.hexdigest()
 
 
 def _check_linked_ledgers(bot: pathlib.Path, agent: Optional[pathlib.Path]) -> int:
@@ -70,6 +138,9 @@ def _check_linked_ledgers(bot: pathlib.Path, agent: Optional[pathlib.Path]) -> i
     with contextlib.closing(sqlite3.connect(
             bot.as_uri() + "?mode=ro&immutable=1", uri=True, timeout=5)) as db:
         tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        unified=_unified(db)
+        if unified and agent is not None:
+            raise MigrationRejected("unified production backup must not contain a live legacy ledger")
         if agent is not None:
             db.execute("ATTACH DATABASE ? AS agent", (agent.as_uri() + "?mode=ro&immutable=1",))
             if db.execute("SELECT 1 FROM agent.sqlite_master WHERE type='table' AND name='fea_runs'").fetchone() is None:
@@ -77,13 +148,14 @@ def _check_linked_ledgers(bot: pathlib.Path, agent: Optional[pathlib.Path]) -> i
         if "agent_run_task_links" not in tables:
             return 0
         count = db.execute("SELECT COUNT(*) FROM agent_run_task_links").fetchone()[0]
-        if count and agent is None:
+        if count and agent is None and not unified:
             raise MigrationRejected("linked WorkItems require the matching AgentRun database")
         if count:
+            run_table = "engineering_legacy_runs" if unified else "agent.fea_runs"
             missing = db.execute(
                 "SELECT 1 FROM agent_run_task_links l "
                 "LEFT JOIN tasks t ON t.id=l.task_id "
-                "LEFT JOIN agent.fea_runs r ON r.run_id=l.agent_run_id "
+                "LEFT JOIN " + run_table + " r ON r.run_id=l.agent_run_id "
                 "WHERE t.id IS NULL OR r.run_id IS NULL OR t.repository != r.repo "
                 "OR t.sender_open_id != ('agent:' || l.unix_uid) "
                 "OR t.mode != CASE r.mode WHEN 'read' THEN 'explain' ELSE r.mode END LIMIT 1"
@@ -120,7 +192,7 @@ class MigrationPlan:
         info = {"database": self.bot_db.name, "spool_count": 0,
                 "policy_present": self.private_policy is not None,
                 "env_present": self.private_env is not None,
-                "agent_ledger_present": self.agent_db.exists() or self.agent_db.is_symlink(),
+                "agent_ledger_present": _database_present(self.agent_db),
                 "no_second_consumer_proven": False}
         if not self.bot_spool.is_dir() or self.bot_spool.is_symlink():
             raise MigrationRejected("legacy spool must be an existing directory")
@@ -138,7 +210,12 @@ class MigrationPlan:
             if private is not None:
                 _private_file(private)
         _sqlite_check(self.bot_db)
-        if info["agent_ledger_present"]:
+        with contextlib.closing(sqlite3.connect(self.bot_db.as_uri()+"?mode=ro",uri=True,timeout=5)) as db:
+            info["unified_state"]=_unified(db)
+        if info["unified_state"]:
+            info["retired_ledger_present"]=info["agent_ledger_present"]
+            info["agent_ledger_present"]=False
+        elif info["agent_ledger_present"]:
             _private_file(self.agent_db)
             _sqlite_check(self.agent_db)
         return info
@@ -262,8 +339,9 @@ class MigrationPlan:
                     continue
                 relative = original.relative_to(backup)
                 restored = base / relative
-                restored.parent.mkdir(exist_ok=True, parents=True)
+                restored.parent.mkdir(mode=0o700, exist_ok=True, parents=True)
                 shutil.copyfile(str(original), str(restored))
+                restored.chmod(0o600)
                 if _digest(restored) != _digest(original):
                     raise MigrationRejected("restore content mismatch")
             agent = base / "feishu-engineering-agent.sqlite3" if verified["agent_ledger_present"] else None
@@ -276,6 +354,143 @@ class MigrationPlan:
                 "source_was_not_modified": True, "verified_files": verified["file_count"],
                 "agent_ledger_present": verified["agent_ledger_present"],
                 "linked_run_count": verified["linked_run_count"]}
+
+    def unify(self, backup_dir: pathlib.Path, lock_path: pathlib.Path) -> dict:
+        """One-time, quiesced archive migration. No automatic legacy resume.
+
+        The old ledger and paired backup are retained untouched. Historical
+        run/evidence/session metadata is imported into the Bot DB, never
+        interpreted as a new authorized conversation or native thread.
+        """
+        backup=pathlib.Path(backup_dir)
+        lock_path=pathlib.Path(lock_path)
+        if not lock_path.is_absolute():
+            raise MigrationRejected("exact absolute service lock required")
+        _private_file(lock_path)
+        _private_database(self.bot_db)
+        rehearsed=self.rehearse_restore(backup)
+        if self.private_policy is None or not (backup/"policy.private").is_file():
+            raise MigrationRejected("unify requires backed-up private policy")
+        _private_file(self.private_policy)
+        if _digest(self.private_policy)!=_digest(backup/"policy.private"):
+            raise MigrationRejected("live policy differs from backup")
+        if (self.private_env is not None) != (backup/"environment.private").is_file():
+            raise MigrationRejected("unify must include the same backed-up private environment")
+        environment = {}
+        if self.private_env is not None:
+            _private_file(self.private_env)
+            if _digest(self.private_env)!=_digest(backup/"environment.private"):
+                raise MigrationRejected("live environment differs from backup")
+            from ..feishu_codex_bot import FeishuCodexError, load_env_file
+            try:
+                environment = load_env_file(self.private_env)
+            except FeishuCodexError:
+                raise MigrationRejected("private environment cannot be verified") from None
+        policy=json.loads(self.private_policy.read_text(encoding="utf-8"))
+        if (not isinstance(policy,dict) or not (policy.get("manual_workitems_enabled") is True
+                                              or policy.get("engineering_enabled") is True)
+                or policy.get("engineering_cards_enabled",False) is not False):
+            raise MigrationRejected("enable engineering text intake and disable legacy cards before backup")
+        # Do not mistake an arbitrary private lock for the service's lock.
+        # Freeze explicit effective paths in the paired policy before backup;
+        # an environment override must agree instead of silently changing them.
+        for field, env_key, actual in (("lock_file", "FEISHU_LOCK_FILE", lock_path),
+                                       ("state_db", "FEISHU_STATE_DB", self.bot_db)):
+            configured = policy.get(field)
+            if (not isinstance(configured, str) or not pathlib.Path(configured).is_absolute()
+                    or pathlib.Path(configured).resolve() != actual.resolve()):
+                raise MigrationRejected("migration target must match explicit private policy " + field)
+            for values in (environment, os.environ):
+                override = values.get(env_key)
+                if override and (not pathlib.Path(override).is_absolute()
+                                 or pathlib.Path(override).resolve() != actual.resolve()):
+                    raise MigrationRejected("migration path conflicts with environment " + env_key)
+        fd=os.open(str(lock_path),os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            info=os.fstat(fd)
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid()
+                    or info.st_nlink!=1 or info.st_mode&0o077):
+                raise MigrationRejected("unsafe singleton lock")
+            try:
+                fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise MigrationRejected("service singleton lock is held; freeze all writers first") from None
+            with contextlib.ExitStack() as stack:
+                db=stack.enter_context(contextlib.closing(sqlite3.connect(str(self.bot_db),timeout=5)))
+                db.row_factory=sqlite3.Row
+                db.execute("BEGIN IMMEDIATE")
+                try:
+                    if _unified(db):
+                        raise MigrationRejected("legacy ledger already retired; never re-import")
+                    source_bot=stack.enter_context(contextlib.closing(sqlite3.connect(
+                        (backup/"bot.sqlite3").as_uri()+"?mode=ro&immutable=1",uri=True)))
+                    if _logical_digest(db)!=_logical_digest(source_bot):
+                        raise MigrationRejected("live Bot DB changed since paired backup")
+                    if db.execute("SELECT 1 FROM tasks WHERE status IN ('queued','running','unknown') LIMIT 1").fetchone():
+                        raise MigrationRejected("reconcile queued/running/UNKNOWN tasks before migration")
+                    live_spool={p.name:_digest(p) for p in self.bot_spool.iterdir() if p.is_file() and not p.is_symlink()}
+                    backup_spool={p.name:_digest(p) for p in (backup/"spool").iterdir() if p.is_file()}
+                    if live_spool!=backup_spool or len(live_spool)!=len(list(self.bot_spool.iterdir())):
+                        raise MigrationRejected("live spool differs from paired backup")
+                    source=None
+                    if rehearsed["agent_ledger_present"]:
+                        _private_database(self.agent_db)
+                        legacy_live=stack.enter_context(contextlib.closing(sqlite3.connect(str(self.agent_db),timeout=5)))
+                        legacy_live.execute("BEGIN IMMEDIATE")
+                        source=stack.enter_context(contextlib.closing(sqlite3.connect(
+                            (backup/"feishu-engineering-agent.sqlite3").as_uri()+"?mode=ro&immutable=1",uri=True)))
+                        source.row_factory=sqlite3.Row
+                        if _logical_digest(legacy_live)!=_logical_digest(source):
+                            raise MigrationRejected("live legacy ledger changed since paired backup")
+                        if source.execute("SELECT 1 FROM fea_runs WHERE status NOT IN ('proposed','blocked','canceled','completed','failed') OR status IS NULL LIMIT 1").fetchone():
+                            raise MigrationRejected("legacy execution/delivery remains unresolved; reconcile before migration")
+                        publications = source.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='fea_publications'").fetchone()
+                        if publications and source.execute("SELECT 1 FROM fea_publications WHERE effect_state != 'acknowledged' OR effect_state IS NULL LIMIT 1").fetchone():
+                            raise MigrationRejected("legacy remote publication remains unresolved; reconcile before migration")
+                    elif _database_present(self.agent_db):
+                        raise MigrationRejected("legacy ledger appeared after backup")
+                    # Do not use executescript: it would commit the current
+                    # transaction before the archive and marker are durable.
+                    db.execute("CREATE TABLE engineering_legacy_runs (run_id TEXT PRIMARY KEY,tenant TEXT NOT NULL,chat TEXT NOT NULL,actor TEXT NOT NULL,repo TEXT NOT NULL,mode TEXT NOT NULL,provider TEXT,workspace TEXT,kind TEXT,item_id TEXT,status TEXT NOT NULL)")
+                    db.execute("CREATE TABLE engineering_legacy_records (table_name TEXT NOT NULL,ordinal INTEGER NOT NULL,payload_json TEXT NOT NULL,payload_sha256 TEXT NOT NULL,PRIMARY KEY(table_name,ordinal))")
+                    db.execute("CREATE TABLE engineering_legacy_events (message_id TEXT PRIMARY KEY)")
+                    db.execute("CREATE TABLE engineering_state_migrations (migration TEXT PRIMARY KEY,manifest_sha256 TEXT NOT NULL,archived_runs INTEGER NOT NULL,archived_records INTEGER NOT NULL,completed_at INTEGER NOT NULL)")
+                    archived_runs=archived_records=0
+                    if source is not None:
+                        tables=[r[0] for r in source.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name") if not r[0].startswith("sqlite_")]
+                        if "fea_runs" not in tables or any(not re.fullmatch(r"fea_[a-z0-9_]+",name) for name in tables):
+                            raise MigrationRejected("unexpected legacy table; preserve backup for review")
+                        fields="run_id,tenant,chat,actor,repo,mode,provider,workspace,kind,item_id,status"
+                        for row in source.execute("SELECT "+fields+" FROM fea_runs"):
+                            db.execute("INSERT INTO engineering_legacy_runs("+fields+") VALUES (?,?,?,?,?,?,?,?,?,?,?)",tuple(row))
+                            archived_runs+=1
+                        for name in tables:
+                            for ordinal,row in enumerate(source.execute("SELECT * FROM "+name)):
+                                payload=json.dumps(dict(row),sort_keys=True,ensure_ascii=False,separators=(",",":"))
+                                db.execute("INSERT INTO engineering_legacy_records VALUES (?,?,?,?)",
+                                           (name,ordinal,payload,hashlib.sha256(payload.encode("utf-8")).hexdigest()))
+                                archived_records+=1
+                                if archived_records>100000:
+                                    raise MigrationRejected("legacy archive exceeds safety bound")
+                        if "fea_manual_claims" in tables:
+                            db.execute("CREATE INDEX engineering_legacy_runs_source ON engineering_legacy_runs(tenant,chat,actor,provider,workspace,kind,item_id)")
+                            for row in source.execute("SELECT origin_message_id FROM fea_manual_claims"):
+                                db.execute("INSERT OR IGNORE INTO engineering_legacy_events VALUES (?)",(row[0],))
+                    linked=db.execute("SELECT 1 FROM agent_run_task_links l LEFT JOIN engineering_legacy_runs r ON r.run_id=l.agent_run_id WHERE r.run_id IS NULL LIMIT 1").fetchone()
+                    if linked is not None:
+                        raise MigrationRejected("legacy linked task lost its archive record")
+                    db.execute("INSERT INTO engineering_state_migrations VALUES ('unified-state-v1',?,?,?,?)",
+                               (_digest(backup/"manifest.json"),archived_runs,archived_records,int(time.time())))
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                    raise
+            return {"unified_state":True,"archived_runs":archived_runs,
+                    "archived_records":archived_records,"legacy_runtime_retired":True,
+                    "old_ledger_retained":True,"restore_rehearsed":True,
+                    "service_changed":False,"operator_freeze_required":True}
+        finally:
+            os.close(fd)
 
     @staticmethod
     def cutover_gate(
