@@ -433,3 +433,19 @@ rtk systemctl --user enable --now feishu-codex-bot.service
 卡片交互为可选开关 `engineering_cards_enabled=false`，不是企业 API 无权限场景的前置条件；需私有环境中的 `FEISHU_CARD_VERIFICATION_TOKEN` 和 `FEISHU_CARD_SIGNING_KEY_HEX`，且 `manual_workitems_enabled=true`。回调只记录待审批请求和状态，不是模型权限，切忌在未通过真实 SDK/应用权限试验时打开生产开关。
 
 迁移、离线回滚演练、安全边界及验收门禁详见 `docs/changes/20261120-feishu-engineering-agent/pilot.md`。当前代码实施并不代表已经在 vstrong100 部署、授权收费或完成真实产品/QA 测试。
+
+## 研发工作项模式（可选，默认关闭）
+无需飞书项目/TAPD 企业 API，使用已授权的同一个飞书会话。以下为源码能力，尚需在实际主机资格验证。
+
+| 命令 | 行为 |
+|---|---|
+| `/wi add tapd 缺陷 <空间ID> <工作项ID> repo=<别名> \| 描述` | 登记用户提供的来源，不调用模型 |
+| `/wi handoff <来源RunID> \| 当前范围与验收` | 生成研发交接文本 |
+| `/wi attempt <来源RunID> edit \| 精确范围` | 创建待授权执行记录 |
+| `/wi continue <上一轮RunID> \| 新范围` | 建立同一 Codex thread 的后续回合 |
+| `/wi status <RunID>`、`/wi list` | 查询真实研发状态 |
+| `/wi cancel <尝试RunID>` | 取消提案/排队或请求终止精确运行进程 |
+| `/wi delivery <尝试RunID> <PR号> <CI运行ID...>` | 只读核验本地提交对应的全部必需 CI |
+| `/wi feedback <尝试RunID>` | 输出可复制的交付结果与证据 |
+
+待授权回合由可信同 UID [MCP](feishu-agent-mcp.md) 提交精确范围；聊天提案本身不批准模型费用。独立 QA 后仅完成研发 Run，产品/测试在原系统决定是否关闭。卡片、企业 API、App Server 不是文本 + CLI 路径的前置条件。部署前暂停原 Bot 与所有 MCP 写入，按 [现场操作说明](changes/20261120-feishu-engineering-agent/pilot.md) 对双数据库、spool、配置备份并演练恢复；保留专用 CODEX_HOME 与活跃 worktree。不创建第二个 systemd 服务。

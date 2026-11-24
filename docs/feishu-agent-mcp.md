@@ -30,6 +30,10 @@
 | 工具 | 最小参数 | 行为 |
 |---|---|---|
 | `submit_task` | repo, mode, task, idempotency_key | 当前仓库/模式白名单下异步排队；从不在 MCP 进程中执行模型 |
+| `submit_workitem_task` | run_id, task | 关联飞书已登记的精确研发提案与现有队列；scope hash 必须匹配 |
+| `get_workitem_task` | run_id | 查询 Run、原生 thread、后续回合及交付证据 |
+| `verify_workitem_delivery` | run_id, pr_number, ci_run_ids | 只读核验配置仓库的精确 PR 与全部必需 workflow；推进 waiting_qa |
+| `accept_workitem_qa` | run_id, reviewer, evidence_ref, attested_at, signature | 独立 QA 签名和精确 PR/CI 再核验；仅完成研发 Run |
 | `get_task` | task_id | 返回同 OS 用户任务的最小状态、commit/branch 摘要，不返回提示词、日志或凭据 |
 | `cancel_queued_task` | task_id | 仅取消 queued；running 必须走已有飞书控制路径，不伪造成功 |
 
@@ -50,3 +54,6 @@ rtk python3 -m unittest tests.test_feishu_agent_mcp tests.test_feishu_codex_bot
 ```
 
 还需在实际主机核对 systemd、白名单、`agent_intake_enabled`、对应仓库编辑策略、spool 文件权限、Feishu 通知/失败回执、重启与重复请求；没有该证据不得宣称 production-ready。
+
+## WorkItem 实际开发与交付
+另启用 `manual_workitems_enabled`，按 [飞书助手使用指南](feishu-codex-bot-usage.md) 登记工作项，创建 `/wi attempt` 或 `/wi continue`，使用 `submit_workitem_task` 提交**完全相同的范围文本**。独立计费必须配置 `FEISHU_AGENT_BILLING_SOURCE`、专用 0700 `FEISHU_AGENT_CODEX_HOME` 和私有 API 凭据；不复用个人 auth.json。模型执行仅发生在现有 Worker。编辑任务为隔离 worktree 且允许本地提交。连续执行必须复用精确 thread、工作区和原提交，不自动重试未知结果。每仓的 `github_delivery` 配置、只读 GitHub 凭据、独立 QA 验证配置及现场步骤见 [pilot](changes/20261120-feishu-engineering-agent/pilot.md)。Git 发布继续使用原有工具，MCP 不自动 push/merge。`completed` 的 AgentRun 不代表已关闭原需求或缺陷。

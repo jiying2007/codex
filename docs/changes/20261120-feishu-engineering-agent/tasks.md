@@ -88,3 +88,6 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [x] `/wi feedback <attemptRunID>` 输出可复制的真实已核验交付引用；无企业 API 依赖；仍需精确 HEAD CI 与实际主机/API/QA 验证。
 
 [x] 既有授权飞书消息 `/wi delivery <attemptRunID> <PR号> <CI Run ID...>` 复用同一 MCP 交付核验逻辑；严格身份与 repo 授权、数字 ID、无外部写/模型调用；不增加消费者。
+
+[x] 合并 #79 原生 App Server 协议改进至唯一 #80 候选；该协议仅用于离线资格测试，生产执行统一使用既有 CodexRunner CLI，不新增第二个运行时。
+[x] 迁移备份自动包含 sibling AgentRun DB（若存在），核对 Bot/AgentRun 任务身份及模式，保留私有环境文件可选备份，缺失关联或不匹配拒绝通过；恢复演练双库检查。
