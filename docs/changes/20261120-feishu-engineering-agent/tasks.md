@@ -81,3 +81,5 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 
 [x] WorkItem 文本状态列出最近五个同权限研发尝试，精确 Run 查询可见已记录 thread ID；重复 attempt 返回真实状态而不重复执行。
 [x] 本机 MCP 发布在既有 Bot SQLite writer 事务中创建 task/link 并写入私有 spool，防止并发观察半发布状态；失败保留 UNKNOWN，启动清理与发布串行；仍需精确 HEAD CI 核验。
+
+[x] 连续研发状态包含前序与有效后续 Run；未授权的 proposed 后续回合可撤销并释放预留关联，保留取消记录，不重复执行。真实 Git fixture 验证同一 worktree 后续提交及拒绝脏工作区/漂移 HEAD。

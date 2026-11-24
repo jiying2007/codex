@@ -2579,6 +2579,9 @@ class FeishuCodexBot:
             raise IntakeRejected("repository access has changed")
         link = self.store.agent_run_link_for_run(run_id)
         if link is None:
+            from .feishu_engineering_agent.sessions import SessionRegistry
+            if SessionRegistry(self._manual_service.store).cancel_unapproved_followup(run_id, inbound):
+                return "已撤销未授权的继续研发提案；原会话可重新提出下一轮，未启动 Codex。"
             return "该 Run 没有关联的本机执行任务；未取消其他任务。"
         if link["unix_uid"] != os.getuid():
             raise IntakeRejected("local task belongs to another Unix user")

@@ -553,6 +553,29 @@ class FeishuAgentMCPTests(unittest.TestCase):
         next_run = reply.split("新Run：", 1)[1].split("\n", 1)[0]
         self.assertIn(next_run, manual.handle(event, "codex", {"codex"}))
         self.assertEqual("proposed", manual.store.get_run(next_run)["status"])
+        # An unapproved canceled proposal cannot permanently reserve the root.
+        status_event = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_owner", "om_status_continuation",
+            "/wi status " + first_run,
+        )
+        self.assertIn("后续Run：" + next_run, manual.handle(status_event, "codex", {"codex"}))
+        cancel_event = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_owner", "om_cancel_proposal",
+            "/wi cancel " + next_run,
+        )
+        self.assertIn("已撤销未授权", bot._cancel_workitem(
+            next_run, cancel_event, frozenset({"codex"}),
+        ))
+        self.assertEqual("canceled", manual.store.get_run(next_run)["status"])
+        self.assertNotIn("后续Run：", manual.handle(status_event, "codex", {"codex"}))
+        self.assertIn("状态：canceled", manual.handle(event, "codex", {"codex"}))
+        with self.assertRaises(IntakeRejected):
+            intake.submit_workitem_task(next_run, next_scope)
+        event = InboundEvent(
+            "feishu_message", "tenantA", "oc_test", "ou_owner", "om_continue_replacement",
+            "/wi continue " + first_run + " | " + next_scope,
+        )
+        next_run = manual.handle(event, "codex", {"codex"}).split("新Run：", 1)[1].split("\n", 1)[0]
         fork_event = InboundEvent(
             "feishu_message", "tenantA", "oc_test", "ou_owner", "om_fork",
             event.text,
@@ -576,6 +599,8 @@ class FeishuAgentMCPTests(unittest.TestCase):
         self.assertEqual("waiting_ci", final["run_status"])
         self.assertEqual("b" * 40, final["task"]["commit_hash"])
         self.assertEqual(THREAD_ID, final["session"]["thread_id"])
+        self.assertEqual(first_run, final["lineage"]["previous_run_id"])
+        self.assertEqual(next_run, intake.get_workitem_task(first_run)["lineage"]["next_run_id"])
         self.assertEqual("a" * 40, intake.get_workitem_task(first_run)["task"]["commit_hash"])
         self.assertFalse(intake.submit_workitem_task(next_run, next_scope)["created"])
         # The old branch/commit receipt remains historical, not a second PR.

@@ -153,7 +153,9 @@ class ManualWorkItemService:
                 from .sessions import SessionRegistry
                 from .workflow import EngineeringWorkflow
                 linked = EngineeringWorkflow(self.store).status_for_source(cmd.run_id, event)
-                receipt = SessionRegistry(self.store).receipt(cmd.run_id, event)
+                sessions = SessionRegistry(self.store)
+                receipt = sessions.receipt(cmd.run_id, event)
+                lineage = sessions.lineage(cmd.run_id, event)
                 lines = [
                     "任务：" + record["run_id"],
                     "项目：" + record["repo"],
@@ -168,6 +170,12 @@ class ManualWorkItemService:
                     )
                     if linked["has_more"]:
                         lines.append("仅显示最近 5 条；可用完整 Run ID 查询单条。")
+                if lineage["previous_run_id"]:
+                    lines.append("上一轮Run：" + lineage["previous_run_id"])
+                if lineage["next_run_id"]:
+                    lines.append("后续Run：" + lineage["next_run_id"])
+                if lineage["proposal_released"]:
+                    lines.append("本提案已撤销，未占用原会话的后续回合。")
                 if receipt is not None:
                     lines.append("Codex thread：" + receipt["thread_id"])
                     lines.append("已记录原生会话标识；不代表已获得继续执行授权。")

@@ -126,10 +126,13 @@ class SessionRegistry:
                 );
                 CREATE TABLE IF NOT EXISTS fea_session_followups (
                     run_id TEXT PRIMARY KEY REFERENCES fea_runs(run_id),
-                    previous_run_id TEXT NOT NULL UNIQUE REFERENCES fea_runs(run_id),
+                    previous_run_id TEXT NOT NULL REFERENCES fea_runs(run_id),
                     root_run_id TEXT NOT NULL REFERENCES fea_sessions(run_id),
-                    completed_at INTEGER
+                    completed_at INTEGER,
+                    released_at INTEGER
                 );
+                CREATE UNIQUE INDEX IF NOT EXISTS fea_active_followup
+                    ON fea_session_followups(previous_run_id) WHERE released_at IS NULL;
             """)
 
     @staticmethod
@@ -154,7 +157,7 @@ class SessionRegistry:
     @staticmethod
     def require_no_successor(db, run_id: str) -> None:
         if db.execute(
-                "SELECT 1 FROM fea_session_followups WHERE previous_run_id=?",
+                "SELECT 1 FROM fea_session_followups WHERE previous_run_id=? AND released_at IS NULL",
                 (run_id,),
         ).fetchone() is not None:
             raise IntakeRejected("this Run has a reserved continuation; use the successor Run")
@@ -221,6 +224,8 @@ class SessionRegistry:
             ).fetchone()
             if row is None:
                 return None
+            if row["released_at"] is not None:
+                raise IntakeRejected("continuation proposal was canceled before authorization")
             binding = db.execute(
                 "SELECT * FROM fea_sessions WHERE run_id=?", (row["root_run_id"],),
             ).fetchone()
@@ -239,6 +244,71 @@ class SessionRegistry:
                 "thread_id", "host", "repo_path", "codex_home", "mode",
             )})
             return result
+
+    def lineage(self, run_id: str, event: Optional[InboundEvent] = None) -> dict:
+        """History only: no runtime paths or authority to start another turn."""
+        run = self.store.get_run(run_id, event)
+        with contextlib.closing(self.store._connect()) as db:
+            previous = db.execute(
+                "SELECT previous_run_id,released_at FROM fea_session_followups WHERE run_id=?",
+                (run_id,),
+            ).fetchone()
+            successor = db.execute(
+                "SELECT f.run_id FROM fea_session_followups f JOIN fea_runs r ON r.run_id=f.run_id "
+                "WHERE f.previous_run_id=? AND f.released_at IS NULL "
+                "AND r.tenant=? AND r.chat=? AND r.actor=? AND r.repo=? AND r.workitem_fp=?",
+                (run_id, run["tenant"], run["chat"], run["actor"], run["repo"], run["workitem_fp"]),
+            ).fetchone()
+        return {
+            "previous_run_id": previous["previous_run_id"] if previous else None,
+            "next_run_id": successor["run_id"] if successor else None,
+            "proposal_released": bool(previous and previous["released_at"] is not None),
+        }
+
+    def cancel_unapproved_followup(self, run_id: str, event: InboundEvent) -> bool:
+        """Cancel an unapproved proposal and release its exclusive successor slot.
+
+        Both state updates share the same ledger writer transaction as local
+        execution approval. Queued/running/uncertain work is never released here.
+        """
+        self.store.get_run(run_id, event)
+        with contextlib.closing(self.store._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT f.released_at,f.completed_at,r.status "
+                    "FROM fea_session_followups f JOIN fea_runs r ON r.run_id=f.run_id "
+                    "WHERE f.run_id=? AND r.actor=? AND r.tenant=? AND r.chat=?",
+                    (run_id, event.actor, event.tenant, event.chat),
+                ).fetchone()
+                if row is None:
+                    db.rollback()
+                    return False
+                if row["released_at"] is not None and row["status"] == "canceled":
+                    db.rollback()
+                    return True
+                if row["status"] != "proposed" or row["completed_at"] is not None:
+                    db.rollback()
+                    return False
+                if (db.execute("SELECT 1 FROM fea_local_agent_approvals WHERE run_id=?",
+                               (run_id,)).fetchone() is not None
+                        or db.execute("SELECT 1 FROM fea_run_approvals WHERE run_id=?",
+                                      (run_id,)).fetchone() is not None):
+                    raise IntakeRejected("continuation has an approval; reconcile its execution")
+                now = int(time.time())
+                db.execute(
+                    "UPDATE fea_runs SET status='canceled',revision=revision+1,updated_at=? "
+                    "WHERE run_id=? AND status='proposed'", (now, run_id),
+                )
+                db.execute(
+                    "UPDATE fea_session_followups SET released_at=? WHERE run_id=?",
+                    (now, run_id),
+                )
+                db.commit()
+                return True
+            except Exception:
+                db.rollback()
+                raise
 
     def bind(
         self, run_id: str, event: InboundEvent, host: str,

@@ -661,6 +661,29 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertRegex(commit_hash, r"^[0-9a-f]{40}$")
         self.assertEqual("", manager._git(repository, ["status", "--porcelain"]))
 
+        # The real Git fixture exercises continuing the exact original branch,
+        # not a fresh worktree and not only mocked identity checks.
+        policy = config.repository("real")
+        target = feishu_codex_bot.ResumeTarget(
+            "01979c6c-0354-7000-8000-000000000001", worktree, 23, branch, commit_hash,
+        )
+        manager.require_resume_base(target, policy)
+        before = manager.snapshot(worktree)
+        (worktree / "change.txt").write_text("second verified change\n", encoding="utf-8")
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "uncommitted changes"):
+            manager.require_resume_base(target, policy)
+        manager.require_resume_base(target, policy, clean=False)
+        second_commit = manager.verify_and_commit(worktree, policy, 24, before)
+        self.assertNotEqual(commit_hash, second_commit)
+        self.assertEqual(commit_hash, manager._git(worktree, ["rev-parse", "HEAD^"]))
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "HEAD changed"):
+            manager.require_resume_base(target, policy)
+        manager.require_resume_base(
+            feishu_codex_bot.ResumeTarget(target.thread_id, worktree, 23, branch, second_commit),
+            policy,
+        )
+        self.assertEqual("", manager._git(repository, ["status", "--porcelain"]))
+
     def test_in_place_manager_detects_change_without_committing_dirty_workspace(self) -> None:
         repository = self.tmp / "direct-repo"
         subprocess.run(["rtk", "git", "init", str(repository)], check=True, capture_output=True, text=True)

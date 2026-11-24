@@ -67,3 +67,5 @@ Offline exact WorkItem cancellation tests cover authorized chat queue cancellati
 
 ## Continuation path
 Offline worker fixture: one prior successful edit, one exact successor with new scope approval, same thread and root worktree, separate new local commit receipt, duplicate proposal/queue idempotency, fork rejection, and old Run delivery rejection. Mock native subprocess verifies exact `exec resume` UUID and rejects a different thread before Git commit. Worktree identity and clean HEAD are checked on the real worker path; actual installed CLI/provider/session and host Git tests remain required.
+
+Continuation tests additionally cover unapproved proposal cancellation/replacement and status lineage. The existing real temporary Git fixture now exercises two sequential commits on one original worktree, rejects dirty pre-turn state and stale HEAD, and verifies the new commit's parent. No model or remote Git operation is involved.

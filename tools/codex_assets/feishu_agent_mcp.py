@@ -255,10 +255,11 @@ class AgentTaskIntake:
             if task is None:
                 raise FeishuCodexError("linked Agent task is not owned by this local Unix user")
         from .feishu_engineering_agent.sessions import SessionRegistry
-        session = SessionRegistry(store).receipt(run_id)
+        sessions = SessionRegistry(store)
+        session = sessions.receipt(run_id)
         return {"agent_run_id": run_id, "run_status": record["status"],
                 "task": task, "billing_source": approval["billing_source"],
-                "session": session}
+                "session": session, "lineage": sessions.lineage(run_id)}
 
     def cancel_queued_task(self, task_id: int) -> dict[str, Any]:
         self.get_task(task_id)
