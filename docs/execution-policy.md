@@ -26,11 +26,11 @@ Codex 资产工具的日常 CLI 支持 Python 3.8 及以上。宿主包保留历
 `datetime.UTC` 时的 `timezone.utc` 兼容别名；当前 8.1.1 Execution Policy 源码
 本身不依赖该别名。此桥接不改变上游文件、来源哈希、策略条件或缺失 intake 时的 FATAL 结果。
 
-`readonly`/debug/review 使用 host-owned `codex-project-routing/v2` verifier：核对当前线程、原生用户请求摘要、实际路由规则摘要、初始验收项和 canonical intake。只有全部匹配才使用 readonly artifact boundary；缺失、手工声明、旧 v1、规则漂移或跨线程仍提升到 implementation。该来源核验不代表操作系统强制只读，也不授予 owner、提交或发布权限；任务进入实现时必须重新登记 implementation。
+`readonly`/debug/review 由本机核验器核对当前线程、原生用户请求摘要、实际规则摘要、初始验收项和 canonical intake。只有全部匹配才使用 readonly 工件边界；未验证来源、规则漂移或跨线程仍按 implementation 工件要求处理。核验不代表操作系统强制只读，也不授予 owner、提交或发布权限；任务进入实现时必须重新登记 implementation。
 
 ## 日常 CLI 与线程身份
 
-Digital Worker 不是日常 CLI 的安装依赖。下方 `authority-id/source-id=digital-worker` 仅是显式采用该集成时的来源示例，不得照抄成实际未发生的授权或路由证据。普通项目记录实际采用的项目/资源治理来源，验证、审查和发布仍由项目规则决定；不能为了通过门禁伪造 intake。
+任务登记只使用 `ensure`。它从本机真实上下文构造凭据；调用方不再传入 goal ID、authority、source version 或 routing digest。验证、审查和发布仍由项目规则与实际证据决定。
 
 在项目目录中执行门禁时，模块从资源仓加载，检查绑定当前准确线程，而不是按“最近更新”猜测其它会话：
 
@@ -39,25 +39,6 @@ rtk bash ~/codex/scripts/codex-policy.sh gate --event final
 ```
 
 没有当前线程 ID 时先核实实际会话，不能借用别的线程状态。`gate_allowed` 只表示该线程的本地执行策略结论，不等于项目测试、独立审查、设备验证或产品放行已经完成。CI 的外部 cwd `gate --help` 仅验证命令可解析，不是一次真实门禁通过。
-
-入口示例（在 Codex 资源仓中、显式采用 Digital Worker 来源时）：
-
-```bash
-python3 -m tools.codex_assets execution-policy goal start \
-  --goal-id example \
-  --token-budget 200000 \
-  --time-budget-seconds 14400 \
-  --success-criterion tests-pass \
-  --required-evidence tests-pass \
-  --open-items 1 \
-  --task-mode implementation \
-  --request-sha256 <sha256> \
-  --routing-decision-sha256 <sha256> \
-  --authority-id digital-worker \
-  --decision-id <decision-id> \
-  --source-id digital-worker \
-  --source-version <version>
-```
 
 Journal 仅保存结构化事件和哈希，不保存 prompt/messages/content/raw cwd。当前 journal 位于 `~/.codex/execution-policy/`。
 
@@ -72,7 +53,7 @@ rtk bash ~/codex/scripts/codex-policy.sh ensure \
   --open-items 1
 ```
 
-临时文件保存本次真实用户请求，不进入知识库或 journal；ensure 读取一次并计算 request 摘要，结合实际 runtime/project AGENTS 文件摘要、线程、cwd 摘要、显式任务模式与验收项产生本地 `codex-project-routing/v2` 决策。authority/source 使用真实本地 adapter 身份，不冒充人审或 Digital Worker。readonly 来源须在实际门禁时再次核验，登记成功不授予通过资格。
+临时文件保存本次真实用户请求，不进入知识库或 journal；`ensure` 读取一次并计算请求摘要。登记与门禁核验复用同一个 `routing_binding`，结合实际 runtime/project AGENTS 文件摘要、线程、cwd 摘要、任务模式与验收项生成唯一的本机凭据。其内部数据格式标识和 ADK 要求的 `source_version` 只用于稳定的序列化摘要，不是产品版本、独立路由引擎或兼容入口。既有正确摘要不需要迁移。readonly 来源须在实际门禁时再次核验，登记成功不授予通过资格。
 
 `--dry-run` 不创建 journal；首次执行返回 `REGISTERED`，相同请求和路由重试返回 `ALREADY_REGISTERED`。已有目标与请求或路由不符时退出 2，保留原 journal，必须显式 replan 或开始新的逻辑任务。ensure 不自动补造 evidence，不自动 complete，也不代表 final gate 通过。有效 intake 只是前置条件；目标、验收证据、工件与 checkpoint 仍由实际执行登记。
 
@@ -80,7 +61,7 @@ rtk bash ~/codex/scripts/codex-policy.sh ensure \
 
 执行策略的内部登记由 Agent 在已授权任务内完成，无须另行询问用户；相同逻辑目标保持一次 intake，里程碑内只做必要检查，目标完成或实际 apply/commit/release 边界再运行相应门禁。automation 仍默认 disabled/report-only。本机已有 rtk 授权可复用，不新增 bash/python 的宽泛允许；历史固定证据哈希的授权通过显式本机输入移除。
 
-v2 路由摘要增加线程与 cwd 摘要，真实请求来源核验只读取有界原生 user 事件，不持久化正文。无法读取或匹配真实请求时保守回退；临时请求文件应保存原文（可带一个末尾换行）。新的 verifier 不修改 exact 上游引擎，也不替代 required evidence、checkpoint、open items 或完成验证。
+路由摘要绑定线程与 cwd，真实请求来源核验只读取有界原生 user 事件，不持久化正文。无法读取或匹配真实请求时保守回退；临时请求文件应保存原文（可带一个末尾换行）。新的 verifier 不修改 exact 上游引擎，也不替代 required evidence、checkpoint、open items 或完成验证。
 
 本入口是 Agent 自动执行约定，不是 app-server 的隐式启动 hook；只有执行它后才会产生任务记录。
 
@@ -108,7 +89,7 @@ milestone只核当前evidence-bound checkpoint和steady状态，不完成父goal
 共用 `execution_policy_adapter.load_runtime_config`，不再维护旧 wheel/v1 配置校验器。
 加载器只读取当前 manifest、provider lock 和四份固定 package/contracts/decision/reducer 源文件；
 核对字段、策略下限、sources 结构、provider 身份和 Git blob 后才返回配置。
-它不访问 state database、session、journal 或 Digital Worker checkout。
+它不访问 state database、session 或 journal。
 缺失/混入退役 manifest、错误来源、v1 策略、放宽 artifact gate 或保存 raw content 均失败。
 
 完整 `governance-report --json` 使用 schema_version=2 和 `execution_policy` 字段，

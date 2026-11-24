@@ -39,27 +39,6 @@ def validated_append(path, event, thread):
         return state
 
 
-def start_goal(path, args, thread):
-    from . import execution_policy_adapter as adapter
-
-    with journal_lock(path):
-        existing = adapter.load_journal(path)
-        now = adapter._now()
-        event = adapter.control_event('goal.started', thread['thread_id'], {
-            'goal_id':args.goal_id, 'token_budget':args.token_budget,
-            'time_budget_seconds':args.time_budget_seconds,
-            'usage_baseline_tokens':adapter.usage_event(thread)['payload']['total_tokens'],
-            'success_criteria':args.success_criterion, 'required_evidence':args.required_evidence,
-            'open_items_count':args.open_items, 'intake':adapter._goal_intake(args, now),
-        })
-        state = adapter._engine_state(existing + [event, adapter.usage_event(thread)])
-        if existing:
-            adapter.append_journal(path, event)
-        else:
-            adapter._write_new_journal(path, event)
-        return state
-
-
 def _atomic_bytes(path, content):
     with tempfile.NamedTemporaryFile(dir=str(path.parent), delete=False) as stream:
         temporary = Path(stream.name)

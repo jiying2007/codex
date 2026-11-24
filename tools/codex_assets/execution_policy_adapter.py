@@ -104,7 +104,7 @@ def _sha256_text(value: str) -> str:
 
 def load_runtime_config(root: Path, config_path: str = "") -> dict[str, Any]:
     # One read-only contract for runtime, doctor and governance. No state/session
-    # reads, journal creation, or Digital Worker checkout is needed here.
+    # reads or journal creation is needed here.
     retired = root / "manifests/runtime_control.json"
     if retired.exists() or retired.is_symlink():
         raise ExecutionPolicyAdapterError("retired Execution Policy manifest must be removed")
@@ -488,11 +488,7 @@ def run(args: argparse.Namespace) -> int:
         return 0
 
     if action == "goal":
-        if args.goal_action == "start":
-            from .execution_policy_journal import start_goal
-            _emit(start_goal(journal, args, thread))
-            return 0
-        elif args.goal_action == "update":
+        if args.goal_action == "update":
             payload = {
                 key: value for key, value in {
                     "open_items_count": args.open_items,
@@ -596,21 +592,6 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
 
     goal = sub.add_parser("goal")
     goal_sub = goal.add_subparsers(dest="goal_action", required=True)
-    start = goal_sub.add_parser("start")
-    start.add_argument("--goal-id", required=True)
-    start.add_argument("--token-budget", type=int, required=True)
-    start.add_argument("--time-budget-seconds", type=int, required=True)
-    start.add_argument("--success-criterion", action="append", required=True)
-    start.add_argument("--required-evidence", action="append", required=True)
-    start.add_argument("--open-items", type=int, required=True)
-    start.add_argument("--task-mode", choices=["readonly", "implementation", "debugging", "review", "release"], required=True)
-    start.add_argument("--request-sha256", required=True)
-    start.add_argument("--routing-decision-sha256", required=True)
-    start.add_argument("--authority-id", required=True)
-    start.add_argument("--decision-id", required=True)
-    start.add_argument("--source-id", required=True)
-    start.add_argument("--source-version", required=True)
-    start.add_argument("--issued-at", default="")
     update = goal_sub.add_parser("update")
     update.add_argument("--open-items", type=int)
     update.add_argument("--token-budget", type=int)

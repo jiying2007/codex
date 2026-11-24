@@ -1,7 +1,7 @@
 # 成员安装与现场验收
 
 适用于 Ubuntu 上 `~/codex -> ~/.codex` 的现有资源链。默认 `default` profile；
-不新增安装器、服务、Work/Run 系统或 Digital Worker 前置依赖。
+不新增安装器、服务或 Work/Run 系统。
 维护侧的 Full Regression 负责全量测试，成员执行本机配置、计划、安装与使用验收。
 仅安装资源不要求配置飞书 SDK/凭证；使用对应集成时再按其声明安装依赖。
 
@@ -13,8 +13,6 @@
 上游 CI 验证；Codex 宿主包仍保留历史 `datetime.UTC` 到 `timezone.utc` 的兼容别名，
 不修改 vendor 源码或安装同名 datetime 包。Execution Policy 的 intake
 和证据门禁仍按原策略执行。
-`scripts/runtime-r2-local.sh` 是独立的 Digital Worker R2 执行入口，仍要求 Python
-3.11 及其外部依赖；这里的 3.8 支持覆盖日常资产 CLI、安装与 Execution Policy。
 不自动升级 Codex CLI、模型或系统软件，不调整内核、AppArmor 或沙箱权限。
 
 ### 0. 在更新源仓之前确认解释器

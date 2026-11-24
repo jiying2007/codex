@@ -17,7 +17,7 @@ src/codex-home + manifests -> build/codex-home -> ~/.codex
 `~/.codex/skills/.system`、认证、session、日志、缓存、密钥和本机私有配置始终由运行目录优先，本仓库不跟踪、不复制、不覆盖。
 
 小团队成员首次安装或升级，使用 [成员安装与现场验收](docs/member-rollout.md)。
-复用现有 build/doctor/plan/apply/diff/drift/rollback；不需要部署 Digital Worker，
+复用现有 build/doctor/plan/apply/diff/drift/rollback；
 不要求成员为了安装资源而配置飞书 SDK、复制他人凭证或运行全部维护侧测试。
 
 
@@ -344,19 +344,19 @@ rtk bash scripts/archive-search.sh "会话总结" --type session-wrap --tag rese
 
 ## Execution Policy
 
-任务、Token、上下文、进度、checkpoint、证据和阶段门禁统一由 **Execution Policy v2** 管理：
+任务、Token、上下文、进度、checkpoint、证据和阶段门禁统一由 **Execution Policy** 管理：
 
 - 唯一配置：`manifests/execution_policy.json`。
-- Canonical policy：`tools/codex_assets/execution_policy/` 的 contracts / decision / reducer，绑定 ADK 7.0.31 exact source identity。
+- Canonical policy：`tools/codex_assets/execution_policy/` 的 contracts / decision / reducer，由独立 provider lock 绑定精确 ADK 源码。
 - Codex host adapter：`tools/codex_assets/execution_policy_adapter.py`。
-- 唯一 CLI：`python3 -m tools.codex_assets execution-policy`；不提供额外 shell wrapper。
+- 唯一 CLI：`python3 -m tools.codex_assets execution-policy`；日常入口 `scripts/codex-policy.sh` 仅转发到该 CLI。
 - Journal：`~/.codex/execution-policy/`；只保存结构化事件与哈希，不保存 prompt/messages/raw cwd。
 - 旧 `runtime-control` Python/CLI/config surface 已 hard-cut；仅保留冻结的 `runtime_control.*` wire schema identity，不提供 alias、fallback、双读或双写。
 
 ```bash
 rtk python3 -m tools.codex_assets execution-policy snapshot
 rtk python3 -m tools.codex_assets execution-policy watch
-rtk python3 -m tools.codex_assets execution-policy goal start --goal-id <id> --token-budget <n> --time-budget-seconds <n> --success-criterion <id> --required-evidence <id> --open-items <n> --task-mode implementation --request-sha256 <sha256> --routing-decision-sha256 <sha256> --authority-id project-owner --decision-id <decision-id> --source-id project-issue --source-version <version>
+rtk python3 -m tools.codex_assets execution-policy ensure --request-file /tmp/task-request.md --task-mode implementation --success-criterion tests --required-evidence tests --open-items 1
 rtk python3 -m tools.codex_assets execution-policy progress --revision <n>
 rtk python3 -m tools.codex_assets execution-policy goal update --open-items <n> [--token-budget <n>] [--time-budget-seconds <n>]
 rtk python3 -m tools.codex_assets execution-policy heartbeat
@@ -365,7 +365,7 @@ rtk python3 -m tools.codex_assets execution-policy gate --event apply
 rtk python3 -m tools.codex_assets execution-policy gate --event final
 ```
 
-没有受信 mode-authority verifier 时，readonly/debug/review 不会自动获得更弱门禁，而是 fail-closed 使用 implementation artifact boundary。完整契约见 `docs/execution-policy.md`。
+`ensure` 是唯一任务登记入口；调用者不构造 authority、routing digest 或版本号。本机核验将任务绑定到准确线程、原生请求、规则和验收项。未验证来源不能降低 implementation 工件要求。完整契约见 `docs/execution-policy.md`。
 
 ## 回答压缩与输出裁剪边界
 
@@ -374,7 +374,7 @@ rtk python3 -m tools.codex_assets execution-policy gate --event final
 - `implementation` / `debugging` 默认低噪音，优先讲动作、证据、验证、阻塞。
 - `verification` / `wrap-up` / `archive` 默认最严格压缩，只保留结论、结果、风险和后续动作。
 - 输出裁剪也分阶段：设计阶段保留必要证据，实现与验证阶段默认先给摘要、关键字段和关键窗口。
-- Runtime Control 建议 `compact` 时，常见裁剪动作包括：
+- Execution Policy 建议 `compact` 时，常见裁剪动作包括：
   - 只保留定向 `rg`
   - 只读局部 `sed -n`
   - 日志仅看短窗口 `tail`

@@ -97,6 +97,7 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
     def test_context_maintenance_rechecks_are_read_only_and_keep_apply_gate_closed(self) -> None:
         started = self.run_cli(*self.start_args("context-maintenance"))
         self.assertEqual(started.returncode, 0, started.stderr)
+        goal_id = json.loads(started.stdout)["goal_id"]
         journal = next((self.codex_home / "execution-policy").glob("thread-*.jsonl"))
         original = journal.read_bytes()
         rollout = self.codex_home / "rollout.jsonl"
@@ -120,26 +121,26 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
         rollout.write_text(json.dumps(record, separators=(",", ":")) + "\n")
         decision = json.loads(self.run_cli("snapshot").stdout)
         self.assertFalse(decision["host_context_maintenance"]["required"])
-        self.assertEqual(decision["goal_id"], "context-maintenance")
+        self.assertEqual(decision["goal_id"], goal_id)
         self.assertEqual(journal.read_bytes(), original)
 
     def start_args(self, goal_id: str, *, open_items: int = 1) -> tuple[str, ...]:
+        request = self.temp / "goal-request.md"
+        request.write_text("实现并验证 " + goal_id, encoding="utf-8")
         return (
-            "goal", "start",
-            "--goal-id", goal_id,
+            "ensure", "--request-file", str(request),
             "--token-budget", "1000",
             "--time-budget-seconds", "7200",
             "--success-criterion", "tests",
             "--required-evidence", "tests",
             "--open-items", str(open_items),
             "--task-mode", "implementation",
-            "--request-sha256", "a" * 64,
-            "--routing-decision-sha256", "b" * 64,
-            "--authority-id", "digital-worker",
-            "--decision-id", f"decision-{goal_id}",
-            "--source-id", "digital-worker",
-            "--source-version", "1.0.0",
         )
+
+    def test_manual_goal_start_is_not_a_supported_entrypoint(self) -> None:
+        rejected = self.run_cli("goal", "start", "--goal-id", "invented")
+        self.assertEqual(2, rejected.returncode)
+        self.assertFalse((self.codex_home / "execution-policy").exists())
 
     def test_source_observation_hides_raw_cwd(self) -> None:
         thread = active_thread(self.codex_home / "state_5.sqlite")
@@ -150,7 +151,10 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
     def test_attested_goal_can_complete_final_gate(self) -> None:
         started = self.run_cli(*self.start_args("goal-1"))
         self.assertEqual(0, started.returncode, started.stderr)
-        state = json.loads(started.stdout)
+        self.assertEqual("REGISTERED", json.loads(started.stdout)["status"])
+        status = self.run_cli("goal", "status")
+        self.assertEqual(0, status.returncode, status.stderr)
+        state = json.loads(status.stdout)
         self.assertEqual("implementation", state["goal"]["task_mode"])
         self.assertEqual("implementation", state["goal"]["artifact_mode"])
         self.assertEqual(1, state["goal"]["intake_revision"])
@@ -200,6 +204,9 @@ class ExecutionPolicyAdapterTest(unittest.TestCase):
             "scripts/execution-policy.sh",
             "tools/codex_assets/runtime_control.py",
             "tools/codex_assets/runtime_kernel.py",
+            "scripts/runtime-r2-local.sh",
+            ".github/workflows/runtime-r2-execution-contract.yml",
+            ".github/workflows/runtime-r2-provider-execution.yml",
         ):
             self.assertFalse((ROOT / relative).exists(), relative)
 
