@@ -1176,8 +1176,8 @@ class StateStore:
                 return int(old["id"]), False
             if remote_context is not None:
                 receipt = connection.execute(
-                    "SELECT c.repo,e.message_id FROM engineering_context_events e "
-                    "JOIN engineering_contexts c ON c.context_id=e.context_id "
+                    "SELECT v.repository AS repo,e.message_id FROM engineering_context_events e "
+                    "JOIN engineering_context_event_targets v ON v.event_key=e.event_key "
                     "WHERE e.event_key=? AND c.context_id=?",
                     (remote_context["event_key"],remote_context["context_id"]),
                 ).fetchone()
@@ -1185,8 +1185,8 @@ class StateStore:
                     raise FeishuCodexError("remote context changed before atomic queue publication")
                 latest = connection.execute(
                     "SELECT x.task_id,t.status,t.mode FROM engineering_context_tasks x JOIN tasks t ON t.id=x.task_id "
-                    "WHERE x.context_id=? ORDER BY x.task_id DESC LIMIT 1",
-                    (remote_context["context_id"],),
+                    "WHERE x.context_id=? AND t.repository=? ORDER BY x.task_id DESC LIMIT 1",
+                    (remote_context["context_id"],repository),
                 ).fetchone()
                 if ((latest["task_id"] if latest else 0)!=remote_context["latest_task_id"]
                         or (latest and latest["status"] in ("queued","running","unknown"))
@@ -3017,11 +3017,11 @@ class FeishuCodexBot:
             )
             if result.consumed and result.intent:
                 try:
-                    if result.intent in ("delivery","feedback"):
+                    if result.intent in ("delivery","feedback","joint_delivery"):
                         from .feishu_engineering_agent.delivery import ContextDelivery
                         delivery = ContextDelivery(self.config,self._engineering_executor)
-                        action = (delivery.verify(inbound,result) if result.intent=="delivery"
-                                  else delivery.feedback(inbound,result))
+                        action = {"delivery":delivery.verify,"feedback":delivery.feedback,
+                                  "joint_delivery":delivery.verify_joint}[result.intent](inbound,result)
                     elif result.intent=="cancel":
                         action = self._engineering_executor.cancel(inbound,result)
                     else:

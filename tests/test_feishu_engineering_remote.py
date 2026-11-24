@@ -66,7 +66,7 @@ class RemoteEngineeringTest(unittest.TestCase):
 
     def intake(self,mid,text,topic="root:om_root",actor="ou_owner"):
         event=InboundEvent("feishu_message","tenantA","oc_test",actor,mid,text)
-        result=self.service.handle(event,topic,{"robot-app"},self.config.link_repositories)
+        result=self.service.handle(event,topic,set(self.config.repositories),self.config.link_repositories)
         return event,result
 
     def submit(self,mid,text,topic="root:om_root"):
@@ -83,7 +83,7 @@ class RemoteEngineeringTest(unittest.TestCase):
     def complete(self,row,thread=THREAD):
         bot,job=self.decode(row)
         self.assertTrue(self.store.claim_queued(job.task_id))
-        result=bot_module.ExecutionResult("fixture",thread_id=thread,thread_cwd=self.repo)
+        result=bot_module.ExecutionResult("fixture",thread_id=thread,thread_cwd=self.config.repository(job.repository).path)
         self.executor.finish(job,result,None)
         self.store.update_task(job.task_id,"completed")
         return job
@@ -179,6 +179,99 @@ class RemoteEngineeringTest(unittest.TestCase):
         bot,job=self.decode(self.latest())
         self.assertIn("电源重启后异常",job.task)
         self.assertEqual("om_note",self.transport.read_engineering_note.call_args.args[0])
+        self.runner.run.assert_not_called()
+
+    def add_second_repo(self):
+        second=self.root/"firmware"
+        second.mkdir()
+        (second/".git").mkdir()
+        a=self.config.repository("robot-app")
+        self.config=dataclasses.replace(self.config,repositories={
+            "robot-app":dataclasses.replace(a,github_repository="example-org/robot",
+                                           github_required_workflows=(".github/workflows/verify.yml",)),
+            "firmware":dataclasses.replace(a,alias="firmware",path=second,
+                                          worktree_root=self.root/"firmware-worktrees",
+                                          github_repository="example-org/firmware",
+                                          github_required_workflows=(".github/workflows/verify.yml",)),
+        })
+        self.executor.config=self.config
+
+    def test_same_topic_separate_repo_receipts_resume_and_cancel(self):
+        self.add_second_repo()
+        self.intake("om_root",ISSUE)
+        self.submit("om_a","分析 应用侧复位")
+        first=self.latest()
+        self.intake("om_select_b","/repo firmware")
+        self.submit("om_b","分析 控制侧复位")
+        second=self.latest()
+        self.assertEqual(["robot-app","firmware"],[r["repository"] for r in self.store.pending()])
+        bot,job=self.decode(first)
+        self.assertEqual("robot-app",job.repository)
+        bot,job=self.decode(second)
+        self.assertNotIn("应用侧复位",job.task)
+        self.transport.read_engineering_note.assert_not_called()
+        self.complete(first,THREAD)
+        thread_b="01979c6c-0354-7000-8000-000000000002"
+        self.complete(second,thread_b)
+        self.intake("om_select_a","/repo robot-app")
+        self.submit("om_resume_a","继续推进")
+        a=self.latest()
+        self.intake("om_select_b2","/repo firmware")
+        self.submit("om_resume_b","继续推进")
+        b=self.latest()
+        self.assertEqual(THREAD,self.executor.resume_target(self.decode(a)[1]).thread_id)
+        self.assertEqual(thread_b,self.executor.resume_target(self.decode(b)[1]).thread_id)
+        event,result=self.intake("om_cancel","/cancel")
+        self.executor.cancel(event,result)
+        self.assertEqual("queued",self.store.task_status(a["id"]))
+        self.assertEqual("canceled",self.store.task_status(b["id"]))
+        self.runner.run.assert_not_called()
+
+    def test_joint_delivery_pins_both_task_receipts_and_rechecks(self):
+        from tools.codex_assets.feishu_engineering_agent.delivery import ContextDelivery
+        from tools.codex_assets.feishu_engineering_agent.models import IntakeRejected
+        self.add_second_repo()
+        self.intake("om_root",ISSUE)
+        self.submit("om_edit_a","修复 应用初始化")
+        self.intake("om_select_b","/repo firmware")
+        self.submit("om_edit_b","修复 控制器初始化")
+        for i,row in enumerate(self.store.pending()):
+            bot,job=self.decode(row)
+            self.assertTrue(self.store.claim_queued(job.task_id))
+            repo=self.config.repository(job.repository)
+            cwd=repo.worktree_root/f"task-{job.task_id}"
+            branch=f"{repo.branch_prefix}-{job.task_id}"
+            sha=("a" if i==0 else "b")*40
+            thread=THREAD if i==0 else "01979c6c-0354-7000-8000-000000000002"
+            outcome=bot_module.ExecutionResult("fixture",thread_id=thread,thread_cwd=cwd,
+                worktree_path=cwd,branch_name=branch,commit_hash=sha)
+            self.executor.finish(job,outcome,None)
+            self.store.record_result(job.task_id,branch,sha,cwd)
+            self.store.update_task(job.task_id,"completed")
+
+        def forge(repo):
+            observer=mock.Mock()
+            observer.discover_delivery.side_effect=lambda branch,sha,workflows: {
+                "repo_alias":repo.alias,"repo_full_name":repo.github_repository,
+                "head_sha":sha,"branch":branch,"base_branch":repo.github_base_branch,
+                "workflows":{w:11 for w in workflows},"pr_number":7,
+            }
+            return observer
+
+        event,result=self.intake("om_joint","检查联合交付")
+        self.assertEqual("joint_delivery",result.intent)
+        delivery=ContextDelivery(self.config,self.executor,forge)
+        reply=delivery.verify_joint(event,result)
+        self.assertIn("不是跨仓集成测试或产品验收",reply)
+        self.assertIn("a"*40,reply)
+        self.assertIn("b"*40,reply)
+        with self.store._connect() as db:
+            row=db.execute("SELECT * FROM engineering_context_joint_delivery").fetchone()
+            self.assertEqual(2,len(json.loads(row["proof_json"])))
+            db.execute("UPDATE tasks SET status='unknown' WHERE repository='firmware'")
+        event,result=self.intake("om_joint_again","检查联合交付")
+        with self.assertRaises(IntakeRejected):
+            delivery.verify_joint(event,result)
         self.runner.run.assert_not_called()
 
     def test_dedicated_outer_mounts_no_personal_home_or_read_repo_write(self):

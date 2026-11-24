@@ -519,7 +519,7 @@ class ContextDelivery:
         self.forge_factory = forge_factory
 
     def _local(self, event, result):
-        latest = self.executor._latest(result.context_id)
+        latest = self.executor._latest(result.context_id,result.repo)
         if latest is None or latest["mode"]!="edit" or latest["status"]!="completed":
             raise IntakeRejected("当前话题没有已完成的本地编辑版本")
         row=self.executor.binding(latest["task_id"])
@@ -559,8 +559,8 @@ class ContextDelivery:
             db.execute("BEGIN IMMEDIATE")
             latest=db.execute(
                 "SELECT x.task_id,t.status,x.commit_sha,x.branch FROM engineering_context_tasks x "
-                "JOIN tasks t ON t.id=x.task_id WHERE x.context_id=? ORDER BY x.task_id DESC LIMIT 1",
-                (row["context_id"],)).fetchone()
+                "JOIN tasks t ON t.id=x.task_id WHERE x.context_id=? AND t.repository=? ORDER BY x.task_id DESC LIMIT 1",
+                (row["context_id"],row["repository"])).fetchone()
             if (latest is None or latest["task_id"]!=row["task_id"] or latest["status"]!="completed"
                     or latest["commit_sha"]!=row["commit_sha"] or latest["branch"]!=row["branch"]):
                 raise IntakeRejected("核验期间研发版本发生变化")
@@ -576,6 +576,63 @@ class ContextDelivery:
         return ("已独立核验精确本地提交 "+row["commit_sha"]+" 的 PR 与全部必需 CI。"
                 "\nPR：https://github.com/"+repo.github_repository+"/pull/"+str(observed["pr_number"])
                 +"\n必需 CI："+str(len(observed["workflows"]))+" 项；等待项目实际测试/QA。原工单未关闭。")
+
+    @staticmethod
+    def _joint_snapshot(db,context_id):
+        return [dict(row) for row in db.execute(
+            "SELECT t.repository,x.task_id,t.mode,t.status,x.commit_sha,x.branch "
+            "FROM engineering_context_tasks x JOIN tasks t ON t.id=x.task_id "
+            "WHERE x.context_id=? AND x.task_id IN (SELECT MAX(y.task_id) "
+            "FROM engineering_context_tasks y JOIN tasks q ON q.id=y.task_id "
+            "WHERE y.context_id=? GROUP BY q.repository) ORDER BY t.repository",
+            (context_id,context_id))]
+
+    def verify_joint(self,event,result):
+        """Refresh participating repositories; CI evidence is not joint product QA."""
+        with self.store._connect() as db:
+            snapshot=self._joint_snapshot(db,result.context_id)
+        if len(snapshot)<2:
+            raise IntakeRejected("联合交付至少需要两个实际研发仓库")
+        selections=[]
+        for item in snapshot:
+            selected=dataclasses.replace(result,repo=item["repository"])
+            row,repo=self._local(event,selected)
+            if (row["task_id"]!=item["task_id"] or row["commit_sha"]!=item["commit_sha"]
+                    or not repo.github_repository or not repo.github_required_workflows):
+                raise IntakeRejected("联合交付仓库版本或 CI 配置不完整")
+            selections.append(selected)
+        for selected in selections:
+            self.verify(event,selected)
+        with self.store._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if self._joint_snapshot(db,result.context_id)!=snapshot:
+                raise IntakeRejected("联合核验期间研发版本发生变化")
+            evidence=[]
+            for item in snapshot:
+                proof=db.execute("SELECT * FROM engineering_context_delivery WHERE task_id=?",
+                                 (item["task_id"],)).fetchone()
+                repo=self.config.repositories.get(item["repository"])
+                if (proof is None or repo is None or not self.config.sender_allowed(event.actor,repo)
+                        or proof["head_sha"]!=item["commit_sha"] or proof["repository"]!=repo.github_repository):
+                    raise IntakeRejected("联合交付缺少精确仓库证明")
+                observed=json.loads(proof["proof_json"])
+                if set(observed["workflows"])!=set(repo.github_required_workflows):
+                    raise IntakeRejected("联合交付必需 CI 已变化")
+                evidence.append({"alias":item["repository"],"task_id":item["task_id"],
+                                 "head_sha":item["commit_sha"],"branch":item["branch"],
+                                 "repository":proof["repository"],"pr_number":proof["pr_number"],
+                                 "workflows":observed["workflows"]})
+            heads=json.dumps(snapshot,sort_keys=True,separators=(",",":"))
+            digest=hashlib.sha256(heads.encode("utf-8")).hexdigest()
+            db.execute("INSERT INTO engineering_context_joint_delivery(context_id,head_set_sha256,proof_json,verified_at) "
+                       "VALUES (?,?,?,?) ON CONFLICT(context_id,head_set_sha256) DO UPDATE SET "
+                       "proof_json=excluded.proof_json,verified_at=excluded.verified_at",
+                       (result.context_id,digest,json.dumps(evidence,sort_keys=True,separators=(",",":")),int(time.time())))
+        lines=["联合交付 CI 核验通过（不是跨仓集成测试或产品验收）","版本集合："+digest]
+        for proof in evidence:
+            lines.append(proof["alias"]+" "+proof["head_sha"]+" PR #"+str(proof["pr_number"]))
+        lines.append("待针对上述精确版本集合完成实际跨仓联调及独立 QA；原工单未关闭。")
+        return "\n".join(lines)
 
     def feedback(self,event,result):
         row,repo=self._local(event,result)

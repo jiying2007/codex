@@ -20,6 +20,7 @@ _CONTROL = {
     "/help", "help", "帮助", "/cancel", "cancel", "取消", "停止任务",
     "/new", "/repo", "当前项目",
     "检查 ci", "检查ci", "检查交付", "交付反馈", "生成研发反馈", "查看交付",
+    "检查联合交付",
 }
 _REPO = re.compile(r"\A(?:/repo\s+|repo=)([a-z][a-z0-9_-]{0,31})(?=\s|\Z)", re.I)
 
@@ -102,6 +103,10 @@ class LinkContextService:
                     has_context_note INTEGER NOT NULL CHECK(has_context_note IN (0,1)),
                     created_at INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS engineering_context_event_targets (
+                    event_key TEXT PRIMARY KEY REFERENCES engineering_context_events(event_key),
+                    repository TEXT NOT NULL
+                );
                 CREATE INDEX IF NOT EXISTS engineering_context_events_context
                     ON engineering_context_events(context_id,created_at);
                 CREATE TABLE IF NOT EXISTS engineering_context_tasks (
@@ -117,11 +122,23 @@ class LinkContextService:
                 );
                 CREATE INDEX IF NOT EXISTS engineering_context_tasks_context
                     ON engineering_context_tasks(context_id,task_id);
+                -- Backfill former single-repository contexts without rewriting targets.
+                INSERT OR IGNORE INTO engineering_context_event_targets(event_key,repository)
+                    SELECT e.event_key,COALESCE(t.repository,c.repo)
+                    FROM engineering_context_events e JOIN engineering_contexts c ON c.context_id=e.context_id
+                    LEFT JOIN engineering_context_tasks x ON x.event_key=e.event_key
+                    LEFT JOIN tasks t ON t.id=x.task_id;
                 CREATE TABLE IF NOT EXISTS engineering_context_delivery (
                     task_id INTEGER PRIMARY KEY REFERENCES engineering_context_tasks(task_id),
                     head_sha TEXT NOT NULL, repository TEXT NOT NULL,
                     pr_number INTEGER NOT NULL, proof_json TEXT NOT NULL,
                     verified_at INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS engineering_context_joint_delivery (
+                    context_id TEXT NOT NULL REFERENCES engineering_contexts(context_id),
+                    head_set_sha256 TEXT NOT NULL, proof_json TEXT NOT NULL,
+                    verified_at INTEGER NOT NULL,
+                    PRIMARY KEY(context_id,head_set_sha256)
                 );
             """)
 
@@ -171,7 +188,8 @@ class LinkContextService:
             db.execute("BEGIN IMMEDIATE")
             scope = (event.tenant,event.chat,event.actor,topic)
             previous = db.execute(
-                "SELECT context_id,content_sha256 FROM engineering_context_events WHERE event_key=?",
+                "SELECT e.context_id,e.content_sha256,v.repository FROM engineering_context_events e "
+                "JOIN engineering_context_event_targets v ON v.event_key=e.event_key WHERE e.event_key=?",
                 (event.event_key,),
             ).fetchone()
             ctx = db.execute(
@@ -181,7 +199,7 @@ class LinkContextService:
             if previous is not None:
                 if (ctx is None or previous["context_id"] != ctx["context_id"]
                         or previous["content_sha256"] != event.content_digest
-                        or (ctx["repo"] and ctx["repo"] not in allowed)):
+                        or (previous["repository"] and previous["repository"] not in allowed)):
                     raise EventConflict("same event changed or no longer authorized")
                 return IntakeResult(True)
             # Do not reinterpret a pre-cutover Feishu event as a new paid turn.
@@ -204,10 +222,6 @@ class LinkContextService:
                 raise IntakeRejected("source limit exceeded")
             repo = self._choose_repo(ctx["repo"] if ctx else "", explicit,
                                     primary[0] if primary else None, allowed, routes)
-            if ctx and repo != ctx["repo"] and db.execute(
-                    "SELECT 1 FROM engineering_context_tasks WHERE context_id=? LIMIT 1", (cid,)
-            ).fetchone():
-                raise IntakeRejected("repository already bound to execution; start a new topic")
             now = int(time.time())
             if ctx is None:
                 db.execute(
@@ -227,19 +241,25 @@ class LinkContextService:
                 "INSERT INTO engineering_context_events(event_key,context_id,message_id,content_sha256,has_context_note,created_at) VALUES (?,?,?,?,?,?)",
                 (event.event_key,cid,event.event_id,event.content_digest,int(has_note),now),
             )
+            db.execute("INSERT INTO engineering_context_event_targets(event_key,repository) VALUES (?,?)",
+                       (event.event_key,repo))
             notes = db.execute(
-                "SELECT COUNT(*) FROM engineering_context_events WHERE context_id=? AND has_context_note=1",
-                (cid,),
+                "SELECT COUNT(*) FROM engineering_context_events e JOIN engineering_context_event_targets v "
+                "ON v.event_key=e.event_key WHERE e.context_id=? AND e.has_context_note=1 AND v.repository IN ('',?)",
+                (cid,repo),
             ).fetchone()[0]
             if body.lower() == "/new":
                 return IntakeResult(True, "请在新话题发送研发链接；不会覆盖当前事项。")
             if body.lower() in ("/cancel","cancel","取消","停止任务"):
                 latest = db.execute(
-                    "SELECT t.status FROM engineering_context_tasks c JOIN tasks t ON t.id=c.task_id WHERE c.context_id=? ORDER BY t.id DESC LIMIT 1", (cid,),
+                    "SELECT t.status FROM engineering_context_tasks c JOIN tasks t ON t.id=c.task_id "
+                    "WHERE c.context_id=? AND t.repository=? ORDER BY t.id DESC LIMIT 1", (cid,repo),
                 ).fetchone()
                 if latest is None:
                     return IntakeResult(True, "当前链接事项没有关联的执行任务；未取消其他话题的任务。")
                 return IntakeResult(True, "", cid, repo, "cancel", "", topic)
+            if body == "检查联合交付":
+                return IntakeResult(True,"",cid,repo,"joint_delivery","",topic)
             if body.lower() in ("检查 ci","检查ci","检查交付","查看交付","交付反馈","生成研发反馈"):
                 return IntakeResult(True,"",cid,repo,
                     "feedback" if body.lower() in ("交付反馈","生成研发反馈") else "delivery","",topic)
@@ -269,9 +289,12 @@ class LinkContextService:
             lines.append("研发仓库：" + (repo or "待定位；请在本话题发送 /repo <已授权别名>"))
             lines.append("补充消息引用：" + str(notes) + " 条；仅留消息标识和摘要哈希，未读取正文。")
             latest = db.execute(
-                "SELECT t.id,t.status,t.mode FROM engineering_context_tasks c JOIN tasks t ON t.id=c.task_id WHERE c.context_id=? ORDER BY t.id DESC LIMIT 1", (cid,),
-            ).fetchone()
-            if latest:
-                lines.append("最近执行：#" + str(latest["id"]) + " " + latest["mode"] + " " + latest["status"])
-            lines.append("可在同一话题补充资料、明确要求分析/修复/开发，或 /status 查看关联。")
+                "SELECT t.id,t.repository,t.status,t.mode FROM engineering_context_tasks c JOIN tasks t ON t.id=c.task_id "
+                "WHERE c.context_id=? AND t.id IN (SELECT MAX(y.task_id) FROM engineering_context_tasks y "
+                "JOIN tasks q ON q.id=y.task_id WHERE y.context_id=? GROUP BY q.repository) ORDER BY t.repository", (cid,cid),
+            ).fetchall()
+            for task in latest:
+                if task["repository"] in allowed:
+                    lines.append("最近执行："+task["repository"]+" #"+str(task["id"])+" "+task["mode"]+" "+task["status"])
+            lines.append("可用 /repo 切换已授权仓库并继续各自会话；/cancel 仅取消当前仓库；检查联合交付核验多仓精确版本。")
             return IntakeResult(True, "\n".join(lines), cid, repo, intent, scope_text, topic)

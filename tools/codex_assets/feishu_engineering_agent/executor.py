@@ -34,7 +34,7 @@ class EngineeringExecutor:
     def binding(self, task_id):
         with self.store._connect() as db:
             row = db.execute(
-                "SELECT x.*,c.tenant,c.chat,c.actor,c.repo,c.topic,e.message_id,t.status,t.mode,t.repository "
+                "SELECT x.*,c.tenant,c.chat,c.actor,t.repository AS repo,c.topic,e.message_id,t.status,t.mode,t.repository "
                 "FROM engineering_context_tasks x JOIN engineering_contexts c ON c.context_id=x.context_id "
                 "JOIN engineering_context_events e ON e.event_key=x.event_key "
                 "JOIN tasks t ON t.id=x.task_id WHERE x.task_id=?", (task_id,),
@@ -56,12 +56,12 @@ class EngineeringExecutor:
         return workitem_policy_digest(self.config,repository,
                 {"explain":"read","review":"review","edit":"edit"}[mode],os.getuid())
 
-    def _latest(self, context_id):
+    def _latest(self, context_id, repository):
         with self.store._connect() as db:
             row = db.execute(
                 "SELECT x.*,t.status,t.repository,t.mode FROM engineering_context_tasks x "
-                "JOIN tasks t ON t.id=x.task_id WHERE context_id=? ORDER BY task_id DESC LIMIT 1",
-                (context_id,),
+                "JOIN tasks t ON t.id=x.task_id WHERE context_id=? AND t.repository=? ORDER BY task_id DESC LIMIT 1",
+                (context_id,repository),
             ).fetchone()
             return dict(row) if row else None
 
@@ -69,7 +69,7 @@ class EngineeringExecutor:
         from ..feishu_codex_bot import BotJob, FeishuCodexError, SourceRef, agent_request_digest
         if not result.repo:
             raise FeishuCodexError("请先在本话题选择已授权研发仓库。")
-        latest = self._latest(result.context_id)
+        latest = self._latest(result.context_id,result.repo)
         if latest and latest["status"] in ("queued","running","unknown"):
             raise FeishuCodexError("当前事项存在排队、运行或未知结果；先查询/核对，不重复启动。")
         mode = result.intent
@@ -96,11 +96,12 @@ class EngineeringExecutor:
         with self.store._connect() as db:
             ctx = db.execute("SELECT * FROM engineering_contexts WHERE context_id=?",
                              (result.context_id,)).fetchone()
-            receipt = db.execute("SELECT * FROM engineering_context_events WHERE event_key=?",
+            receipt = db.execute("SELECT e.*,v.repository FROM engineering_context_events e "
+                                 "JOIN engineering_context_event_targets v ON v.event_key=e.event_key WHERE e.event_key=?",
                                  (event.event_key,)).fetchone()
             if (ctx is None or receipt is None or receipt["context_id"] != result.context_id
                     or receipt["content_sha256"] != event.content_digest
-                    or (ctx["tenant"],ctx["chat"],ctx["actor"],ctx["topic"],ctx["repo"]) !=
+                    or (ctx["tenant"],ctx["chat"],ctx["actor"],ctx["topic"],receipt["repository"]) !=
                        (event.tenant,event.chat,event.actor,result.topic,result.repo)):
                 raise IntakeRejected("remote context receipt mismatch")
             sources = [parse_source(row["url"]) for row in db.execute(
@@ -114,9 +115,11 @@ class EngineeringExecutor:
                     raise IntakeRejected("previous event receipt missing")
                 cutoff = row[0]
             notes = list(db.execute(
-                "SELECT message_id,content_sha256 FROM engineering_context_events "
-                "WHERE context_id=? AND has_context_note=1 AND rowid>? AND event_key<>? ORDER BY rowid LIMIT 9",
-                (result.context_id,cutoff,event.event_key),
+                "SELECT e.message_id,e.content_sha256 FROM engineering_context_events e "
+                "JOIN engineering_context_event_targets v ON v.event_key=e.event_key "
+                "WHERE e.context_id=? AND e.has_context_note=1 AND e.rowid>? AND e.event_key<>? "
+                "AND v.repository IN ('',?) ORDER BY e.rowid LIMIT 9",
+                (result.context_id,cutoff,event.event_key,result.repo),
             ))
         if len(notes)>8:
             raise FeishuCodexError("补充消息过多；请新建话题并提供本次必要范围，未启动模型。")
@@ -240,13 +243,16 @@ class EngineeringExecutor:
                 raise CodexOutcomeUnknown("原生回执不能重复写入")
 
     def cancel(self, event, result):
-        row = self._latest(result.context_id)
+        row = self._latest(result.context_id,result.repo)
         if row is None:
-            return "本话题没有执行任务。"
+            return "本话题当前仓库没有执行任务。"
         binding = self.binding(row["task_id"])
         if (binding is None or (binding["tenant"],binding["chat"],binding["actor"],binding["topic"])!=
                 (event.tenant,event.chat,event.actor,result.topic)):
             raise IntakeRejected("cancel ownership mismatch")
+        repository = self.config.repositories.get(result.repo)
+        if repository is None or not self.config.sender_allowed(event.actor,repository):
+            raise IntakeRejected("cancel repository no longer authorized")
         sender = f"agent:{os.getuid()}"
         if self.store.cancel_agent_queued(row["task_id"],sender):
             self.spool.discard(row["task_id"])
