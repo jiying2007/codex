@@ -11,7 +11,10 @@ from unittest import mock
 
 from tools.codex_assets import feishu_agent_mcp, feishu_codex_bot
 from tools.codex_assets.feishu_engineering_agent.manual_items import ManualWorkItemService
-from tools.codex_assets.feishu_engineering_agent.models import InboundEvent
+from tools.codex_assets.feishu_engineering_agent.models import InboundEvent, IntakeRejected
+from tools.codex_assets.feishu_engineering_agent.sessions import parse_exec_turn
+
+THREAD_ID = "01979c6c-0354-7000-8000-000000000001"
 
 
 class FeishuAgentMCPTests(unittest.TestCase):
@@ -146,6 +149,63 @@ class FeishuAgentMCPTests(unittest.TestCase):
                 intake.submit_task("codex", "review", "第二次", "case-000007")
             popen.assert_not_called()
 
+    def test_native_exec_receipt_requires_exact_thread_and_terminal_turn(self) -> None:
+        frames = [
+            {"type": "thread.started", "thread_id": THREAD_ID},
+            {"type": "turn.started"},
+            {"type": "item.completed", "item": {"type": "command_execution", "aggregated_output": "private log"}},
+            {"type": "item.completed", "item": {"type": "agent_message", "text": "分析完成"}},
+            {"type": "turn.completed", "usage": {}},
+        ]
+        def jsonl(events):
+            return "\n".join(json.dumps(event) for event in events)
+        self.assertEqual((THREAD_ID, "分析完成"), parse_exec_turn(jsonl(frames)))
+        for invalid in (
+            frames[:-1],
+            frames[1:],
+            frames[:2] + [{"type": "turn.failed"}],
+            frames[:1] + frames,
+            frames + [{"type": "error"}],
+            [{"type": "thread.started", "thread_id": "not-a-uuid"}] + frames[1:],
+        ):
+            with self.assertRaises(IntakeRejected):
+                parse_exec_turn(jsonl(invalid))
+        with self.assertRaises(IntakeRejected):
+            parse_exec_turn("not JSONL")
+
+    def test_native_workitem_exec_uses_persistent_jsonl_without_model(self) -> None:
+        intake, manual, run_id, scope = self.workitem_attempt("read")
+        submitted = intake.submit_workitem_task(run_id, scope)
+        bot = feishu_codex_bot.FeishuCodexBot(
+            intake.config, mock.Mock(), mock.Mock(), intake.store,
+        )
+        bot.recover_pending()
+        job = bot.jobs.get_nowait()
+        runner = feishu_codex_bot.CodexRunner(intake.config)
+        frames = [
+            {"type": "thread.started", "thread_id": THREAD_ID},
+            {"type": "turn.started"},
+            {"type": "item.completed", "item": {"type": "agent_message", "text": "完成"}},
+            {"type": "turn.completed", "usage": {}},
+        ]
+        process = mock.Mock()
+        process.returncode = 0
+        process.communicate.return_value = ("\n".join(json.dumps(f) for f in frames), "")
+        with mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process) as popen:
+            result = runner.run(job, "", persistent_session=True)
+        arguments = popen.call_args.args[0]
+        self.assertIn("--json", arguments)
+        self.assertNotIn("--ephemeral", arguments)
+        self.assertIn("read-only", arguments)
+        self.assertEqual(THREAD_ID, result.thread_id)
+        self.assertEqual(self.tmp, result.thread_cwd)
+        self.assertEqual("完成", result.text)
+        self.assertIsNone(result.worktree_path)
+        process.communicate.return_value = ('{"type":"thread.started"}', "")
+        with mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process):
+            with self.assertRaises(feishu_codex_bot.CodexOutcomeUnknown):
+                runner.run(job, "", persistent_session=True)
+
     def test_agent_codex_identity_isolated_from_personal_home_and_auth(self) -> None:
         config = self.intake().config
         runner = feishu_codex_bot.CodexRunner(config)
@@ -224,13 +284,24 @@ class FeishuAgentMCPTests(unittest.TestCase):
         job = bot.jobs.get_nowait()
         self.assertEqual("edit", job.mode)
         self.assertEqual(scope, job.task)
-        bot._transition_agent_run(job.task_id, "running", strict=True)
+        expected = intake.config.repository("codex").worktree_root / f"task-{job.task_id}"
         result = feishu_codex_bot.ExecutionResult(
-            "本地修改完成", "codex/agent-run", "a" * 40, self.tmp,
+            "本地修改完成", "codex/agent-run", "a" * 40, expected,
+            thread_id=THREAD_ID, thread_cwd=expected,
         )
-        bot._finish_agent_run(job, result)
+        bot.runner.run.return_value = result
+        bot.transport.resolve_sources.return_value = ""
+        with mock.patch.object(bot.jobs, "get", side_effect=[job, SystemExit]), \
+                mock.patch.object(bot.jobs, "task_done"):
+            with self.assertRaises(SystemExit):
+                bot.worker()
+        bot.runner.run.assert_called_once_with(job, "", persistent_session=True)
         final = intake.get_workitem_task(run_id)
         self.assertEqual("waiting_ci", final["run_status"])
+        self.assertEqual("completed", final["task"]["status"])
+        self.assertEqual(THREAD_ID, final["session"]["thread_id"])
+        self.assertEqual(str(expected), final["session"]["repo_path"])
+        self.assertEqual(str(self.agent_home), final["session"]["codex_home"])
         with sqlite3.connect(str(manual.store.path)) as db:
             evidence = db.execute(
                 "SELECT evidence_type,reference,verified FROM fea_evidence WHERE run_id=?",
@@ -250,11 +321,13 @@ class FeishuAgentMCPTests(unittest.TestCase):
         self.assertTrue(bot.store.claim_queued(job.task_id))
         bot._transition_agent_run(job.task_id, "running", strict=True)
         commit = "b" * 40
-        bot.store.record_result(job.task_id, "codex/agent-run", commit, self.tmp)
+        expected = intake.config.repository("codex").worktree_root / f"task-{job.task_id}"
+        bot.store.record_result(job.task_id, "codex/agent-run", commit, expected)
         bot._finish_agent_run(
             job,
             feishu_codex_bot.ExecutionResult(
-                "本地修改完成", "codex/agent-run", commit, self.tmp,
+                "本地修改完成", "codex/agent-run", commit, expected,
+                thread_id=THREAD_ID, thread_cwd=expected,
             ),
         )
         self.assertEqual("running", intake.get_task(submitted["id"])["status"])

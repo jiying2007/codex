@@ -32,7 +32,8 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [x] 既有 Bot worker 同步 AgentRun 与 task 状态；仅凭持久终态和 commit evidence 修复窄恢复窗口，不把 CI/QA 当作已完成。
 [x] 模型调用默认禁用；MCP 入口不直接启动模型，WorkItem 执行仅由明确启用的独立非共享计费身份交给既有 worker。
 [ ] `vstrong100` 实测独立 API 凭据、专用 CODEX_HOME、MCP/Bot 同 UID、Codex CLI 实际 provider、资源/费用与故障恢复。
-[ ] App Server persistent thread 与 AgentRun 的生产执行调度接线；当前 MCP bridge 仍走 legacy ephemeral `codex exec`，不宣称连续原生会话已完成。
+[x] 既有 worker 对关联 WorkItem 使用持久 `codex exec --json`；精确 thread/终态回执绑定到 AgentRun、host、实际工作目录和专用 CODEX_HOME，通过本机 MCP 查询。
+[ ] 真实主机验证会话持久化；同一线程的后续远程回合及中断尚未接线。
 
 ## TASK-004 — 真实来源读取可选增强
 [x] `workitems.py`：TAPD Story/Bug + 飞书项目 Meegle 只读适配器，验证来源/空间/类型/版本。

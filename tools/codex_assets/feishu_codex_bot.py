@@ -12,6 +12,7 @@ import pathlib
 import queue
 import re
 import shutil
+import socket
 import sqlite3
 import stat
 import subprocess
@@ -1327,6 +1328,8 @@ class ExecutionResult:
     branch_name: str = ""
     commit_hash: str = ""
     worktree_path: Optional[pathlib.Path] = None
+    thread_id: str = ""
+    thread_cwd: Optional[pathlib.Path] = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1657,7 +1660,11 @@ class CodexRunner:
             environment["OPENAI_BASE_URL"] = self.config.agent_openai_base_url
         return git_guard_environment(environment, self.config.deny_push_hooks_path)
 
-    def run(self, job: BotJob, source_context: str = "") -> ExecutionResult:
+    def run(
+        self, job: BotJob, source_context: str = "", *, persistent_session: bool = False,
+    ) -> ExecutionResult:
+        if persistent_session and not job.sender_open_id.startswith("agent:"):
+            raise FeishuCodexError("持久研发会话必须由已授权的本机 Agent 执行")
         repository = self.config.repository(job.repository)
         working_directory = repository.path
         branch_name = ""
@@ -1676,7 +1683,7 @@ class CodexRunner:
         )
         codex_arguments = [
             "exec",
-            "--ephemeral",
+            "--json" if persistent_session else "--ephemeral",
             "--sandbox",
             "workspace-write" if job.mode == "edit" else "read-only",
             "-C",
@@ -1717,10 +1724,28 @@ class CodexRunner:
             if canceled:
                 raise TaskCanceled("任务已取消")
             if process.returncode != 0:
+                if persistent_session:
+                    raise CodexOutcomeUnknown("Codex 持久会话执行失败，效果待核对；禁止自动重试")
                 raise FeishuCodexError(f"Codex 执行失败，退出码 {process.returncode}")
-            rendered = stdout.strip() or "Codex 未返回可显示的结果。"
+            thread_id = ""
+            thread_cwd = None
+            if persistent_session:
+                from .feishu_engineering_agent.sessions import parse_exec_turn
+                from .feishu_engineering_agent.models import IntakeRejected
+                try:
+                    thread_id, rendered = parse_exec_turn(stdout)
+                except IntakeRejected as exc:
+                    raise CodexOutcomeUnknown(
+                        "Codex 原生会话或终态回执不完整；禁止自动重试"
+                    ) from exc
+                thread_cwd = working_directory
+            else:
+                rendered = stdout.strip()
+            rendered = rendered or "Codex 未返回可显示的结果。"
             if job.mode != "edit":
-                return ExecutionResult(rendered)
+                return ExecutionResult(
+                    rendered, thread_id=thread_id, thread_cwd=thread_cwd,
+                )
             commit_hash = self.worktrees.verify_and_commit(
                 working_directory,
                 repository,
@@ -1733,6 +1758,7 @@ class CodexRunner:
                     f"{rendered}\n\n本地交付：直接修改 {working_directory}；"
                     "未创建分支，未提交，未执行 push。",
                     worktree_path=working_directory,
+                    thread_id=thread_id, thread_cwd=thread_cwd,
                 )
             commit_line = commit_hash[:12] if commit_hash else "未提交（策略已禁用提交）"
             return ExecutionResult(
@@ -1740,6 +1766,7 @@ class CodexRunner:
                 branch_name,
                 commit_hash,
                 working_directory,
+                thread_id=thread_id, thread_cwd=thread_cwd,
             )
         finally:
             with self._lock:
@@ -2161,6 +2188,25 @@ class FeishuCodexBot:
         if link is None or self._manual_service is None:
             return
         run = self._manual_service.store.get_run(link["agent_run_id"])
+        from .feishu_engineering_agent.sessions import SessionRegistry
+
+        repository = self.config.repository(job.repository)
+        expected_cwd = repository.path
+        if run["mode"] == "edit":
+            if repository.worktree_root is None:
+                raise CodexOutcomeUnknown("研发会话缺少受控 worktree")
+            expected_cwd = repository.worktree_root / f"task-{job.task_id}"
+        if (not result.thread_id or result.thread_cwd != expected_cwd
+                or (run["mode"] == "edit" and result.worktree_path != expected_cwd)
+                or self.config.agent_codex_home is None):
+            raise CodexOutcomeUnknown("研发会话回执与执行工作区不一致；禁止自动重试")
+        try:
+            SessionRegistry(self._manual_service.store).bind_worker_result(
+                run["run_id"], socket.gethostname(), str(expected_cwd),
+                str(self.config.agent_codex_home), result.thread_id,
+            )
+        except Exception as exc:
+            raise CodexOutcomeUnknown("无法持久化精确研发会话回执") from exc
         if run["mode"] in ("read", "review"):
             self._transition_agent_run(job.task_id, "completed", strict=True)
             return
@@ -2595,7 +2641,12 @@ class FeishuCodexBot:
                     source_context = self.transport.resolve_sources(job.sources)
                     if len(job.task) + len(source_context) > self.config.max_prompt_chars:
                         raise FeishuCodexError("任务与关联上下文超过提示预算；请缩小 range 或减少引用")
-                    result = self.runner.run(job, source_context)
+                    if self._agent_run_link(job.task_id) is not None:
+                        result = self.runner.run(
+                            job, source_context, persistent_session=True,
+                        )
+                    else:
+                        result = self.runner.run(job, source_context)
                     if result.worktree_path is not None:
                         self.store.record_result(
                             job.task_id,

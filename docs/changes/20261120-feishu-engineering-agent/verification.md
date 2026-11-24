@@ -37,6 +37,8 @@ python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
 
 ### 本机 MCP WorkItem 纵向合同
 
+关联 WorkItem 的 worker 使用原生持久 `codex exec --json`。离线测试覆盖实际 worker 调用边界（假 subprocess）、无效或不完整终态拒绝、只回传 agent_message、精确 thread/host/cwd/专用 CODEX_HOME 回执。原生 transcript 留在专用私有目录，不写入任务账本。查询回执不等于授权继续执行；真实主机持久化、恢复与同线程后续回合仍待验证。
+
 离线回归必须覆盖以下完整链路：`/wi add` → `/wi attempt`（精确 scope SHA-256）→ `submit_workitem_task` → 既有 Bot spool/worker → `get_workitem_task`。MCP 进程不启动 Codex；worker 只使用独立专用 `CODEX_HOME` 与私有 API 凭据。负向测试必须证明：共享计费、个人 `auth.json`、Unix UID/仓库/模式/范围不匹配、策略指纹变化、孤儿任务和 spool 丢失均拒绝或进入 UNKNOWN，绝不重绑或自动重放。Edit 只到 `waiting_ci` + 未验证 commit evidence；不伪称 PR/CI/QA 已通过。
 
 目标主机 `vstrong100` 必须另外核验：私有环境文件 0600、Agent CODEX_HOME 目录 0700 且无 `auth.json`、Bot 与本机 MCP 同 UID、实际 Codex provider 只读取该专用 API key/base URL、没有回退到个人 ChatGPT 登录目录。仅仅设置 `FEISHU_AGENT_BILLING_SOURCE` 文本值不是计费身份凭证。
