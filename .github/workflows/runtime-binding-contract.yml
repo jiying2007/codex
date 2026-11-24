@@ -3,38 +3,8 @@ name: Runtime Binding Contract
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
-    paths:
-      - 'manifests/**'
-      - 'src/codex-home/**'
-      - 'tools/codex_assets/**'
-      - 'tests/**'
-      - 'scripts/**'
-      - 'schemas/**'
-      - 'vendor/wheels/**'
-      - 'docs/execution-policy.md'
-      - 'docs/session-bootstrap.md'
-      - 'docs/small-team-delivery.md'
-      - 'docs/adk-source-upgrade.md'
-      - 'AGENTS.md'
-      - 'README.md'
-      - '.github/workflows/runtime-binding-contract.yml'
   push:
     branches: [main]
-    paths:
-      - 'manifests/**'
-      - 'src/codex-home/**'
-      - 'tools/codex_assets/**'
-      - 'tests/**'
-      - 'scripts/**'
-      - 'schemas/**'
-      - 'vendor/wheels/**'
-      - 'docs/execution-policy.md'
-      - 'docs/session-bootstrap.md'
-      - 'docs/small-team-delivery.md'
-      - 'docs/adk-source-upgrade.md'
-      - 'AGENTS.md'
-      - 'README.md'
-      - '.github/workflows/runtime-binding-contract.yml'
   workflow_dispatch:
     inputs:
       audit_adk_candidate:
@@ -47,6 +17,7 @@ permissions:
 
 jobs:
   contract:
+    name: Runtime Binding Contract (${{ matrix.python-version }})
     runs-on: ubuntu-24.04
     strategy:
       matrix:

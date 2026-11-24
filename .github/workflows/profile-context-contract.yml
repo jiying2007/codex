@@ -2,52 +2,8 @@ name: Profile Context Contract
 
 on:
   pull_request:
-    paths:
-      - 'manifests/profiles.json'
-      - 'manifests/assets.json'
-      - 'manifests/skills.json'
-      - 'manifests/workflows.json'
-      - 'manifests/workflow_recipes.json'
-      - 'manifests/project-templates.json'
-      - 'manifests/integrations/**'
-      - 'tools/codex_assets/core.py'
-      - 'tools/codex_assets/governance.py'
-      - 'tools/codex_assets/routing_precedence.py'
-      - 'tools/codex_assets/session_bootstrap.py'
-      - 'tools/codex_assets/skill_catalog.py'
-      - 'tests/test_skill_catalog.py'
-      - 'tests/test_profile_documentation.py'
-      - 'tests/test_activity_reporting_skills.py'
-      - 'tests/test_retired_profile.py'
-      - 'tests/smoke.sh'
-      - 'README.md'
-      - 'docs/**'
-      - 'src/codex-home/skills/README.md'
-      - '.github/workflows/profile-context-contract.yml'
   push:
     branches: [main]
-    paths:
-      - 'manifests/profiles.json'
-      - 'manifests/assets.json'
-      - 'manifests/skills.json'
-      - 'manifests/workflows.json'
-      - 'manifests/workflow_recipes.json'
-      - 'manifests/project-templates.json'
-      - 'manifests/integrations/**'
-      - 'tools/codex_assets/core.py'
-      - 'tools/codex_assets/governance.py'
-      - 'tools/codex_assets/routing_precedence.py'
-      - 'tools/codex_assets/session_bootstrap.py'
-      - 'tools/codex_assets/skill_catalog.py'
-      - 'tests/test_skill_catalog.py'
-      - 'tests/test_profile_documentation.py'
-      - 'tests/test_activity_reporting_skills.py'
-      - 'tests/test_retired_profile.py'
-      - 'tests/smoke.sh'
-      - 'README.md'
-      - 'docs/**'
-      - 'src/codex-home/skills/README.md'
-      - '.github/workflows/profile-context-contract.yml'
   workflow_dispatch:
 
 permissions:
@@ -59,6 +15,7 @@ concurrency:
 
 jobs:
   contract:
+    name: Profile Context Contract (${{ matrix.python-version }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false

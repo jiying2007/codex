@@ -2,34 +2,8 @@ name: Full Regression
 
 on:
   pull_request:
-    paths:
-      - 'manifests/**'
-      - 'src/codex-home/**'
-      - 'tools/**'
-      - 'tests/**'
-      - 'scripts/**'
-      - 'schemas/**'
-      - 'mcp/**'
-      - 'vendor/**'
-      - 'docs/**'
-      - 'AGENTS.md'
-      - 'README.md'
-      - '.github/workflows/full-regression.yml'
   push:
     branches: [main]
-    paths:
-      - 'manifests/**'
-      - 'src/codex-home/**'
-      - 'tools/**'
-      - 'tests/**'
-      - 'scripts/**'
-      - 'schemas/**'
-      - 'mcp/**'
-      - 'vendor/**'
-      - 'docs/**'
-      - 'AGENTS.md'
-      - 'README.md'
-      - '.github/workflows/full-regression.yml'
   workflow_dispatch:
 
 permissions:
@@ -37,6 +11,7 @@ permissions:
 
 jobs:
   full:
+    name: Full Regression (${{ matrix.python-version }})
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
