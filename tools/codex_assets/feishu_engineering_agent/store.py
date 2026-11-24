@@ -27,10 +27,16 @@ class OfflineIntakeStore:
                 or self.path.name == "feishu-codex-state.sqlite3"):
             raise IntakeRejected("offline preview DB needs a separate absolute safe path")
         if not self.path.exists():
-            descriptor = os.open(
-                str(self.path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600,
-            )
-            os.close(descriptor)
+            try:
+                descriptor = os.open(
+                    str(self.path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600,
+                )
+            except FileExistsError:
+                # Concurrent first access must validate the existing private
+                # file, not create a second ledger or discard its contents.
+                pass
+            else:
+                os.close(descriptor)
         info = self.path.lstat()
         if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
                 or stat.S_IMODE(info.st_mode) & 0o077):

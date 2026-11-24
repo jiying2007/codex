@@ -19,13 +19,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--db", default="")
     parser.add_argument("--spool", default="")
     parser.add_argument("--private-policy", default="")
+    parser.add_argument("--private-env", default="", help="optional private environment file; backup remains sensitive")
     parser.add_argument("--backup-dir", default="")
     parser.add_argument("--consumer-paused", action="store_true",
                         help="operator has verified old consumer is stopped/frozen")
     args = parser.parse_args(argv)
     try:
         if args.action == "rehearse":
-            if not args.backup_dir or args.db or args.spool or args.private_policy:
+            if not args.backup_dir or args.db or args.spool or args.private_policy or args.private_env or args.consumer_paused:
                 parser.error("rehearse needs only --backup-dir")
             report = MigrationPlan.rehearse_restore(pathlib.Path(args.backup_dir))
         else:
@@ -34,6 +35,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             plan = MigrationPlan(
                 pathlib.Path(args.db), pathlib.Path(args.spool),
                 pathlib.Path(args.private_policy) if args.private_policy else None,
+                pathlib.Path(args.private_env) if args.private_env else None,
             )
             if args.action == "inspect":
                 if args.backup_dir or args.consumer_paused:

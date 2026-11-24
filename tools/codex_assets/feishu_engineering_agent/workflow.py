@@ -17,7 +17,7 @@ import uuid
 from typing import Iterable
 
 from .models import EventConflict, InboundEvent, IntakeRejected, WorkItemKey, _check_id, check_repo_alias
-from .sessions import RuntimeGrant
+from .sessions import RuntimeGrant, SessionRegistry
 from .state import RunStore
 
 
@@ -48,9 +48,55 @@ class ExecutionApproval:
                           sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
+def local_agent_policy_digest(
+    unix_uid: int, repo: str, mode: str, billing_source: str,
+    agent_allowed_modes: Iterable[str], edit_strategy: str,
+    commit_enabled: bool, *, repo_path: str = "", base_ref: str = "",
+    worktree_root: str = "", branch_prefix: str = "",
+    allowed_modes: Iterable[str] = (),
+    verification_commands: Iterable[Iterable[str]] = (),
+    agent_codex_home: str = "", openai_base_url: str = "",
+    credential_fingerprint: str = "", codex_bin: str = "",
+    isolation_bin: str = "", deny_push_hooks_path: str = "",
+    deny_read_paths: Iterable[str] = (),
+    isolation_write_paths: Iterable[str] = (),
+    codex_timeout_sec: int = 0, max_prompt_chars: int = 0,
+) -> str:
+    """Canonical digest of the operator-controlled local MCP execution policy."""
+    payload = {
+        "unix_uid": int(unix_uid),
+        "repo": check_repo_alias(repo),
+        "mode": mode,
+        "billing_source": billing_source,
+        "repo_path": repo_path,
+        "base_ref": base_ref,
+        "worktree_root": worktree_root,
+        "branch_prefix": branch_prefix,
+        "allowed_modes": sorted(set(allowed_modes)),
+        "agent_allowed_modes": sorted(set(agent_allowed_modes)),
+        "edit_strategy": edit_strategy,
+        "commit_enabled": bool(commit_enabled),
+        "verification_commands": [list(command) for command in verification_commands],
+        "agent_codex_home": str(agent_codex_home),
+        "openai_base_url": str(openai_base_url),
+        "credential_fingerprint": str(credential_fingerprint),
+        "codex_bin": str(codex_bin),
+        "isolation_bin": str(isolation_bin),
+        "deny_push_hooks_path": str(deny_push_hooks_path),
+        "deny_read_paths": sorted(str(path) for path in deny_read_paths),
+        "isolation_write_paths": sorted(str(path) for path in isolation_write_paths),
+        "codex_timeout_sec": int(codex_timeout_sec),
+        "max_prompt_chars": int(max_prompt_chars),
+    }
+    return hashlib.sha256(json.dumps(
+        payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+
+
 class EngineeringWorkflow:
     def __init__(self, store: RunStore):
         self.store = store
+        self.sessions = SessionRegistry(store)
         with contextlib.closing(store._connect()) as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS fea_attempt_links (
@@ -58,6 +104,7 @@ class EngineeringWorkflow:
                     content_digest TEXT NOT NULL,
                     source_run_id TEXT NOT NULL,
                     attempt_run_id TEXT NOT NULL UNIQUE,
+                    scope_sha256 TEXT NOT NULL DEFAULT '',
                     created_at INTEGER NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS fea_run_approvals (
@@ -68,11 +115,46 @@ class EngineeringWorkflow:
                     expires_at INTEGER NOT NULL,
                     authorized_at INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS fea_local_agent_approvals (
+                    run_id TEXT PRIMARY KEY,
+                    unix_uid INTEGER NOT NULL,
+                    repository TEXT NOT NULL,
+                    mode TEXT NOT NULL,
+                    scope_sha256 TEXT NOT NULL,
+                    billing_source TEXT NOT NULL,
+                    policy_sha256 TEXT NOT NULL,
+                    approved_at INTEGER NOT NULL
+                );
             """)
+            columns = {row["name"] for row in db.execute(
+                "PRAGMA table_info(fea_attempt_links)"
+            ).fetchall()}
+            if "scope_sha256" not in columns:
+                db.execute(
+                    "ALTER TABLE fea_attempt_links "
+                    "ADD COLUMN scope_sha256 TEXT NOT NULL DEFAULT ''"
+                )
+
+    def create_continuation(
+        self, previous_run_id: str, event: InboundEvent,
+        allowed_repos: Iterable[str], scope_sha256: str,
+    ) -> dict:
+        previous = self.store.get_run(previous_run_id, event)
+        with contextlib.closing(self.store._connect()) as db:
+            link = db.execute(
+                "SELECT source_run_id FROM fea_attempt_links WHERE attempt_run_id=?",
+                (previous_run_id,),
+            ).fetchone()
+            if link is None:
+                raise IntakeRejected("continuation requires a previous WorkItem attempt")
+        return self.create_attempt(
+            link["source_run_id"], event, previous["mode"], allowed_repos,
+            scope_sha256, resume_from=previous_run_id,
+        )
 
     def create_attempt(
         self, source_run_id: str, event: InboundEvent, mode: str,
-        allowed_repos: Iterable[str],
+        allowed_repos: Iterable[str], scope_sha256: str = "", *, resume_from: str = "",
     ) -> dict:
         """One registered WorkItem can have many independent run attempts.
 
@@ -81,6 +163,10 @@ class EngineeringWorkflow:
         """
         if mode not in ("read", "review", "edit"):
             raise IntakeRejected("unsupported execution attempt mode")
+        if (scope_sha256 and (
+                not isinstance(scope_sha256, str) or len(scope_sha256) != 64
+                or any(char not in "0123456789abcdef" for char in scope_sha256))):
+            raise IntakeRejected("execution attempt scope digest must be SHA-256")
         parent = self.store.get_run(source_run_id, event)
         if not parent["workitem_fp"] or not parent["provider"]:
             raise IntakeRejected("source run lacks verified WorkItem linkage metadata")
@@ -94,7 +180,7 @@ class EngineeringWorkflow:
             db.execute("BEGIN IMMEDIATE")
             try:
                 previous = db.execute(
-                    "SELECT content_digest,source_run_id,attempt_run_id "
+                    "SELECT content_digest,source_run_id,attempt_run_id,scope_sha256 "
                     "FROM fea_attempt_links WHERE event_key=?",
                     (event.event_key,),
                 ).fetchone()
@@ -103,8 +189,16 @@ class EngineeringWorkflow:
                         raise EventConflict("same event identity with changed scope")
                     if previous["source_run_id"] != source_run_id:
                         raise IntakeRejected("replayed event cannot change WorkItem source")
+                    if previous["scope_sha256"] != scope_sha256:
+                        raise IntakeRejected("replayed attempt cannot change approved scope")
+                    followup = db.execute(
+                        "SELECT previous_run_id FROM fea_session_followups WHERE run_id=?",
+                        (previous["attempt_run_id"],),
+                    ).fetchone()
+                    if (followup["previous_run_id"] if followup is not None else "") != resume_from:
+                        raise IntakeRejected("replayed attempt cannot change continuation identity")
                     row = db.execute(
-                        "SELECT repo,mode FROM fea_runs WHERE run_id=?",
+                        "SELECT repo,mode,status FROM fea_runs WHERE run_id=?",
                         (previous["attempt_run_id"],),
                     ).fetchone()
                     if (row is None or row["repo"] != parent["repo"]
@@ -112,7 +206,8 @@ class EngineeringWorkflow:
                         raise IntakeRejected("replayed attempt no longer matches scope")
                     db.rollback()
                     return {"run_id": previous["attempt_run_id"],
-                            "created": False, "model_invoked": False}
+                            "created": False, "status": row["status"],
+                            "mode": row["mode"], "model_invoked": False}
                 db.execute(
                     "INSERT INTO fea_runs "
                     "(run_id,tenant,chat,actor,repo,mode,provider,workspace,kind,"
@@ -125,16 +220,139 @@ class EngineeringWorkflow:
                 )
                 db.execute(
                     "INSERT INTO fea_attempt_links "
-                    "(event_key,content_digest,source_run_id,attempt_run_id,created_at)"
-                    " VALUES (?,?,?,?,?)",
-                    (event.event_key, event.content_digest, source_run_id, child_id, when),
+                    "(event_key,content_digest,source_run_id,attempt_run_id,scope_sha256,created_at)"
+                    " VALUES (?,?,?,?,?,?)",
+                    (event.event_key, event.content_digest, source_run_id, child_id,
+                     scope_sha256, when),
                 )
+                if resume_from:
+                    previous_source = db.execute(
+                        "SELECT source_run_id FROM fea_attempt_links WHERE attempt_run_id=?",
+                        (resume_from,),
+                    ).fetchone()
+                    if (previous_source is None
+                            or previous_source["source_run_id"] != source_run_id):
+                        raise IntakeRejected("continuation source identity mismatch")
+                    self.sessions.reserve_followup(db, child_id, resume_from)
                 db.commit()
             except Exception:
                 db.rollback()
                 raise
         return {"run_id": child_id, "created": True,
                 "status": "proposed", "mode": mode, "model_invoked": False}
+
+    def authorize_local_agent_queue(
+        self, run_id: str, event: InboundEvent, unix_uid: int,
+        allowed_repos: Iterable[str], allowed_modes: Iterable[str],
+        scope_sha256: str, billing_source: str, policy_sha256: str,
+        now: int = None,
+    ) -> dict:
+        """Authorize a same-UID local MCP handoff under the existing Bot policy.
+
+        This is deliberately separate from the signed App Server grant path.
+        It is available only when the operator has enabled the local Agent MCP,
+        the repository's agent mode allowlist, and a non-shared billing source.
+        The exact WorkItem attempt scope and policy snapshot are persisted.
+        """
+        when = int(time.time()) if now is None else int(now)
+        if not isinstance(unix_uid, int) or isinstance(unix_uid, bool) or unix_uid < 0:
+            raise IntakeRejected("invalid local Agent Unix identity")
+        for name, value in (("scope_sha256", scope_sha256),
+                            ("policy_sha256", policy_sha256)):
+            if (not isinstance(value, str) or len(value) != 64
+                    or any(char not in "0123456789abcdef" for char in value)):
+                raise IntakeRejected("invalid " + name)
+        if billing_source not in ("external_api_key", "external_gateway", "self_hosted"):
+            raise IntakeRejected("WorkItem execution requires a non-shared approved billing source")
+        record = self.store.get_run(run_id, event)
+        allowed = {check_repo_alias(value) for value in allowed_repos}
+        bot_mode = {"read": "explain", "review": "review", "edit": "edit"}.get(record["mode"])
+        if record["repo"] not in allowed or bot_mode not in set(allowed_modes):
+            raise IntakeRejected("local Agent repository or mode is not authorized")
+        with contextlib.closing(self.store._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                link = db.execute(
+                    "SELECT source_run_id,scope_sha256 FROM fea_attempt_links "
+                    "WHERE attempt_run_id=?", (run_id,),
+                ).fetchone()
+                if link is None or link["scope_sha256"] != scope_sha256:
+                    raise IntakeRejected("task text does not match the registered WorkItem attempt scope")
+                source = db.execute(
+                    "SELECT 1 FROM fea_manual_claims WHERE run_id=?",
+                    (link["source_run_id"],),
+                ).fetchone()
+                if source is None:
+                    raise IntakeRejected("local MCP bridge requires a manually registered WorkItem source")
+                continuation = db.execute(
+                    "SELECT previous_run_id FROM fea_session_followups WHERE run_id=?",
+                    (run_id,),
+                ).fetchone()
+                previous = db.execute(
+                    "SELECT * FROM fea_local_agent_approvals WHERE run_id=?",
+                    (run_id,),
+                ).fetchone()
+                if continuation is not None and previous is None:
+                    self.sessions.require_successful_predecessor(db, continuation["previous_run_id"])
+                    prior_approval = db.execute(
+                        "SELECT unix_uid,policy_sha256,billing_source FROM fea_local_agent_approvals "
+                        "WHERE run_id=?", (continuation["previous_run_id"],),
+                    ).fetchone()
+                    if (prior_approval is None or tuple(prior_approval) != (
+                            unix_uid, policy_sha256, billing_source)):
+                        raise IntakeRejected("continuation runtime policy changed since the previous turn")
+                if previous is not None:
+                    expected = (unix_uid, record["repo"], record["mode"],
+                                scope_sha256, billing_source, policy_sha256)
+                    actual = tuple(previous[key] for key in (
+                        "unix_uid", "repository", "mode", "scope_sha256",
+                        "billing_source", "policy_sha256",
+                    ))
+                    if actual != expected:
+                        raise IntakeRejected("local Agent approval conflicts with the existing Run")
+                    current = db.execute(
+                        "SELECT status FROM fea_runs WHERE run_id=?", (run_id,),
+                    ).fetchone()
+                    if current is None or current["status"] not in (
+                            "queued", "running", "waiting_ci", "waiting_qa", "completed"):
+                        raise IntakeRejected("previously authorized Run is no longer executable")
+                    db.rollback()
+                    return {"run_id": run_id, "authorized": False,
+                            "status": current["status"], "unix_uid": unix_uid}
+                current = db.execute(
+                    "SELECT status FROM fea_runs WHERE run_id=?", (run_id,),
+                ).fetchone()
+                if current is None or current["status"] not in ("proposed", "ready"):
+                    raise IntakeRejected("WorkItem attempt is not awaiting local execution")
+                db.execute(
+                    "INSERT INTO fea_local_agent_approvals "
+                    "(run_id,unix_uid,repository,mode,scope_sha256,billing_source,"
+                    "policy_sha256,approved_at) VALUES (?,?,?,?,?,?,?,?)",
+                    (run_id, unix_uid, record["repo"], record["mode"],
+                     scope_sha256, billing_source, policy_sha256, when),
+                )
+                revision_increment = 2 if current["status"] == "proposed" else 1
+                db.execute(
+                    "UPDATE fea_runs SET status='queued',revision=revision+?,updated_at=? "
+                    "WHERE run_id=?",
+                    (revision_increment, when, run_id),
+                )
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return {"run_id": run_id, "authorized": True,
+                "status": "queued", "unix_uid": unix_uid}
+
+    def local_agent_approval(self, run_id: str) -> dict:
+        with contextlib.closing(self.store._connect()) as db:
+            row = db.execute(
+                "SELECT * FROM fea_local_agent_approvals WHERE run_id=?",
+                (run_id,),
+            ).fetchone()
+        if row is None:
+            raise IntakeRejected("local Agent execution approval not found")
+        return dict(row)
 
     @staticmethod
     def sign_approval(approval: ExecutionApproval, secret: bytes) -> str:
@@ -175,6 +393,9 @@ class EngineeringWorkflow:
                 ).fetchone()
                 if not linked:
                     raise IntakeRejected("only explicit WorkItem development attempts may queue")
+                if db.execute("SELECT 1 FROM fea_session_followups WHERE run_id=?",
+                              (approval.run_id,)).fetchone() is not None:
+                    raise IntakeRejected("local continuation requires the existing Bot worker approval")
                 prior = db.execute(
                     "SELECT signed_digest FROM fea_run_approvals WHERE run_id=?",
                     (approval.run_id,),
@@ -221,8 +442,11 @@ class EngineeringWorkflow:
             approval.billing_source, approval.expires_at, approval.approval_ref,
         )
 
-    def status_for_source(self, source_run_id: str, event: InboundEvent) -> dict:
-        """Return source + all same-owner attempts, no raw user description."""
+    def status_for_source(self, source_run_id: str, event: InboundEvent,
+                          limit: int = 5) -> dict:
+        """Return recent same-owner attempts, bounded and without raw task text."""
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 20:
+            raise IntakeRejected("invalid WorkItem status limit")
         source = self.store.get_run(source_run_id, event)
         with contextlib.closing(self.store._connect()) as db:
             links = db.execute(
@@ -230,10 +454,13 @@ class EngineeringWorkflow:
                 "FROM fea_attempt_links a JOIN fea_runs r "
                 "ON r.run_id=a.attempt_run_id "
                 "WHERE a.source_run_id=? AND r.tenant=? AND r.chat=? AND r.actor=? "
-                "ORDER BY a.created_at,a.attempt_run_id",
-                (source_run_id, event.tenant, event.chat, event.actor),
+                "AND r.repo=? AND r.workitem_fp=? "
+                "ORDER BY r.updated_at DESC,a.created_at DESC,a.attempt_run_id DESC LIMIT ?",
+                (source_run_id, event.tenant, event.chat, event.actor,
+                 source["repo"], source["workitem_fp"], limit + 1),
             ).fetchall()
         return {"source_run_id": source_run_id,
                 "workitem_fp": source["workitem_fp"],
-                "attempts": [dict(r) for r in links],
+                "attempts": [dict(r) for r in links[:limit]],
+                "has_more": len(links) > limit,
                 "workitem_closed": False}

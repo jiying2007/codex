@@ -13,7 +13,7 @@ import re
 import sqlite3
 import time
 import uuid
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
 from .models import EventConflict, InboundEvent, IntakeRejected, WorkItemKey, check_repo_alias
 from .state import RunStore
@@ -29,8 +29,12 @@ _HELP = (
     "/wi add tapd 缺陷 <空间ID> <工作项ID> [repo=仓库别名] | 问题与验收描述\n"
     "/wi add feishu_project 需求 <空间ID> <工作项ID> [repo=仓库别名] | 需求与验收描述\n"
     "/wi list 最近登记；/wi status <完整Run ID> 查询状态\n"
+    "/wi cancel <完整尝试Run ID> 在既有 Bot 中取消关联的精确执行任务\n"
+    "/wi delivery <完整尝试Run ID> <PR号> <CI Run ID...> 只读核验全部必需 CI\n"
+    "/wi feedback <完整尝试Run ID> 生成可复制的研发交付反馈\n"
     "/wi handoff <完整Run ID> | 当前问题描述、验收要求及复现信息\n"
     "/wi attempt <来源Run ID> <read|review|edit> | 本次研发范围\n"
+    "/wi continue <上一轮成功Run ID> | 下一轮修改或分析要求\n"
     "/wi help；attempt 只创建待授权执行记录，不自动调用 Codex。"
 )
 
@@ -43,6 +47,8 @@ class ManualCommand:
     summary: str = ""
     run_id: str = ""
     mode: str = ""
+    pr_number: int = 0
+    ci_run_ids: Tuple[int, ...] = ()
 
 
 def is_manual_command(text: str) -> bool:
@@ -61,6 +67,17 @@ def parse_manual_command(text: str, tenant: str, default_repo: str) -> ManualCom
         return ManualCommand("help")
     if action == "list" and len(tokens) == 2 and not delimiter:
         return ManualCommand("list")
+    if action == "delivery" and not delimiter and 5 <= len(tokens) <= 12:
+        if (not _RUN_ID.fullmatch(tokens[2])
+                or any(not re.fullmatch(r"[1-9][0-9]{0,12}", value) for value in tokens[3:])
+                or len(set(tokens[4:])) != len(tokens[4:])):
+            raise IntakeRejected("delivery requires exact Run, numeric PR and unique CI run IDs")
+        return ManualCommand(action, run_id=tokens[2], pr_number=int(tokens[3]),
+                             ci_run_ids=tuple(int(value) for value in tokens[4:]))
+    if action in ("cancel", "feedback") and len(tokens) == 3 and not delimiter:
+        if not _RUN_ID.fullmatch(tokens[2]):
+            raise IntakeRejected("cancel/feedback requires an exact 32-hex attempt Run ID")
+        return ManualCommand(action, run_id=tokens[2])
     if action in ("status", "handoff") and len(tokens) == 3:
         if not _RUN_ID.fullmatch(tokens[2]):
             raise IntakeRejected("status/handoff requires an exact 32-hex Run ID")
@@ -73,6 +90,12 @@ def parse_manual_command(text: str, tenant: str, default_repo: str) -> ManualCom
                 raise IntakeRejected("handoff needs bounded current context")
             return ManualCommand("handoff", summary=current, run_id=tokens[2])
         raise IntakeRejected("status forbids extra text, handoff requires a | summary")
+    if action == "continue" and len(tokens) == 3 and delimiter:
+        current = summary.strip()
+        if (not _RUN_ID.fullmatch(tokens[2]) or not current or len(current) > 4000
+                or any(ord(x) < 32 and x not in "\n\t" for x in current)):
+            raise IntakeRejected("continue requires exact previous Run and bounded scope")
+        return ManualCommand("continue", run_id=tokens[2], summary=current)
     if action == "attempt" and len(tokens) == 4 and delimiter:
         if not _RUN_ID.fullmatch(tokens[2]) or tokens[3] not in ("read", "review", "edit"):
             raise IntakeRejected("attempt requires exact source Run ID and mode")
@@ -131,18 +154,47 @@ class ManualWorkItemService:
         cmd = parse_manual_command(event.text, event.tenant, default_repo)
         if cmd.action == "help":
             return _HELP
-        if cmd.action in ("status", "handoff"):
+        if cmd.action in ("cancel", "delivery"):
+            raise IntakeRejected("this command requires the existing Bot's live task owner")
+        if cmd.action in ("status", "handoff", "feedback"):
             record = self.store.get_run(cmd.run_id, event)
             if record["repo"] not in authorized:
                 raise IntakeRejected("repository access has changed")
+            if cmd.action == "feedback":
+                from .feedback import SourceFeedback
+                return SourceFeedback(self.store).draft(cmd.run_id, event)
             if cmd.action == "status":
-                return (
-                    "任务：" + record["run_id"] + "\n"
-                    "项目：" + record["repo"] + "\n"
-                    "状态：" + record["status"] + "\n"
-                    "工作项来源：用户提供，未通过原系统 API 核验\n"
-                    "执行授权：未由本命令授予；需求/缺陷仍在原系统验收。"
-                )
+                from .sessions import SessionRegistry
+                from .workflow import EngineeringWorkflow
+                linked = EngineeringWorkflow(self.store).status_for_source(cmd.run_id, event)
+                sessions = SessionRegistry(self.store)
+                receipt = sessions.receipt(cmd.run_id, event)
+                lineage = sessions.lineage(cmd.run_id, event)
+                lines = [
+                    "任务：" + record["run_id"],
+                    "项目：" + record["repo"],
+                    "状态：" + record["status"],
+                    "工作项来源：用户提供，未通过原系统 API 核验",
+                ]
+                if linked["attempts"]:
+                    lines.append("最近研发尝试（登记状态不代表研发完成）：")
+                    lines.extend(
+                        item["attempt_run_id"] + " " + item["mode"] + " " + item["status"]
+                        for item in linked["attempts"]
+                    )
+                    if linked["has_more"]:
+                        lines.append("仅显示最近 5 条；可用完整 Run ID 查询单条。")
+                if lineage["previous_run_id"]:
+                    lines.append("上一轮Run：" + lineage["previous_run_id"])
+                if lineage["next_run_id"]:
+                    lines.append("后续Run：" + lineage["next_run_id"])
+                if lineage["proposal_released"]:
+                    lines.append("本提案已撤销，未占用原会话的后续回合。")
+                if receipt is not None:
+                    lines.append("Codex thread：" + receipt["thread_id"])
+                    lines.append("已记录原生会话标识；不代表已获得继续执行授权。")
+                lines.append("执行授权：未由本命令授予；需求/缺陷仍在原系统验收。")
+                return "\n".join(lines)
             if record["status"] in ("unknown", "canceled", "blocked"):
                 raise IntakeRejected("cannot hand off an unknown/canceled/blocked run")
             with contextlib.closing(self.store._connect()) as db:
@@ -171,18 +223,26 @@ class ManualWorkItemService:
                 "代码写入、模型额度、Git 发布及设备操作仍需各自单独批准。"
                 "不得把 CI 通过视为产品/测试验收，也不得自动关闭原工作项。"
             )
-        if cmd.action == "attempt":
+        if cmd.action in ("attempt", "continue"):
             from .workflow import EngineeringWorkflow
-            outcome = EngineeringWorkflow(self.store).create_attempt(
-                cmd.run_id, event, cmd.mode, authorized,
-            )
+            workflow = EngineeringWorkflow(self.store)
+            digest = hashlib.sha256(cmd.summary.encode("utf-8")).hexdigest()
+            if cmd.action == "continue":
+                outcome = workflow.create_continuation(
+                    cmd.run_id, event, authorized, digest,
+                )
+            else:
+                outcome = workflow.create_attempt(
+                    cmd.run_id, event, cmd.mode, authorized, scope_sha256=digest,
+                )
             return (
-                "已建立独立研发 AgentRun（未执行）：\n"
-                + "来源Run：" + cmd.run_id + "\n"
+                ("已建立独立研发 AgentRun（未执行）：\n"
+                 if outcome["created"] else "已有研发 AgentRun（未重复创建或执行）：\n")
+                + ("上一轮Run：" if cmd.action == "continue" else "来源Run：") + cmd.run_id + "\n"
                 + "新Run：" + outcome["run_id"] + "\n"
-                + "模式：" + cmd.mode + "；状态：proposed\n"
+                + "模式：" + outcome["mode"] + "；状态：" + outcome["status"] + "\n"
                 + "本次范围（仅用于当前回复，未持久化）：" + cmd.summary + "\n"
-                + "仍需可信审批方签署精确任务范围、模型额度与执行权限；"
+                + "执行须由可信入口核验精确任务范围、模型额度与执行权限；"
                 + "机器人消息不能直接审批或启动模型。"
             )
         if cmd.action == "list":

@@ -27,8 +27,15 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [x] `appserver.py`：显式 host-qualified stdio initialize/initialized/thread resume/turn RPC；审批请求拒绝自动同意；不泄露 Feishu 凭据。
 [x] `workflow.py`：一 WorkItem 多 Run；精确范围、SDD 和外部费用授权 HMAC 后才可 queued。
 [x] `runtime_bridge.py`：turn/start 前存 effect receipt；ACK≠完成；turn/completed 关联验证；失败、重启/中断 UNKNOWN。
-[x] 模型调用默认禁用，不消耗 Codex/Work 共享额度。
-[ ] `vstrong100` 实测原生协议、精确 resume、实际审批、中断、资源/费用与会话恢复。
+[x] `feishu_agent_mcp.py`：本机 stdio MCP 将精确 WorkItem AgentRun/scope hash 接入既有 Bot SQLite/spool/worker；一对一任务回执、幂等和 UNKNOWN 不重放。
+[x] Agent 执行使用专用 0700 `CODEX_HOME` + 私有 API key / gateway base URL；拒绝个人 `auth.json`、共享计费标识，并在执行前复核仓库/工作区/验证策略指纹。
+[x] 既有 Bot worker 同步 AgentRun 与 task 状态；仅凭持久终态和 commit evidence 修复窄恢复窗口，不把 CI/QA 当作已完成。
+[x] 模型调用默认禁用；MCP 入口不直接启动模型，WorkItem 执行仅由明确启用的独立非共享计费身份交给既有 worker。
+[ ] `vstrong100` 实测独立 API 凭据、专用 CODEX_HOME、MCP/Bot 同 UID、Codex CLI 实际 provider、资源/费用与故障恢复。
+[x] 既有 worker 对关联 WorkItem 使用持久 `codex exec --json`；精确 thread/终态回执绑定到 AgentRun、host、实际工作目录和专用 CODEX_HOME，通过本机 MCP 查询。
+[x] 飞书 `/wi cancel <attemptRunID>` 使用现有 Bot 精确取消排队任务，或仅请求终止其本机 CLI 进程；不以发送信号冒充已完成中断。
+[x] `/wi continue <上一轮RunID> | 新范围` 创建独立待授权的后续回合；沿唯一前序绑定复用本机 Codex thread 和原 worktree，保留历史 commit；精确范围与当前策略重新授权。已有 PR/CI 证据的 edit 不允许复用原分支，已保留后续回合的旧 Run 不再发布或接收 PR/CI 证据。
+[ ] 真实主机验证连续 `codex exec resume`、Git 工作树、会话持久化和进程终止；App Server turn/interrupt 尚未接线。
 
 ## TASK-004 — 真实来源读取可选增强
 [x] `workitems.py`：TAPD Story/Bug + 飞书项目 Meegle 只读适配器，验证来源/空间/类型/版本。
@@ -71,3 +78,20 @@ Date: 2026-11-20. Scope: personal/small team, one existing Feishu Bot consumer.
 [ ] 以上源码补丁仍需本次新 HEAD 全量 CI 才可标记为已验证；生产主机与真实模型/设备现场试验统一后移。
 
 [x] 模型执行授权收据保存签名时精确到期时间；真实分发不能通过手工扩大 RuntimeGrant 有效期，CI 负向测试无模型副作用。
+
+[x] WorkItem 文本状态列出最近五个同权限研发尝试，精确 Run 查询可见已记录 thread ID；重复 attempt 返回真实状态而不重复执行。
+[x] 本机 MCP 发布在既有 Bot SQLite writer 事务中创建 task/link 并写入私有 spool，防止并发观察半发布状态；失败保留 UNKNOWN，启动清理与发布串行；仍需精确 HEAD CI 核验。
+
+[x] 连续研发状态包含前序与有效后续 Run；未授权的 proposed 后续回合可撤销并释放预留关联，保留取消记录，不重复执行。真实 Git fixture 验证同一 worktree 后续提交及拒绝脏工作区/漂移 HEAD。
+
+[x] 既有本机 MCP 增加 `verify_workitem_delivery` 与 `accept_workitem_qa`；从完成的 Bot task 读取精确 commit/branch，按每仓配置的 GitHub 仓库/基线/全部必需 workflow 校验已存在 PR 及 CI，原子记录证据并进入 waiting_qa；独立签名 QA 前再次读取原证据，完成研发 Run 后不关闭原工单。
+[x] `/wi feedback <attemptRunID>` 输出可复制的真实已核验交付引用；无企业 API 依赖；仍需精确 HEAD CI 与实际主机/API/QA 验证。
+
+[x] 既有授权飞书消息 `/wi delivery <attemptRunID> <PR号> <CI Run ID...>` 复用同一 MCP 交付核验逻辑；严格身份与 repo 授权、数字 ID、无外部写/模型调用；不增加消费者。
+
+[x] 合并 #79 原生 App Server 协议改进至唯一 #80 候选；该协议仅用于离线资格测试，生产执行统一使用既有 CodexRunner CLI，不新增第二个运行时。
+[x] 迁移备份自动包含 sibling AgentRun DB（若存在），核对 Bot/AgentRun 任务身份及模式，保留私有环境文件可选备份，缺失关联或不匹配拒绝通过；恢复演练双库检查。
+
+[x] Bot/MCP/check 共用 WorkItem ledger 解析；已有任务关联但 sibling DB 缺失拒绝新建空库，明确恢复双库快照；新 Bot SQLite 0600、既有 DB/WAL/SHM 私有检查，systemd UMask=0077。离线回归不重启真实服务。
+
+[x] 收敛 MCP 与 Worker 重复的 WorkItem policy SHA / task digest 计算；保留原 canonical 指纹格式；Worker 获取 repo lock 后、启动模型前重新读取私有 spool 和审批，拒绝排队期间发生的输入/授权/运行身份变化；普通 Agent 任务也核对持久输入摘要。

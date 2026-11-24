@@ -41,7 +41,7 @@ class SourceFeedback:
         with contextlib.closing(self.store._connect()) as db:
             receipts = db.execute(
                 "SELECT evidence_type, reference FROM fea_evidence "
-                "WHERE run_id=? AND verified=1 ORDER BY evidence_type,reference",
+                "WHERE run_id=? AND verified=1 ORDER BY evidence_type,reference LIMIT 20",
                 (run_id,),
             ).fetchall()
         evidence = "; ".join(x["evidence_type"] + ":" + x["reference"]
@@ -54,7 +54,8 @@ class SourceFeedback:
             "研发状态：" + run["status"] + "\n"
             "证据：" + evidence + "\n"
             "工作项来源可能是用户手工提供，未自动核验原系统内容。\n"
-            "此文字不代表产品/测试已验收；请原系统负责人复核并按业务流程决定是否关闭。"
+            "此文字仅反映研发记录与已核验的证据，不自动代表原系统已验收或已关闭；"
+            "请原系统负责人复核并按业务流程决定是否关闭。"
         )
 
     @staticmethod

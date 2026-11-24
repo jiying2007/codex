@@ -6,6 +6,7 @@ A host operator chooses when to call backup/rehearsal after service inspection.
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -42,21 +43,75 @@ def _digest(path: pathlib.Path) -> str:
     return h.hexdigest()
 
 
+def _sqlite_check(path: pathlib.Path, *, immutable: bool = False) -> None:
+    uri = path.as_uri() + "?mode=ro" + ("&immutable=1" if immutable else "")
+    with contextlib.closing(sqlite3.connect(uri, uri=True, timeout=5)) as db:
+        check = db.execute("PRAGMA quick_check").fetchone()
+    if not check or check[0] != "ok":
+        raise MigrationRejected("SQLite integrity check failed")
+
+
+def _snapshot(source: pathlib.Path, destination: pathlib.Path) -> None:
+    _private_file(source)
+    with contextlib.closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True, timeout=5)) as src:
+        with contextlib.closing(sqlite3.connect(str(destination), timeout=5)) as dst:
+            src.backup(dst)
+            dst.commit()
+    os.chmod(str(destination), 0o600)
+    _sqlite_check(destination, immutable=True)
+
+
+def _check_linked_ledgers(bot: pathlib.Path, agent: Optional[pathlib.Path]) -> int:
+    """Verify backed-up Bot links against the corresponding AgentRun snapshot.
+
+    This is an integrity check of a quiesced pair, not evidence that all
+    uncertain remote effects completed. It never changes a Run status.
+    """
+    with contextlib.closing(sqlite3.connect(
+            bot.as_uri() + "?mode=ro&immutable=1", uri=True, timeout=5)) as db:
+        tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if agent is not None:
+            db.execute("ATTACH DATABASE ? AS agent", (agent.as_uri() + "?mode=ro&immutable=1",))
+            if db.execute("SELECT 1 FROM agent.sqlite_master WHERE type='table' AND name='fea_runs'").fetchone() is None:
+                raise MigrationRejected("AgentRun backup lacks its run ledger")
+        if "agent_run_task_links" not in tables:
+            return 0
+        count = db.execute("SELECT COUNT(*) FROM agent_run_task_links").fetchone()[0]
+        if count and agent is None:
+            raise MigrationRejected("linked WorkItems require the matching AgentRun database")
+        if count:
+            missing = db.execute(
+                "SELECT 1 FROM agent_run_task_links l "
+                "LEFT JOIN tasks t ON t.id=l.task_id "
+                "LEFT JOIN agent.fea_runs r ON r.run_id=l.agent_run_id "
+                "WHERE t.id IS NULL OR r.run_id IS NULL OR t.repository != r.repo "
+                "OR t.sender_open_id != ('agent:' || l.unix_uid) "
+                "OR t.mode != CASE r.mode WHEN 'read' THEN 'explain' ELSE r.mode END LIMIT 1"
+            ).fetchone()
+            if missing is not None:
+                raise MigrationRejected("Bot/AgentRun snapshot linkage mismatch")
+        return count
+
+
 class MigrationPlan:
-    """Snapshot legacy state (WAL-aware) and prove restore in a disposable tree."""
+    """Snapshot Bot and sibling AgentRun state; prove restore in a disposable tree."""
 
     def __init__(
         self, bot_db: pathlib.Path, bot_spool: pathlib.Path,
         private_policy: Optional[pathlib.Path] = None,
+        private_env: Optional[pathlib.Path] = None,
     ):
         self.bot_db = pathlib.Path(bot_db)
         self.bot_spool = pathlib.Path(bot_spool)
         self.private_policy = pathlib.Path(private_policy) if private_policy else None
+        self.private_env = pathlib.Path(private_env) if private_env else None
+        self.agent_db = self.bot_db.with_name("feishu-engineering-agent.sqlite3")
         for path in (self.bot_db, self.bot_spool):
             if not path.is_absolute():
                 raise MigrationRejected("migration source must be explicit absolute path")
-        if self.private_policy is not None and not self.private_policy.is_absolute():
-            raise MigrationRejected("policy must be explicit absolute path")
+        if any(path is not None and not path.is_absolute()
+               for path in (self.private_policy, self.private_env)):
+            raise MigrationRejected("private policy/env must be explicit absolute paths")
         if self.bot_db.name == "feishu-engineering-agent.sqlite3":
             raise MigrationRejected("backup source must be the original Bot DB")
 
@@ -64,6 +119,8 @@ class MigrationPlan:
         _private_file(self.bot_db)
         info = {"database": self.bot_db.name, "spool_count": 0,
                 "policy_present": self.private_policy is not None,
+                "env_present": self.private_env is not None,
+                "agent_ledger_present": self.agent_db.exists() or self.agent_db.is_symlink(),
                 "no_second_consumer_proven": False}
         if not self.bot_spool.is_dir() or self.bot_spool.is_symlink():
             raise MigrationRejected("legacy spool must be an existing directory")
@@ -77,29 +134,34 @@ class MigrationPlan:
             info["spool_count"] += 1
             if info["spool_count"] > 10000:
                 raise MigrationRejected("spool over safety bound")
-        if self.private_policy is not None:
-            _private_file(self.private_policy)
-        with sqlite3.connect(str(self.bot_db), timeout=3) as db:
-            check = db.execute("PRAGMA quick_check").fetchone()
-        if not check or check[0] != "ok":
-            raise MigrationRejected("legacy SQLite is not healthy")
+        for private in (self.private_policy, self.private_env):
+            if private is not None:
+                _private_file(private)
+        _sqlite_check(self.bot_db)
+        if info["agent_ledger_present"]:
+            _private_file(self.agent_db)
+            _sqlite_check(self.agent_db)
         return info
 
     def backup(self, target_dir: pathlib.Path) -> dict:
         """One immutable private backup; operator should freeze the consumer first."""
         inspection = self.inspect()
         target = pathlib.Path(target_dir)
-        if not target.is_absolute() or target.exists() or target.is_symlink():
-            raise MigrationRejected("backup target must be a new absolute directory")
+        if (not target.is_absolute() or target.exists() or target.is_symlink()
+                or self.bot_spool.resolve() in target.resolve().parents):
+            raise MigrationRejected("backup target must be a new absolute directory outside the spool")
         old_umask = os.umask(0o077)
         try:
             target.mkdir(mode=0o700, parents=False)
             (target / "spool").mkdir(mode=0o700)
-            with sqlite3.connect(str(self.bot_db), timeout=5) as source:
-                with sqlite3.connect(str(target / "bot.sqlite3"), timeout=5) as copy:
-                    source.backup(copy)
-            os.chmod(str(target / "bot.sqlite3"), 0o600)
+            _snapshot(self.bot_db, target / "bot.sqlite3")
             files = {"bot.sqlite3": _digest(target / "bot.sqlite3")}
+            agent_snapshot = None
+            if inspection["agent_ledger_present"]:
+                agent_snapshot = target / "feishu-engineering-agent.sqlite3"
+                _snapshot(self.agent_db, agent_snapshot)
+                files[agent_snapshot.name] = _digest(agent_snapshot)
+            link_count = _check_linked_ledgers(target / "bot.sqlite3", agent_snapshot)
             for entry in self.bot_spool.iterdir():
                 _private_file(entry)
                 name = entry.name
@@ -110,17 +172,22 @@ class MigrationPlan:
                     shutil.copyfileobj(src, dst, length=65536)
                 os.chmod(str(destination), 0o600)
                 files["spool/" + name] = _digest(destination)
-            if self.private_policy is not None:
-                with self.private_policy.open("rb") as src, (
-                    target / "policy.private"
-                ).open("xb") as dst:
+            for source, name in ((self.private_policy, "policy.private"),
+                                 (self.private_env, "environment.private")):
+                if source is None:
+                    continue
+                _private_file(source)
+                destination = target / name
+                with source.open("rb") as src, destination.open("xb") as dst:
                     shutil.copyfileobj(src, dst, length=65536)
-                os.chmod(str(target / "policy.private"), 0o600)
-                files["policy.private"] = _digest(target / "policy.private")
+                os.chmod(str(destination), 0o600)
+                files[name] = _digest(destination)
             manifest = {
                 "schema": 1, "created_at": int(time.time()),
                 "source_db_name": self.bot_db.name,
                 "spool_count": inspection["spool_count"], "files": files,
+                "agent_ledger_present": agent_snapshot is not None,
+                "linked_run_count": link_count,
                 "service_stopped_proven": False, "restore_rehearsed": False,
             }
             with (target / "manifest.json").open("x", encoding="utf-8") as output:
@@ -133,6 +200,7 @@ class MigrationPlan:
         finally:
             os.umask(old_umask)
         return {"backup_dir": str(target), "spool_count": inspection["spool_count"],
+                "agent_ledger_present": agent_snapshot is not None, "linked_run_count": link_count,
                 "manifest_sha256": _digest(target / "manifest.json"),
                 "restored": False}
 
@@ -169,12 +237,18 @@ class MigrationPlan:
                     raise MigrationRejected("backup checksum mismatch")
         if observed_files != expected_files | {"manifest.json"}:
             raise MigrationRejected("missing backup entries")
-        with sqlite3.connect(str(path / "bot.sqlite3")) as db:
-            check = db.execute("PRAGMA quick_check").fetchone()
-        if not check or check[0] != "ok":
-            raise MigrationRejected("snapshot DB integrity failed")
+        agent_name = "feishu-engineering-agent.sqlite3"
+        agent = path / agent_name if agent_name in expected_files else None
+        _sqlite_check(path / "bot.sqlite3", immutable=True)
+        if agent is not None:
+            _sqlite_check(agent, immutable=True)
+        link_count = _check_linked_ledgers(path / "bot.sqlite3", agent)
+        if (manifest.get("agent_ledger_present", agent is not None) != (agent is not None)
+                or manifest.get("linked_run_count", link_count) != link_count):
+            raise MigrationRejected("backup ledger manifest mismatch")
         return {"valid": True, "spool_count": manifest["spool_count"],
-                "file_count": len(expected_files)}
+                "file_count": len(expected_files),
+                "agent_ledger_present": agent is not None, "linked_run_count": link_count}
 
     @classmethod
     def rehearse_restore(cls, backup_dir: pathlib.Path) -> dict:
@@ -192,12 +266,16 @@ class MigrationPlan:
                 shutil.copyfile(str(original), str(restored))
                 if _digest(restored) != _digest(original):
                     raise MigrationRejected("restore content mismatch")
-            with sqlite3.connect(str(base / "bot.sqlite3")) as db:
-                check = db.execute("PRAGMA quick_check").fetchone()
-            if not check or check[0] != "ok":
-                raise MigrationRejected("rehearsal DB invalid")
+            agent = base / "feishu-engineering-agent.sqlite3" if verified["agent_ledger_present"] else None
+            _sqlite_check(base / "bot.sqlite3", immutable=True)
+            if agent is not None:
+                _sqlite_check(agent, immutable=True)
+            if _check_linked_ledgers(base / "bot.sqlite3", agent) != verified["linked_run_count"]:
+                raise MigrationRejected("restored ledger linkage differs")
         return {"restore_rehearsed": True,
-                "source_was_not_modified": True, "verified_files": verified["file_count"]}
+                "source_was_not_modified": True, "verified_files": verified["file_count"],
+                "agent_ledger_present": verified["agent_ledger_present"],
+                "linked_run_count": verified["linked_run_count"]}
 
     @staticmethod
     def cutover_gate(

@@ -13,7 +13,7 @@ from tools.codex_assets.feishu_engineering_agent.models import (
     EventConflict, InboundEvent, IntakeRejected,
 )
 from tools.codex_assets.feishu_engineering_agent.workflow import (
-    EngineeringWorkflow, ExecutionApproval,
+    EngineeringWorkflow, ExecutionApproval, local_agent_policy_digest,
 )
 
 SECRET = b"host-independent-approval-key-over-thirty-two-bytes"
@@ -55,6 +55,13 @@ class WorkflowContractTest(unittest.TestCase):
         event, child_id = self.attempt()
         self.assertNotEqual(self.source_id, child_id)
         child = self.manual.store.get_run(child_id, event)
+        with sqlite3.connect(str(self.db)) as db:
+            scope_digest = db.execute(
+                "SELECT scope_sha256 FROM fea_attempt_links WHERE attempt_run_id=?",
+                (child_id,),
+            ).fetchone()[0]
+        self.assertEqual(hashlib.sha256("实现修复并回归测试".encode("utf-8")).hexdigest(),
+                         scope_digest)
         self.assertEqual("edit", child["mode"])
         self.assertEqual("proposed", child["status"])
         self.assertEqual(
@@ -71,6 +78,41 @@ class WorkflowContractTest(unittest.TestCase):
         self.assertIn(child_id, same)
         with sqlite3.connect(str(self.db)) as db:
             self.assertEqual(2, db.execute("SELECT COUNT(*) FROM fea_runs").fetchone()[0])
+
+    def test_chat_status_lists_bounded_attempts_and_replay_uses_actual_state(self):
+        event, child_id = self.attempt()
+        scope = hashlib.sha256("实现修复并回归测试".encode("utf-8")).hexdigest()
+        policy = local_agent_policy_digest(
+            1000, "robot-app", "edit", "external_api_key", {"edit"}, "worktree", True,
+        )
+        self.workflow.authorize_local_agent_queue(
+            child_id, event, 1000, {"robot-app"}, {"edit"}, scope,
+            "external_api_key", policy,
+        )
+        replay = self.manual.handle(event, "robot-app", {"robot-app"})
+        self.assertIn("状态：queued", replay)
+        self.assertIn("未重复创建或执行", replay)
+        status = InboundEvent(
+            "feishu_message", "tenantA", "oc_team", "ou_owner", "om_status",
+            "/wi status " + self.source_id,
+        )
+        reply = self.manual.handle(status, "robot-app", {"robot-app"})
+        self.assertIn(child_id + " edit queued", reply)
+        self.assertNotIn("实现修复并回归测试", reply)
+        for i in range(6):
+            self.attempt(event_id="om_more_" + str(i))
+        limited = self.workflow.status_for_source(self.source_id, status)
+        self.assertEqual(5, len(limited["attempts"]))
+        self.assertTrue(limited["has_more"])
+        self.assertIn("仅显示最近 5 条", self.manual.handle(status, "robot-app", {"robot-app"}))
+        with self.assertRaises(IntakeRejected):
+            self.manual.handle(status, "robot-app", {"other-repo"})
+        foreign = InboundEvent(
+            "feishu_message", "tenantA", "oc_team", "ou_other", "om_foreign_status",
+            status.text,
+        )
+        with self.assertRaises(IntakeRejected):
+            self.manual.handle(foreign, "robot-app", {"robot-app"})
 
     def test_attempt_replay_and_scope_changes_are_denied(self):
         event, child_id = self.attempt()
@@ -99,12 +141,83 @@ class WorkflowContractTest(unittest.TestCase):
             workitem=WorkItemKey("tapd", "tenantA", "10104801", "defect", "999"),
         )
         with self.assertRaisesRegex(IntakeRejected, "cannot change WorkItem source"):
-            self.workflow.create_attempt(unrelated, event, "edit", {"robot-app"})
+            self.workflow.create_attempt(
+                unrelated, event, "edit", {"robot-app"},
+                scope_sha256=hashlib.sha256("实现修复并回归测试".encode("utf-8")).hexdigest(),
+            )
         self.assertEqual(
             first_id, self.workflow.status_for_source(
                 self.source_id, event,
             )["attempts"][0]["attempt_run_id"],
         )
+
+    def test_local_agent_queue_is_scope_bound_and_uses_non_shared_billing(self):
+        event, child_id = self.attempt()
+        task = "实现修复并回归测试"
+        scope = hashlib.sha256(task.encode("utf-8")).hexdigest()
+        uid = 1000
+        billing = "external_api_key"
+        policy = local_agent_policy_digest(
+            uid, "robot-app", "edit", billing, {"edit"}, "worktree", True,
+        )
+        result = self.workflow.authorize_local_agent_queue(
+            child_id, event, uid, {"robot-app"}, {"edit"},
+            scope, billing, policy,
+        )
+        self.assertTrue(result["authorized"])
+        self.assertEqual("queued", self.manual.store.get_run(child_id)["status"])
+        receipt = self.workflow.local_agent_approval(child_id)
+        self.assertEqual(uid, receipt["unix_uid"])
+        self.assertEqual(scope, receipt["scope_sha256"])
+        again = self.workflow.authorize_local_agent_queue(
+            child_id, event, uid, {"robot-app"}, {"edit"},
+            scope, billing, policy,
+        )
+        self.assertFalse(again["authorized"])
+        with self.assertRaisesRegex(IntakeRejected, "scope"):
+            self.workflow.authorize_local_agent_queue(
+                child_id, event, uid, {"robot-app"}, {"edit"},
+                hashlib.sha256(b"changed").hexdigest(), billing, policy,
+            )
+        with self.assertRaisesRegex(IntakeRejected, "non-shared"):
+            self.workflow.authorize_local_agent_queue(
+                child_id, event, uid, {"robot-app"}, {"edit"},
+                scope, "codex_shared", policy,
+            )
+        other_uid = 1001
+        other_policy = local_agent_policy_digest(
+            other_uid, "robot-app", "edit", billing, {"edit"}, "worktree", True,
+        )
+        with self.assertRaisesRegex(IntakeRejected, "conflicts"):
+            self.workflow.authorize_local_agent_queue(
+                child_id, event, other_uid, {"robot-app"}, {"edit"},
+                scope, billing, other_policy,
+            )
+
+    def test_local_agent_queue_requires_a_manual_workitem_source(self):
+        from tools.codex_assets.feishu_engineering_agent.models import WorkItemKey
+        parent = self.manual.store.create_run(
+            self.event, "robot-app", {"robot-app"}, mode="read",
+            workitem=WorkItemKey("tapd", "tenantA", "space", "defect", "other"),
+        )
+        attempt_event = InboundEvent(
+            "feishu_message", "tenantA", "oc_team", "ou_owner",
+            "om_nonmanual_attempt", "/wi attempt " + parent + " edit | exact scope",
+        )
+        child = self.workflow.create_attempt(
+            parent, attempt_event, "edit", {"robot-app"},
+            scope_sha256=hashlib.sha256(b"exact scope").hexdigest(),
+        )["run_id"]
+        from tools.codex_assets.feishu_engineering_agent.workflow import local_agent_policy_digest
+        policy = local_agent_policy_digest(
+            1000, "robot-app", "edit", "external_api_key", {"edit"}, "worktree", True,
+        )
+        with self.assertRaisesRegex(IntakeRejected, "manually registered"):
+            self.workflow.authorize_local_agent_queue(
+                child, attempt_event, 1000, {"robot-app"}, {"edit"},
+                hashlib.sha256(b"exact scope").hexdigest(),
+                "external_api_key", policy,
+            )
 
     def test_queued_approval_not_reissued_after_remote_dispatch(self):
         event, child_id = self.attempt()

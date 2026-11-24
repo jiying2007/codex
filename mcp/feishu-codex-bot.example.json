@@ -62,6 +62,7 @@
   "state_db": "/absolute/path/to/mcp/secrets/feishu-codex-state.sqlite3",
   "lock_file": "/absolute/path/to/mcp/secrets/feishu-codex-bot.lock",
   "agent_intake_enabled": false,
+  "agent_codex_home": "/absolute/private/path/to/agent-codex-home",
   "manual_workitems_enabled": false,
   "engineering_cards_enabled": false
 }

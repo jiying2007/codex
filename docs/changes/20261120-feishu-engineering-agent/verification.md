@@ -17,12 +17,12 @@
 |---|---|---|---|
 | TASK-001 | 中文路由、项目与用户隔离、WorkItem 来源身份、原子事件收据、无 API `/wi add|list|status|handoff|attempt` | 重复事件、身份冲突、撤权、无模型调用、正文不进 DB | 已授权飞书消息或本地 CLI |
 | TASK-002 | 可选 Card JSON 2.0、HMAC、事件身份和消息绑定、过期/重放保护、卡片请求持久化 | 同一回调的上下文冲突、他人点击、重复/迟到、发送结果 UNKNOWN | 飞书桌面/手机，SDK 和 3 秒响应 |
-| TASK-003 | 精确 Codex host/repo/CODEX_HOME/thread、独立签名授权、原生 initialize/resume/turn/interrupt、持久 effect 收据 | 伪造或延长授权、无权限模型启动、乱序通知、费用/远端结果不明不重放 | 主机 App Server 协议、审批、额度和中断恢复 |
+| TASK-003 | 精确 Codex host/repo/CODEX_HOME/thread、原生 initialize/resume/turn/interrupt、WorkItem→本机 MCP→既有 Bot 队列桥接、独立 Agent CODEX_HOME/API 凭据、持久 effect 收据 | scope/hash 错配、Unix UID 错配、个人 auth.json/共享计费、仓库策略漂移、孤儿任务、乱序通知、UNKNOWN 不重放 | vstrong100 专用 API 身份、同 UID、Bot worker、App Server 与恢复实测 |
 | TASK-004 | TAPD/飞书项目可选只读读取；手工来源标记未核验；版本哈希不存正文 | 403/404、源身份与版本冲突、撤权后不得读取 | 真实一条需求、一条缺陷；无权限可走人工路径 |
 | TASK-005 | 独立 Run、多仓版本化接口、GitHub PR/CI 可选适配、一次性发布、签名 QA、人工反馈 | 不同 PR/CI/QA SHA 不可拼接；CI 不等于 QA/HIL；外部写 UNKNOWN 不重放 | 真实 Feature 和 Bug PR/CI/QA；涉及设备时实际 HIL |
 | TASK-006 | WAL 一致性备份、私有 spool/策略校验、哈希清单、隔离恢复演练、单消费者 cutover gate | 损坏备份、权限/符号链接、恢复不一致和重复消费者 | `vstrong100` 暂停旧服务、真实备份/恢复/回滚 |
 
-源码关键测试入口：`tests/test_feishu_engineering_agent.py`、`test_feishu_engineering_manual_items.py`、`test_feishu_engineering_manual_bot.py`、`test_feishu_engineering_workflow.py`、`test_feishu_engineering_workflows.py`、`test_feishu_engineering_native.py`、`test_feishu_engineering_cards_complete.py`、`test_feishu_engineering_channel.py`、`test_feishu_engineering_source_bridge.py`、`test_feishu_engineering_contracts.py`、`test_feishu_engineering_delivery.py`、`test_feishu_engineering_github_adapter.py`、`test_feishu_engineering_end_to_end.py`、`test_feishu_engineering_migration.py`。
+源码关键测试入口：`tests/test_feishu_agent_mcp.py`、`tests/test_feishu_codex_bot.py`、`tests/test_feishu_engineering_agent.py`、`test_feishu_engineering_manual_items.py`、`test_feishu_engineering_manual_bot.py`、`test_feishu_engineering_workflow.py`、`test_feishu_engineering_workflows.py`、`test_feishu_engineering_native.py`、`test_feishu_engineering_cards_complete.py`、`test_feishu_engineering_channel.py`、`test_feishu_engineering_source_bridge.py`、`test_feishu_engineering_contracts.py`、`test_feishu_engineering_delivery.py`、`test_feishu_engineering_github_adapter.py`、`test_feishu_engineering_end_to_end.py`、`test_feishu_engineering_migration.py`。
 
 ### 一次性源码验收命令
 
@@ -34,6 +34,14 @@ python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
 ```
 
 `--probe-runtime` 只执行 `codex --version` 与 `codex app-server --help`；运行在 CI 时不能代表 `vstrong100`。仓库完整门禁另见 `.github/workflows/full-regression.yml`、`runtime-binding-contract.yml`、`profile-context-contract.yml`，以最终提交的 9/9 job 结果为准。
+
+### 本机 MCP WorkItem 纵向合同
+
+关联 WorkItem 的 worker 使用原生持久 `codex exec --json`。离线测试覆盖实际 worker 调用边界（假 subprocess）、无效或不完整终态拒绝、只回传 agent_message、精确 thread/host/cwd/专用 CODEX_HOME 回执。原生 transcript 留在专用私有目录，不写入任务账本。查询回执不等于授权继续执行；真实主机持久化、恢复与同线程后续回合仍待验证。
+
+离线回归必须覆盖以下完整链路：`/wi add` → `/wi attempt`（精确 scope SHA-256）→ `submit_workitem_task` → 既有 Bot spool/worker → `get_workitem_task`。MCP 进程不启动 Codex；worker 只使用独立专用 `CODEX_HOME` 与私有 API 凭据。负向测试必须证明：共享计费、个人 `auth.json`、Unix UID/仓库/模式/范围不匹配、策略指纹变化、孤儿任务和 spool 丢失均拒绝或进入 UNKNOWN，绝不重绑或自动重放。Edit 只到 `waiting_ci` + 未验证 commit evidence；不伪称 PR/CI/QA 已通过。
+
+目标主机 `vstrong100` 必须另外核验：私有环境文件 0600、Agent CODEX_HOME 目录 0700 且无 `auth.json`、Bot 与本机 MCP 同 UID、实际 Codex provider 只读取该专用 API key/base URL、没有回退到个人 ChatGPT 登录目录。仅仅设置 `FEISHU_AGENT_BILLING_SOURCE` 文本值不是计费身份凭证。
 
 ## 集中现场验证顺序
 
@@ -51,3 +59,25 @@ python -m tools.codex_assets.feishu_engineering_agent --probe-runtime
 - 数据库、卡片和聊天不作为飞书项目/TAPD 的业务权威；GitHub Issue 不是需求/缺陷主入口。
 - 外部 PR、评论、模型执行、部署/烧录、合并分别验证作用域和授权。远端结果不明时先核对，不盲重试。
 - **没有 SOURCE PASS 不进入集中现场验证；SOURCE PASS 不等于 HOST/DELIVERY/WORKITEM PASS。**
+
+## WorkItem queue publication and text status
+Offline regression covers simultaneous same-scope submissions, spool failure with retained UNKNOWN, reserved idempotency namespace, bounded source status, replay of queued attempts and current actor/repository scope. These are source-level tests, not a production host result.
+
+Offline exact WorkItem cancellation tests cover authorized chat queue cancellation, foreign actor and revoked repo denial, repeated cancellation, unrelated queue preservation, exact local process signaling, and no successful terminal status inferred from a signal. The real process tree, sandbox and provider cancellation remain host-qualified checks.
+
+## Continuation path
+Offline worker fixture: one prior successful edit, one exact successor with new scope approval, same thread and root worktree, separate new local commit receipt, duplicate proposal/queue idempotency, fork rejection, and old Run delivery rejection. Mock native subprocess verifies exact `exec resume` UUID and rejects a different thread before Git commit. Worktree identity and clean HEAD are checked on the real worker path; actual installed CLI/provider/session and host Git tests remain required.
+
+Continuation tests additionally cover unapproved proposal cancellation/replacement and status lineage. The existing real temporary Git fixture now exercises two sequential commits on one original worktree, rejects dirty pre-turn state and stale HEAD, and verifies the new commit's parent. No model or remote Git operation is involved.
+
+## Local Worker delivery integration
+Offline fixture executes existing Bot worker once and passes the local commit to real GitHubForge/DeliveryCoordinator through the existing MCP method, with injected read-only GitHub HTTP responses. It rejects missing workflow, failed CI, unrelated SHA/PR and duplicate workflow paths; verifies all required workflow refs atomically; rejects self/invalid QA and changed PR head; accepts an independently configured exact-head test signature, preserves original source status and emits Feishu feedback. No model or actual remote API/write occurred in this fixture.
+
+The worker-delivery fixture additionally exercises the existing Feishu callback handler for /wi delivery, denies wrong actor or revoked repository without a GitHub call, and checks numeric ID parsing/duplicate rejection. Public/private GitHub and Feishu live permissions remain unverified.
+
+## Paired deployment recovery
+Retained #79 offline native protocol tests cover persistent no-model thread bootstrap, experimental negotiation and mismatched identity rejection. Paired backup tests create a WAL-backed sibling ledger with linked tasks, verify and rehearse both snapshots, and reject missing or mismatched AgentRun records. Private environment contents are not printed. These tests do not qualify the real host or prove a full CODEX_HOME/worktree backup.
+
+Offline tests cover first-create 0600, rejection of wider existing mode and symlink, no silent file chmod, and missing AgentRun DB with an existing linked task. The original queued status is preserved until the retained ledger is restored. Actual old service files and installed unit remain host verification items.
+
+Worker dispatch regression: generic Agent payload substitution, revoked WorkItem approval after scheduling, changed scheduled input, and unexpected personal auth file after scheduling all fail closed without model invocation or source lookup. No change to the existing canonical approval fingerprint format.

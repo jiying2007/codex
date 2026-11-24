@@ -18,6 +18,7 @@ from typing import Any, Callable, Mapping, Optional
 
 from .models import InboundEvent, IntakeRejected, _check_id
 from .state import RunStore, _REF
+from .sessions import SessionRegistry
 
 
 class PublicationUnknown(IntakeRejected):
@@ -46,6 +47,7 @@ class DeliveryCoordinator:
 
     def __init__(self, store: RunStore):
         self.store = store
+        SessionRegistry(store)
         with contextlib.closing(store._connect()) as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS fea_publications (
@@ -127,6 +129,7 @@ class DeliveryCoordinator:
         with contextlib.closing(self.store._connect()) as db:
             db.execute("BEGIN IMMEDIATE")
             try:
+                SessionRegistry.require_no_successor(db, run_id)
                 prior = db.execute(
                     "SELECT 1 FROM fea_publications WHERE run_id=?", (run_id,),
                 ).fetchone()
@@ -213,6 +216,7 @@ class DeliveryCoordinator:
         with contextlib.closing(self.store._connect()) as db:
             db.execute("BEGIN IMMEDIATE")
             try:
+                SessionRegistry.require_no_successor(db, run_id)
                 published = db.execute(
                     "SELECT head_sha FROM fea_publications WHERE run_id=?",
                     (run_id,),
@@ -246,6 +250,116 @@ class DeliveryCoordinator:
                 raise
         return {"run_id": run_id, "kind": evidence_type, "verified": True,
                 "head_sha": sha}
+
+    def snapshot(self, run_id: str, event: InboundEvent) -> dict:
+        """Bounded delivery metadata for the authorized Run owner."""
+        run = self.store.get_run(run_id, event)
+        with contextlib.closing(self.store._connect()) as db:
+            pinned = db.execute(
+                "SELECT head_sha FROM fea_delivery_heads WHERE run_id=?", (run_id,),
+            ).fetchone()
+            receipts = db.execute(
+                "SELECT evidence_type,reference,verifier FROM fea_evidence "
+                "WHERE run_id=? AND verified=1 AND evidence_type IN ('pr','ci','qa') "
+                "ORDER BY evidence_type,reference LIMIT 20", (run_id,),
+            ).fetchall()
+        return {
+            "run_id": run_id, "run_status": run["status"],
+            "workitem_fingerprint": run["workitem_fp"],
+            "head_sha": pinned["head_sha"] if pinned else None,
+            "evidence": [dict(row) for row in receipts],
+            "workitem_closed": False,
+        }
+
+    def verify_github_delivery(self, run_id: str, event: InboundEvent,
+                               head_sha: str, branch: str, forge,
+                               pr_number: int, ci_run_ids, required_workflows) -> dict:
+        """Bind all required observed workflows and PR to the local worker commit.
+
+        One ledger transaction records the exact proof set and advances to QA.
+        Retried reads are safe; divergent evidence or a reserved continuation
+        cannot replace this delivery. No remote write or product closure.
+        """
+        run = self.store.get_run(run_id, event)
+        sha = self._sha(head_sha)
+        if run["mode"] != "edit" or run["status"] not in ("waiting_ci", "waiting_qa", "completed"):
+            raise IntakeRejected("delivery requires a locally completed edit")
+        if forge.repo_alias != run["repo"]:
+            raise IntakeRejected("Git delivery repository alias mismatch")
+        observed = forge.observe_delivery(pr_number, ci_run_ids, branch, sha, required_workflows)
+        root = "https://github.com/" + forge.repo_full_name
+        expected = {("pr", root + "/pull/" + str(pr_number))}
+        expected.update(("ci", root + "/actions/runs/" + str(i)) for i in ci_run_ids)
+        if (observed["head_sha"] != sha or observed["repo_alias"] != run["repo"]
+                or observed["branch"] != branch or observed["pr_number"] != pr_number
+                or set(observed["workflows"]) != set(required_workflows)
+                or set(observed["workflows"].values()) != set(ci_run_ids)):
+            raise IntakeRejected("GitHub delivery proof mismatch")
+        with contextlib.closing(self.store._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                current = db.execute(
+                    "SELECT status,mode,revision FROM fea_runs WHERE run_id=?", (run_id,),
+                ).fetchone()
+                if current is None or current["mode"] != "edit" or current["status"] not in (
+                        "waiting_ci", "waiting_qa", "completed"):
+                    raise IntakeRejected("Run changed while observing Git delivery")
+                SessionRegistry.require_no_successor(db, run_id)
+                local = db.execute(
+                    "SELECT reference FROM fea_evidence WHERE run_id=? "
+                    "AND evidence_type='commit' AND verifier='local_codex' AND verified=0",
+                    (run_id,),
+                ).fetchall()
+                if {row["reference"] for row in local} != {sha}:
+                    raise IntakeRejected("Git delivery head does not match the local worker commit receipt")
+                published = db.execute(
+                    "SELECT * FROM fea_publications WHERE run_id=?", (run_id,),
+                ).fetchone()
+                if published is not None and (
+                        published["head_sha"] != sha or published["repo_full_name"] != forge.repo_full_name
+                        or published["target_ref"] != "refs/heads/" + branch
+                        or (published["remote_pr_id"] and published["remote_pr_id"] != str(pr_number))):
+                    raise IntakeRejected("Git delivery conflicts with the existing publication receipt")
+                pinned = db.execute(
+                    "SELECT head_sha FROM fea_delivery_heads WHERE run_id=?", (run_id,),
+                ).fetchone()
+                if pinned is not None and pinned["head_sha"] != sha:
+                    raise IntakeRejected("Git delivery head already pinned to a different commit")
+                rows = db.execute(
+                    "SELECT evidence_type,reference,verifier,verified FROM fea_evidence "
+                    "WHERE run_id=? AND evidence_type IN ('pr','ci')", (run_id,),
+                ).fetchall()
+                existing = {(row["evidence_type"], row["reference"]) for row in rows}
+                if any(row["verifier"] != "trusted_git" or not row["verified"] for row in rows):
+                    raise IntakeRejected("unverified Git evidence cannot be adopted")
+                if existing - expected or (current["status"] != "waiting_ci" and existing != expected):
+                    raise IntakeRejected("Git delivery evidence is already pinned to another proof set")
+                now = int(time.time())
+                if pinned is None:
+                    db.execute(
+                        "INSERT INTO fea_delivery_heads(run_id,head_sha,pinned_at) VALUES (?,?,?)",
+                        (run_id, sha, now),
+                    )
+                for kind, reference in sorted(expected - existing):
+                    db.execute(
+                        "INSERT INTO fea_evidence "
+                        "(run_id,evidence_type,reference,verifier,verified,recorded_at) "
+                        "VALUES (?,?,?,'trusted_git',1,?)", (run_id, kind, reference, now),
+                    )
+                if current["status"] == "waiting_ci":
+                    db.execute(
+                        "UPDATE fea_runs SET status='waiting_qa',revision=revision+1,updated_at=? "
+                        "WHERE run_id=? AND revision=?",
+                        (now, run_id, current["revision"]),
+                    )
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        result = self.snapshot(run_id, event)
+        result["pr_state"] = observed["pr_state"]
+        result["required_workflows"] = observed["workflows"]
+        return result
 
     @staticmethod
     def qa_message(
