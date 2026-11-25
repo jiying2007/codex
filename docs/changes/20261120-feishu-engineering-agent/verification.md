@@ -31,3 +31,7 @@
 当前没有目标主机操作通道，也没有批准的真实模型/网关调用。本轮不停止或重启生产服务。实际迁移、部署、费用和业务验收均为 `NOT_RUN`。
 
 本地 Knowledge Provider 查询返回 `SOURCE_DRIFT`，Execution Policy `ensure` 返回 `Codex state database is unavailable`；未改写配置、伪造线程状态或补造成功回执。因此没有声称完成 Knowledge Provider 归档或本地 Runtime conformance；Git/CI 代码证据另行核验。
+
+## 2026-11-25 深审整改验证范围
+
+本批新增断言覆盖：同一事务中断后原消息可再次登记、已接受上下文不依赖历史消息 API、摘要不符拒绝、文档 URL 显式授权、精确取消启动窗口、结果重取与 UNKNOWN 人工终止、跨仓共享上下文、宿主 Git 外部程序拒绝及沙箱正向挂载。候选执行结果以对应 GitHub PR/CI 实际回执为准。真实目标主机嵌套沙箱、网关费用、授权 Git 远端写入及真实项目验收仍为 NOT_RUN。

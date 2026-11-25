@@ -582,7 +582,9 @@ class FeishuCodexBotTest(unittest.TestCase):
         proc = cmd.index("--proc")
         sep = cmd.index("--")
         self.assertIn("--unshare-pid", cmd[:root])
-        self.assertEqual(["--ro-bind", "/", "/"], cmd[root:root + 3])
+        self.assertNotIn(["/", "/"], [cmd[i+1:i+3] for i,x in enumerate(cmd) if x=="--ro-bind"])
+        self.assertIn([str(config.workdir),str(config.workdir)],
+                      [cmd[i+1:i+3] for i,x in enumerate(cmd) if x=="--ro-bind"])
         self.assertGreater(proc, root + 2)
         self.assertEqual("/proc", cmd[proc + 1])
         self.assertLess(proc, sep)
@@ -602,6 +604,17 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertEqual([[str(self.agent_home), str(self.agent_home)]], writable)
         self.assertIn([str(self.tmp / ".git"), str(self.tmp / ".git")],
                       [cmd[i + 1:i + 3] for i, value in enumerate(cmd[:sep]) if value == "--ro-bind"])
+
+    def test_sandbox_refuses_broad_toolchain_mounts_and_other_repository_paths(self) -> None:
+        config=self.agent_config()
+        for path in (pathlib.Path("/"),self.tmp,self.tmp.parent,pathlib.Path.home()):
+            changed=dataclasses.replace(config,sandbox_read_paths=(path,))
+            with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError,"sandbox_read_paths"):
+                feishu_codex_bot.sandbox_command(changed,config.workdir,["git","status"],verification=True)
+        other=self.tmp/"unregistered"
+        other.mkdir()
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError,"唯一授权"):
+            feishu_codex_bot.sandbox_command(config,other,["git","status"],verification=True)
 
     def test_verification_is_offline_and_cannot_read_execution_credentials(self) -> None:
         config = self.agent_config()
@@ -1253,6 +1266,28 @@ class FeishuCodexBotTest(unittest.TestCase):
         bot.recover_pending()
         self.assertEqual("unknown", store.task_status(task_id))
 
+
+    def test_controller_git_rejects_external_programs_and_does_not_inherit_credentials(self) -> None:
+        repo = self.tmp / "external-filter-repo"
+        subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
+        marker = self.tmp / "external-command-ran"
+        (repo / ".gitattributes").write_text("*.txt filter=fixture diff=fixture\n")
+        (repo / "tracked.txt").write_text("base\n")
+        subprocess.run(["git","-C",str(repo),"add","."],check=True)
+        subprocess.run(["git","-C",str(repo),"-c","user.name=Test","-c","user.email=test@example.com",
+                        "commit","-m","start"],check=True,capture_output=True)
+        manager = feishu_codex_bot.WorktreeManager(self.config())
+        for key in ("filter.fixture.clean","diff.fixture.textconv"):
+            subprocess.run(["git","-C",str(repo),"config",key,"touch "+str(marker)],check=True)
+            with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError,"外部过滤"):
+                manager.snapshot(repo)
+            self.assertFalse(marker.exists())
+            subprocess.run(["git","-C",str(repo),"config","--unset",key],check=True)
+        env = feishu_codex_bot.controller_git_environment({
+            "PATH":"/usr/bin:/bin","OPENAI_API_KEY":"fixture","SSH_AUTH_SOCK":"fixture",
+            "GITHUB_TOKEN":"fixture","GIT_CONFIG_PARAMETERS":"fixture","HOME":"/private"})
+        self.assertNotIn("fixture",env.values())
+        self.assertEqual("/dev/null",env["GIT_CONFIG_GLOBAL"])
 
     def test_unattended_worktree_rejects_sensitive_untracked_before_staging(self) -> None:
         repo_path = self.tmp / "sensitive-repo"

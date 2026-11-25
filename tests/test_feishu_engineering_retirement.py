@@ -122,7 +122,7 @@ class RetirementBotTest(unittest.TestCase):
         bot = self.bot()
         with self.immediate_threads():
             bot.on_message(self.event(text="/wl help"))
-            bot.on_message(self.event(msg_id="om_natural", text="分析启动日志"))
+            bot.on_message(self.event(msg_id="om_natural", text="repo=robot-app 分析启动日志"))
         self.assert_no_execution(bot)
         self.assertIn("未配置独立模型执行授权", self.transport.send_text.call_args.args[1])
 

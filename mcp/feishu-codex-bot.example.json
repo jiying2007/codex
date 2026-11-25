@@ -34,7 +34,8 @@
         "required_workflows": [
           ".github/workflows/verify.yml"
         ]
-      }
+      },
+      "document_read_urls": []
     },
     "firmware": {
       "path": "/srv/feishu-agent/repos/example-firmware",
@@ -63,7 +64,8 @@
         "required_workflows": [
           ".github/workflows/verify.yml"
         ]
-      }
+      },
+      "document_read_urls": []
     }
   },
   "link_repositories": {
@@ -90,5 +92,6 @@
   "reply_chunk_chars": 3500,
   "state_db": "/srv/feishu-agent/private/feishu-codex-state.sqlite3",
   "lock_file": "/srv/feishu-agent/private/feishu-codex-bot.lock",
-  "agent_codex_home": "/srv/feishu-agent/runtime/codex-home"
+  "agent_codex_home": "/srv/feishu-agent/runtime/codex-home",
+  "sandbox_read_paths": []
 }

@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import pathlib
+import sqlite3
 import tempfile
 import types
 import unittest
@@ -42,7 +43,7 @@ class RemoteEngineeringTest(unittest.TestCase):
             worktree_root=self.root/"worktrees",branch_prefix="agent",
             commit_enabled=True,artifact_upload_enabled=False,
             artifact_roots=(),artifact_extensions=frozenset(),artifact_max_bytes=0,
-            verification_commands=(),
+            verification_commands=(),document_read_urls=frozenset((WIKI,)),
         )
         # Synthetic noncredential fixture, never sourced from a real account.
         synthetic_identity = "fixture-" + "not-a-credential"
@@ -72,9 +73,11 @@ class RemoteEngineeringTest(unittest.TestCase):
         result=self.service.handle(event,topic,set(self.config.repositories),self.config.link_repositories)
         return event,result
 
-    def submit(self,mid,text,topic="root:om_root"):
-        event,result=self.intake(mid,text,topic)
-        return self.executor.submit(event,result)
+    def submit(self,mid,text,topic="root:om_root",executor=None):
+        event=InboundEvent("feishu_message","tenantA","oc_test","ou_owner",mid,text)
+        result=self.service.handle(event,topic,set(self.config.repositories),
+            self.config.link_repositories,admit=(executor or self.executor).submit)
+        return result.reply
 
     def latest(self):
         return self.store.pending()[-1]
@@ -115,7 +118,7 @@ class RemoteEngineeringTest(unittest.TestCase):
         self.intake("om_root",ISSUE)
         self.submit("om_read","分析 传感器复位逻辑")
         first=self.complete(self.latest())
-        self.submit("om_continue","继续推进")
+        self.submit("om_continue","继续推进，直到全部完成")
         row=self.latest()
         bot,job=self.decode(row)
         target=self.executor.resume_target(job)
@@ -124,22 +127,18 @@ class RemoteEngineeringTest(unittest.TestCase):
         self.assertEqual(self.repo,target.working_directory)
         self.assertTrue(self.store.claim_queued(job.task_id))
         self.store.update_task(job.task_id,"unknown")
-        event,result=self.intake("om_again","继续推进")
-        with self.assertRaisesRegex(bot_module.FeishuCodexError,"未知"):
-            self.executor.submit(event,result)
+        self.assertIn("未知", self.submit("om_again","继续推进"))
         self.runner.run.assert_not_called()
 
     def test_no_billing_no_read_and_no_legacy_fallback(self):
         config=dataclasses.replace(self.config,agent_intake_enabled=False)
         ex=EngineeringExecutor(config,self.store,self.spool,self.transport,self.runner)
-        event,result=self.intake("om_root","分析 "+ISSUE+" 复现：输入异常")
-        with self.assertRaisesRegex(bot_module.FeishuCodexError,"独立模型"):
-            ex.submit(event,result)
+        self.assertIn("独立模型", self.submit("om_root","分析 "+ISSUE+" 复现：输入异常",executor=ex))
         self.assertEqual([],self.store.pending())
         self.transport.read_engineering_note.assert_not_called()
         self.runner.run.assert_not_called()
 
-    def test_delivery_sealed_during_context_read_rejects_edit_continuation(self):
+    def test_delivery_seal_rechecked_in_the_atomic_admission(self):
         self.intake("om_root", ISSUE)
         self.submit("om_edit", "修复 初始化失败并增加回归测试")
         row = self.latest()
@@ -152,19 +151,27 @@ class RemoteEngineeringTest(unittest.TestCase):
         self.executor.finish(job, result, None)
         self.store.update_task(job.task_id, "completed")
         self.intake("om_note", "补充说明：保留现有错误码")
-        event, followup = self.intake("om_continue", "继续推进")
-        def seal_during_read(*args):
-            with self.store._connect() as db:
-                db.execute("INSERT INTO engineering_context_delivery VALUES (?,?,?,?,?,?)",
-                           (job.task_id, "a" * 40, "example-org/robot", 1, "{}", 1))
-            return "补充说明：保留现有错误码"
-        self.transport.read_engineering_note.side_effect = seal_during_read
-        with self.assertRaisesRegex(bot_module.FeishuCodexError, "封存"):
-            self.executor.submit(event, followup)
+        # Inject a seal immediately before publication while holding the same
+        # writer transaction; a real concurrent writer cannot cross this lock.
+        original = self.store.create_agent_task
+        def seal_before_publish(*args, **kwargs):
+            db = kwargs["connection"]
+            db.execute("INSERT INTO engineering_context_delivery VALUES (?,?,?,?,?,?)",
+                       (job.task_id, "a" * 40, "example-org/robot", 1, "{}", 1))
+            return original(*args, **kwargs)
+        with mock.patch.object(self.store,"create_agent_task",side_effect=seal_before_publish):
+            self.assertIn("封存",self.submit("om_continue","继续推进"))
         self.assertEqual([], self.store.pending())
         with self.store._connect() as db:
             self.assertEqual(1, db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
         self.runner.run.assert_not_called()
+
+    def test_document_requires_explicit_audience_and_repository_grant(self):
+        self.intake("om_root",ISSUE+" https://example-tenant.feishu.cn/docx/OtherDocument123")
+        reply=self.submit("om_read","分析 关联文档")
+        self.assertIn("明确授权",reply)
+        self.assertEqual([],self.store.pending())
+        self.transport.resolve_sources.assert_not_called()
 
     def test_scope_source_and_policy_tampering_denied(self):
         self.intake("om_root",ISSUE+" "+WIKI)
@@ -194,21 +201,37 @@ class RemoteEngineeringTest(unittest.TestCase):
         self.assertEqual("queued",self.store.task_status(other))
         self.runner.cancel_task.assert_not_called()
 
-    def test_prior_message_read_failure_and_verified_doc_binding(self):
+    def test_accepted_notes_do_not_require_feishu_history_permission(self):
         self.intake("om_root",ISSUE)
         self.intake("om_note","复现：电源重启后异常")
         self.transport.read_engineering_note.side_effect=RuntimeError("no permission")
-        event,result=self.intake("om_read","分析一下")
-        with self.assertRaisesRegex(bot_module.FeishuCodexError,"无法按原身份"):
-            self.executor.submit(event,result)
-        self.assertEqual([],self.store.pending())
-        self.transport.read_engineering_note.side_effect=None
-        self.transport.read_engineering_note.return_value="复现：电源重启后异常"
-        event,result=self.intake("om_read2","分析一下")
-        self.executor.submit(event,result)
+        self.assertIn("queued",self.submit("om_read","分析一下"))
         bot,job=self.decode(self.latest())
         self.assertIn("电源重启后异常",job.task)
-        self.assertEqual("om_note",self.transport.read_engineering_note.call_args.args[0])
+        self.transport.read_engineering_note.assert_not_called()
+        self.runner.run.assert_not_called()
+
+    def test_expired_or_tampered_private_note_cannot_be_silently_dropped(self):
+        self.intake("om_root",ISSUE)
+        self.intake("om_note","复现：初始化异常")
+        with self.store._connect() as db:
+            db.execute("UPDATE engineering_context_note_inputs SET body='changed'")
+        self.assertIn("摘要不符",self.submit("om_read","分析一下"))
+        self.assertEqual([],self.store.pending())
+        self.transport.read_engineering_note.assert_not_called()
+
+    def test_ingress_task_and_dedupe_receipt_commit_together(self):
+        self.intake("om_root",ISSUE)
+        with mock.patch.object(self.store,"create_agent_task",
+                               side_effect=sqlite3.OperationalError("fixture transaction interruption")):
+            with self.assertRaises(sqlite3.OperationalError):
+                self.submit("om_read","分析 初始化异常")
+        with self.store._connect() as db:
+            self.assertIsNone(db.execute("SELECT 1 FROM engineering_context_events WHERE message_id='om_read'").fetchone())
+            self.assertEqual(0,db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
+        self.assertIn("queued",self.submit("om_read","分析 初始化异常"))
+        self.assertIsNone(self.submit("om_read","分析 初始化异常"))
+        self.assertEqual(1,len(self.store.pending()))
         self.runner.run.assert_not_called()
 
     def add_second_repo(self):
@@ -225,6 +248,51 @@ class RemoteEngineeringTest(unittest.TestCase):
                                           github_required_workflows=(".github/workflows/verify.yml",)),
         })
         self.executor.config=self.config
+
+    def test_running_cancel_is_durable_before_native_process_exists(self):
+        self.intake("om_root",ISSUE)
+        self.submit("om_read","分析 初始化")
+        bot,job=self.decode(self.latest())
+        self.assertTrue(self.store.claim_queued(job.task_id))
+        event,result=self.intake("om_cancel","/cancel")
+        self.assertIn("持久登记",self.executor.cancel(event,result))
+        self.assertTrue(self.store.cancel_requested(job.task_id))
+        actual=bot_module.CodexRunner(self.config)
+        with mock.patch.object(bot_module.subprocess,"Popen") as popen:
+            with self.assertRaises(bot_module.TaskCanceled):
+                actual.run(job,persistent_session=True)
+            popen.assert_not_called()
+
+    def test_private_result_retrieval_and_unknown_reconciliation(self):
+        self.intake("om_root",ISSUE)
+        self.submit("om_read","分析 初始化")
+        bot,job=self.decode(self.latest())
+        self.assertTrue(self.store.claim_queued(job.task_id))
+        outcome=bot_module.ExecutionResult("synthetic result",thread_id=THREAD,thread_cwd=self.repo)
+        self.executor.finish(job,outcome,None)
+        self.store.complete_with_output(job.task_id,outcome.text)
+        event,result=self.intake("om_result","/result")
+        self.assertEqual("synthetic result",self.executor.result(event,result))
+        self.submit("om_again","继续推进")
+        next_id=self.latest()["id"]
+        self.assertTrue(self.store.claim_queued(next_id))
+        self.store.update_task(next_id,"unknown")
+        receipt=self.store.reconcile_unknown(next_id,"a"*64)
+        self.assertEqual("abandoned",receipt["status"])
+        self.assertFalse(receipt["completion_claimed"])
+        self.assertIn("queued",self.submit("om_new","分析 新的明确任务"))
+        self.runner.run.assert_not_called()
+
+    def test_explicit_shared_context_across_authorized_repositories(self):
+        self.add_second_repo()
+        self.intake("om_root",ISSUE)
+        self.intake("om_shared","共享上下文：合成接口约定和联合验收范围")
+        self.submit("om_a","分析 应用侧复位")
+        self.intake("om_select_b","/repo firmware")
+        self.submit("om_b","分析 控制侧复位")
+        for row in self.store.pending():
+            self.assertIn("合成接口约定和联合验收范围",self.decode(row)[1].task)
+        self.runner.run.assert_not_called()
 
     def test_same_topic_separate_repo_receipts_resume_and_cancel(self):
         self.add_second_repo()

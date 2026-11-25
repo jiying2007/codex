@@ -22,6 +22,8 @@ def local_agent_policy_digest(
     isolation_write_paths: Iterable[str] = (),
     codex_timeout_sec: int = 0, max_prompt_chars: int = 0,
     budget_policy: Iterable[str] = (),
+    document_read_urls: Iterable[str] = (),
+    sandbox_read_paths: Iterable[str] = (),
 ) -> str:
     """Canonical digest of the operator-controlled execution policy."""
     payload = {
@@ -49,6 +51,8 @@ def local_agent_policy_digest(
         "codex_timeout_sec": int(codex_timeout_sec),
         "max_prompt_chars": int(max_prompt_chars),
         "budget_policy": list(budget_policy),
+        "document_read_urls": sorted(set(document_read_urls)),
+        "sandbox_read_paths": sorted(set(sandbox_read_paths)),
     }
     return hashlib.sha256(json.dumps(
         payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
