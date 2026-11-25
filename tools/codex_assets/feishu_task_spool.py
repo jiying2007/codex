@@ -66,7 +66,9 @@ class TaskSpool:
 
     def get(self, task_id: int) -> dict[str, Any]:
         path = self._path(task_id)
-        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        # Validate the opened descriptor before reading. A substituted FIFO
+        # must not block the only worker (or restart recovery) in open().
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
         try:
             info = os.fstat(descriptor)
             if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()

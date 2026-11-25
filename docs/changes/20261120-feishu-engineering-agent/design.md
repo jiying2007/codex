@@ -17,12 +17,12 @@
 只复用 CLI 执行和精确 thread/resume，不接管个人线程、不用 --last。工作区/模式切换不能冒充原生恢复；创建关联新会话并交接审核摘要。仓库规范、ADK 与 Knowledge Provider 负责研发方法；任务复杂度决定是否 SDD。
 
 ## 交付与恢复
-精确 Git head/PR/required CI 关联，独立测试/QA；完成执行≠交付≠原工单关闭。反馈为可复制文本，当前 GitHub 适配器仅 GET，不负责发布或回写。排队持久化、防重复，running interrupted UNKNOWN，取消精确进程及队列身份。任何已启动 CLI 的非零退出、执行后计费/完成回执缺失均为 UNKNOWN，不自动重放。交付封存与编辑续接在同一入队事务再次核验，避免并发改写已核验版本。
+精确 Git head/PR/required CI 关联，独立测试/QA；完成执行≠交付≠原工单关闭。反馈为可复制文本，交付核验适配器保持 GET-only；受控发布由同一 Bot 控制器处理显式 `/publish <完整SHA>`，须逐仓预授权与独立写凭据。先在原 SQLite 持久化唯一意图、封存原 worktree，再条件创建远端分支和草稿 PR；不覆盖其他 head、不自动 merge，结果未知只读对账。排队持久化、防重复，running interrupted UNKNOWN，取消精确进程及队列身份。任何已启动 CLI 的非零退出、执行后计费/完成回执缺失均为 UNKNOWN，不自动重放。交付封存与编辑续接在同一入队事务再次核验，避免并发改写已核验版本。
 
 迁移先冻结旧 Bot 及全部本机写入方，再做私有备份、恢复演练与统一归档。锁和 DB 路径必须与冻结 policy/env 一致，主 DB/WAL/SHM 均核验身份与权限。历史仅通过原生 SQLite 归档；新程序发现旧 ledger/关联记录而无完整迁移标记时拒绝启动。旧 DB/备份保留供离线恢复，新部署无旧记录无需迁移。持有 Bot 锁不等于已经证明全部外部写入方停止。
 
 ## 模块
-保留 Bot transport/worker/StateStore/spool、文档读取及最小 MCP；工程包保留 sources/service/executor/delivery、只读 GitHub 证据、预算、精确 CLI 回执、策略摘要与离线迁移。AppServer/runtime_bridge/card/actions、旧 offline router/RunStore/manual_items、HMAC 授权工作流和独立跨仓契约执行模块已删除。旧结构仅以固定历史 SQLite fixture 验证迁移，不以可运行旧模块维持兼容。
+保留 Bot transport/worker/StateStore/spool、文档读取及最小 MCP；工程包保留 sources/service/executor/delivery、只读 GitHub 证据及受控发布、预算与请求费用观察、精确 CLI 回执、策略摘要与离线迁移。AppServer/runtime_bridge/card/actions、旧 offline router/RunStore/manual_items、HMAC 授权工作流和独立跨仓契约执行模块已删除。旧结构仅以固定历史 SQLite fixture 验证迁移，不以可运行旧模块维持兼容。
 
 ## 当前配置与执行边界
 

@@ -3,12 +3,13 @@
 import hashlib
 import json
 import os
+from pathlib import Path
 import subprocess
 from unittest.mock import patch
 
 from test_execution_policy import ExecutionPolicyAdapterTest, ROOT
 from tools.codex_assets.execution_policy_authority import routing_binding
-from tools.codex_assets.execution_policy_adapter import run
+from tools.codex_assets.execution_policy_adapter import active_thread, run
 from tools.codex_assets.cli import build_parser
 
 
@@ -91,7 +92,7 @@ class RoutingAuthorityTest(ExecutionPolicyAdapterTest):
             (directory / "AGENTS.md").write_bytes(content)
         thread = {"thread_id": "thread-1", "cwd": str(project)}
         record = {
-            "schema_version": "codex-project-routing/v2",
+            "authority_id": "codex-project-routing",
             "task_mode": "readonly",
             "thread_id": "thread-1",
             "cwd_sha256": hashlib.sha256(str(project.resolve()).encode()).hexdigest(),
@@ -106,9 +107,86 @@ class RoutingAuthorityTest(ExecutionPolicyAdapterTest):
             "routing_decision_sha256": digest,
             "authority_id": "codex-project-routing",
             "source_id": "codex-project-routing",
-            "source_version": "v2",
+            "source_version": "sha256:" + hashlib.sha256(json.dumps(
+                record["rule_sha256"], sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
             "decision_id": "routing-" + digest[:24],
         }, routing_binding(runtime, thread, "a" * 64, "readonly", ["done"], ["proof"], 1))
+
+    def test_source_identity_tracks_rule_contents_not_the_request(self):
+        runtime = self.temp / "runtime"
+        runtime.mkdir()
+        rules = runtime / "AGENTS.md"
+        rules.write_text("approved routing rules")
+        thread = {"thread_id": "thread-1", "cwd": str(self.temp)}
+        first = routing_binding(runtime, thread, "a" * 64, "readonly", ["done"], ["proof"], 1)
+        second = routing_binding(runtime, thread, "b" * 64, "review", ["done"], ["proof"], 1)
+        self.assertEqual(first["source_version"], second["source_version"])
+        self.assertNotEqual(first["routing_decision_sha256"], second["routing_decision_sha256"])
+        rules.write_text("revised routing rules")
+        changed = routing_binding(runtime, thread, "a" * 64, "readonly", ["done"], ["proof"], 1)
+        self.assertNotEqual(first["source_version"], changed["source_version"])
+
+    def test_retired_routing_journal_is_preserved_and_cannot_reduce_the_gate(self):
+        from tools.codex_assets.execution_policy import goal_intake_attestation_sha256
+        request = self.readonly_goal()
+        journal = next((self.codex_home / "execution-policy").glob("*.jsonl"))
+        event = json.loads(journal.read_text().splitlines()[0])
+        payload = event["payload"]
+        intake = payload["intake"]
+        thread = active_thread(self.codex_home / "state_5.sqlite", "thread-1")
+        # Construct the retired writer's exact record only in this historical
+        # fixture. Runtime code has no old-domain reader or acceptance branch.
+        record = {
+            "schema_version": "codex-project-routing/v2", "task_mode": intake["task_mode"],
+            "thread_id": thread["thread_id"],
+            "cwd_sha256": hashlib.sha256(str(Path(thread["cwd"]).resolve()).encode()).hexdigest(),
+            "request_sha256": intake["request_sha256"],
+            "rule_sha256": {name: hashlib.sha256(path.read_bytes()).hexdigest()
+                            for name, path in (("runtime", ROOT / "AGENTS.md"),
+                                               ("project", Path(thread["cwd"]) / "AGENTS.md"))
+                            if path.is_file()},
+            "success_criteria": payload["success_criteria"],
+            "required_evidence": payload["required_evidence"],
+            "open_items": payload["open_items_count"],
+        }
+        digest = hashlib.sha256(json.dumps(record, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        payload["goal_id"] = intake["goal_id"] = "task-" + digest[:24]
+        intake["routing_decision_sha256"] = digest
+        intake["provenance"].update(source_version="v2", decision_id="routing-" + digest[:24])
+        intake["attestation_sha256"] = goal_intake_attestation_sha256(
+            intake["task_mode"], intake["artifact_mode"], intake["provenance"],
+            goal_id=intake["goal_id"], request_sha256=intake["request_sha256"],
+            routing_decision_sha256=digest, authority_id=intake["authority_id"])
+        journal.write_text(json.dumps(event) + "\n")
+        original = journal.read_bytes()
+        self.assertEqual(0, self.run_cli("goal", "status").returncode)
+        gate = self.run_cli("gate", "--event", "final")
+        self.assertEqual(3, gate.returncode, gate.stderr)
+        decision = json.loads(gate.stdout)
+        self.assertFalse(decision["mode_authority_managed"])
+        self.assertEqual("implementation", decision["effective_artifact_mode"])
+        self.assertEqual(["build", "repo"], decision["missing_artifacts"])
+        args = ("ensure", "--request-file", str(request), "--task-mode", "readonly",
+                "--success-criterion", "explanation", "--required-evidence", "sources", "--open-items", "1")
+        retry = self.run_cli(*args)
+        self.assertEqual(2, retry.returncode)
+        self.assertIn("conflicts with existing goal", retry.stderr)
+        self.assertEqual(original, journal.read_bytes())
+        self.assertEqual(0, self.run_cli("goal", "abort").returncode)
+        closed = journal.read_bytes()
+        request.write_text("请只读审查新任务的验证范围。\n")
+        with (self.codex_home / "rollout.jsonl").open("a") as stream:
+            stream.write(json.dumps({"type": "event_msg", "payload": {
+                "type": "user_message", "message": request.read_text().rstrip("\n")}}) + "\n")
+        current = self.run_cli(*args)
+        self.assertEqual(0, current.returncode, current.stderr)
+        self.assertEqual("REGISTERED", json.loads(current.stdout)["status"])
+        self.assertNotEqual(intake["goal_id"], json.loads(current.stdout)["goal_id"])
+        self.assertTrue(closed.startswith(original))
+        self.assertTrue(journal.read_bytes().startswith(closed))
+        decision = json.loads(self.run_cli("gate", "--event", "final").stdout)
+        self.assertTrue(decision["mode_authority_managed"])
+        self.assertEqual("readonly", decision["effective_artifact_mode"])
 
     def test_unrecognized_source_cannot_reduce_artifact_requirements(self):
         from tools.codex_assets.execution_policy import goal_intake_attestation_sha256

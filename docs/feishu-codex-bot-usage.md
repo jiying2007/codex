@@ -125,6 +125,10 @@ FEISHU_AGENT_MODEL=example-model
 
 缺字段、身份不符、不可读取或已耗尽都拒绝启动。正常结束后再记录累计金额观测；无法保存或核验结束回执记为 `unknown`，不自动重试。超时、取消或进程异常可能只有启动前回执。私有 `engineering_budget_receipts` 只保存白名单字段和 key 指纹，不保存完整网关响应或 API key。
 
+每次启动前还会在同一 `engineering_budget_receipts` 中持久化随机账务 session ID，再通过原生 provider 的 `http_headers` 注入 `x-litellm-session-id`。未落盘、已有启动回执或身份变化都不能启动第二次模型。结束后使用同一专用 bearer 只读查询同源 `/spend/logs/v2`，最多 5 页、每页 100 条，并再次核对精确 session、key 指纹、路由 `model_group`、底层模型、唯一请求 ID、金额及分页完整性。该 API 的 session 筛选是部分匹配，不能直接信任返回集合。
+
+费用回执不保存完整网关日志、提示、响应或 metadata。查询完整且已有记录时保存 Decimal 请求小计和摘要；完整查询但日志尚未到达时保存 `request_observation=pending`、金额 `null`，允许本地任务完成；身份、金额、分页或读取失败则保存最小 `unknown` 回执并禁止自动重放。所有这些观察均保持 `settlement=pending`。请求小计、空列表、两次稳定查询和进程结束都不构成最终结算屏障。
+
 **累计 spend 不是单任务最终费用，也不是在途请求的原子硬限额。** 网关的独占 key、请求级预算拒绝、在途预留、异步消费入账和最终账单对账仍需实际验证；当前真实计费验证状态为 `NOT_RUN`。默认单 Worker 也不能证明不会超额。通过 `check` 或单元测试不授予模型调用权限。
 
 ## 6. 队列、交付与运行
@@ -134,6 +138,22 @@ FEISHU_AGENT_MODEL=example-model
 `running` 任务在重启后按 `unknown` 处理，禁止盲重放。取消信号不表示费用为零、改动回滚或模型已停止。`completed` 仅表示本次本地执行及配置验证完成；编辑提交仍需要真实 Git 发布、PR/CI、项目测试和业务验收。
 
 每仓可配置 `github_delivery.repository`、`base_branch`、`required_workflows`。实际有权限时可提供私有 `FEISHU_AGENT_GITHUB_READ_TOKEN`；此适配器只有 GET 能力，按精确 SHA 发现唯一 PR 和最新必需 CI，再重读核验。不能用其他提交或旧成功运行代替。
+
+### 受控 GitHub 发布
+
+发布默认关闭。私有策略中的 `github_delivery.publish_enabled=true` 只对该仓库生效，并须配置独立的 `FEISHU_AGENT_GITHUB_WRITE_TOKEN`。在当前已关联的可信话题中，所有者明确发送：
+
+```text
+/publish <本次已完成编辑任务的完整40位提交SHA>
+```
+
+控制器同时核对租户、chat、actor、话题、仓库、最新已完成编辑任务、原生会话和双份 Git 回执。实际 worktree 必须仍在原仓库下、干净且 HEAD/branch 精确一致；源仓 origin 必须匹配配置的 GitHub 仓库。该命令不调用模型，来源文档里的文字不能授予发布权限。
+
+远端写之前先在原 SQLite 写入唯一发布意图并封存原 worktree 会话。控制器将已核验的精确 Git 对象复制到私有 bare 仓库，再用空 expected OID 的 lease 条件创建远端分支；已有相同 SHA 可复用，不同 SHA 一律拒绝，不覆盖远端历史。传输不继承源仓 hooks、helpers、URL 替换、代理或个人凭据，令牌只在控制器环境/HTTP 鉴权头中使用。模型的禁止 push 钩子及沙箱网络权限不变。
+
+最多创建一次草稿 PR，固定仓库、基线、分支与 SHA，正文不包含原工单、文档、用户身份或私有路径。发布只表示 branch/PR 已观察，必需 CI、合并和产品验收独立。GitHub 创建 PR 接口没有 expected-head 原子条件；控制器在前后读取精确 head，发现外部写者造成漂移时保持未知，不能声称消除了所有远端竞争。
+
+网络错误、超时、中断或回执缺失保留原意图。重新发送相同命令只做 GET 对账，不重新 push 或 POST；即使原意图在外部写之前中断，也不自动重放。只有分支已存在但没有 PR 等部分成功情况，需要操作者先核对并完成缺失的外部步骤，再查询对账。已登记意图的会话不能继续编辑；后续开发须明确新任务范围，使用新的隔离 worktree。
 
 无模型预检示例：
 

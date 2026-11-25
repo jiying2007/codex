@@ -77,7 +77,8 @@ rtk env PYTHONPATH=/home/service/codex python3 -m tools.codex_assets.feishu_engi
 
 取得成功回执后，才转换运行配置：
 
-- 删除退役的 `manual_workitems_enabled`、`engineering_cards_enabled` 及卡片、旧 QA/工作流专用凭据配置。
+- 删除退役的 `manual_workitems_enabled`、`engineering_cards_enabled` 及卡片、旧 QA/工作流专用凭据配置。即使值为 false 也不能保留旧开关。
+- 使用显式 `FEISHU_BOT_CONFIG` 私有策略；把旧 `FEISHU_CODEX_WORKDIR`、`FEISHU_ALLOWED_OPEN_IDS` 中核对后的仓库与白名单写入该策略并删除旧环境字段，不保留隐含单仓回退。
 - 使用 `engineering_enabled=true`。先保持 `agent_intake_enabled=false`、各仓 `agent_allowed_modes=[]`，完成无模型现场验证。
 - 保持同一 state、spool、锁及服务账号；私有路径与实际 unit 一致。若采用本文的独立 env 路径，unit 的 ExecStart 必须向脚本传同一个 `--env-file`，不能让预检和服务分别读取两份配置。
 - 不复制个人 `auth.json`；`isolation_write_paths` 不指向个人 HOME。专用执行目录、仓库与各 worktree 互不重叠。
@@ -111,8 +112,24 @@ CLI version/help 成功只说明命令存在，不证明主机沙箱、模型兼
 
 ## 6. 真实费用与工程验收仍需单独完成
 
-实际模型适配器仅支持 LiteLLM 外部网关。专用 `FEISHU_AGENT_*` 字段、`key/alias/models/blocked/budget_duration` 和金额规则见 [使用指南](../../feishu-codex-bot-usage.md#5-独立模型身份与预算)。当前真实独占身份、模型映射、网关请求级拒绝/在途预留、异步费用及最终账单验证均为 `NOT_RUN`。累计 key spend 不代表原子硬 cap 或单任务最终结算。
+实际模型适配器仅支持 LiteLLM 外部网关。专用 `FEISHU_AGENT_*` 字段、`key/alias/models/blocked/budget_duration` 和金额规则见 [使用指南](../../feishu-codex-bot-usage.md#5-独立模型身份与预算)。当前真实独占身份、模型映射、网关请求级拒绝/在途预留、异步费用及最终账单验证均为 `NOT_RUN`。累计 key spend 不代表原子硬 cap 或单任务最终结算。当前源码会持久化每次任务的账务 session，并观察同 key 下精确请求的费用；异步日志为空时金额为 null，所有观察保持 settlement=pending。需现场核验实际 CLI 的 provider header 能力、网关 session 归属、普通专用 key 的自查日志权限和真实模型路由，不能用升级到某个版本的声明代替测试。
 
 只有取得实际调用授权并核验费用通道后，才由操作者开启执行和必要仓库模式，验证低风险需求、缺陷、文档驱动任务及跨仓多轮研发。记录精确 native thread、工作区/提交、取消、重启、PR/全部必需 CI 以及真正的项目测试/QA。配置 CI 通过不自动完成跨仓联调或关闭原工单。
 
 若需要回滚，先重新冻结所有写入方并保存切换后状态，核对新发生的任务、提交、模型费用和远端效果，再选择匹配版本及配对状态。不能盲覆盖旧 DB 丢失新记录，更不能靠重放未知任务“恢复成功”。
+
+## 7. 显式发布的现场验收
+
+先保持各仓 `github_delivery.publish_enabled=false`。核对已完成编辑任务的完整 SHA、
+原始隔离 worktree、GitHub 仓库和基线后，才按实际发布授权逐仓开启，并将最小范围的
+独立 `FEISHU_AGENT_GITHUB_WRITE_TOKEN` 写入私有环境文件；不在飞书或公共日志传递令牌。
+
+可信话题所有者发送 `/publish <完整40位SHA>` 后，实际观察唯一意图、条件创建的分支、
+草稿 PR 的精确 head/base，以及原 worktree 已封存。随后通过“检查交付”核验全部必需 CI。
+同一请求或网络超时后的再次命令只能 GET 对账；不能通过新消息 ID 重推来代替核对。
+部分成功应由操作者核对已有远端对象后完成缺失步骤，不删除本地意图重试。
+验收还包括错误用户、错误 SHA、错仓、已有不同分支头、dirty worktree、过期/缺失写权限、
+中断恢复和发布后继续编辑的拒绝。
+
+这个步骤需要真实主机与仓库写权限。合成 Git 测试和当前项目自身的 PR 合并不代表
+Bot 已完成真实业务发布，也不自动授予合并、发布产品或关闭工单的权限。

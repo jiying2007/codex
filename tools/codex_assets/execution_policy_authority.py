@@ -8,10 +8,7 @@ import os
 from pathlib import Path
 
 
-# This is the sole serialized digest domain, not a runtime release or an
-# alternate routing backend. The upstream intake requires source_version.
-_ROUTING_SCHEMA = "codex-project-routing/v2"
-_ROUTING_AUTHORITY, _ROUTING_VERSION = _ROUTING_SCHEMA.split("/")
+_ROUTING_AUTHORITY = "codex-project-routing"
 
 
 def routing_binding(root, thread, request_sha256, task_mode, criteria, evidence, open_items):
@@ -26,7 +23,7 @@ def routing_binding(root, thread, request_sha256, task_mode, criteria, evidence,
     if not rules:
         raise ExecutionPolicyAdapterError("ensure requires actual project or runtime routing rules")
     record = {
-        "schema_version": _ROUTING_SCHEMA, "task_mode": task_mode,
+        "authority_id": _ROUTING_AUTHORITY, "task_mode": task_mode,
         "thread_id": thread["thread_id"],
         "cwd_sha256": hashlib.sha256(str(Path(thread["cwd"]).resolve()).encode()).hexdigest(),
         "request_sha256": request_sha256, "rule_sha256": rules,
@@ -38,7 +35,10 @@ def routing_binding(root, thread, request_sha256, task_mode, criteria, evidence,
         "routing_decision_sha256": digest,
         "authority_id": _ROUTING_AUTHORITY,
         "source_id": _ROUTING_AUTHORITY,
-        "source_version": _ROUTING_VERSION,
+        # The exact upstream intake requires this field. Identify the actual
+        # source contents, without a numbered local format or compatibility path.
+        "source_version": "sha256:" + hashlib.sha256(json.dumps(
+            rules, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
         "decision_id": "routing-" + digest[:24],
     }
 
@@ -59,8 +59,7 @@ def verifier(root, thread, events):
             return False
         provenance = intake["provenance"]
         if (provenance.get("kind") != "routing-decision"
-                or provenance.get("source_id") != _ROUTING_AUTHORITY
-                or provenance.get("source_version") != _ROUTING_VERSION):
+                or provenance.get("source_id") != _ROUTING_AUTHORITY):
             return False
         for event in reversed(events):
             payload = event.get("payload", {})
@@ -73,6 +72,7 @@ def verifier(root, thread, events):
                                       payload["open_items_count"])
             return (binding["routing_decision_sha256"] == intake["routing_decision_sha256"]
                     and intake["goal_id"] == binding["goal_id"]
+                    and provenance["source_version"] == binding["source_version"]
                     and provenance["decision_id"] == binding["decision_id"]
                     and _user_request_matches(Path(thread["rollout_path"]), sha256=intake["request_sha256"]))
         return False

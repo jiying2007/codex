@@ -5,6 +5,26 @@ import pathlib
 import sqlite3
 
 
+def create_legacy_bot_tables(db: sqlite3.Connection) -> None:
+    """Frozen retired Bot schema, created only by historical-state fixtures."""
+    db.execute("CREATE TABLE messages (message_id TEXT PRIMARY KEY,received_at INTEGER NOT NULL)")
+    db.execute("CREATE TABLE user_preferences (sender_open_id TEXT PRIMARY KEY,default_repository TEXT NOT NULL,updated_at INTEGER NOT NULL)")
+    db.execute("CREATE TABLE agent_run_task_links (agent_run_id TEXT PRIMARY KEY,task_id INTEGER NOT NULL UNIQUE,unix_uid INTEGER NOT NULL,created_at INTEGER NOT NULL,FOREIGN KEY(task_id) REFERENCES tasks(id))")
+
+
+def insert_legacy_task(
+    db: sqlite3.Connection, message_id: str, sender: str,
+    repository: str, mode: str, *, created_at: int = 1,
+) -> int:
+    """Insert an old queued row without the now-required admission receipts."""
+    cursor = db.execute(
+        "INSERT INTO tasks(message_id,sender_open_id,repository,mode,status,created_at,updated_at) "
+        "VALUES (?,?,?,?,'queued',?,?)",
+        (message_id, sender, repository, mode, created_at, created_at),
+    )
+    return int(cursor.lastrowid)
+
+
 def create_legacy_ledger(path: pathlib.Path) -> pathlib.Path:
     descriptor = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     os.close(descriptor)

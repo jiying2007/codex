@@ -6,6 +6,14 @@
 
 ## 已核对的历史基线
 
+- #88 精确候选 `6a7b86ceb81946c859403bbaf8012f507522fc0e`：
+  [Full Regression](https://github.com/jiying2007/codex/actions/runs/45593769578)、
+  [Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45593769477)、
+  [Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45593769489)
+  在 Python 3.8/3.11/3.12 全部成功。独立源码审查核对原子取消/完成、输出回滚和迟到通知失败边界。
+  合并为 `002ac9d160149a6fb8b9be408ec7aee022bfd4ed`，合并后的同九项检查也成功。
+  这些结果不继承给本批后续源码。
+
 - #81 合并 `a72071fb674c5126226e4732a30ed061ce95673f`；#82 合并 `76305a78fc3483cc23054c2387b274f4b238a4bf`。
 - #82 候选 `19c14f23b851875a7b4ff1f15c6ae8009100673a`：Full Regression 45319808217、Runtime Binding Contract 45319808143、Profile Context Contract 45319808287 成功。历史现场 no-new-privileges 嵌套沙箱探针成功，不等于新版服务部署。
 - 本轮启动时已核对上一候选 `d89ae769992967d541b6ed64d62319c1d816bac4` 的 [Full Regression](https://github.com/jiying2007/codex/actions/runs/45325338003)、[Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45325338015)、[Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45325338020) 全部成功。此结果不继承给后续提交。
@@ -35,3 +43,23 @@
 ## 2026-11-25 深审整改验证范围
 
 本批新增断言覆盖：同一事务中断后原消息可再次登记、已接受上下文不依赖历史消息 API、摘要不符拒绝、文档 URL 显式授权、精确取消启动窗口、结果重取与 UNKNOWN 人工终止、跨仓共享上下文、宿主 Git 外部程序拒绝及沙箱正向挂载。候选执行结果以对应 GitHub PR/CI 实际回执为准。真实目标主机嵌套沙箱、网关费用、授权 Git 远端写入及真实项目验收仍为 NOT_RUN。
+
+## 2026-11-25 发布与费用观察候选
+
+环境断开前，历史写入口清理六模块 93 项、execution-policy 83 项、预算/MCP/Bot
+83 项定向测试曾分别通过；这些集合有交叉，不能相加作为全量测试数。FIFO 的有界子进程
+回归和旧库保留另经独立复核。发布新模块与后续集成是在执行环境不可用后通过精确 Git blob
+保全并整合，不能继承此前的本地通过结论。最终以对应 PR 精确 SHA 的既有全量回归及
+Runtime/Profile 合同 CI 为准。
+
+受控发布新增回归针对真实合成 Git 仓库的条件创建、远端竞争失败、隔离对象快照，
+以及显式命令/权限/来源/脏工作区/错误仓库拒绝、唯一发布意图、丢失响应后的只读对账。
+HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
+
+请求费用观察依据已核验的上游契约：
+[Codex provider headers](https://github.com/openai/codex/blob/cec14d27b5aa1a79e9de2e21a6281d308ae1fac3/codex-rs/model-provider-info/src/lib.rs)、
+[LiteLLM session header](https://github.com/BerriAI/litellm/blob/9add785f1a9c13d8ae60980610868253c86cc0df/litellm/proxy/litellm_pre_call_utils.py)、
+[LiteLLM spend API](https://github.com/BerriAI/litellm/blob/9add785f1a9c13d8ae60980610868253c86cc0df/litellm/proxy/spend_tracking/spend_management_endpoints.py)。
+这证明适配器的源码依据，不证明目标主机安装版本。真实网关是否具备
+[请求预留与故障拒绝](https://docs.litellm.ai/docs/proxy/users#budget-reservation)、
+实际模型估价和最终账单仍需现场核验；所有请求小计保持 `settlement=pending`。
