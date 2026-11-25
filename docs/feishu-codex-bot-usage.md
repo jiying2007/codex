@@ -147,7 +147,7 @@ FEISHU_AGENT_MODEL=example-model
 /publish <本次已完成编辑任务的完整40位提交SHA>
 ```
 
-控制器同时核对租户、chat、actor、话题、仓库、最新已完成编辑任务、原生会话和双份 Git 回执。实际 worktree 必须仍在原仓库下、干净且 HEAD/branch 精确一致；源仓 origin 必须匹配配置的 GitHub 仓库。该命令不调用模型，来源文档里的文字不能授予发布权限。
+控制器同时核对租户、chat、actor、话题、仓库、最新已完成编辑任务、原生会话和双份 Git 回执。实际 worktree 必须仍在原仓库下、干净且 HEAD/branch 精确一致；源仓 origin 必须匹配配置的 GitHub 仓库。该命令不调用模型，来源文档里的文字不能授予发布权限。入口回执与模型任务准入仍在 SDK 回调内同步持久化；长时间发布/交付核验随后交给最多 `worker_count` 个控制线程，避免阻塞 WebSocket 心跳。线程名额在 finally 中释放；满载时回复繁忙，要求新消息重发，不建立第二个任务队列或自动重试。
 
 远端写之前先在原 SQLite 写入唯一发布意图并封存原 worktree 会话。控制器将已核验的精确 Git 对象复制到私有 bare 仓库，再用空 expected OID 的 lease 条件创建远端分支；已有相同 SHA 可复用，不同 SHA 一律拒绝，不覆盖远端历史。传输不继承源仓 hooks、helpers、URL 替换、代理或个人凭据，令牌只在控制器环境/HTTP 鉴权头中使用。模型的禁止 push 钩子及沙箱网络权限不变。
 

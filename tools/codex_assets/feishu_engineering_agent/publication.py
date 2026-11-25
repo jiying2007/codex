@@ -258,6 +258,7 @@ class ContextPublication:
         if pull is None:
             raise IntakeRejected("尚未观察到精确 PR")
         with self.store._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
             old = db.execute("SELECT pr_number FROM engineering_context_publications WHERE task_id=?",
                              (row["task_id"],)).fetchone()
             if old is None or (old["pr_number"] is not None and old["pr_number"] != pull["number"]):

@@ -2073,6 +2073,7 @@ class FeishuCodexBot:
         self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         self._scheduled: Set[int] = set()
         self._schedule_lock = threading.Lock()
+        self._control_slots = threading.BoundedSemaphore(config.worker_count)
         self._link_service = None
         self._engineering_executor = None
         if config.engineering_enabled:
@@ -2237,10 +2238,60 @@ class FeishuCodexBot:
             self.transport.send_text(chat_id, chunk, message_id)
 
 
+    def _send_link_reply(self, inbound: Any, reply: Optional[str]) -> None:
+        if reply is not None:
+            try:
+                self._send_chunks(inbound.chat, reply, inbound.event_id)
+            except Exception:
+                # A reply error never replays a control operation.
+                print("[WARN] engineering_reply_delivery_unknown", flush=True)
+
+    def _complete_link_control(self, inbound: Any, result: Any) -> None:
+        from .feishu_engineering_agent.models import IntakeRejected
+        reply = result.reply or ""
+        try:
+            if result.intent == "publish":
+                from .feishu_engineering_agent.publication import ContextPublication
+                action = ContextPublication(self.config, self._engineering_executor).publish(inbound, result)
+            elif result.intent in ("delivery", "feedback", "joint_delivery"):
+                from .feishu_engineering_agent.delivery import ContextDelivery
+                delivery = ContextDelivery(self.config, self._engineering_executor)
+                action = {"delivery": delivery.verify, "feedback": delivery.feedback,
+                          "joint_delivery": delivery.verify_joint}[result.intent](inbound, result)
+            elif result.intent == "cancel":
+                action = self._engineering_executor.cancel(inbound, result)
+            elif result.intent == "result":
+                action = self._engineering_executor.result(inbound, result)
+            else:
+                raise IntakeRejected("paid intent must be admitted in the ingress transaction")
+            reply = (reply + "\n" if reply else "") + action
+        except FeishuCodexError as exc:
+            reply = (reply + "\n" if reply else "") + str(exc)
+        except IntakeRejected:
+            reply = ("发布条件未满足或回执无法核实；请核对精确提交、发布授权和已有回执。未重试远端写操作。"
+                     if result.intent == "publish" else
+                     "交付或研发资格核验未通过（缺少精确 PR/CI、权限或本地证据）；未执行模型或远端写操作。")
+        except (sqlite3.DatabaseError, OSError):
+            reply = ("发布状态不可用；请核对已有发布回执和远端效果，禁止盲重试。"
+                     if result.intent == "publish" else "研发上下文状态不可用；未启动 Codex。")
+        except Exception as exc:
+            print(f"[ERROR] link_control_failed kind={type(exc).__name__}", flush=True)
+            reply = ("发布结果尚未核实；请核对已有发布回执和远端效果，禁止盲重试。"
+                     if result.intent == "publish" else "研发交付核验异常；未启动 Codex。")
+        self._send_link_reply(inbound, reply)
+
+    def _bounded_link_control(self, inbound: Any, result: Any) -> None:
+        try:
+            self._complete_link_control(inbound, result)
+        finally:
+            self._control_slots.release()
+
     def _run_link_message(self, inbound: Any, topic: str,
                           allowed: FrozenSet[str]) -> None:
         from .feishu_engineering_agent.models import IntakeRejected
         try:
+            # Keep the ingress receipt and paid-task admission synchronous.
+            # Only the subsequent long Git/HTTP control leaves the SDK loop.
             result = self._link_service.handle(
                 inbound, topic, allowed, self.config.link_repositories,
                 admit=self._engineering_executor.submit,
@@ -2249,43 +2300,31 @@ class FeishuCodexBot:
                 "当前回复没有已关联的研发事项；请在本话题提供需求、缺陷或文档链接及明确范围。未启动 Codex。"
             )
             if result.consumed and result.intent:
-                try:
-                    if result.intent == "publish":
-                        from .feishu_engineering_agent.publication import ContextPublication
-                        action = ContextPublication(self.config, self._engineering_executor).publish(inbound, result)
-                    elif result.intent in ("delivery","feedback","joint_delivery"):
-                        from .feishu_engineering_agent.delivery import ContextDelivery
-                        delivery = ContextDelivery(self.config,self._engineering_executor)
-                        action = {"delivery":delivery.verify,"feedback":delivery.feedback,
-                                  "joint_delivery":delivery.verify_joint}[result.intent](inbound,result)
-                    elif result.intent=="cancel":
-                        action = self._engineering_executor.cancel(inbound,result)
-                    elif result.intent=="result":
-                        action = self._engineering_executor.result(inbound,result)
+                if result.intent in ("publish", "delivery", "feedback", "joint_delivery"):
+                    if not self._control_slots.acquire(blocking=False):
+                        reply = "交付操作繁忙；本条控制命令未执行，请稍后发送新消息重试。"
                     else:
-                        raise IntakeRejected("paid intent must be admitted in the ingress transaction")
-                    reply = (reply + "\n" if reply else "") + action
-                except FeishuCodexError as exc:
-                    reply = (reply + "\n" if reply else "") + str(exc)
-                except IntakeRejected:
-                    note = ("发布条件未满足或回执无法核实；请核对精确提交、发布授权和已有回执。未重试远端写操作。"
-                            if result.intent == "publish" else
-                            "交付或研发资格核验未通过（缺少精确 PR/CI、权限或本地证据）；未执行模型或远端写操作。")
-                    reply = (reply + "\n" if reply else "") + note
+                        try:
+                            threading.Thread(
+                                target=self._bounded_link_control, args=(inbound, result),
+                                name="feishu-control-" + result.intent, daemon=True,
+                            ).start()
+                        except Exception:
+                            self._control_slots.release()
+                            reply = "交付控制线程无法启动；本条控制命令未执行，请稍后发送新消息重试。"
+                        else:
+                            return
+                else:
+                    self._complete_link_control(inbound, result)
+                    return
         except (IntakeRejected, ValueError):
             reply = "研发来源或话题关联被拒绝：请核对链接、工作项唯一性、仓库和权限。未启动 Codex。"
         except (sqlite3.DatabaseError, OSError):
-            reply = ("发布状态不可用；请核对已有发布回执和远端效果，禁止盲重试。"
-                     if inbound.text.strip().startswith("/publish ") else "研发上下文状态不可用；未启动 Codex。")
+            reply = "研发上下文状态不可用；未启动 Codex。"
         except Exception as exc:
             print(f"[ERROR] link_intake_failed kind={type(exc).__name__}", flush=True)
-            reply = ("发布结果尚未核实；请核对已有发布回执和远端效果，禁止盲重试。"
-                     if inbound.text.strip().startswith("/publish ") else "研发链接处理异常；未启动 Codex。")
-        if reply is not None:
-            try:
-                self._send_chunks(inbound.chat, reply, inbound.event_id)
-            except FeishuCodexError:
-                print("[WARN] engineering_reply_delivery_unknown", flush=True)
+            reply = "研发链接处理异常；未启动 Codex。"
+        self._send_link_reply(inbound, reply)
 
     def on_message(self, data: Any) -> None:
         """One authenticated Feishu ingress; no global command fallback."""

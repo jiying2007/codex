@@ -130,7 +130,7 @@ class FeishuCodexBotTest(unittest.TestCase):
 
     def test_publication_policy_is_explicit_and_credential_is_private(self) -> None:
         repo = self.policy["repositories"]["codex"]
-        repo.update(edit_strategy="worktree", worktree_root=str(self.tmp / "worktrees"),
+        repo.update(edit_strategy="worktree", worktree_root=str(self.tmp.parent / (self.tmp.name + "-publish-worktrees")),
                     commit_enabled=True, github_delivery={
                         "repository": "example/app", "base_branch": "main",
                         "required_workflows": [".github/workflows/verify.yml"]})
@@ -168,7 +168,9 @@ class FeishuCodexBotTest(unittest.TestCase):
                              "ou_owner", "om_publish_control", "/publish " + sha)
         result = IntakeResult(True, "", "context", "codex", "publish", sha, "root:om_context")
         with mock.patch.object(bot._link_service, "handle", return_value=result), \
-                mock.patch("tools.codex_assets.feishu_engineering_agent.publication.ContextPublication") as factory:
+                mock.patch("tools.codex_assets.feishu_engineering_agent.publication.ContextPublication") as factory, \
+                mock.patch.object(feishu_codex_bot.threading, "Thread", side_effect=lambda **kwargs:
+                    types.SimpleNamespace(start=lambda: kwargs["target"](*kwargs["args"]))):
             factory.return_value.publish.return_value = "已核对发布"
             bot._run_link_message(event, result.topic, frozenset(("codex",)))
             factory.return_value.publish.assert_called_once_with(event, result)
@@ -181,6 +183,50 @@ class FeishuCodexBotTest(unittest.TestCase):
             reply = transport.send_text.call_args.args[1]
             self.assertIn("发布状态不可用", reply)
             self.assertNotIn("未执行模型或远端写操作", reply)
+
+
+    def test_long_controls_leave_sdk_loop_after_admission_and_use_bounded_slots(self) -> None:
+        from tools.codex_assets.feishu_engineering_agent.models import InboundEvent
+        from tools.codex_assets.feishu_engineering_agent.service import IntakeResult
+        self.policy.update(engineering_enabled=True, worker_count=1)
+        self.write_policy()
+        cfg = self.config()
+        bot = feishu_codex_bot.FeishuCodexBot(cfg, mock.Mock(), mock.Mock(),
+                                            feishu_codex_bot.StateStore(cfg.state_db))
+        sha = "a" * 40
+        event = InboundEvent("feishu_message", "tenant", cfg.target_chat_id,
+                             "ou_owner", "om_async", "/publish " + sha)
+        result = IntakeResult(True, "", "context", "codex", "publish", sha, "root:om_context")
+        calls, pending = [], []
+        def admitted(*args, **kwargs):
+            calls.append("admitted")
+            return result
+        def scheduled(**kwargs):
+            calls.append("scheduled")
+            pending.append(kwargs)
+            return types.SimpleNamespace(start=lambda: None)
+        with mock.patch.object(bot._link_service, "handle", side_effect=admitted), \
+                mock.patch.object(feishu_codex_bot.threading, "Thread", side_effect=scheduled), \
+                mock.patch("tools.codex_assets.feishu_engineering_agent.publication.ContextPublication") as factory:
+            bot._run_link_message(event, result.topic, frozenset(("codex",)))
+            self.assertEqual(["admitted", "scheduled"], calls)
+            factory.assert_not_called()
+            bot._run_link_message(event, result.topic, frozenset(("codex",)))
+            self.assertEqual(1, len(pending))
+            self.assertIn("繁忙", bot.transport.send_text.call_args.args[1])
+            factory.return_value.publish.side_effect = OSError("fixture")
+            pending[0]["target"](*pending[0]["args"])
+            self.assertTrue(bot._control_slots.acquire(blocking=False))
+            bot._control_slots.release()
+            bot.runner.run.assert_not_called()
+            self.assertTrue(bot.jobs.empty())
+        with mock.patch.object(bot._link_service, "handle", return_value=result), \
+                mock.patch.object(feishu_codex_bot.threading, "Thread") as thread:
+            thread.return_value.start.side_effect = RuntimeError("fixture")
+            bot._run_link_message(event, result.topic, frozenset(("codex",)))
+            self.assertIn("无法启动", bot.transport.send_text.call_args.args[1])
+            self.assertTrue(bot._control_slots.acquire(blocking=False))
+            bot._control_slots.release()
 
     def agent_config(self) -> feishu_codex_bot.BotConfig:
         self.policy["agent_intake_enabled"] = True
@@ -734,7 +780,7 @@ class FeishuCodexBotTest(unittest.TestCase):
         with mock.patch.object(feishu_codex_bot, "FeishuTransport", return_value=fake_transport), mock.patch("builtins.print") as output:
             self.assertEqual(0, feishu_codex_bot.run(args))
         rendered = [call.args[0] for call in output.call_args_list if call.args]
-        self.assertIn('"allowed_open_ids": ["ou_owner"]', rendered)
+        self.assertIn('{"allowed_open_ids": ["ou_owner"]}', rendered)
 
     def test_transport_uses_error_log_level_to_avoid_connection_ticket_logs(self) -> None:
         transport = object.__new__(feishu_codex_bot.FeishuTransport)

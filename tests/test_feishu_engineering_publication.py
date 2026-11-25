@@ -144,7 +144,16 @@ class PublicationTest(unittest.TestCase):
         self.assertIn("/pull/7", self.controller.publish(*self.command()))
         self.assertEqual((0, 1), (self.pushes, self.remote.creates))
         self.remote.head = "a" * 40
-        self.assertIn("尚未核实", self.controller.publish(*self.command("om_changed")))
+        reply = self.controller.publish(*self.command("om_changed"))
+        self.assertIn("尚未核实", reply)
+        self.assertNotIn("/pull/7", reply)
+        self.assertNotIn("已核对", reply)
+        self.assertEqual("published", self.state()["status"])  # historical success only
+        self.assertEqual((0, 1), (self.pushes, self.remote.creates))
+        self.remote.head = self.sha
+        self.remote.pull = {"number": 8, "draft": True}
+        self.assertIn("尚未核实", self.controller.publish(*self.command("om_other_pr")))
+        self.assertEqual(7, self.state()["pr_number"])
         self.assertEqual((0, 1), (self.pushes, self.remote.creates))
 
     def test_wrong_sha_owner_and_source_cannot_authorize(self):
@@ -194,14 +203,18 @@ class PublicationTest(unittest.TestCase):
     def test_replacement_refs_and_object_alternates_are_rejected(self):
         event, result = self.command()
         self.git(self.cwd, "replace", self.sha, self.base_sha)
-        with self.assertRaises(IntakeRejected):
+        # The exact worktree check may reject the replaced tree as dirty
+        # before the explicit object-store check. Both refuse publication.
+        with self.assertRaises((IntakeRejected, bot_module.FeishuCodexError)):
             self.controller.publish(event, result)
         self.git(self.cwd, "replace", "-d", self.sha)
         alternate = self.fixture.repo / ".git" / "objects" / "info" / "alternates"
         alternate.write_text(str(self.fixture.repo / ".git" / "objects") + "\n")
-        with self.assertRaises(IntakeRejected):
+        with self.assertRaises((IntakeRejected, bot_module.FeishuCodexError)):
             self.controller.publish(event, result)
         self.assertIsNone(self.state())
+        self.assertEqual(0, self.remote.reads)
+        self.assertEqual((0, 0), (self.pushes, self.remote.creates))
 
     def test_newer_edit_prevents_publishing_old_completion(self):
         self.fixture.submit("om_edit_again", "继续推进")
