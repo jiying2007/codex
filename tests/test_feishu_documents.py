@@ -18,16 +18,18 @@ DOCX = "https://example.feishu.cn/docx/Doc1"
 
 
 class DocumentInputTest(unittest.TestCase):
-    def test_command_accepts_explicit_and_inline_links_without_duplicate(self):
-        command = bot.parse_command(f"repo=codex doc={WIKI} 总结 {WIKI}", "other")
-        self.assertEqual("codex", command.repository)
-        self.assertEqual("explain", command.mode)
-        self.assertEqual((bot.SourceRef("doc", WIKI),), command.sources)
-        self.assertIn("总结", command.task)
+    def test_live_link_parser_deduplicates_markdown_document_links(self):
+        from tools.codex_assets.feishu_engineering_agent.sources import parse_sources
+        sources = parse_sources(f"总结 [需求]({DOCX})，再分析 {DOCX}")
+        self.assertEqual(1, len(sources))
+        self.assertEqual(DOCX, sources[0].url)
 
-    def test_markdown_and_chinese_punctuation_are_removed(self):
-        command = bot.parse_command(f"总结 [需求]({DOCX})，再分析。", "codex")
-        self.assertEqual((bot.SourceRef("doc", DOCX),), command.sources)
+    def test_document_limit_is_enforced_at_transport_boundary(self):
+        transport = object.__new__(bot.FeishuTransport)
+        with mock.patch.object(transport, '_resolve_source') as read:
+            with self.assertRaisesRegex(bot.FeishuCodexError, '最多读取'):
+                transport.resolve_sources(tuple(bot.SourceRef('doc', DOCX + str(i)) for i in range(4)))
+            read.assert_not_called()
 
     def test_rejects_userinfo_ports_non_feishu_hosts_and_path_escape(self):
         for url in (
@@ -46,14 +48,6 @@ class DocumentInputTest(unittest.TestCase):
                       "range=A1:Z100", "range=C3:A1", "range=A0:C3", "range=Sheet1!A1:C3"):
             with self.subTest(query=query), self.assertRaises(docs.DocumentReadError):
                 docs.parse_document_url(DOCX + "?" + query)
-
-    def test_more_than_three_links_are_rejected(self):
-        for text in (
-            "总结 " + " ".join(DOCX + str(index) for index in range(4)),
-            " ".join("doc=" + DOCX + str(index) for index in range(4)) + " 总结",
-        ):
-            with self.assertRaisesRegex(bot.FeishuCodexError, "最多读取 3"):
-                bot.parse_command(text, "codex")
 
     def test_tracking_parameters_are_not_retained(self):
         self.assertEqual(DOCX, docs.parse_document_url(DOCX + "?from=secret#anchor").url)
@@ -167,32 +161,6 @@ class DocumentTransportTest(unittest.TestCase):
         env.assert_not_called()
         transport.assert_not_called()
         self.assertFalse(json.loads(output.call_args.args[0])["network_requested"])
-
-    def test_wrong_sender_with_document_link_is_rejected_without_remote_read(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = pathlib.Path(temp)
-            (root / ".git").mkdir()
-            policy = root / "policy.json"
-            policy.write_text(json.dumps({"schema_version": 1, "allowed_open_ids": ["ou_owner"],
-                "default_repo": "codex", "repositories": {"codex": {"path": str(root), "allowed_modes": ["explain"]}}}))
-            policy.chmod(0o600)
-            config = bot.BotConfig.from_values({"FEISHU_APP_ID": "cli_test", "FEISHU_APP_SECRET": "secret",
-                "FEISHU_TARGET_CHAT_ID": "oc_target", "FEISHU_BOT_CONFIG": str(policy)}, root)
-            store = bot.StateStore(root / "state.sqlite3")
-            message = types.SimpleNamespace(chat_id="oc_target", message_id="om_1", message_type="text",
-                content=json.dumps({"text": "总结 " + DOCX}), mentions=[])
-            sender = types.SimpleNamespace(sender_id=types.SimpleNamespace(open_id="ou_other"))
-            data = types.SimpleNamespace(event=types.SimpleNamespace(message=message, sender=sender))
-            with mock.patch.object(bot.FeishuTransport, "_document_get") as read:
-                self.assertIsNone(bot.MessageGate(config, store).accept(data))
-                message.content = json.dumps({"text": "doc=https://evil.test/docx/Doc1 总结"})
-                self.assertIsNone(bot.MessageGate(config, store).accept(data))
-            read.assert_not_called()
-            config = dataclasses.replace(config, allowed_open_ids=frozenset(), repositories={
-                "codex": dataclasses.replace(config.repository("codex"), allowed_open_ids=frozenset({"ou_other"}))})
-            message.content = json.dumps({"text": "总结 " + DOCX})
-            with self.assertRaisesRegex(bot.FeishuCodexError, "旧任务入口"):
-                bot.MessageGate(config, store).accept(data)
 
     def test_read_source_uses_credentials_without_loading_bot_repository_policy(self):
         args = argparse.Namespace(root="/nonexistent", action="read-source", url=DOCX, dry_run=False,

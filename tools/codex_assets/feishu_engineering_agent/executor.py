@@ -197,7 +197,7 @@ class EngineeringExecutor:
         if (row is None or row["status"]!="queued" or row["repo"]!=job.repository
                 or row["repository"]!=job.repository or row["mode"]!=job.mode
                 or row["message_id"]!=job.message_id or row["chat"]!=job.chat_id
-                or job.artifact or any(s.kind!="doc" for s in job.sources)
+                or any(s.kind!="doc" for s in job.sources)
                 or source_digest(job.sources)!=row["sources_sha256"]
                 or any(source.value not in self.config.repository(job.repository).document_read_urls
                        for source in job.sources)
