@@ -207,6 +207,26 @@ def observe_requests(config, session_id):
     return result
 
 
+def probe_budget(config):
+    """No-model readiness observation, not a hard-budget qualification."""
+    key_info = observe_budget(config, "before")
+    # A fresh, unused session must not have request rows. This exercises
+    # the ordinary key's actual self-log access without any model request.
+    logs = observe_requests(config, str(uuid.uuid4()))
+    if logs["request_count"] != 0 or logs["request_observation"] != "pending":
+        raise BudgetError("unused accounting session returned request rows")
+    return {
+        "read_only": True, "model_called": False,
+        "key_info_verified": True, "unused_session_log_read_verified": True,
+        "approved_usd": key_info["approved_usd"],
+        "provider_cap_usd": key_info["provider_cap_usd"],
+        "provider_cumulative_spend_usd": key_info["provider_cumulative_spend_usd"],
+        "request_level_hard_cap_verified": False,
+        "final_settlement_verified": False,
+        "scope": "metadata only; no model or hard-budget qualification",
+    }
+
+
 def observe_budget(config, phase):
     if phase not in ("before", "after"):
         raise BudgetError("invalid observation phase")

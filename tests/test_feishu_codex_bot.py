@@ -662,6 +662,7 @@ class FeishuCodexBotTest(unittest.TestCase):
             result = runner.run(job)
         self.assertEqual("codex/feishu-9", result.branch_name)
         self.assertEqual("a" * 40, result.commit_hash)
+        self.assertTrue(result.text.startswith("本地交付：branch=codex/feishu-9, commit=" + "a" * 40 + "\n"))
         self.assertIn("未执行 push", result.text)
         self.assertIn("workspace-write", popen.call_args.args[0])
         self.assertEqual(str(worktree), popen.call_args.kwargs["cwd"])
@@ -759,6 +760,55 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.addCleanup(first.release)
         with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "已有"):
             second.acquire()
+
+    def test_check_budget_reads_metadata_with_intake_disabled(self) -> None:
+        self.agent_config()
+        self.policy["agent_intake_enabled"] = False
+        self.policy["repositories"]["codex"]["agent_allowed_modes"] = []
+        self.write_policy()
+        args = self.env_args("check-budget")
+        from tools.codex_assets.feishu_engineering_agent import budget
+        empty = {"data": [], "page": 1, "page_size": 100, "total": 0,
+                 "total_pages": 0, "total_is_capped": False}
+        with mock.patch.dict(os.environ, {}, clear=True), \
+             mock.patch.object(budget, "read_spend_page", return_value=empty) as logs, \
+             mock.patch.object(feishu_codex_bot, "StateStore") as store, \
+             mock.patch.object(feishu_codex_bot, "CodexRunner") as runner, \
+             mock.patch.object(feishu_codex_bot, "FeishuTransport") as transport, \
+             mock.patch("builtins.print") as output:
+            self.assertEqual(0, feishu_codex_bot.run(args))
+        receipt = json.loads(output.call_args.args[0])
+        self.assertTrue(receipt["key_info_verified"])
+        self.assertTrue(receipt["unused_session_log_read_verified"])
+        self.assertFalse(receipt["model_called"])
+        self.assertFalse(receipt["request_level_hard_cap_verified"])
+        self.assertFalse(receipt["final_settlement_verified"])
+        self.assertEqual("1", receipt["provider_cumulative_spend_usd"])
+        self.assertNotIn(self.agent_key, output.call_args.args[0])
+        self.assertNotIn("fixture-agent", output.call_args.args[0])
+        self.assertNotIn("gateway.example", output.call_args.args[0])
+        logs.assert_called_once()
+        self.assertEqual(self.agent_key, logs.call_args.args[1])
+        for constructor in (store, runner, transport):
+            constructor.assert_not_called()
+        self.assertFalse((self.tmp / "state.sqlite3").exists())
+
+    def test_check_budget_refuses_nonempty_unused_session_and_shared_key_fallback(self) -> None:
+        self.agent_config()
+        self.policy["agent_intake_enabled"] = False
+        self.write_policy()
+        from tools.codex_assets.feishu_engineering_agent import budget
+        # The ordinary fixture returns a matching but nonempty request page.
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "网关预检失败"):
+                feishu_codex_bot.run(self.env_args("check-budget"))
+        del self.values["FEISHU_AGENT_OPENAI_API_KEY"]
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": self.agent_key}, clear=True), \
+             mock.patch.object(budget, "read_key_info") as read:
+            with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "网关预检失败"):
+                feishu_codex_bot.run(self.env_args("check-budget"))
+        read.assert_not_called()
+        self.assertFalse((self.tmp / "state.sqlite3").exists())
 
     def test_send_test_requires_explicit_confirmation(self) -> None:
         args = self.env_args("send-test")

@@ -112,6 +112,14 @@ FEISHU_AGENT_MODEL=example-model
 
 金额 `10` 只是合成示例，必须替换为本次真实批准金额。远程网关必须使用 HTTPS，URL 路径为 `/v1`，不能含凭据、查询参数或片段；本地测试可用 loopback HTTP。执行时显式绑定同一 gateway provider、专用 key 和模型，不借用个人模型路由。
 
+在保持 `agent_intake_enabled=false` 和各仓执行模式为空的状态下，可使用已配置的专用凭据执行一次无模型网关预检：
+
+```bash
+rtk bash ~/codex/scripts/feishu-codex-bot.sh check-budget --env-file /srv/feishu-agent/private/feishu.env
+```
+
+该命令复用实际预算适配器，只读取同源 `/key/info` 及随机未使用 session 的空费用日志，不创建状态库、不启动 Feishu/Codex，不输出 key、指纹、网关域名或原始日志。返回成功只证明当前元数据查询及未使用 session 查询可用，不证明实际请求入账、在途预留、原子硬限额、最终账单或可开启模型执行；拒绝或异常时不得改用个人凭据。
+
 紧邻模型进程启动前，使用同一 bearer 对同源 `/key/info` 做有界只读查询。以下字段必须可核验：
 
 | 网关信息 | 准入要求 |
@@ -141,7 +149,7 @@ FEISHU_AGENT_MODEL=example-model
 
 ### 受控 GitHub 发布
 
-发布默认关闭。私有策略中的 `github_delivery.publish_enabled=true` 只对该仓库生效，并须配置独立的 `FEISHU_AGENT_GITHUB_WRITE_TOKEN`。在当前已关联的可信话题中，所有者明确发送：
+发布默认关闭。私有策略中的 `github_delivery.publish_enabled=true` 只对该仓库生效，并须配置独立的 `FEISHU_AGENT_GITHUB_WRITE_TOKEN`。编辑完成的首行包含完整本地提交 SHA；长结果截断不会丢失该首行。历史结果过期时可使用“交付反馈”核对本地回执。对于 GitHub 受控发布，在当前已关联的可信话题中，所有者明确发送：
 
 ```text
 /publish <本次已完成编辑任务的完整40位提交SHA>

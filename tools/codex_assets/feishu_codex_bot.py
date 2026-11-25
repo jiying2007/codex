@@ -1881,9 +1881,9 @@ class CodexRunner:
                 raise CodexOutcomeUnknown(
                     "模型已完成，但本地验证或提交未闭环；保留工作区，禁止自动重放"
                 ) from exc
-            commit_line = commit_hash[:12] if commit_hash else "未提交（策略已禁用提交）"
+            commit_line = commit_hash if commit_hash else "未提交（策略已禁用提交）"
             return ExecutionResult(
-                f"{rendered}\n\n本地交付：branch={branch_name}, commit={commit_line}\n未执行 push。",
+                f"本地交付：branch={branch_name}, commit={commit_line}\n未执行 push。\n\n{rendered}",
                 branch_name,
                 commit_hash,
                 working_directory,
@@ -2496,7 +2496,7 @@ class FeishuCodexBot:
 def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "action",
-        choices=["check", "discover-owner", "send-test", "start", "read-source", "reconcile-unknown"],
+        choices=["check", "check-budget", "discover-owner", "send-test", "start", "read-source", "reconcile-unknown"],
     )
     parser.add_argument("--env-file", default="")
     parser.add_argument("--confirm-send", action="store_true")
@@ -2541,6 +2541,21 @@ def run(args: argparse.Namespace) -> int:
                               "context_sha256": hashlib.sha256(context.encode("utf-8")).hexdigest()}, ensure_ascii=False))
         return 0
     config = BotConfig.from_values(values, root)
+    if args.action == "check-budget":
+        # Load only the explicit dedicated gateway fields even while model
+        # intake is disabled. No StateStore, runner, Feishu transport or lock.
+        from .feishu_engineering_agent.budget import BudgetError, probe_budget
+        probe_config = dataclasses.replace(
+            config,
+            agent_openai_api_key=values.get("FEISHU_AGENT_OPENAI_API_KEY", "").strip(),
+            agent_openai_base_url=values.get("FEISHU_AGENT_OPENAI_BASE_URL", "").strip(),
+        )
+        try:
+            receipt = probe_budget(probe_config)
+        except BudgetError:
+            raise FeishuCodexError("独立计费网关预检失败；未启动模型") from None
+        print(json.dumps(receipt, ensure_ascii=False, sort_keys=True))
+        return 0
     require_unified_state(config)
     if args.action == "reconcile-unknown":
         if not getattr(args,"confirm_reconciled",False):
