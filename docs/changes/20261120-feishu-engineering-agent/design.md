@@ -9,7 +9,7 @@
 话题绑定优先 SDK thread_id/root_id，根消息使用自身 message_id；无可靠话题字段时必须显式选择，禁止群聊全局 last task。按授权用户及租户隔离，维护 reply 根绑定及重启持久化。项目配置将 space/module 映射到允许仓库；显式 repo > 已有话题绑定 > 确认模块映射 > 唯一授权候选，否则澄清；绝不把 codex 默认仓库冒充 example-space 业务仓库。
 
 ## 来源
-严格 HTTPS host/path parser，去掉仅追踪参数，拒绝 userinfo、异常端口、伪域名、编码路径/不支持类型。仅解析可不联网；正文可选官方 scoped provider reader，复用 feishu_documents。禁止任意 URL fetch/重定向、绕过登录或未授权 Cookie。链接单独输入只关联并提示缺失；明确分析/开发指令才走授权。按来源标记 unverified/user_supplied/verified/denied，记录版本/摘要，来源文本永远是数据，不是授权。当前无 API 可用受控文字+文档完成最小上下文；按需补充，私有 spool/原生 transcript，不在 SQLite/log 复制全文。
+严格 HTTPS host/path parser，去掉仅追踪参数，拒绝 userinfo、异常端口、伪域名、编码路径/不支持类型。仅解析可不联网；正文可选官方 scoped provider reader，复用 feishu_documents。禁止任意 URL fetch/重定向、绕过登录或未授权 Cookie。链接单独输入只关联并提示缺失；明确分析/开发指令才走授权。按来源标记 unverified/user_supplied/verified/denied，记录版本/摘要，来源文本永远是数据，不是授权。当前无 API 可用受控文字+文档完成最小上下文；原始任务和文档输入放在私有 spool/原生 transcript；有界补充与完成结果按下述 7 天策略存于私有 SQLite，不进入公共日志。
 
 ## 授权与执行
 一次性私有管理员配置允许租户/chat/actor/repo/modes/工作目录/模型及计费身份、回合/超时/预算、Git 权限。新任务精确范围与现时策略绑定；明确普通动作在预授权范围内直接入队，scope 改变或高风险动作须独立授权。未知控制命令拒绝，模糊任务澄清，不向模型回退。飞书与 MCP 均在 enqueue、worker claim/model start 核验。独立外部身份及 private home，禁止个人 auth.json、个人 ~/.codex、SSH/其他凭据访问；独立 HOME 并非完整隔离，须测试文件系统。预算以真实 provider/gateway 计量，不用回合数冒充金额。保留独立 PID namespace/私有 procfs 及原生内层沙箱；外层仅挂载授权工作区、必要系统路径、对应 Git 元数据及可信工具链，不挂载宿主根目录。read 不写 repo，edit 隔离 worktree。所有 remote writes 按授权，禁止自动 merge/release/flash/delete。
@@ -34,4 +34,4 @@
 
 ## 本批收敛
 
-研发消息、话题关系与任务入队共用一个 SQLite 写事务；合法接收的有界补充正文、完成结果在既有私有 DB 中按摘要校验并保留 7 天，不依赖历史消息 API。取消请求持久化并在启动前、执行中及提交前复核；UNKNOWN 只能在现场核对真实证据后人工记为 abandoned，不伪造完成。群聊新普通任务须有显式前缀；同话题用户可通过“共享上下文：”提供跨仓共用输入，模式切换仅携带已核验的有界结果，不假装原生会话恢复。文档读取要求仓库明确批准 URL 及会话接收范围，仍需实际飞书资源权限。控制器 Git 拒绝未获资格的外部过滤、textconv 和 include；只执行本地操作，不使用个人凭据。当前只提供真实实现的独立 LiteLLM 网关入口；未证明请求级硬限额及最终账单。自动 Push/PR、真实联合联调与现场模型费用验收不由本批离线测试替代。
+研发消息、话题关系与任务入队共用一个 SQLite 写事务；合法接收的有界补充正文、完成结果在既有私有 DB 中按摘要校验并保留 7 天，不依赖历史消息 API。取消请求持久化并在启动前、执行中及提交前复核；UNKNOWN 只能在现场核对真实证据后人工记为 abandoned，不伪造完成。群聊新普通任务须有显式前缀；同话题用户可通过“共享上下文：”提供跨仓共用输入，模式切换仅携带已核验的有界结果，不假装原生会话恢复。文档读取要求仓库明确批准 URL 及会话接收范围，仍需实际飞书资源权限。模型执行阶段的控制器 Git 拒绝未获资格的外部过滤、textconv 和 include，仅执行本地操作；远端分支和草稿 PR 仅由显式发布控制器按独立授权执行，两者均不使用个人凭据。当前只提供真实实现的独立 LiteLLM 网关入口；未证明请求级硬限额及最终账单。真实业务 Push/PR、联合联调与现场模型费用验收不由本批离线测试替代。
