@@ -37,6 +37,16 @@ def _private_file(file_path: pathlib.Path) -> None:
         raise MigrationRejected("source file must be owner-private regular file")
 
 
+def _private_directory(path: pathlib.Path) -> None:
+    try:
+        info = path.lstat()
+    except OSError:
+        raise MigrationRejected("required private directory is unavailable") from None
+    if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
+            or stat.S_IMODE(info.st_mode) & 0o077):
+        raise MigrationRejected("directory must be owner-private")
+
+
 def _private_database(path: pathlib.Path) -> None:
     _private_file(path)
     for suffix in ("-wal", "-shm"):
@@ -227,6 +237,7 @@ class MigrationPlan:
         if (not target.is_absolute() or target.exists() or target.is_symlink()
                 or self.bot_spool.resolve() in target.resolve().parents):
             raise MigrationRejected("backup target must be a new absolute directory outside the spool")
+        _private_directory(target.parent)
         old_umask = os.umask(0o077)
         try:
             target.mkdir(mode=0o700, parents=False)
@@ -259,6 +270,8 @@ class MigrationPlan:
                     shutil.copyfileobj(src, dst, length=65536)
                 os.chmod(str(destination), 0o600)
                 files[name] = _digest(destination)
+            if sum(name.startswith("spool/") for name in files) != inspection["spool_count"]:
+                raise MigrationRejected("spool entry count changed during backup")
             manifest = {
                 "schema": 1, "created_at": int(time.time()),
                 "source_db_name": self.bot_db.name,
@@ -286,9 +299,7 @@ class MigrationPlan:
         path = pathlib.Path(backup_dir)
         if not path.is_absolute() or path.is_symlink() or not path.is_dir():
             raise MigrationRejected("invalid private backup directory")
-        if (path.stat().st_uid != os.getuid()
-                or stat.S_IMODE(path.stat().st_mode) & 0o077):
-            raise MigrationRejected("backup directory not owner-private")
+        _private_directory(path)
         manifest_file = path / "manifest.json"
         _private_file(manifest_file)
         with manifest_file.open(encoding="utf-8") as stream:
@@ -298,22 +309,42 @@ class MigrationPlan:
                 or "bot.sqlite3" not in manifest["files"]):
             raise MigrationRejected("invalid backup manifest")
         expected_files = set(manifest["files"])
+        # The writer produces only fixed root files and a flat private spool.
+        # Do not silently ignore special files, unmanifested directories or
+        # missing spool entries during a supposedly complete recovery rehearsal.
+        spool = path / "spool"
+        _private_directory(spool)
+        root_names = {"manifest.json", "bot.sqlite3", "feishu-engineering-agent.sqlite3",
+                      "policy.private", "environment.private"}
         observed_files = set()
-        for item in path.rglob("*"):
-            if item.is_symlink():
-                raise MigrationRejected("symlink in immutable backup")
-            if item.is_file():
-                _private_file(item)
-                relative = item.relative_to(path).as_posix()
-                observed_files.add(relative)
-                if relative == "manifest.json":
-                    continue
-                if relative not in expected_files:
+        for item in path.iterdir():
+            if item == spool:
+                continue
+            if item.name not in root_names:
+                raise MigrationRejected("unexpected private backup entry")
+            _private_file(item)
+            observed_files.add(item.name)
+            if item.name != "manifest.json":
+                if item.name not in expected_files:
                     raise MigrationRejected("unmanifested private backup file")
-                if _digest(item) != manifest["files"][relative]:
+                if _digest(item) != manifest["files"][item.name]:
                     raise MigrationRejected("backup checksum mismatch")
+        spool_count = 0
+        for item in spool.iterdir():
+            _private_file(item)
+            relative = "spool/" + item.name
+            observed_files.add(relative)
+            if relative not in expected_files:
+                raise MigrationRejected("unmanifested private backup file")
+            if _digest(item) != manifest["files"][relative]:
+                raise MigrationRejected("backup checksum mismatch")
+            spool_count += 1
+            if spool_count > 10000:
+                raise MigrationRejected("spool over safety bound")
         if observed_files != expected_files | {"manifest.json"}:
             raise MigrationRejected("missing backup entries")
+        if type(manifest.get("spool_count")) is not int or manifest["spool_count"] != spool_count:
+            raise MigrationRejected("backup spool count mismatch")
         agent_name = "feishu-engineering-agent.sqlite3"
         agent = path / agent_name if agent_name in expected_files else None
         _sqlite_check(path / "bot.sqlite3", immutable=True)
@@ -334,16 +365,27 @@ class MigrationPlan:
         with tempfile.TemporaryDirectory(prefix="fea-rehearsal-") as destination:
             base = pathlib.Path(destination)
             backup = pathlib.Path(backup_dir)
-            for original in backup.rglob("*"):
-                if not original.is_file() or original.name == "manifest.json":
-                    continue
+            # Exclude only the ROOT manifest, never a spool entry of that name.
+            # Recreate the spool even if it is empty and prove the count restored.
+            (base / "spool").mkdir(mode=0o700)
+            originals = [p for p in backup.iterdir()
+                         if p not in (backup / "manifest.json", backup / "spool")]
+            originals.extend((backup / "spool").iterdir())
+            if len(originals) != verified["file_count"]:
+                raise MigrationRejected("backup entry count changed before restore")
+            restored_spool_count = 0
+            for original in originals:
+                _private_file(original)
                 relative = original.relative_to(backup)
                 restored = base / relative
-                restored.parent.mkdir(mode=0o700, exist_ok=True, parents=True)
                 shutil.copyfile(str(original), str(restored))
                 restored.chmod(0o600)
                 if _digest(restored) != _digest(original):
                     raise MigrationRejected("restore content mismatch")
+                if original.parent == backup / "spool":
+                    restored_spool_count += 1
+            if restored_spool_count != verified["spool_count"]:
+                raise MigrationRejected("restored spool count mismatch")
             agent = base / "feishu-engineering-agent.sqlite3" if verified["agent_ledger_present"] else None
             _sqlite_check(base / "bot.sqlite3", immutable=True)
             if agent is not None:

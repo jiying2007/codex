@@ -57,6 +57,64 @@ class MigrationContractTest(unittest.TestCase):
         with self.assertRaises(MigrationRejected):
             self.plan.backup(target)
 
+    def test_restore_includes_spool_manifest_and_empty_spool(self):
+        nested = self.spool / "manifest.json"
+        nested.write_text("fixture-spool-payload", encoding="utf-8")
+        nested.chmod(0o600)
+        target = self.root / "nested-manifest"
+        self.plan.backup(target)
+        from tools.codex_assets.feishu_engineering_agent import migration
+        with mock.patch.object(migration.shutil, "copyfile", wraps=migration.shutil.copyfile) as copier:
+            restored = MigrationPlan.rehearse_restore(target)
+        copied = {pathlib.Path(call.args[0]).relative_to(target).as_posix()
+                  for call in copier.call_args_list}
+        self.assertIn("spool/manifest.json", copied)
+        self.assertNotIn("manifest.json", copied)
+        self.assertEqual(restored["verified_files"], len(copied))
+        nested.unlink()
+        self.payload.unlink()
+        empty_target = self.root / "empty-spool"
+        self.plan.backup(empty_target)
+        self.assertEqual(0, MigrationPlan.verify_backup(empty_target)["spool_count"])
+        self.assertTrue(MigrationPlan.rehearse_restore(empty_target)["restore_rehearsed"])
+
+    def test_backup_verification_rejects_special_and_unexpected_entries(self):
+        target = self.root / "strict-tree"
+        self.plan.backup(target)
+        fifo = target / "spool" / "unmanifested"
+        os.mkfifo(str(fifo), 0o600)
+        with self.assertRaises(MigrationRejected):
+            MigrationPlan.verify_backup(target)
+        fifo.unlink()
+        unexpected = target / "unmanifested-dir"
+        unexpected.mkdir(mode=0o700)
+        with self.assertRaises(MigrationRejected):
+            MigrationPlan.verify_backup(target)
+        unexpected.rmdir()
+        (target / "spool").chmod(0o755)
+        with self.assertRaises(MigrationRejected):
+            MigrationPlan.verify_backup(target)
+
+    def test_manifest_spool_count_must_match_verified_files(self):
+        target = self.root / "incorrect-count"
+        self.plan.backup(target)
+        manifest_file = target / "manifest.json"
+        manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+        for bad in (True, 0, 2, "1"):
+            manifest["spool_count"] = bad
+            manifest_file.write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaisesRegex(MigrationRejected, "spool count mismatch"):
+                MigrationPlan.verify_backup(target)
+
+    def test_backup_rejects_nonprivate_parent_before_creation(self):
+        parent = self.root / "shared-parent"
+        parent.mkdir(mode=0o755)
+        parent.chmod(0o755)
+        target = parent / "backup"
+        with self.assertRaisesRegex(MigrationRejected, "owner-private"):
+            self.plan.backup(target)
+        self.assertFalse(target.exists())
+
     def test_tampered_backup_and_symlink_source_fail_closed(self):
         target = self.root / "archive-2"
         self.plan.backup(target)
