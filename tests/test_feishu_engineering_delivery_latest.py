@@ -49,7 +49,7 @@ class LatestEditDeliveryTests(unittest.TestCase):
         )
         fixture.executor.finish(job, result, None)
         fixture.store.record_result(job.task_id, result.branch_name, sha, cwd)
-        fixture.store.update_task(job.task_id, "completed")
+        fixture.store.complete_with_output(job.task_id, result.text)
         return job.task_id
 
     def test_reads_preserve_single_and_joint_exact_edit_proof(self):
@@ -77,7 +77,8 @@ class LatestEditDeliveryTests(unittest.TestCase):
         )
         fixture.intake("om_select_app", "/repo robot-app")
         fixture.submit("om_failed_edit", "修复 后续边界条件")
-        fixture.store.update_task(fixture.latest()["id"], "failed")
+        self.assertTrue(fixture.store.finish_unsuccessful(
+            fixture.latest()["id"], "failed", "SyntheticPreflightFailure"))
         event, result = fixture.intake("om_verify_joint_again", "检查联合交付")
         with self.assertRaises(IntakeRejected):
             self.delivery.verify_joint(event, result)
@@ -92,7 +93,10 @@ class LatestEditDeliveryTests(unittest.TestCase):
                 self.completed_edit("om_good_" + status, "a" * 40, topic)
                 fixture.submit("om_new_" + status, "修复 第二个初始化问题", topic)
                 newest = fixture.latest()["id"]
-                fixture.store.update_task(newest, status)
+                if status == "running":
+                    self.assertTrue(fixture.store.claim_queued(newest))
+                elif status in ("failed", "unknown"):
+                    self.assertTrue(fixture.store.finish_unsuccessful(newest, status, "SyntheticFailure"))
                 event, result = fixture.intake("om_verify_" + status, "检查交付", topic)
                 with self.assertRaises(IntakeRejected):
                     self.delivery.verify(event, result)

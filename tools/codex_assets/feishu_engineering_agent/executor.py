@@ -93,8 +93,10 @@ class EngineeringExecutor:
                 with contextlib.nullcontext(connection) as db:
                     sealed = db.execute("SELECT 1 FROM engineering_context_delivery WHERE task_id=?",
                                         (latest["task_id"],)).fetchone()
-                if sealed is not None:
-                    raise FeishuCodexError("该编辑版本已有独立交付证据；请另起新话题，避免覆盖已核验版本。")
+                    publication = db.execute("SELECT 1 FROM engineering_context_publications WHERE root_task_id=?",
+                                             (latest["root_task_id"],)).fetchone()
+                if sealed is not None or publication is not None:
+                    raise FeishuCodexError("该编辑会话已被交付证据或发布意图封存；请另起新话题，避免覆盖已授权版本。")
             previous = latest["task_id"]
         # Cross-mode execution must start a new thread, never resume read-only as edit.
         with contextlib.nullcontext(connection) as db:
@@ -220,6 +222,10 @@ class EngineeringExecutor:
             raise FeishuCodexError("上一原生会话未通过精确续接检查")
         cwd = repo.path
         if job.mode=="edit":
+            with self.store._connect() as db:
+                if db.execute("SELECT 1 FROM engineering_context_publications WHERE root_task_id=?",
+                              (prior["root_task_id"],)).fetchone() is not None:
+                    raise FeishuCodexError("该编辑会话已有发布意图，禁止继续改写")
             if repo.worktree_root is None:
                 raise FeishuCodexError("隔离 worktree 不存在")
             cwd = repo.worktree_root / f"task-{prior['root_task_id']}"

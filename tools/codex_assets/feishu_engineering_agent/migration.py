@@ -476,9 +476,10 @@ class MigrationPlan:
                             db.execute("CREATE INDEX engineering_legacy_runs_source ON engineering_legacy_runs(tenant,chat,actor,provider,workspace,kind,item_id)")
                             for row in source.execute("SELECT origin_message_id FROM fea_manual_claims"):
                                 db.execute("INSERT OR IGNORE INTO engineering_legacy_events VALUES (?)",(row[0],))
-                    linked=db.execute("SELECT 1 FROM agent_run_task_links l LEFT JOIN engineering_legacy_runs r ON r.run_id=l.agent_run_id WHERE r.run_id IS NULL LIMIT 1").fetchone()
-                    if linked is not None:
-                        raise MigrationRejected("legacy linked task lost its archive record")
+                    if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='agent_run_task_links'").fetchone():
+                        linked=db.execute("SELECT 1 FROM agent_run_task_links l LEFT JOIN engineering_legacy_runs r ON r.run_id=l.agent_run_id WHERE r.run_id IS NULL LIMIT 1").fetchone()
+                        if linked is not None:
+                            raise MigrationRejected("legacy linked task lost its archive record")
                     db.execute("INSERT INTO engineering_state_migrations VALUES ('unified-state-v1',?,?,?,?)",
                                (_digest(backup/"manifest.json"),archived_runs,archived_records,int(time.time())))
                     db.commit()

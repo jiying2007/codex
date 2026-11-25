@@ -52,7 +52,9 @@ rtk bash ~/codex/scripts/codex-policy.sh ensure \
   --open-items 1
 ```
 
-临时文件保存本次真实用户请求，不进入知识库或 journal；`ensure` 读取一次并计算请求摘要。登记与门禁核验复用同一个 `routing_binding`，结合实际 runtime/project AGENTS 文件摘要、线程、cwd 摘要、任务模式与验收项生成唯一的本机凭据。其内部数据格式标识和 ADK 要求的 `source_version` 只用于稳定的序列化摘要，不是产品版本、独立路由引擎或兼容入口。既有正确摘要不需要迁移。readonly 来源须在实际门禁时再次核验，登记成功不授予通过资格。
+临时文件保存本次真实用户请求，不进入知识库或 journal；`ensure` 读取一次并计算请求摘要。登记与门禁核验复用同一个 `routing_binding`，以 `codex-project-routing` 为唯一权威，结合实际 runtime/project AGENTS 文件摘要、线程、cwd 摘要、任务模式与验收项生成本机凭据。当前路由没有编号版本或兼容入口。ADK 冻结契约要求的 `source_version` 字段记录实际规则摘要集合的 `sha256:` 内容身份；它不再保存本地格式版本。readonly 来源须在实际门禁时再次核验，登记成功不授予通过资格。
+
+旧路由凭据和 journal 保留原字节，仍可回放历史，但不被当前核验器认定为已验证的 readonly 来源，门禁保留 implementation 工件要求。`ensure` 遇到仍活跃的旧摘要会明确报告目标冲突，不补写、重置或自动转换。存量目标继续按实际证据处理；真实目标终结后，新的逻辑任务才以当前请求登记，不为恢复 readonly 减免而重置预算或历史。冻结历史测试中的旧标识仅用于验证这一行为。
 
 `--dry-run` 不创建 journal；首次执行返回 `REGISTERED`，相同请求和路由重试返回 `ALREADY_REGISTERED`。已有目标与请求或路由不符时退出 2，保留原 journal，必须显式 replan 或开始新的逻辑任务。ensure 不自动补造 evidence，不自动 complete，也不代表 final gate 通过。有效 intake 只是前置条件；目标、验收证据、工件与 checkpoint 仍由实际执行登记。
 

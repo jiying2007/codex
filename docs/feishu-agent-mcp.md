@@ -46,7 +46,7 @@ MCP stdio 仅把任务提交到已有 Feishu Bot 的 SQLite 与私有 spool，�
 
 实际 Worker 启动模型前，用同一 bearer 读取同源 `/key/info`，核验 key/alias、`blocked=false`、显式 `budget_duration=null`、允许模型列表、有效状态/到期时间及 cap/spend。具体规则见 [预算契约](feishu-codex-bot-usage.md#5-独立模型身份与预算)。缺少可信信息即拒绝，不接受本地计数代替网关金额。
 
-私有预算回执是 provider key 的累计观测，不是单任务最终账单或在途请求的原子硬 cap。独占 key、请求级拒绝、在途预留与最终账单核验仍为 `NOT_RUN`。配置通过或任务 `queued` 不代表获准真实调用，也不证明网关已验证。
+私有预算回执包含 provider key 累计观测和精确任务 session 的请求费用观察。启动前先持久化唯一账务 session，再注入同源 provider header；结束后仅通过专用 key 查询自己的请求日志，逐行复核身份、模型、金额和分页。异步空日志记为 pending/null，不记零费用；读取或身份不可信记未知，不能自动重放。所有请求小计均保持 settlement=pending，不是单任务最终账单或在途请求的原子硬 cap。独占 key、请求级拒绝、在途预留与最终账单核验仍为 `NOT_RUN`。配置通过或任务 `queued` 不代表获准真实调用，也不证明网关已验证。
 
 MCP 输出不包含原始提示、模型输出或秘密。原始任务正文暂存在 0700/0600 私有 spool；Worker 重新核验策略、来源和身份后才执行。文件系统沙箱与已知个人凭据掩蔽由统一 Runner 负责。
 

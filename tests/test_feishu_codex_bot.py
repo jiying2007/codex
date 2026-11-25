@@ -9,13 +9,16 @@ import os
 import pathlib
 import sqlite3
 import subprocess
+import sys
 import tempfile
+import time
 import types
 import unittest
 from unittest import mock
 
 from tools.codex_assets import feishu_codex_bot
 from tools.codex_assets.feishu_agent_mcp import AgentTaskIntake
+from tests.feishu_legacy_fixture import insert_legacy_task
 
 
 class FakeProcess:
@@ -87,6 +90,19 @@ class FeishuCodexBotTest(unittest.TestCase):
         )
         budget.start()
         self.addCleanup(budget.stop)
+        spend = mock.patch(
+            "tools.codex_assets.feishu_engineering_agent.budget.read_spend_page",
+            side_effect=lambda _url, key, session_id, page: {
+                "data": [{"request_id": "fixture-request", "session_id": session_id,
+                          "api_key": hashlib.sha256(key.encode()).hexdigest(),
+                          "model_group": "fixture-model", "model": "fixture-upstream-model",
+                          "status": "success", "spend": "0.01"}],
+                "page": page, "page_size": 100, "total": 1, "total_pages": 1,
+                "total_is_capped": False,
+            },
+        )
+        spend.start()
+        self.addCleanup(spend.stop)
 
     def write_policy(self) -> None:
         self.policy_path.write_text(json.dumps(self.policy), encoding="utf-8")
@@ -94,6 +110,123 @@ class FeishuCodexBotTest(unittest.TestCase):
 
     def config(self) -> feishu_codex_bot.BotConfig:
         return feishu_codex_bot.BotConfig.from_values(self.values, self.tmp)
+
+
+    def test_single_private_policy_is_required(self) -> None:
+        without_policy = dict(self.values)
+        without_policy.pop("FEISHU_BOT_CONFIG")
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "FEISHU_BOT_CONFIG"):
+            feishu_codex_bot.BotConfig.from_values(without_policy, self.tmp)
+        for key in ("FEISHU_CODEX_WORKDIR", "FEISHU_ALLOWED_OPEN_IDS"):
+            with self.subTest(key=key), self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "旧单仓"):
+                feishu_codex_bot.BotConfig.from_values(dict(self.values, **{key: "retired"}), self.tmp)
+        for key in ("manual_workitems_enabled", "engineering_cards_enabled"):
+            with self.subTest(key=key):
+                self.policy[key] = False
+                self.write_policy()
+                with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "退役"):
+                    self.config()
+                del self.policy[key]
+
+    def test_publication_policy_is_explicit_and_credential_is_private(self) -> None:
+        repo = self.policy["repositories"]["codex"]
+        repo.update(edit_strategy="worktree", worktree_root=str(self.tmp.parent / (self.tmp.name + "-publish-worktrees")),
+                    commit_enabled=True, github_delivery={
+                        "repository": "example/app", "base_branch": "main",
+                        "required_workflows": [".github/workflows/verify.yml"]})
+        self.write_policy()
+        self.assertFalse(self.config().repositories["codex"].github_publish_enabled)
+        repo["github_delivery"]["publish_enabled"] = "true"
+        self.write_policy()
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "布尔值"):
+            self.config()
+        repo["github_delivery"]["publish_enabled"] = True
+        self.write_policy()
+        cfg = self.config()
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "GITHUB_WRITE_TOKEN"):
+            cfg.validate_runtime()
+        self.values["FEISHU_AGENT_GITHUB_WRITE_TOKEN"] = "fixture-github-write-secret"
+        cfg = self.config()
+        self.assertTrue(cfg.repositories["codex"].github_publish_enabled)
+        self.assertNotIn("fixture-github-write-secret", repr(cfg))
+        safe = feishu_codex_bot.sanitized_subprocess_env(self.values)
+        self.assertNotIn("FEISHU_AGENT_GITHUB_WRITE_TOKEN", safe)
+        self.assertNotIn("FEISHU_AGENT_GITHUB_WRITE_TOKEN",
+                         feishu_codex_bot.controller_git_environment(self.values))
+
+    def test_publish_control_dispatches_without_model_and_reports_uncertain_state(self) -> None:
+        from tools.codex_assets.feishu_engineering_agent.models import InboundEvent
+        from tools.codex_assets.feishu_engineering_agent.service import IntakeResult
+        self.policy["engineering_enabled"] = True
+        self.write_policy()
+        cfg = self.config()
+        store = feishu_codex_bot.StateStore(cfg.state_db)
+        transport, runner = mock.Mock(), mock.Mock()
+        bot = feishu_codex_bot.FeishuCodexBot(cfg, transport, runner, store)
+        sha = "a" * 40
+        event = InboundEvent("feishu_message", "tenant", cfg.target_chat_id,
+                             "ou_owner", "om_publish_control", "/publish " + sha)
+        result = IntakeResult(True, "", "context", "codex", "publish", sha, "root:om_context")
+        with mock.patch.object(bot._link_service, "handle", return_value=result), \
+                mock.patch("tools.codex_assets.feishu_engineering_agent.publication.ContextPublication") as factory, \
+                mock.patch.object(feishu_codex_bot.threading, "Thread", side_effect=lambda **kwargs:
+                    types.SimpleNamespace(start=lambda: kwargs["target"](*kwargs["args"]))):
+            factory.return_value.publish.return_value = "已核对发布"
+            bot._run_link_message(event, result.topic, frozenset(("codex",)))
+            factory.return_value.publish.assert_called_once_with(event, result)
+            runner.run.assert_not_called()
+            self.assertTrue(bot.jobs.empty())
+            transport.send_text.assert_called()
+            transport.reset_mock()
+            factory.return_value.publish.side_effect = sqlite3.OperationalError("fixture")
+            bot._run_link_message(event, result.topic, frozenset(("codex",)))
+            reply = transport.send_text.call_args.args[1]
+            self.assertIn("发布状态不可用", reply)
+            self.assertNotIn("未执行模型或远端写操作", reply)
+
+
+    def test_long_controls_leave_sdk_loop_after_admission_and_use_bounded_slots(self) -> None:
+        from tools.codex_assets.feishu_engineering_agent.models import InboundEvent
+        from tools.codex_assets.feishu_engineering_agent.service import IntakeResult
+        self.policy.update(engineering_enabled=True, worker_count=1)
+        self.write_policy()
+        cfg = self.config()
+        bot = feishu_codex_bot.FeishuCodexBot(cfg, mock.Mock(), mock.Mock(),
+                                            feishu_codex_bot.StateStore(cfg.state_db))
+        sha = "a" * 40
+        event = InboundEvent("feishu_message", "tenant", cfg.target_chat_id,
+                             "ou_owner", "om_async", "/publish " + sha)
+        result = IntakeResult(True, "", "context", "codex", "publish", sha, "root:om_context")
+        calls, pending = [], []
+        def admitted(*args, **kwargs):
+            calls.append("admitted")
+            return result
+        def scheduled(**kwargs):
+            calls.append("scheduled")
+            pending.append(kwargs)
+            return types.SimpleNamespace(start=lambda: None)
+        with mock.patch.object(bot._link_service, "handle", side_effect=admitted), \
+                mock.patch.object(feishu_codex_bot.threading, "Thread", side_effect=scheduled), \
+                mock.patch("tools.codex_assets.feishu_engineering_agent.publication.ContextPublication") as factory:
+            bot._run_link_message(event, result.topic, frozenset(("codex",)))
+            self.assertEqual(["admitted", "scheduled"], calls)
+            factory.assert_not_called()
+            bot._run_link_message(event, result.topic, frozenset(("codex",)))
+            self.assertEqual(1, len(pending))
+            self.assertIn("繁忙", bot.transport.send_text.call_args.args[1])
+            factory.return_value.publish.side_effect = OSError("fixture")
+            pending[0]["target"](*pending[0]["args"])
+            self.assertTrue(bot._control_slots.acquire(blocking=False))
+            bot._control_slots.release()
+            bot.runner.run.assert_not_called()
+            self.assertTrue(bot.jobs.empty())
+        with mock.patch.object(bot._link_service, "handle", return_value=result), \
+                mock.patch.object(feishu_codex_bot.threading, "Thread") as thread:
+            thread.return_value.start.side_effect = RuntimeError("fixture")
+            bot._run_link_message(event, result.topic, frozenset(("codex",)))
+            self.assertIn("无法启动", bot.transport.send_text.call_args.args[1])
+            self.assertTrue(bot._control_slots.acquire(blocking=False))
+            bot._control_slots.release()
 
     def agent_config(self) -> feishu_codex_bot.BotConfig:
         self.policy["agent_intake_enabled"] = True
@@ -224,7 +357,8 @@ class FeishuCodexBotTest(unittest.TestCase):
         bot._send_safe(job.chat_id, "private task", job.message_id)
         bot._send_chunks(job.chat_id, "private result", job.message_id)
         bot.transport.send_text.assert_not_called()
-        remote = store.create_task("om_remote", f"agent:{os.getuid()}", "codex", "review")
+        with store._connect() as db:
+            remote = insert_legacy_task(db, "om_remote", f"agent:{os.getuid()}", "codex", "review")
         self.assertIsNone(store.agent_task_detail(remote, f"agent:{os.getuid()}"))
         self.assertFalse(store.cancel_agent_queued(remote, f"agent:{os.getuid()}"))
         self.assertEqual("queued", store.task_status(remote))
@@ -276,39 +410,16 @@ class FeishuCodexBotTest(unittest.TestCase):
                 "SELECT COUNT(*) FROM tasks WHERE message_id=?", (job.message_id,)
             ).fetchone()[0])
 
-    def test_feishu_event_claim_rolls_back_when_task_insertion_fails(self) -> None:
-        config = self.config()
-        store = feishu_codex_bot.StateStore(config.state_db)
-        # Simulate the legacy crash-window database state: tasks already has
-        # this ID, but messages has no deduplication receipt yet.
-        store.create_task("om_orphan", "ou_owner", "codex", "review")
-        with self.assertRaises(sqlite3.IntegrityError):
-            store.create_message_task(
-                "om_orphan", "ou_owner", "codex", "review",
-                (feishu_codex_bot.SourceRef("message", "om_orphan"),),
-            )
-        with store._connect() as conn:
-            receipt = conn.execute(
-                "SELECT COUNT(*) FROM messages WHERE message_id='om_orphan'"
-            ).fetchone()[0]
-            task_count = conn.execute(
-                "SELECT COUNT(*) FROM tasks WHERE message_id='om_orphan'"
-            ).fetchone()[0]
-        self.assertEqual(0, receipt)
-        self.assertEqual(1, task_count)
-
     def test_state_store_tracks_status_and_cancels_queued_tasks(self) -> None:
-        store = feishu_codex_bot.StateStore(self.config().state_db)
-        task_id = store.create_task("agent:state", f"agent:{os.getuid()}", "codex", "explain")
+        _config, store, _bot, job = self.queued_agent("state-cancel-1")
+        task_id = job.task_id
         self.assertEqual("queued", store.task_status(task_id))
         self.assertTrue(store.cancel_agent_queued(task_id, f"agent:{os.getuid()}"))
         self.assertEqual("canceled", store.task_status(task_id))
 
     def test_state_store_creates_private_db_and_refuses_unsafe_existing_state(self) -> None:
-        config = self.config()
-        store = feishu_codex_bot.StateStore(config.state_db)
+        config, store, _bot, job = self.queued_agent("private-state-1")
         self.assertEqual(0o600, config.state_db.stat().st_mode & 0o777)
-        store.create_task("om_private", "ou_owner", "codex", "explain")
         config.state_db.chmod(0o644)
         with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "0600"):
             feishu_codex_bot.StateStore(config.state_db)
@@ -318,25 +429,27 @@ class FeishuCodexBotTest(unittest.TestCase):
         link.symlink_to(config.state_db)
         with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "0600"):
             feishu_codex_bot.StateStore(link)
-        self.assertEqual("queued", feishu_codex_bot.StateStore(config.state_db).task_status(1))
+        self.assertEqual("queued", feishu_codex_bot.StateStore(config.state_db).task_status(job.task_id))
 
     def test_state_store_closes_connections_after_commit_and_rollback(self) -> None:
         store = feishu_codex_bot.StateStore(self.config().state_db)
-        insert = "INSERT INTO messages (message_id, received_at) VALUES (?, ?)"
+        with store._connect() as connection:
+            connection.execute("CREATE TABLE fixture_transactions (value TEXT PRIMARY KEY)")
+        insert = "INSERT INTO fixture_transactions VALUES (?)"
         with store._connect() as committed:
-            committed.execute(insert, ("committed", 1))
+            committed.execute(insert, ("committed",))
         with self.assertRaises(sqlite3.ProgrammingError):
             committed.execute("SELECT 1")
 
         with self.assertRaisesRegex(RuntimeError, "rollback"):
             with store._connect() as rolled_back:
-                rolled_back.execute(insert, ("rolled-back", 1))
+                rolled_back.execute(insert, ("rolled-back",))
                 raise RuntimeError("rollback")
         with self.assertRaises(sqlite3.ProgrammingError):
             rolled_back.execute("SELECT 1")
 
         with store._connect() as connection:
-            rows = connection.execute("SELECT message_id FROM messages").fetchall()
+            rows = connection.execute("SELECT value FROM fixture_transactions").fetchall()
         self.assertEqual(["committed"], [row[0] for row in rows])
 
     def test_rate_limiter_is_per_sender_and_windowed(self) -> None:
@@ -667,7 +780,7 @@ class FeishuCodexBotTest(unittest.TestCase):
         with mock.patch.object(feishu_codex_bot, "FeishuTransport", return_value=fake_transport), mock.patch("builtins.print") as output:
             self.assertEqual(0, feishu_codex_bot.run(args))
         rendered = [call.args[0] for call in output.call_args_list if call.args]
-        self.assertIn("FEISHU_ALLOWED_OPEN_IDS=ou_owner", rendered)
+        self.assertIn('{"allowed_open_ids": ["ou_owner"]}', rendered)
 
     def test_transport_uses_error_log_level_to_avoid_connection_ticket_logs(self) -> None:
         transport = object.__new__(feishu_codex_bot.FeishuTransport)
@@ -711,7 +824,8 @@ class FeishuCodexBotTest(unittest.TestCase):
     def test_legacy_queued_without_spool_is_unknown_not_automatically_retried(self) -> None:
         config = self.config()
         store = feishu_codex_bot.StateStore(config.state_db)
-        task_id = store.create_task("om_old", "ou_owner", "codex", "explain")
+        with store._connect() as db:
+            task_id = insert_legacy_task(db, "om_old", "ou_owner", "codex", "explain")
         bot = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
         bot.recover_pending()
         self.assertEqual("unknown", store.task_status(task_id))
@@ -738,10 +852,36 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertEqual(0, bot.jobs.qsize())
 
 
+
+    def test_fifo_payload_cannot_block_recovery(self) -> None:
+        _config, store, bot, job = self.queued_agent("fifo-payload-1")
+        path = bot.spool.root / f"{job.task_id}.json"
+        path.unlink()
+        os.mkfifo(path, mode=0o600)
+        # A bounded child makes a regression fail instead of hanging the suite.
+        probe = subprocess.run(
+            [sys.executable, "-c", "\n".join((
+                "import pathlib, sys",
+                "from tools.codex_assets.feishu_task_spool import TaskSpool, SpoolError",
+                "try:",
+                "    TaskSpool(pathlib.Path(sys.argv[1])).get(int(sys.argv[2]))",
+                "except SpoolError:",
+                "    sys.exit(0)",
+                "sys.exit(1)",
+            )), str(bot.spool.root), str(job.task_id)],
+            cwd=str(pathlib.Path(__file__).resolve().parents[1]),
+            capture_output=True, text=True, timeout=5,
+        )
+        self.assertEqual(0, probe.returncode, probe.stderr)
+        bot.recover_pending()
+        self.assertEqual("unknown", store.task_status(job.task_id))
+        self.assertEqual(0, bot.jobs.qsize())
+
     def test_poll_grace_does_not_race_with_new_incoming_task(self) -> None:
         config = self.config()
         store = feishu_codex_bot.StateStore(config.state_db)
-        task_id = store.create_task("om_grace", "ou_owner", "codex", "explain")
+        with store._connect() as db:
+            task_id = insert_legacy_task(db, "om_grace", "ou_owner", "codex", "explain", created_at=int(time.time()))
         bot = feishu_codex_bot.FeishuCodexBot(config, mock.Mock(), mock.Mock(), store)
         bot.refill_pending()
         self.assertEqual("queued", store.task_status(task_id))
@@ -861,7 +1001,8 @@ class FeishuCodexBotTest(unittest.TestCase):
     def test_retired_sender_cannot_launch_runner_or_worker(self) -> None:
         cfg = self.agent_config()
         store = feishu_codex_bot.StateStore(cfg.state_db)
-        task_id = store.create_task("om_retired", "ou_owner", "codex", "review")
+        with store._connect() as db:
+            task_id = insert_legacy_task(db, "om_retired", "ou_owner", "codex", "review")
         job = feishu_codex_bot.BotJob(task_id, "om_retired", "oc_target", "ou_owner",
                                     "task", "codex", "review", "只读检查")
         runner = feishu_codex_bot.CodexRunner(cfg)

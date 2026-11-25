@@ -165,6 +165,7 @@ class RepositoryPolicy:
     github_repository: str = ""
     github_base_branch: str = ""
     github_required_workflows: Tuple[str, ...] = ()
+    github_publish_enabled: bool = False
     document_read_urls: FrozenSet[str] = frozenset()
 
     @property
@@ -206,12 +207,15 @@ class BotConfig:
     agent_budget_key_alias: str = ""
     agent_model: str = ""
     agent_github_read_token: str = dataclasses.field(default="", repr=False)
+    agent_github_write_token: str = dataclasses.field(default="", repr=False)
     engineering_enabled: bool = False  # link and natural-language topic intake
     link_repositories: Mapping[str, Tuple[str, ...]] = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_values(cls, values: Mapping[str, str], default_workdir: pathlib.Path) -> "BotConfig":
-        required = ["FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_TARGET_CHAT_ID"]
+        if any(key in values for key in ("FEISHU_CODEX_WORKDIR", "FEISHU_ALLOWED_OPEN_IDS")):
+            raise FeishuCodexError("旧单仓环境配置已退役；请把仓库和白名单写入 FEISHU_BOT_CONFIG 并删除旧字段")
+        required = ["FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_TARGET_CHAT_ID", "FEISHU_BOT_CONFIG"]
         missing = [key for key in required if not values.get(key, "").strip()]
         if missing:
             raise FeishuCodexError("缺少环境变量: " + ", ".join(missing))
@@ -219,24 +223,9 @@ class BotConfig:
         if not target_chat_id.startswith("oc_"):
             raise FeishuCodexError("FEISHU_TARGET_CHAT_ID 必须是 oc_ 开头的 chat_id")
 
-        policy_path_raw = values.get("FEISHU_BOT_CONFIG", "").strip()
-        if policy_path_raw:
-            policy_path = pathlib.Path(policy_path_raw).expanduser().resolve()
-            payload = load_policy_file(policy_path)
-            policy_base = policy_path.parent
-        else:
-            workdir = pathlib.Path(values.get("FEISHU_CODEX_WORKDIR", str(default_workdir))).expanduser().resolve()
-            payload = {
-                "schema_version": 1,
-                "default_repo": "default",
-                "allowed_open_ids": [
-                    item.strip()
-                    for item in values.get("FEISHU_ALLOWED_OPEN_IDS", "").split(",")
-                    if item.strip()
-                ],
-                "repositories": {"default": {"path": str(workdir)}},
-            }
-            policy_base = default_workdir
+        policy_path = pathlib.Path(values["FEISHU_BOT_CONFIG"].strip()).expanduser().resolve()
+        payload = load_policy_file(policy_path)
+        policy_base = policy_path.parent
 
         repositories_raw = payload.get("repositories")
         if not isinstance(repositories_raw, dict) or not repositories_raw:
@@ -252,7 +241,7 @@ class BotConfig:
         engineering_enabled = payload.get("engineering_enabled", False)
         if not isinstance(engineering_enabled, bool):
             raise FeishuCodexError("engineering_enabled 必须是布尔值")
-        if payload.get("manual_workitems_enabled") or payload.get("engineering_cards_enabled"):
+        if any(key in payload for key in ("manual_workitems_enabled", "engineering_cards_enabled")):
             raise FeishuCodexError(
                 "旧 /wi/卡片配置已退役；先离线备份、恢复演练和 unify，再改用 engineering_enabled"
             )
@@ -321,11 +310,19 @@ class BotConfig:
             delivery = item.get("github_delivery")
             github_repository = github_base_branch = ""
             github_required_workflows: Tuple[str, ...] = ()
+            github_publish_enabled = False
             if delivery is not None:
                 from .feishu_engineering_agent.github_adapter import validate_delivery_config
+                delivery_fields = {"repository", "base_branch", "required_workflows"}
                 if (not isinstance(delivery, dict)
-                        or set(delivery) != {"repository", "base_branch", "required_workflows"}):
+                        or not delivery_fields.issubset(delivery)
+                        or set(delivery) - delivery_fields - {"publish_enabled"}):
                     raise FeishuCodexError("github_delivery 必须明确仓库、基线分支和必需 workflow")
+                github_publish_enabled = delivery.get("publish_enabled", False)
+                if type(github_publish_enabled) is not bool:
+                    raise FeishuCodexError("github_delivery.publish_enabled 必须是布尔值")
+                if github_publish_enabled and (edit_strategy != "worktree" or not commit_raw):
+                    raise FeishuCodexError("受控发布必须使用可提交的隔离 worktree")
                 github_repository = delivery["repository"]
                 github_base_branch = delivery["base_branch"]
                 try:
@@ -356,6 +353,7 @@ class BotConfig:
                 github_repository=github_repository,
                 github_base_branch=github_base_branch,
                 github_required_workflows=github_required_workflows,
+                github_publish_enabled=github_publish_enabled,
                 document_read_urls=document_read_urls,
             )
 
@@ -363,7 +361,7 @@ class BotConfig:
         if default_repo not in repositories:
             raise FeishuCodexError("default_repo 必须引用已登记仓库别名")
         global_ids = _open_ids(
-            values.get("FEISHU_ALLOWED_OPEN_IDS") or payload.get("allowed_open_ids"),
+            payload.get("allowed_open_ids"),
             "allowed_open_ids",
         )
         state_db = pathlib.Path(
@@ -511,6 +509,7 @@ class BotConfig:
             agent_budget_key_alias=values.get("FEISHU_AGENT_BUDGET_KEY_ALIAS", "").strip(),
             agent_model=values.get("FEISHU_AGENT_MODEL", "").strip(),
             agent_github_read_token=values.get("FEISHU_AGENT_GITHUB_READ_TOKEN", "").strip(),
+            agent_github_write_token=values.get("FEISHU_AGENT_GITHUB_WRITE_TOKEN", "").strip(),
             engineering_enabled=engineering_enabled,
             link_repositories=link_repositories,
         )
@@ -553,6 +552,9 @@ class BotConfig:
     def validate_runtime(self) -> None:
         if self.agent_intake_enabled:
             self.validate_agent_runtime()
+        if any(repo.github_publish_enabled for repo in self.repositories.values()):
+            if not re.fullmatch(r"[A-Za-z0-9_.-]{8,512}", self.agent_github_write_token):
+                raise FeishuCodexError("受控发布已启用，但独立 FEISHU_AGENT_GITHUB_WRITE_TOKEN 不可用")
         unprotected = [
             alias
             for alias, repository in self.repositories.items()
@@ -806,10 +808,6 @@ class StateStore:
             connection.executescript(
                 """
                 PRAGMA journal_mode=WAL;
-                CREATE TABLE IF NOT EXISTS messages (
-                    message_id TEXT PRIMARY KEY,
-                    received_at INTEGER NOT NULL
-                );
                 CREATE TABLE IF NOT EXISTS tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     message_id TEXT NOT NULL UNIQUE,
@@ -852,86 +850,10 @@ class StateStore:
                 );
                 CREATE INDEX IF NOT EXISTS engineering_task_output_expiry
                     ON engineering_task_outputs(expires_at);
-                CREATE TABLE IF NOT EXISTS user_preferences (
-                    sender_open_id TEXT PRIMARY KEY,
-                    default_repository TEXT NOT NULL,
-                    updated_at INTEGER NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS agent_run_task_links (
-                    agent_run_id TEXT PRIMARY KEY,
-                    task_id INTEGER NOT NULL UNIQUE,
-                    unix_uid INTEGER NOT NULL,
-                    created_at INTEGER NOT NULL,
-                    FOREIGN KEY(task_id) REFERENCES tasks(id)
-                );
                 CREATE INDEX IF NOT EXISTS idx_tasks_sender_status
                     ON tasks(sender_open_id, status, updated_at);
                 """
             )
-
-    def claim_message(self, message_id: str) -> bool:
-        with self._connect() as connection:
-            cursor = connection.execute(
-                "INSERT OR IGNORE INTO messages(message_id, received_at) VALUES (?, ?)",
-                (message_id, int(time.time())),
-            )
-            return cursor.rowcount == 1
-
-    def create_message_task(
-        self, message_id: str, sender: str, repository: str,
-        mode: str, sources: Sequence[SourceRef] = (),
-    ) -> Optional[int]:
-        """Atomically consume the Feishu event and persist its task identity.
-
-        A crash during task/source insertion must not strand a dedupe receipt
-        without a corresponding queued task. Payload spooling remains a separate
-        fail-closed step: never infer that a missing prompt is safe to replay.
-        """
-        now = int(time.time())
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            claimed = connection.execute(
-                "INSERT OR IGNORE INTO messages(message_id,received_at) VALUES (?,?)",
-                (message_id, now),
-            )
-            if claimed.rowcount != 1:
-                return None
-            created = connection.execute(
-                "INSERT INTO tasks("
-                "message_id,sender_open_id,repository,mode,status,created_at,updated_at"
-                ") VALUES (?,?,?,?,'queued',?,?)",
-                (message_id, sender, repository, mode, now, now),
-            )
-            task_id = int(created.lastrowid)
-            connection.executemany(
-                "INSERT OR IGNORE INTO task_sources(task_id,kind,value) VALUES (?,?,?)",
-                [(task_id, source.kind, source.value) for source in sources],
-            )
-            return task_id
-
-    def create_task(
-        self,
-        message_id: str,
-        sender: str,
-        repository: str,
-        mode: str,
-        sources: Sequence[SourceRef] = (),
-    ) -> int:
-        now = int(time.time())
-        with self._connect() as connection:
-            cursor = connection.execute(
-                """
-                INSERT INTO tasks(message_id, sender_open_id, repository, mode, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 'queued', ?, ?)
-                """,
-                (message_id, sender, repository, mode, now, now),
-            )
-            task_id = int(cursor.lastrowid)
-            connection.executemany(
-                "INSERT OR IGNORE INTO task_sources(task_id, kind, value) VALUES (?, ?, ?)",
-                [(task_id, source.kind, source.value) for source in sources],
-            )
-            return task_id
 
     def record_result(self, task_id: int, branch_name: str, commit_hash: str, worktree_path: pathlib.Path) -> None:
         with self._connect() as connection:
@@ -945,13 +867,6 @@ class StateStore:
                     worktree_path=excluded.worktree_path
                 """,
                 (task_id, branch_name, commit_hash, str(worktree_path)),
-            )
-
-    def update_task(self, task_id: int, status_value: str, error_kind: str = "") -> None:
-        with self._connect() as connection:
-            connection.execute(
-                "UPDATE tasks SET status=?, updated_at=?, error_kind=? WHERE id=?",
-                (status_value, int(time.time()), error_kind, task_id),
             )
 
     def finish_unsuccessful(self, task_id: int, status_value: str, error_kind: str) -> bool:
@@ -1087,6 +1002,11 @@ class StateStore:
                         "SELECT 1 FROM engineering_context_delivery WHERE task_id=?",
                         (remote_context["previous_task_id"],)).fetchone() is not None:
                     raise FeishuCodexError("已封存交付版本，不能继续修改该会话；请明确新任务范围")
+                if remote_context["previous_task_id"] and mode == "edit" and connection.execute(
+                        "SELECT 1 FROM engineering_context_publications WHERE root_task_id=("
+                        "SELECT root_task_id FROM engineering_context_tasks WHERE task_id=?)",
+                        (remote_context["previous_task_id"],)).fetchone() is not None:
+                    raise FeishuCodexError("该会话已登记发布意图并封存；请明确新任务范围")
 
             count = connection.execute(
                 "SELECT COUNT(*) FROM tasks WHERE status='queued'"
@@ -1741,18 +1661,55 @@ class CodexRunner:
             environment["OPENAI_BASE_URL"] = self.config.agent_openai_base_url
         return git_guard_environment(environment, self.config.deny_push_hooks_path)
 
-    def _observe_budget(self, task_id: int, phase: str) -> None:
-        from .feishu_engineering_agent.budget import BudgetError, observe_budget
+    def _observe_budget(self, task_id: int, phase: str) -> Dict[str, Any]:
+        from .feishu_engineering_agent.budget import (
+            BudgetError, observe_budget, observe_requests, validate_observation_binding,
+        )
         try:
-            receipt = observe_budget(self.config, phase)
-            # Private state only. Never persist the provider response or API key.
-            with StateStore(self.config.state_db)._connect() as db:
+            store = StateStore(self.config.state_db)
+            with store._connect() as db:
                 db.execute("""CREATE TABLE IF NOT EXISTS engineering_budget_receipts (
                     task_id INTEGER NOT NULL, phase TEXT NOT NULL, observed_at INTEGER NOT NULL,
                     receipt_json TEXT NOT NULL, PRIMARY KEY(task_id, phase))""")
+                previous = db.execute(
+                    "SELECT receipt_json FROM engineering_budget_receipts WHERE task_id=? AND phase='before'",
+                    (task_id,),
+                ).fetchone()
+            unverified = False
+            if phase == "before":
+                if previous is not None:
+                    raise BudgetError("task already has an accounting session; never relaunch")
+                receipt = observe_budget(self.config, phase)
+                import uuid
+                receipt.update({"session_id": str(uuid.uuid4()), "settlement": "pending",
+                                "request_observation": "not_started"})
+            elif phase == "after" and previous is not None:
+                before = json.loads(previous["receipt_json"])
+                if not isinstance(before, dict):
+                    raise BudgetError("invalid persisted accounting session")
+                try:
+                    receipt = observe_budget(self.config, phase)
+                    validate_observation_binding(before, receipt)
+                    receipt.update(observe_requests(self.config, before["session_id"]))
+                except BudgetError:
+                    # Preserve a minimal durable failed observation. Never use
+                    # a stale cumulative value or invent zero cost on failure.
+                    receipt = {name: before.get(name) for name in (
+                        "backend", "gateway", "model", "key_alias", "key_fingerprint", "session_id")}
+                    receipt.update({"settlement": "pending", "request_observation": "unknown",
+                                    "observed_request_cost_usd": None})
+                    unverified = True
+            else:
+                raise BudgetError("missing task accounting session or invalid observation phase")
+            # Private state only. Never persist raw provider rows or API keys.
+            # The unique before row also serializes concurrent launch attempts.
+            with store._connect() as db:
                 db.execute("INSERT INTO engineering_budget_receipts VALUES (?, ?, ?, ?)",
                            (task_id, phase, int(time.time()), json.dumps(receipt, sort_keys=True)))
-        except (BudgetError, sqlite3.Error, OSError, FeishuCodexError):
+            if unverified:
+                raise CodexOutcomeUnknown("模型已启动但请求计费证据未核验，禁止自动重试")
+            return receipt
+        except (ValueError, sqlite3.Error, OSError, FeishuCodexError):
             if phase == "before":
                 raise FeishuCodexError("独立计费预算未核验，禁止启动模型") from None
             raise CodexOutcomeUnknown("模型已启动但计费回执未核验，禁止自动重试") from None
@@ -1765,7 +1722,9 @@ class CodexRunner:
             raise FeishuCodexError("旧共享执行身份已退役；仅允许本机独立 Agent 队列")
         dedicated = True
         self.config.validate_agent_runtime()
-        from .feishu_engineering_agent.budget import BudgetError, provider_overrides
+        from .feishu_engineering_agent.budget import (
+            BudgetError, provider_overrides, provider_session_overrides,
+        )
         try:
             overrides = provider_overrides(self.config)
         except BudgetError:
@@ -1828,7 +1787,13 @@ class CodexRunner:
         if state.cancel_requested(job.task_id):
             raise TaskCanceled("任务在模型启动前已取消")
         if dedicated:
-            self._observe_budget(job.task_id, "before")
+            before = self._observe_budget(job.task_id, "before")
+            # All local preflight above has succeeded. Only a durably stored
+            # fresh accounting identity may now be attached to model requests.
+            provider_end = 1 + len(overrides)
+            codex_arguments[provider_end:provider_end] = provider_session_overrides(before["session_id"])
+            command = self._isolated_command(working_directory, codex_arguments,
+                dedicated=dedicated, writable_workdir=(job.mode == "edit"))
         if state.cancel_requested(job.task_id):
             raise TaskCanceled("任务在模型启动前已取消")
         try:
@@ -2108,6 +2073,7 @@ class FeishuCodexBot:
         self.spool = TaskSpool(config.state_db.parent / "feishu-pending-jobs")
         self._scheduled: Set[int] = set()
         self._schedule_lock = threading.Lock()
+        self._control_slots = threading.BoundedSemaphore(config.worker_count)
         self._link_service = None
         self._engineering_executor = None
         if config.engineering_enabled:
@@ -2272,10 +2238,60 @@ class FeishuCodexBot:
             self.transport.send_text(chat_id, chunk, message_id)
 
 
+    def _send_link_reply(self, inbound: Any, reply: Optional[str]) -> None:
+        if reply is not None:
+            try:
+                self._send_chunks(inbound.chat, reply, inbound.event_id)
+            except Exception:
+                # A reply error never replays a control operation.
+                print("[WARN] engineering_reply_delivery_unknown", flush=True)
+
+    def _complete_link_control(self, inbound: Any, result: Any) -> None:
+        from .feishu_engineering_agent.models import IntakeRejected
+        reply = result.reply or ""
+        try:
+            if result.intent == "publish":
+                from .feishu_engineering_agent.publication import ContextPublication
+                action = ContextPublication(self.config, self._engineering_executor).publish(inbound, result)
+            elif result.intent in ("delivery", "feedback", "joint_delivery"):
+                from .feishu_engineering_agent.delivery import ContextDelivery
+                delivery = ContextDelivery(self.config, self._engineering_executor)
+                action = {"delivery": delivery.verify, "feedback": delivery.feedback,
+                          "joint_delivery": delivery.verify_joint}[result.intent](inbound, result)
+            elif result.intent == "cancel":
+                action = self._engineering_executor.cancel(inbound, result)
+            elif result.intent == "result":
+                action = self._engineering_executor.result(inbound, result)
+            else:
+                raise IntakeRejected("paid intent must be admitted in the ingress transaction")
+            reply = (reply + "\n" if reply else "") + action
+        except FeishuCodexError as exc:
+            reply = (reply + "\n" if reply else "") + str(exc)
+        except IntakeRejected:
+            reply = ("发布条件未满足或回执无法核实；请核对精确提交、发布授权和已有回执。未重试远端写操作。"
+                     if result.intent == "publish" else
+                     "交付或研发资格核验未通过（缺少精确 PR/CI、权限或本地证据）；未执行模型或远端写操作。")
+        except (sqlite3.DatabaseError, OSError):
+            reply = ("发布状态不可用；请核对已有发布回执和远端效果，禁止盲重试。"
+                     if result.intent == "publish" else "研发上下文状态不可用；未启动 Codex。")
+        except Exception as exc:
+            print(f"[ERROR] link_control_failed kind={type(exc).__name__}", flush=True)
+            reply = ("发布结果尚未核实；请核对已有发布回执和远端效果，禁止盲重试。"
+                     if result.intent == "publish" else "研发交付核验异常；未启动 Codex。")
+        self._send_link_reply(inbound, reply)
+
+    def _bounded_link_control(self, inbound: Any, result: Any) -> None:
+        try:
+            self._complete_link_control(inbound, result)
+        finally:
+            self._control_slots.release()
+
     def _run_link_message(self, inbound: Any, topic: str,
                           allowed: FrozenSet[str]) -> None:
         from .feishu_engineering_agent.models import IntakeRejected
         try:
+            # Keep the ingress receipt and paid-task admission synchronous.
+            # Only the subsequent long Git/HTTP control leaves the SDK loop.
             result = self._link_service.handle(
                 inbound, topic, allowed, self.config.link_repositories,
                 admit=self._engineering_executor.submit,
@@ -2284,23 +2300,23 @@ class FeishuCodexBot:
                 "当前回复没有已关联的研发事项；请在本话题提供需求、缺陷或文档链接及明确范围。未启动 Codex。"
             )
             if result.consumed and result.intent:
-                try:
-                    if result.intent in ("delivery","feedback","joint_delivery"):
-                        from .feishu_engineering_agent.delivery import ContextDelivery
-                        delivery = ContextDelivery(self.config,self._engineering_executor)
-                        action = {"delivery":delivery.verify,"feedback":delivery.feedback,
-                                  "joint_delivery":delivery.verify_joint}[result.intent](inbound,result)
-                    elif result.intent=="cancel":
-                        action = self._engineering_executor.cancel(inbound,result)
-                    elif result.intent=="result":
-                        action = self._engineering_executor.result(inbound,result)
+                if result.intent in ("publish", "delivery", "feedback", "joint_delivery"):
+                    if not self._control_slots.acquire(blocking=False):
+                        reply = "交付操作繁忙；本条控制命令未执行，请稍后发送新消息重试。"
                     else:
-                        raise IntakeRejected("paid intent must be admitted in the ingress transaction")
-                    reply = (reply + "\n" if reply else "") + action
-                except FeishuCodexError as exc:
-                    reply = (reply + "\n" if reply else "") + str(exc)
-                except IntakeRejected:
-                    reply = (reply + "\n" if reply else "") + "交付或研发资格核验未通过（缺少精确 PR/CI、权限或本地证据）；未执行模型或远端写操作。"
+                        try:
+                            threading.Thread(
+                                target=self._bounded_link_control, args=(inbound, result),
+                                name="feishu-control-" + result.intent, daemon=True,
+                            ).start()
+                        except Exception:
+                            self._control_slots.release()
+                            reply = "交付控制线程无法启动；本条控制命令未执行，请稍后发送新消息重试。"
+                        else:
+                            return
+                else:
+                    self._complete_link_control(inbound, result)
+                    return
         except (IntakeRejected, ValueError):
             reply = "研发来源或话题关联被拒绝：请核对链接、工作项唯一性、仓库和权限。未启动 Codex。"
         except (sqlite3.DatabaseError, OSError):
@@ -2308,11 +2324,7 @@ class FeishuCodexBot:
         except Exception as exc:
             print(f"[ERROR] link_intake_failed kind={type(exc).__name__}", flush=True)
             reply = "研发链接处理异常；未启动 Codex。"
-        if reply is not None:
-            try:
-                self._send_chunks(inbound.chat, reply, inbound.event_id)
-            except FeishuCodexError:
-                print("[WARN] engineering_reply_delivery_unknown", flush=True)
+        self._send_link_reply(inbound, reply)
 
     def on_message(self, data: Any) -> None:
         """One authenticated Feishu ingress; no global command fallback."""
@@ -2372,6 +2384,7 @@ class FeishuCodexBot:
             "/repo <别名> 选择话题仓库；各仓保持独立会话与工作区\n"
             "/status 查看话题任务；/result 重取本话题结果；/cancel 精确取消当前仓库任务\n"
             "检查交付 / 检查联合交付：只读核对精确提交、PR 和必需 CI\n"
+            "/publish <40位提交SHA>：按仓库发布授权条件创建远端分支和草稿 PR\n"
             "交付反馈：生成可复制文本，不自动回写或关闭原工单\n"
             "仅在独立计费、预算和仓库授权满足时排队；旧 /wi、卡片及 run-once 已退役。\n"
             f"仓库别名：{', '.join(sorted(allowed))}"
@@ -2569,7 +2582,7 @@ def run(args: argparse.Namespace) -> int:
                 return
             open_id = str(getattr(sender_id, "open_id", "") or "")
             if open_id:
-                print(f"FEISHU_ALLOWED_OPEN_IDS={open_id}", flush=True)
+                print(json.dumps({"allowed_open_ids": [open_id]}, ensure_ascii=False), flush=True)
 
         transport.start(print_sender)
         return 0

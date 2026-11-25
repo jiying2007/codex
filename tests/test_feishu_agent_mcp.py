@@ -70,6 +70,19 @@ class FeishuAgentMCPTests(unittest.TestCase):
                                                "models": ["fixture-model"]}})
         budget_patch.start()
         self.addCleanup(budget_patch.stop)
+        spend_patch = mock.patch(
+            "tools.codex_assets.feishu_engineering_agent.budget.read_spend_page",
+            side_effect=lambda _url, key, session_id, page: {
+                "data": [{"request_id": "fixture-request", "session_id": session_id,
+                          "api_key": hashlib.sha256(key.encode()).hexdigest(),
+                          "model_group": "fixture-model", "model": "fixture-upstream-model",
+                          "status": "success", "spend": "0.01"}],
+                "page": page, "page_size": 100, "total": 1, "total_pages": 1,
+                "total_is_capped": False,
+            },
+        )
+        spend_patch.start()
+        self.addCleanup(spend_patch.stop)
 
     def write_policy(self) -> None:
         self.policy_path.write_text(json.dumps(self.policy), encoding="utf-8")
@@ -199,6 +212,19 @@ class FeishuAgentMCPTests(unittest.TestCase):
             receipts = db.execute("SELECT phase, receipt_json FROM engineering_budget_receipts WHERE task_id=?", (job.task_id,)).fetchall()
         self.assertEqual({"before", "after"}, {row[0] for row in receipts})
         self.assertNotIn("fixture-agent-api-key", str(receipts))
+        by_phase = {phase: json.loads(body) for phase, body in receipts}
+        session_id = by_phase["before"]["session_id"]
+        self.assertEqual(session_id, by_phase["after"]["session_id"])
+        header_override = ('model_providers.feishu_agent_gateway.http_headers={'
+                           '"x-litellm-session-id"=' + json.dumps(session_id) + '}')
+        self.assertIn(header_override, arguments)
+        provider_index = next(index for index, arg in enumerate(arguments)
+                              if arg.startswith("model_providers.feishu_agent_gateway={"))
+        self.assertGreater(arguments.index(header_override), provider_index)
+        self.assertEqual("observed", by_phase["after"]["request_observation"])
+        self.assertEqual("pending", by_phase["after"]["settlement"])
+        self.assertEqual("0.01", by_phase["after"]["observed_request_cost_usd"])
+        self.assertEqual("fixture-upstream-model", by_phase["after"]["requests"][0]["model"])
         # Use a distinct synthetic task ID: each paid launch is effect-once.
         import dataclasses
         job = dataclasses.replace(job, task_id=job.task_id + 1000)
@@ -419,9 +445,85 @@ class FeishuAgentMCPTests(unittest.TestCase):
         with mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process) as popen:
             runner.run(job)
             self.assertEqual(1, popen.call_count)
+            with intake.store._connect() as db:
+                before = db.execute("SELECT receipt_json FROM engineering_budget_receipts "
+                                    "WHERE task_id=? AND phase='before'", (job.task_id,)).fetchone()[0]
+            with mock.patch("uuid.uuid4") as new_identity:
+                with self.assertRaises(feishu_codex_bot.FeishuCodexError):
+                    runner.run(job)
+                new_identity.assert_not_called()
+            self.assertEqual(1, popen.call_count)
+            with intake.store._connect() as db:
+                self.assertEqual(before, db.execute("SELECT receipt_json FROM engineering_budget_receipts "
+                                                   "WHERE task_id=? AND phase='before'", (job.task_id,)).fetchone()[0])
+
+    def test_accounting_identity_is_durable_before_process_and_insert_failure_blocks_launch(self):
+        intake, job = self.queued_job()
+        runner = feishu_codex_bot.CodexRunner(intake.config)
+        process = mock.Mock(returncode=0)
+        process.communicate.return_value = ("done", "")
+
+        def launch(command, **_kwargs):
+            with intake.store._connect() as db:
+                saved = db.execute("SELECT receipt_json FROM engineering_budget_receipts "
+                                   "WHERE task_id=? AND phase='before'", (job.task_id,)).fetchone()
+            self.assertIsNotNone(saved)
+            identity = json.loads(saved[0])["session_id"]
+            self.assertTrue(any(identity in argument and "http_headers=" in argument for argument in command))
+            return process
+
+        with mock.patch.object(feishu_codex_bot.subprocess, "Popen", side_effect=launch):
+            runner.run(job)
+        second = dataclasses.replace(job, task_id=job.task_id + 1000)
+        with intake.store._connect() as db:
+            db.execute("CREATE TRIGGER fail_budget_insert BEFORE INSERT ON engineering_budget_receipts "
+                       "WHEN NEW.phase='before' BEGIN SELECT RAISE(ABORT,'fixture write failure'); END")
+        with mock.patch.object(feishu_codex_bot.subprocess, "Popen") as popen:
+            with self.assertRaises(feishu_codex_bot.FeishuCodexError):
+                runner.run(second)
+            popen.assert_not_called()
+        with intake.store._connect() as db:
+            self.assertIsNone(db.execute("SELECT 1 FROM engineering_budget_receipts WHERE task_id=?",
+                                         (second.task_id,)).fetchone())
+
+    def test_delayed_request_logs_remain_pending_without_invented_zero_cost(self):
+        intake, job = self.queued_job()
+        process = mock.Mock(returncode=0)
+        process.communicate.return_value = ("done", "")
+        with mock.patch("tools.codex_assets.feishu_engineering_agent.budget.read_spend_page",
+                        return_value={"data": [], "page": 1, "page_size": 100, "total": 0,
+                                      "total_pages": 0, "total_is_capped": False}), \
+                mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process):
+            self.assertEqual("done", feishu_codex_bot.CodexRunner(intake.config).run(job).text)
+        with intake.store._connect() as db:
+            after = json.loads(db.execute("SELECT receipt_json FROM engineering_budget_receipts "
+                                          "WHERE task_id=? AND phase='after'", (job.task_id,)).fetchone()[0])
+        self.assertEqual("pending", after["request_observation"])
+        self.assertEqual("pending", after["settlement"])
+        self.assertIsNone(after["observed_request_cost_usd"])
+        self.assertNotIn("requests", after)
+
+    def test_request_log_failure_is_durable_unknown_without_relaunch(self):
+        from tools.codex_assets.feishu_engineering_agent.budget import BudgetError
+        intake, job = self.queued_job()
+        runner = feishu_codex_bot.CodexRunner(intake.config)
+        process = mock.Mock(returncode=0)
+        process.communicate.return_value = ("done", "")
+        with mock.patch("tools.codex_assets.feishu_engineering_agent.budget.read_spend_page",
+                        side_effect=BudgetError("fixture unavailable")), \
+                mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process) as popen:
+            with self.assertRaises(feishu_codex_bot.CodexOutcomeUnknown):
+                runner.run(job)
             with self.assertRaises(feishu_codex_bot.FeishuCodexError):
                 runner.run(job)
             self.assertEqual(1, popen.call_count)
+        with intake.store._connect() as db:
+            after = json.loads(db.execute("SELECT receipt_json FROM engineering_budget_receipts "
+                                          "WHERE task_id=? AND phase='after'", (job.task_id,)).fetchone()[0])
+        self.assertEqual("unknown", after["request_observation"])
+        self.assertEqual("pending", after["settlement"])
+        self.assertIsNone(after["observed_request_cost_usd"])
+        self.assertNotIn("provider_cumulative_spend_usd", after)
 
     def test_after_budget_state_permission_error_is_unknown(self):
         intake, job = self.queued_job()

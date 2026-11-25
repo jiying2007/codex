@@ -26,6 +26,7 @@ _CONTROL = {
 # expiry; an incomplete context is rejected rather than silently reconstructed.
 NOTE_RETENTION_SECONDS = 7 * 24 * 60 * 60
 _REPO = re.compile(r"\A(?:/repo\s+|repo=)([a-z][a-z0-9_-]{0,31})(?=\s|\Z)", re.I)
+_PUBLISH = re.compile(r"/publish ([a-f0-9]{40})\Z")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -156,6 +157,17 @@ class LinkContextService:
                     verified_at INTEGER NOT NULL,
                     PRIMARY KEY(context_id,head_set_sha256)
                 );
+                CREATE TABLE IF NOT EXISTS engineering_context_publications (
+                    task_id INTEGER PRIMARY KEY REFERENCES engineering_context_tasks(task_id),
+                    root_task_id INTEGER NOT NULL UNIQUE,
+                    context_id TEXT NOT NULL REFERENCES engineering_contexts(context_id),
+                    repo_alias TEXT NOT NULL, repository TEXT NOT NULL,
+                    base_branch TEXT NOT NULL, branch TEXT NOT NULL, head_sha TEXT NOT NULL,
+                    command_event_key TEXT NOT NULL UNIQUE REFERENCES engineering_context_events(event_key),
+                    command_sha256 TEXT NOT NULL, policy_sha256 TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('intent','unknown','published')),
+                    pr_number INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+                );
             """)
 
     def exists(self, event: InboundEvent, topic: str) -> bool:
@@ -191,7 +203,8 @@ class LinkContextService:
         if not re.fullmatch(r"(?:root|thread):[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", topic):
             raise IntakeRejected("invalid topic identity")
         body = event.text.strip()
-        control = body.lower() in _CONTROL
+        publication = _PUBLISH.fullmatch(body)
+        control = body.lower() in _CONTROL or publication is not None
         match = _REPO.match(body)
         explicit = match.group(1).lower() if match else ""
         if body.startswith("/") and not control and not (match and body.startswith("/repo ") and match.end() == len(body)):
@@ -226,7 +239,8 @@ class LinkContextService:
                     raise EventConflict("same event changed or no longer authorized")
                 return IntakeResult(True)
             # Do not reinterpret a pre-cutover Feishu event as a new paid turn.
-            if db.execute("SELECT 1 FROM messages WHERE message_id=?",(event.event_id,)).fetchone():
+            if (db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='messages'").fetchone()
+                    and db.execute("SELECT 1 FROM messages WHERE message_id=?",(event.event_id,)).fetchone()):
                 return IntakeResult(True)
             if (db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='engineering_legacy_events'").fetchone()
                     and db.execute("SELECT 1 FROM engineering_legacy_events WHERE message_id=?",(event.event_id,)).fetchone()):
@@ -278,6 +292,8 @@ class LinkContextService:
             ).fetchone()[0]
             if body.lower() == "/new":
                 return IntakeResult(True, "请在新话题发送研发链接；不会覆盖当前事项。")
+            if publication is not None:
+                return IntakeResult(True, "", cid, repo, "publish", publication.group(1), topic)
             if body.lower() in ("/cancel","cancel","取消","停止任务"):
                 latest = db.execute(
                     "SELECT t.status FROM engineering_context_tasks c JOIN tasks t ON t.id=c.task_id "

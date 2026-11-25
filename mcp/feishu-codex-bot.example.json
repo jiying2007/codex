@@ -33,7 +33,8 @@
         "base_branch": "main",
         "required_workflows": [
           ".github/workflows/verify.yml"
-        ]
+        ],
+        "publish_enabled": false
       },
       "document_read_urls": []
     },
@@ -63,7 +64,8 @@
         "base_branch": "main",
         "required_workflows": [
           ".github/workflows/verify.yml"
-        ]
+        ],
+        "publish_enabled": false
       },
       "document_read_urls": []
     }

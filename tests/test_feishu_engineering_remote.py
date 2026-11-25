@@ -90,7 +90,7 @@ class RemoteEngineeringTest(unittest.TestCase):
         self.assertTrue(self.store.claim_queued(job.task_id))
         result=bot_module.ExecutionResult("fixture",thread_id=thread,thread_cwd=self.config.repository(job.repository).path)
         self.executor.finish(job,result,None)
-        self.store.update_task(job.task_id,"completed")
+        self.store.complete_with_output(job.task_id, result.text)
         return job
 
     def test_link_only_then_explicit_read_directly_queues_existing_worker(self):
@@ -125,7 +125,7 @@ class RemoteEngineeringTest(unittest.TestCase):
         self.assertEqual(first.task_id,target.root_task_id)
         self.assertEqual(self.repo,target.working_directory)
         self.assertTrue(self.store.claim_queued(job.task_id))
-        self.store.update_task(job.task_id,"unknown")
+        self.assertTrue(self.store.finish_unsuccessful(job.task_id, "unknown", "SyntheticUnobservedRun"))
         self.assertIn("未知", self.submit("om_again","继续推进"))
         self.runner.run.assert_not_called()
 
@@ -147,7 +147,7 @@ class RemoteEngineeringTest(unittest.TestCase):
         result = bot_module.ExecutionResult("fixture", "agent-1", "a" * 40, worktree, THREAD, worktree)
         self.store.record_result(job.task_id, result.branch_name, result.commit_hash, worktree)
         self.executor.finish(job, result, None)
-        self.store.update_task(job.task_id, "completed")
+        self.store.complete_with_output(job.task_id, result.text)
         self.intake("om_note", "补充说明：保留现有错误码")
         # Inject a seal immediately before publication while holding the same
         # writer transaction; a real concurrent writer cannot cross this lock.
@@ -271,7 +271,7 @@ class RemoteEngineeringTest(unittest.TestCase):
         self.submit("om_again","继续推进")
         next_id=self.latest()["id"]
         self.assertTrue(self.store.claim_queued(next_id))
-        self.store.update_task(next_id,"unknown")
+        self.assertTrue(self.store.finish_unsuccessful(next_id, "unknown", "SyntheticUnobservedRun"))
         receipt=self.store.reconcile_unknown(next_id,"a"*64)
         self.assertEqual("abandoned",receipt["status"])
         self.assertFalse(receipt["completion_claimed"])
@@ -339,7 +339,7 @@ class RemoteEngineeringTest(unittest.TestCase):
                 worktree_path=cwd,branch_name=branch,commit_hash=sha)
             self.executor.finish(job,outcome,None)
             self.store.record_result(job.task_id,branch,sha,cwd)
-            self.store.update_task(job.task_id,"completed")
+            self.store.complete_with_output(job.task_id, outcome.text)
 
         def forge(repo):
             observer=mock.Mock()
