@@ -41,8 +41,7 @@ class RemoteEngineeringTest(unittest.TestCase):
             agent_allowed_modes=frozenset(("explain","review","edit")),
             edit_strategy="worktree",base_ref="HEAD",
             worktree_root=self.root/"worktrees",branch_prefix="agent",
-            commit_enabled=True,artifact_upload_enabled=False,
-            artifact_roots=(),artifact_extensions=frozenset(),artifact_max_bytes=0,
+            commit_enabled=True,
             verification_commands=(),document_read_urls=frozenset((WIKI,)),
         )
         # Synthetic noncredential fixture, never sourced from a real account.
@@ -135,7 +134,6 @@ class RemoteEngineeringTest(unittest.TestCase):
         ex=EngineeringExecutor(config,self.store,self.spool,self.transport,self.runner)
         self.assertIn("独立模型", self.submit("om_root","分析 "+ISSUE+" 复现：输入异常",executor=ex))
         self.assertEqual([],self.store.pending())
-        self.transport.read_engineering_note.assert_not_called()
         self.runner.run.assert_not_called()
 
     def test_delivery_seal_rechecked_in_the_atomic_admission(self):
@@ -204,11 +202,9 @@ class RemoteEngineeringTest(unittest.TestCase):
     def test_accepted_notes_do_not_require_feishu_history_permission(self):
         self.intake("om_root",ISSUE)
         self.intake("om_note","复现：电源重启后异常")
-        self.transport.read_engineering_note.side_effect=RuntimeError("no permission")
         self.assertIn("queued",self.submit("om_read","分析一下"))
         bot,job=self.decode(self.latest())
         self.assertIn("电源重启后异常",job.task)
-        self.transport.read_engineering_note.assert_not_called()
         self.runner.run.assert_not_called()
 
     def test_expired_or_tampered_private_note_cannot_be_silently_dropped(self):
@@ -218,7 +214,6 @@ class RemoteEngineeringTest(unittest.TestCase):
             db.execute("UPDATE engineering_context_note_inputs SET body='changed'")
         self.assertIn("摘要不符",self.submit("om_read","分析一下"))
         self.assertEqual([],self.store.pending())
-        self.transport.read_engineering_note.assert_not_called()
 
     def test_ingress_task_and_dedupe_receipt_commit_together(self):
         self.intake("om_root",ISSUE)
@@ -307,7 +302,6 @@ class RemoteEngineeringTest(unittest.TestCase):
         self.assertEqual("robot-app",job.repository)
         bot,job=self.decode(second)
         self.assertNotIn("应用侧复位",job.task)
-        self.transport.read_engineering_note.assert_not_called()
         self.complete(first,THREAD)
         thread_b="01979c6c-0354-7000-8000-000000000002"
         self.complete(second,thread_b)

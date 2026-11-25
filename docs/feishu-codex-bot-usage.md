@@ -13,7 +13,7 @@
 
 `explain`、`review` 使用只读仓库与 Codex `read-only` 沙箱。Agent `edit` 必须设置 `edit_strategy=worktree`、独立 `worktree_root` 和 `commit_enabled=true`；验证通过后生成本地提交。没有自动 push、PR 创建、合并、发布、设备烧录或原工单关闭。
 
-旧 `/wi`、卡片、App Server、独立 AgentRun 工作流和 `run-once` 已退役。新入口不接受旧直接修改当前工作区或 `artifact=` 文件回传流程。关闭工程入口或缺少独立授权时，普通消息也不会回退到个人登录或共享模型额度。
+仅保留授权研发话题入口。旧 `/wi`、全局命令调度、卡片、App Server、独立 AgentRun、`run-once`、原地编辑和文件上传实现已删除。`artifact_upload` 配置必须删除；编辑只使用独立 worktree。群聊未关联话题的普通回复不创建模型任务。旧数据库历史记录继续保留，但没有旧命令执行入口。关闭工程入口或缺少独立授权时，不回退到个人登录或共享模型额度。
 
 ## 2. 在飞书话题内使用
 

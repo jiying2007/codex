@@ -212,13 +212,22 @@ class FeishuCodexBotTest(unittest.TestCase):
         with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "没有用户白名单"):
             self.config().validate_runtime()
 
-    def test_edit_mode_defaults_to_in_place_without_commit(self) -> None:
-        self.policy["repositories"]["codex"]["allowed_modes"] = ["edit"]
+    def test_retired_upload_policy_is_rejected(self):
+        self.policy["repositories"]["codex"]["artifact_upload"] = {"enabled": True}
         self.write_policy()
-        repository = self.config().repository("codex")
-        self.assertEqual("in_place", repository.edit_strategy)
-        self.assertIsNone(repository.worktree_root)
-        self.assertFalse(repository.commit_enabled)
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "artifact_upload"):
+            self.config()
+        self.assertFalse(hasattr(feishu_codex_bot.FeishuTransport, "send_file"))
+
+    def test_local_mcp_replies_are_not_broadcast_to_group(self):
+        config, store, bot, job = self.queued_agent("private-reply-1")
+        bot._send_safe(job.chat_id, "private task", job.message_id)
+        bot._send_chunks(job.chat_id, "private result", job.message_id)
+        bot.transport.send_text.assert_not_called()
+        remote = store.create_task("om_remote", f"agent:{os.getuid()}", "codex", "review")
+        self.assertIsNone(store.agent_task_detail(remote, f"agent:{os.getuid()}"))
+        self.assertFalse(store.cancel_agent_queued(remote, f"agent:{os.getuid()}"))
+        self.assertEqual("queued", store.task_status(remote))
 
     def test_worktree_strategy_requires_isolated_root(self) -> None:
         self.policy["repositories"]["codex"].update(
@@ -237,184 +246,13 @@ class FeishuCodexBotTest(unittest.TestCase):
             }
         )
         self.write_policy()
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "禁止自动提交"):
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "隔离 worktree"):
             self.config()
 
     def test_edit_strategy_summary_reports_only_editable_repositories(self) -> None:
-        self.policy["repositories"]["codex"]["allowed_modes"] = ["edit"]
+        self.policy["repositories"]["codex"].update({"allowed_modes": ["edit"], "worktree_root": str(self.tmp.parent / (self.tmp.name + "-worktrees"))})
         self.write_policy()
-        self.assertEqual("in_place:1", feishu_codex_bot.edit_strategy_summary(self.config()))
-
-    def test_artifact_upload_policy_is_explicit_and_bounded(self) -> None:
-        self.policy["repositories"]["codex"].update(
-            {
-                "allowed_modes": ["edit"],
-                "artifact_upload": {
-                    "enabled": True,
-                    "allowed_roots": ["dist/android"],
-                    "allowed_extensions": [".APK"],
-                    "max_bytes": 1024,
-                },
-            }
-        )
-        self.write_policy()
-        repository = self.config().repository("codex")
-        self.assertTrue(repository.artifact_upload_enabled)
-        self.assertEqual(
-            (pathlib.PurePosixPath("dist/android"),),
-            repository.artifact_roots,
-        )
-        self.assertEqual(frozenset({".apk"}), repository.artifact_extensions)
-        self.assertEqual(1024, repository.artifact_max_bytes)
-        self.assertEqual("codex", feishu_codex_bot.artifact_upload_summary(self.config()))
-
-    def test_artifact_upload_policy_rejects_escape_and_platform_oversize(self) -> None:
-        self.policy["repositories"]["codex"].update(
-            {
-                "allowed_modes": ["edit"],
-                "artifact_upload": {
-                    "enabled": True,
-                    "allowed_roots": ["../outside"],
-                    "allowed_extensions": [".apk"],
-                },
-            }
-        )
-        self.write_policy()
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "仓库相对路径"):
-            self.config()
-        self.policy["repositories"]["codex"]["artifact_upload"]["allowed_roots"] = ["dist"]
-        self.policy["repositories"]["codex"]["artifact_upload"]["max_bytes"] = (
-            feishu_codex_bot.FEISHU_FILE_MAX_BYTES + 1
-        )
-        self.write_policy()
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "max_bytes"):
-            self.config()
-
-    def test_command_parser_supports_alias_modes_and_controls(self) -> None:
-        command = feishu_codex_bot.parse_command("repo=codex mode=review 检查并发", "codex")
-        self.assertEqual(("task", "codex", "review", "检查并发"), dataclass_values(command))
-        self.assertEqual("status", feishu_codex_bot.parse_command("/status", "codex").action)
-        self.assertEqual("cancel", feishu_codex_bot.parse_command("取消", "codex").action)
-        self.assertEqual(
-            ("repo", "codex", "explain", ""),
-            dataclass_values(feishu_codex_bot.parse_command("/repo", "codex")),
-        )
-        self.assertEqual(
-            ("set_repo", "x5", "explain", ""),
-            dataclass_values(feishu_codex_bot.parse_command("/repo X5", "codex")),
-        )
-        self.assertEqual(
-            ("reset_repo", "codex", "explain", ""),
-            dataclass_values(feishu_codex_bot.parse_command("/repo reset", "codex")),
-        )
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "用法"):
-            feishu_codex_bot.parse_command("/repo x5 extra", "codex")
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "格式无效"):
-            feishu_codex_bot.parse_command("/repo ../x5", "codex")
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "任务内容为空"):
-            feishu_codex_bot.parse_command("repo=codex", "codex")
-        artifact = feishu_codex_bot.parse_command(
-            "repo=codex mode=edit artifact=dist/android/app.apk 编译 APK",
-            "codex",
-        )
-        self.assertEqual("dist/android/app.apk", artifact.artifact)
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "仓库相对路径"):
-            feishu_codex_bot.parse_command(
-                "mode=edit artifact=../secret.apk 编译",
-                "codex",
-            )
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "只能声明一个"):
-            feishu_codex_bot.parse_command(
-                "mode=edit artifact=dist/a.apk artifact=dist/b.apk 编译",
-                "codex",
-            )
-
-    def test_unknown_slash_control_is_not_a_model_prompt(self) -> None:
-        for text in ("/wl help", "/w1 list", "/HELP", "/status extra", "/unknown",
-                     "  /wi help", "/wiki"):
-            with self.subTest(text=text):
-                with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "未启动 Codex"):
-                    feishu_codex_bot.parse_command(text, "codex")
-        for text in ("检查 /tmp", "/home/user/project 分析日志",
-                     "mode=explain /tmp 检查目录", "repo=codex /wl 是什么"):
-            with self.subTest(text=text):
-                self.assertEqual("task", feishu_codex_bot.parse_command(text, "codex").action)
-        config = self.config()
-        store = feishu_codex_bot.StateStore(config.state_db)
-        gate = feishu_codex_bot.MessageGate(config, store)
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "未启动 Codex"):
-            gate.accept(self.event(message_id="om_typo", text="@_user_1 /wl help"))
-        self.assertEqual([], store.pending())
-        with store._connect() as db:
-            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
-
-    def test_message_gate_requires_edit_and_enabled_policy_for_artifact(self) -> None:
-        config = self.config()
-        store = feishu_codex_bot.StateStore(config.state_db)
-        gate = feishu_codex_bot.MessageGate(config, store)
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "仅允许用于 edit"):
-            gate.accept(
-                self.event(
-                    message_id="om_artifact_read",
-                    text="@_user_1 artifact=dist/app.apk 检查",
-                )
-            )
-        self.policy["repositories"]["codex"]["allowed_modes"] = [
-            "explain",
-            "review",
-            "edit",
-        ]
-        self.write_policy()
-        config = self.config()
-        gate = feishu_codex_bot.MessageGate(
-            config,
-            feishu_codex_bot.StateStore(config.state_db),
-        )
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "未启用产物回传"):
-            gate.accept(
-                self.event(
-                    message_id="om_artifact_disabled",
-                    text="@_user_1 mode=edit artifact=dist/app.apk 编译",
-                )
-            )
-        self.policy["repositories"]["codex"].update(
-            {
-                "allowed_modes": ["edit"],
-                "artifact_upload": {
-                    "enabled": True,
-                    "allowed_roots": ["dist"],
-                    "allowed_extensions": [".apk"],
-                },
-            }
-        )
-        self.write_policy()
-        config = self.config()
-        gate = feishu_codex_bot.MessageGate(config, feishu_codex_bot.StateStore(config.state_db))
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "旧任务入口已退役"):
-            gate.accept(self.event(message_id="om_artifact_edit",
-                text="@_user_1 mode=edit artifact=dist/app.apk 编译"))
-        self.assertEqual([], gate.store.pending())
-
-    def test_sqlite_dedupe_survives_gate_recreation(self) -> None:
-        config = self.config()
-        first_store = feishu_codex_bot.StateStore(config.state_db)
-        event = self.event(text="@_user_1 /status")
-        first = feishu_codex_bot.MessageGate(config, first_store).accept(event)
-        self.assertIsNotNone(first)
-        self.assertEqual("status", first.action)
-        self.assertEqual(0, first.task_id)
-        second_store = feishu_codex_bot.StateStore(config.state_db)
-        self.assertIsNone(feishu_codex_bot.MessageGate(config, second_store).accept(event))
-        self.assertIsNone(
-            feishu_codex_bot.MessageGate(config, second_store).accept(
-                self.event(message_id="om_2", chat_id="oc_other")
-            )
-        )
-        self.assertIsNone(
-            feishu_codex_bot.MessageGate(config, second_store).accept(
-                self.event(message_id="om_3", open_id="ou_other")
-            )
-        )
+        self.assertEqual("worktree:1", feishu_codex_bot.edit_strategy_summary(self.config()))
 
     def test_feishu_task_dedupe_and_task_identity_are_atomic(self) -> None:
         config, store, bot, job = self.queued_agent("atomic-request-1")
@@ -437,17 +275,6 @@ class FeishuCodexBotTest(unittest.TestCase):
             self.assertEqual(1, conn.execute(
                 "SELECT COUNT(*) FROM tasks WHERE message_id=?", (job.message_id,)
             ).fetchone()[0])
-
-    def test_ordinary_message_never_creates_a_legacy_paid_task(self) -> None:
-        config = self.config()
-        store = feishu_codex_bot.StateStore(config.state_db)
-        gate = feishu_codex_bot.MessageGate(config, store)
-        for _attempt in range(2):
-            with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "旧任务入口已退役"):
-                gate.accept(self.event())
-        self.assertEqual([], store.pending())
-        with store._connect() as db:
-            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
 
     def test_feishu_event_claim_rolls_back_when_task_insertion_fails(self) -> None:
         config = self.config()
@@ -472,12 +299,10 @@ class FeishuCodexBotTest(unittest.TestCase):
 
     def test_state_store_tracks_status_and_cancels_queued_tasks(self) -> None:
         store = feishu_codex_bot.StateStore(self.config().state_db)
-        task_id = store.create_task("om_state", "ou_owner", "codex", "explain")
+        task_id = store.create_task("agent:state", f"agent:{os.getuid()}", "codex", "explain")
         self.assertEqual("queued", store.task_status(task_id))
-        self.assertEqual(1, store.cancel_queued("ou_owner"))
+        self.assertTrue(store.cancel_agent_queued(task_id, f"agent:{os.getuid()}"))
         self.assertEqual("canceled", store.task_status(task_id))
-        summary = store.summary("ou_owner")
-        self.assertEqual(1, summary["counts"]["canceled"])
 
     def test_state_store_creates_private_db_and_refuses_unsafe_existing_state(self) -> None:
         config = self.config()
@@ -513,57 +338,6 @@ class FeishuCodexBotTest(unittest.TestCase):
         with store._connect() as connection:
             rows = connection.execute("SELECT message_id FROM messages").fetchall()
         self.assertEqual(["committed"], [row[0] for row in rows])
-
-    def test_user_default_repository_persists_and_can_be_cleared(self) -> None:
-        store = feishu_codex_bot.StateStore(self.config().state_db)
-        self.assertEqual("", store.default_repository("ou_owner"))
-        store.set_default_repository("ou_owner", "x5")
-        recreated = feishu_codex_bot.StateStore(self.config().state_db)
-        self.assertEqual("x5", recreated.default_repository("ou_owner"))
-        self.assertEqual("", recreated.default_repository("ou_other"))
-        recreated.clear_default_repository("ou_owner")
-        self.assertEqual("", recreated.default_repository("ou_owner"))
-
-    def test_repo_command_changes_only_sender_default_and_explicit_repo_wins(self) -> None:
-        other = self.tmp / "other"
-        other.mkdir()
-        (other / ".git").mkdir()
-        self.policy["repositories"]["other"] = {
-            "path": str(other),
-            "allowed_modes": ["explain", "review"],
-            "allowed_open_ids": [],
-        }
-        self.write_policy()
-        config = self.config()
-        store = feishu_codex_bot.StateStore(config.state_db)
-        gate = feishu_codex_bot.MessageGate(config, store)
-
-        selected = gate.accept(self.event(message_id="om_repo", text="@_user_1 /repo other"))
-        self.assertIsNotNone(selected)
-        self.assertEqual(("set_repo", "other"), (selected.action, selected.repository))
-        self.assertEqual("other", store.default_repository("ou_owner"))
-
-        inherited = gate.accept(self.event(message_id="om_inherited", text="@_user_1 /repo"))
-        self.assertIsNotNone(inherited)
-        self.assertEqual("other", inherited.repository)
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "旧任务入口已退役"):
-            gate.accept(self.event(message_id="om_explicit", text="@_user_1 repo=codex 检查测试"))
-        self.assertEqual("other", store.default_repository("ou_owner"))
-        self.assertEqual([], store.pending())
-
-        reset = gate.accept(self.event(message_id="om_reset", text="@_user_1 /repo reset"))
-        self.assertIsNotNone(reset)
-        self.assertEqual(("reset_repo", "codex"), (reset.action, reset.repository))
-        self.assertEqual("", store.default_repository("ou_owner"))
-        self.assertEqual("codex", gate.default_repository("ou_owner"))
-
-    def test_removed_user_default_falls_back_to_system_default(self) -> None:
-        config = self.config()
-        store = feishu_codex_bot.StateStore(config.state_db)
-        store.set_default_repository("ou_owner", "removed")
-        job = feishu_codex_bot.MessageGate(config, store).accept(self.event(text="@_user_1 /repo"))
-        self.assertIsNotNone(job)
-        self.assertEqual("codex", job.repository)
 
     def test_rate_limiter_is_per_sender_and_windowed(self) -> None:
         limiter = feishu_codex_bot.RateLimiter(2, 60)
@@ -724,15 +498,15 @@ class FeishuCodexBotTest(unittest.TestCase):
                 "verification_commands": [["git", "diff", "--check"]],
             }
         )
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "隔离 worktree"):
+        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "worktree_root"):
             self.agent_config()
         # Recheck at the execution boundary even for a directly constructed
         # configuration that did not pass through the file loader.
-        self.policy["repositories"]["codex"]["agent_allowed_modes"] = ["explain", "review"]
+        self.policy["repositories"]["codex"].update({"allowed_modes": ["explain", "review"], "agent_allowed_modes": ["explain", "review"]})
         self.write_policy()
         base = self.config()
         unsafe = dataclasses.replace(base, repositories={"codex": dataclasses.replace(
-            base.repository("codex"), agent_allowed_modes=frozenset(("explain", "review", "edit")))})
+            base.repository("codex"), allowed_modes=frozenset(("explain", "review", "edit")), edit_strategy="in_place", agent_allowed_modes=frozenset(("explain", "review", "edit")))})
         intake = AgentTaskIntake(unsafe)
         with mock.patch.object(feishu_codex_bot.subprocess, "Popen") as popen:
             with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "worktree 隔离"):
@@ -744,56 +518,6 @@ class FeishuCodexBotTest(unittest.TestCase):
                 runner.run(job)
         popen.assert_not_called()
         self.assertEqual([], intake.store.pending())
-
-    def test_artifact_edit_allows_build_only_and_prompts_for_exact_output(self) -> None:
-        self.policy["repositories"]["codex"].update(
-            {
-                "allowed_modes": ["edit"],
-                "edit_strategy": "worktree",
-                "worktree_root": str(self.tmp.parent / f"{self.tmp.name}-worktrees"),
-                "commit_enabled": True,
-                "artifact_upload": {
-                    "enabled": True,
-                    "allowed_roots": ["dist"],
-                    "allowed_extensions": [".apk"],
-                },
-            }
-        )
-        self.write_policy()
-        runner = feishu_codex_bot.CodexRunner(self.agent_config())
-        runner.worktrees = mock.Mock()
-        runner.worktrees.prepare.return_value = (self.tmp, "")
-        runner.worktrees.snapshot.return_value = "unchanged"
-        runner.worktrees.verify_and_commit.return_value = ""
-        job = feishu_codex_bot.BotJob(
-            10,
-            "om_10",
-            "oc_target",
-            f"agent:{os.getuid()}",
-            "task",
-            "codex",
-            "edit",
-            "只执行构建",
-            artifact="dist/app.apk",
-        )
-        with mock.patch.object(
-            feishu_codex_bot.subprocess,
-            "Popen",
-            return_value=FakeProcess("构建完成\n"),
-        ) as popen:
-            runner.run(job)
-        runner.worktrees.verify_and_commit.assert_called_once_with(
-            self.tmp,
-            self.config().repository("codex"),
-            10,
-            "unchanged",
-            allow_unchanged=True,
-            cancel_requested=mock.ANY,
-        )
-        self.assertFalse(runner.worktrees.verify_and_commit.call_args.kwargs["cancel_requested"]())
-        self.assertTrue(
-            any("dist/app.apk" in str(argument) for argument in popen.call_args.args[0])
-        )
 
     def test_explicit_worktree_mode_records_local_commit(self) -> None:
         hooks = self.tmp / "hooks"
@@ -899,245 +623,13 @@ class FeishuCodexBotTest(unittest.TestCase):
         )
         self.assertEqual("", manager._git(repository, ["status", "--porcelain"]))
 
-    def test_in_place_manager_detects_change_without_committing_dirty_workspace(self) -> None:
-        repository = self.tmp / "direct-repo"
-        subprocess.run(["rtk", "git", "init", str(repository)], check=True, capture_output=True, text=True)
-        tracked = repository / "tracked.txt"
-        tracked.write_text("base\n", encoding="utf-8")
-        subprocess.run(["rtk", "git", "-C", str(repository), "add", "tracked.txt"], check=True)
-        subprocess.run(
-            [
-                "rtk",
-                "git",
-                "-C",
-                str(repository),
-                "-c",
-                "user.name=Test",
-                "-c",
-                "user.email=test@example.com",
-                "commit",
-                "-m",
-                "init",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        self.policy["default_repo"] = "direct"
-        self.policy["repositories"]["direct"] = {
-            "path": str(repository),
-            "allowed_modes": ["edit"],
-            "allowed_open_ids": [],
-            "verification_commands": [["git", "diff", "--check"]],
-        }
-        self.write_policy()
-        config = self.config()
-        manager = feishu_codex_bot.WorktreeManager(config)
-        working_directory, branch = manager.prepare(24, config.repository("direct"))
-        tracked.write_text("user change\n", encoding="utf-8")
-        before_snapshot = manager.snapshot(working_directory)
-        tracked.write_text("assistant change\n", encoding="utf-8")
-        head_before = manager._git(repository, ["rev-parse", "HEAD"])
-        with self.sandboxed_git_checks(config):
-            self.assertEqual(
-                "",
-                manager.verify_and_commit(
-                    working_directory,
-                    config.repository("direct"),
-                    24,
-                    before_snapshot,
-                ),
-            )
-        self.assertEqual("", branch)
-        self.assertEqual(head_before, manager._git(repository, ["rev-parse", "HEAD"]))
-        self.assertIn("tracked.txt", manager._git(repository, ["status", "--porcelain"]))
-
-    def test_command_parser_tracks_feishu_sources(self) -> None:
-        command = feishu_codex_bot.parse_command(
-            "mode=edit task=guid-1 requirement=REQ-2 defect=BUG-3 log=om_4 修复崩溃",
-            "pcr02-demo",
-        )
-        self.assertEqual("edit", command.mode)
-        self.assertEqual("pcr02-demo", command.repository)
-        self.assertEqual("修复崩溃", command.task)
-        self.assertEqual(
-            (("task", "guid-1"), ("requirement", "REQ-2"), ("defect", "BUG-3"), ("log", "om_4")),
-            tuple((source.kind, source.value) for source in command.sources),
-        )
-
-    def test_artifact_manager_validates_file_snapshot_and_rejects_symlink(self) -> None:
-        dist = self.tmp / "dist"
-        dist.mkdir()
-        apk = dist / "app.apk"
-        apk.write_bytes(b"apk-content")
-        self.policy["repositories"]["codex"].update(
-            {
-                "allowed_modes": ["edit"],
-                "artifact_upload": {
-                    "enabled": True,
-                    "allowed_roots": ["dist"],
-                    "allowed_extensions": [".apk"],
-                    "max_bytes": 1024,
-                },
-            }
-        )
-        self.write_policy()
-        repository = self.config().repository("codex")
-        artifact = feishu_codex_bot.ArtifactManager.prepare(
-            repository,
-            self.tmp,
-            "dist/app.apk",
-        )
-        self.assertEqual("app.apk", artifact.file_name)
-        self.assertEqual(len(b"apk-content"), artifact.size)
-        self.assertEqual(
-            __import__("hashlib").sha256(b"apk-content").hexdigest(),
-            artifact.sha256,
-        )
-        apk.write_bytes(b"changed-after-validation")
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "验证后发生变化"):
-            object.__new__(feishu_codex_bot.FeishuTransport).send_file(
-                "oc_target",
-                artifact,
-                "om_source",
-            )
-        empty = dist / "empty.apk"
-        empty.touch()
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "不能为空"):
-            feishu_codex_bot.ArtifactManager.prepare(
-                repository,
-                self.tmp,
-                "dist/empty.apk",
-            )
-        large = dist / "large.apk"
-        large.write_bytes(b"x" * 1025)
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "超过大小上限"):
-            feishu_codex_bot.ArtifactManager.prepare(
-                repository,
-                self.tmp,
-                "dist/large.apk",
-            )
-
-        target = self.tmp / "other.apk"
-        target.write_bytes(b"outside")
-        (dist / "link.apk").symlink_to(target)
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "符号链接"):
-            feishu_codex_bot.ArtifactManager.prepare(
-                repository,
-                self.tmp,
-                "dist/link.apk",
-            )
-        with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "扩展名"):
-            feishu_codex_bot.ArtifactManager.prepare(
-                repository,
-                self.tmp,
-                "dist/app.txt",
-            )
-
-    def test_transport_uploads_stream_then_replies_with_file_key(self) -> None:
-        dist = self.tmp / "dist"
-        dist.mkdir()
-        (dist / "app.apk").write_bytes(b"apk-content")
-        self.policy["repositories"]["codex"].update(
-            {
-                "allowed_modes": ["edit"],
-                "artifact_upload": {
-                    "enabled": True,
-                    "allowed_roots": ["dist"],
-                    "allowed_extensions": [".apk"],
-                },
-            }
-        )
-        self.write_policy()
-        artifact = feishu_codex_bot.ArtifactManager.prepare(
-            self.config().repository("codex"),
-            self.tmp,
-            "dist/app.apk",
-        )
-        transport = feishu_codex_bot.FeishuTransport(self.config())
-        upload_response = mock.Mock()
-        upload_response.success.return_value = True
-        upload_response.data = types.SimpleNamespace(file_key="file_test")
-        reply_response = mock.Mock()
-        reply_response.success.return_value = True
-        def upload(request: object) -> object:
-            self.assertEqual("stream", request.body.file_type)
-            self.assertEqual("app.apk", request.body.file_name)
-            self.assertEqual(b"apk-content", request.body.file.read())
-            return upload_response
-
-        file_create = mock.Mock(side_effect=upload)
-        message_reply = mock.Mock(return_value=reply_response)
-        transport.client = types.SimpleNamespace(
-            im=types.SimpleNamespace(
-                v1=types.SimpleNamespace(
-                    file=types.SimpleNamespace(create=file_create),
-                    message=types.SimpleNamespace(reply=message_reply),
-                )
-            )
-        )
-
-        transport.send_file("oc_target", artifact, "om_source")
-
-        file_create.assert_called_once()
-        message_reply.assert_called_once()
-        reply_request = message_reply.call_args.args[0]
-        self.assertEqual("file", reply_request.body.msg_type)
-        self.assertTrue(reply_request.body.reply_in_thread)
-        payload = json.loads(reply_request.body.content)
-        self.assertEqual(
-            {"file_key": "file_test", "file_name": "app.apk"},
-            payload,
-        )
-
-    def test_bot_delivers_only_declared_prepared_artifact(self) -> None:
-        dist = self.tmp / "dist"
-        dist.mkdir()
-        (dist / "app.apk").write_bytes(b"apk-content")
-        self.policy["repositories"]["codex"].update(
-            {
-                "allowed_modes": ["edit"],
-                "artifact_upload": {
-                    "enabled": True,
-                    "allowed_roots": ["dist"],
-                    "allowed_extensions": [".apk"],
-                },
-            }
-        )
-        self.write_policy()
-        config = self.config()
-        transport = mock.Mock()
-        bot = feishu_codex_bot.FeishuCodexBot(
-            config,
-            transport,
-            mock.Mock(),
-            feishu_codex_bot.StateStore(config.state_db),
-        )
-        job = feishu_codex_bot.BotJob(
-            31,
-            "om_31",
-            "oc_target",
-            "ou_owner",
-            "task",
-            "codex",
-            "edit",
-            "编译",
-            artifact="dist/app.apk",
-        )
-        prepared = bot._send_artifact(
-            job,
-            feishu_codex_bot.ExecutionResult("完成", worktree_path=self.tmp),
-        )
-        self.assertEqual("app.apk", prepared.file_name)
-        transport.send_file.assert_called_once_with("oc_target", prepared, "om_31")
-        self.assertIn("sha256=", transport.send_text.call_args.args[1])
-
     def test_running_process_can_only_be_canceled_by_owner(self) -> None:
         runner = feishu_codex_bot.CodexRunner(self.config())
         owner_process = FakeProcess()
         other_process = FakeProcess()
         runner._running = {1: ("ou_owner", owner_process), 2: ("ou_other", other_process)}
-        self.assertEqual(1, runner.cancel_sender("ou_owner"))
+        self.assertFalse(runner.cancel_task(2, "ou_owner"))
+        self.assertTrue(runner.cancel_task(1, "ou_owner"))
         self.assertTrue(owner_process.terminated)
         self.assertFalse(other_process.terminated)
 
@@ -1212,9 +704,9 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertEqual("unknown", restarted.store.task_status(job.task_id))
         self.assertEqual(0, restarted.jobs.qsize())
         self.assertFalse((restarted.spool.root / f"{job.task_id}.json").exists())
-        restarted.transport.send_text.assert_called_once()
+        restarted.transport.send_text.assert_not_called()
         restarted.recover_pending()
-        self.assertEqual(1, restarted.transport.send_text.call_count)
+        restarted.transport.send_text.assert_not_called()
 
     def test_legacy_queued_without_spool_is_unknown_not_automatically_retried(self) -> None:
         config = self.config()
@@ -1245,17 +737,6 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertEqual("unknown", store.task_status(job.task_id))
         self.assertEqual(0, bot.jobs.qsize())
 
-
-    def test_non_task_commands_can_queue_without_zero_id_collision(self) -> None:
-        config = self.config()
-        bot = feishu_codex_bot.FeishuCodexBot(
-            config, mock.Mock(), mock.Mock(), feishu_codex_bot.StateStore(config.state_db)
-        )
-        first = feishu_codex_bot.BotJob(0, "om_help", "oc_target", "ou_owner", "help", "codex", "explain", "")
-        second = feishu_codex_bot.BotJob(0, "om_status", "oc_target", "ou_owner", "status", "codex", "explain", "")
-        self.assertTrue(bot._schedule(first))
-        self.assertTrue(bot._schedule(second))
-        self.assertEqual(2, bot.jobs.qsize())
 
     def test_poll_grace_does_not_race_with_new_incoming_task(self) -> None:
         config = self.config()
@@ -1421,10 +902,6 @@ class FeishuCodexBotTest(unittest.TestCase):
         self.assertEqual(job.task_id, repeated["id"])
         self.assertEqual("unknown", repeated["status"])
         self.assertFalse(repeated["created"])
-
-
-def dataclass_values(command: feishu_codex_bot.ParsedCommand) -> object:
-    return command.action, command.repository, command.mode, command.task
 
 
 def builder_factory() -> object:

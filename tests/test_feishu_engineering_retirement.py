@@ -74,9 +74,7 @@ class RetirementBotTest(unittest.TestCase):
         for enabled in (True, False):
             with self.subTest(engineering_enabled=enabled):
                 bot = self.bot(enabled)
-                with self.immediate_threads(), mock.patch.object(
-                    bot.gate, "accept", side_effect=AssertionError("legacy gate reached"),
-                ):
+                with self.immediate_threads():
                     bot.on_message(self.event(text="/wi add tapd 缺陷 1000 2000 repo=robot-app | synthetic"))
                     bot.on_message(self.event(msg_id="om_help", text="/wi help"))
                 self.assert_no_execution(bot)
@@ -88,9 +86,7 @@ class RetirementBotTest(unittest.TestCase):
             "分析 https://project.feishu.cn/example-space/issue/detail/1000000001 "
             "https://tenant-example.feishu.cn/wiki/ExampleWikiToken123?from=copy"
         ))
-        with self.immediate_threads(), mock.patch.object(
-            bot.gate, "accept", side_effect=AssertionError("legacy gate reached"),
-        ):
+        with self.immediate_threads():
             bot.on_message(root)
             self.assertIn("缺陷 #1000000001", self.transport.send_text.call_args.args[1])
             self.assertIn("尚未读取", self.transport.send_text.call_args.args[1])
@@ -110,6 +106,22 @@ class RetirementBotTest(unittest.TestCase):
         with bot.store._connect() as db:
             self.assertEqual(1, db.execute("SELECT COUNT(*) FROM engineering_contexts").fetchone()[0])
             self.assertEqual(2, db.execute("SELECT COUNT(*) FROM engineering_context_sources").fetchone()[0])
+
+    def test_unlinked_group_reply_does_not_create_paid_context(self):
+        bot = self.bot()
+        event = self.event(text="修复启动日志问题")
+        event.event.message.root_id = "om_other_thread"
+        bot.on_message(event)
+        self.assert_no_execution(bot)
+        self.transport.send_text.assert_not_called()
+        with bot.store._connect() as db:
+            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM engineering_contexts").fetchone()[0])
+
+    def test_removed_interfaces_are_not_available(self):
+        self.assertFalse(hasattr(bot_module, "MessageGate"))
+        self.assertFalse(hasattr(bot_module, "parse_command"))
+        self.assertFalse(hasattr(bot_module, "ArtifactManager"))
+        self.assertFalse(hasattr(bot_module.CodexRunner, "cancel_sender"))
 
     def test_disabled_engineering_never_falls_back_to_shared_model(self):
         bot = self.bot(False)

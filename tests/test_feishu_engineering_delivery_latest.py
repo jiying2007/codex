@@ -17,7 +17,6 @@ class LatestEditDeliveryTests(unittest.TestCase):
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
         self.fixture.add_second_repo()
-        self.fixture.transport.read_engineering_note.return_value = "合成初始化问题及已审查的修改范围"
         self.observed = []
         self.during_observation = None
         self.delivery = ContextDelivery(self.fixture.config, self.fixture.executor, self.forge)
