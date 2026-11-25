@@ -877,6 +877,60 @@ class FeishuCodexBotTest(unittest.TestCase):
         fake_runner.run.assert_not_called()
         self.assertEqual("unknown", store.task_status(task_id))
 
+    def test_late_cancel_cannot_acknowledge_model_completion(self) -> None:
+        cfg, store, bot, job = self.queued_agent("late-cancel-1")
+        bot.transport.resolve_sources.return_value = ""
+
+        def return_after_cancel(*args, **kwargs):
+            self.assertEqual("requested", store.request_agent_cancel(job.task_id, job.sender_open_id))
+            return feishu_codex_bot.ExecutionResult("已返回模型结果")
+
+        bot.runner.run.side_effect = return_after_cancel
+        with mock.patch.object(bot.jobs, "get", side_effect=[job, SystemExit]), \
+                mock.patch.object(bot.jobs, "task_done"):
+            with self.assertRaises(SystemExit):
+                bot.worker()
+        self.assertEqual("unknown", store.task_status(job.task_id))
+        self.assertTrue(store.cancel_requested(job.task_id))
+        with store._connect() as db:
+            self.assertIsNone(db.execute(
+                "SELECT 1 FROM engineering_task_outputs WHERE task_id=?", (job.task_id,)
+            ).fetchone())
+        bot.runner.run.assert_called_once()
+        restarted = feishu_codex_bot.FeishuCodexBot(cfg, mock.Mock(), mock.Mock(), store)
+        restarted.recover_pending()
+        self.assertEqual("unknown", store.task_status(job.task_id))
+        self.assertEqual(0, restarted.jobs.qsize())
+
+    def test_notification_failure_preserves_completed_receipt(self) -> None:
+        cfg, store, bot, job = self.queued_agent("notification-failure-1")
+        bot.transport.resolve_sources.return_value = ""
+        bot.runner.run.return_value = feishu_codex_bot.ExecutionResult("已完成")
+        with mock.patch.object(bot, "_send_chunks", side_effect=RuntimeError("fixture transport failure")), \
+                mock.patch.object(bot.jobs, "get", side_effect=[job, SystemExit]), \
+                mock.patch.object(bot.jobs, "task_done"):
+            with self.assertRaises(SystemExit):
+                bot.worker()
+        self.assertEqual("completed", store.task_status(job.task_id))
+        bot._record_task_failure(job, "unknown", "LateFailure")
+        self.assertEqual("completed", store.task_status(job.task_id))
+        with store._connect() as db:
+            row = db.execute(
+                "SELECT body,body_sha256 FROM engineering_task_outputs WHERE task_id=?", (job.task_id,)
+            ).fetchone()
+        self.assertEqual("已完成", row["body"])
+        self.assertEqual(hashlib.sha256("已完成".encode("utf-8")).hexdigest(), row["body_sha256"])
+        self.assertEqual("completed", store.request_agent_cancel(job.task_id, job.sender_open_id))
+        self.assertFalse(store.cancel_requested(job.task_id))
+        bot.runner.run.assert_called_once()
+
+    def test_transport_sdk_exception_does_not_expose_payload(self) -> None:
+        transport = object.__new__(feishu_codex_bot.FeishuTransport)
+        with mock.patch.object(transport, "_send_message", side_effect=RuntimeError("fixture-sensitive-payload")):
+            with self.assertRaisesRegex(feishu_codex_bot.FeishuCodexError, "RuntimeError") as caught:
+                transport.send_text("oc_target", "fixture message", "om_target")
+        self.assertNotIn("fixture-sensitive-payload", str(caught.exception))
+
     def test_completed_model_with_lost_git_receipt_stays_unknown_after_restart(self) -> None:
         self.policy["repositories"]["codex"].update({
             "allowed_modes": ["edit"], "edit_strategy": "worktree", "commit_enabled": True,

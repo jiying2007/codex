@@ -954,6 +954,18 @@ class StateStore:
                 (status_value, int(time.time()), error_kind, task_id),
             )
 
+    def finish_unsuccessful(self, task_id: int, status_value: str, error_kind: str) -> bool:
+        """Do not let a late error overwrite a durable terminal receipt."""
+        if status_value not in ("failed", "unknown", "canceled"):
+            raise ValueError("invalid unsuccessful task status")
+        with self._connect() as connection:
+            changed = connection.execute(
+                "UPDATE tasks SET status=?,updated_at=?,error_kind=? "
+                "WHERE id=? AND status IN ('queued','running')",
+                (status_value, int(time.time()), error_kind, task_id),
+            )
+            return changed.rowcount == 1
+
     def task_status(self, task_id: int) -> str:
         with self._connect() as connection:
             row = connection.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -1204,10 +1216,15 @@ class StateStore:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             changed = connection.execute(
-                "UPDATE tasks SET status='completed',updated_at=?,error_kind='' WHERE id=? AND status='running'",
-                (now,task_id))
+                "UPDATE tasks SET status='completed',updated_at=?,error_kind='' "
+                "WHERE id=? AND status='running' AND NOT EXISTS ("
+                "SELECT 1 FROM task_cancel_requests WHERE task_id=?)",
+                (now,task_id,task_id))
             if changed.rowcount != 1:
-                raise CodexOutcomeUnknown("任务完成状态发生变化；禁止重复执行")
+                # A cancellation accepted after the model/Git effects but
+                # before completion wins admission; those effects may exist.
+                # Never acknowledge success or claim that cancellation undid them.
+                raise CodexOutcomeUnknown("任务完成状态或取消请求发生变化；须核对已有结果，禁止自动重放")
             connection.execute("DELETE FROM engineering_task_outputs WHERE expires_at<=?", (now,))
             connection.execute("INSERT INTO engineering_task_outputs VALUES (?,?,?,?)",
                                (task_id,text,digest,now + 7 * 24 * 60 * 60))
@@ -1998,7 +2015,14 @@ class FeishuTransport:
             raise FeishuCodexError(f"飞书消息发送失败: code={response.code}, request_id={response.get_log_id()}")
 
     def send_text(self, chat_id: str, text: str, reply_to_message_id: str = "") -> None:
-        self._send_message(chat_id, "text", {"text": text}, reply_to_message_id)
+        try:
+            self._send_message(chat_id, "text", {"text": text}, reply_to_message_id)
+        except FeishuCodexError:
+            raise
+        except Exception as exc:
+            # SDK/network exceptions may happen after a remote side effect.
+            # Normalize the boundary without leaking exception payloads or retrying.
+            raise FeishuCodexError(f"飞书消息发送结果未知: {type(exc).__name__}") from None
 
     def _document_get(self, path: str, queries: Mapping[str, str]) -> Dict[str, Any]:
         request = (
@@ -2408,7 +2432,9 @@ class FeishuCodexBot:
                     output = self.store.complete_with_output(job.task_id, result.text)
                     try:
                         self._send_chunks(job.chat_id, output, job.message_id)
-                    except FeishuCodexError:
+                    except Exception:
+                        # Completion and its output are already durable. A
+                        # notification failure cannot invalidate that receipt.
                         print(f"[WARN] result_delivery_unknown task={job.task_id}", flush=True)
                     print(f"[PASS] completed task={job.task_id} repo={job.repository}", flush=True)
             except TaskCanceled:
@@ -2441,7 +2467,7 @@ class FeishuCodexBot:
     def _record_task_failure(self, job: BotJob, status: str, kind: str) -> None:
         if job.task_id:
             try:
-                self.store.update_task(job.task_id, status, kind)
+                self.store.finish_unsuccessful(job.task_id, status, kind)
             except (sqlite3.Error, OSError, FeishuCodexError):
                 # A still-running row remains non-replayable; startup marks it UNKNOWN.
                 print(f"[ERROR] task_state_unavailable task={job.task_id} outcome={status}", flush=True)
