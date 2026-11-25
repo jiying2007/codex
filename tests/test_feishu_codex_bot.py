@@ -788,7 +788,9 @@ class FeishuCodexBotTest(unittest.TestCase):
             10,
             "unchanged",
             allow_unchanged=True,
+            cancel_requested=mock.ANY,
         )
+        self.assertFalse(runner.worktrees.verify_and_commit.call_args.kwargs["cancel_requested"]())
         self.assertTrue(
             any("dist/app.apk" in str(argument) for argument in popen.call_args.args[0])
         )

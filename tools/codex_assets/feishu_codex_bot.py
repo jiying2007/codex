@@ -2883,7 +2883,10 @@ class FeishuCodexBot:
             print(f"[ERROR] link_intake_failed kind={type(exc).__name__}", flush=True)
             reply = "研发链接处理异常；未启动 Codex。"
         if reply is not None:
-            self._send_safe(inbound.chat, reply, inbound.event_id)
+            try:
+                self._send_chunks(inbound.chat, reply, inbound.event_id)
+            except FeishuCodexError:
+                print("[WARN] engineering_reply_delivery_unknown", flush=True)
 
     def _try_link_context(self, data: Any) -> bool:
         """Consume supported links and linked-topic replies before legacy task intake."""
