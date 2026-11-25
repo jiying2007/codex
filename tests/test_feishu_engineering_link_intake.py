@@ -1,5 +1,6 @@
 """No-model production SQLite and URL contract tests."""
 import pathlib
+import stat
 import tempfile
 import unittest
 
@@ -72,7 +73,9 @@ class ContextTest(unittest.TestCase):
         with self.service.store._connect() as db:
             self.assertEqual(2,db.execute("SELECT COUNT(*) FROM engineering_context_sources").fetchone()[0])
             self.assertEqual(0,db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
-            self.assertNotIn("private reproduction detail"," ".join(db.iterdump()))
+            self.assertEqual("private reproduction detail",db.execute(
+                "SELECT body FROM engineering_context_note_inputs").fetchone()[0])
+            self.assertEqual(0o600,stat.S_IMODE(self.path.stat().st_mode))
     def test_no_implicit_wrong_repo_or_second_workitem(self):
         a=self.handle("om_root",ISSUE,allowed={"codex"},routes={})
         self.assertIn("待定位",a.reply)

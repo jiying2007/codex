@@ -430,7 +430,7 @@ class FeishuAgentMCPTests(unittest.TestCase):
         process.communicate.return_value = ("done", "")
         with mock.patch.object(feishu_codex_bot.subprocess, "Popen", return_value=process), \
                 mock.patch.object(feishu_codex_bot, "StateStore",
-                                  side_effect=[intake.store, feishu_codex_bot.FeishuCodexError("private DB drift")]):
+                                  side_effect=[intake.store, intake.store, feishu_codex_bot.FeishuCodexError("private DB drift")]):
             with self.assertRaises(feishu_codex_bot.CodexOutcomeUnknown):
                 runner.run(job)
 
