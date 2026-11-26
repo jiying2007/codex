@@ -305,6 +305,37 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
             for key in ENV_KEYS
             if key not in ("FEISHU_STATE_DB", "FEISHU_LOCK_FILE", "FEISHU_BOT_CONFIG")
         },
+        required_feishu_fields_present=(
+            all(bool(values.get(key, "").strip()) for key in
+                ("FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_TARGET_CHAT_ID"))
+            if result["config"]["env_parsed"] else None
+        ),
+        dedicated_model_fields_present=(
+            all(bool(values.get(key, "").strip()) for key in (
+                "FEISHU_AGENT_OPENAI_API_KEY", "FEISHU_AGENT_OPENAI_BASE_URL",
+                "FEISHU_AGENT_BUDGET_KEY_ALIAS", "FEISHU_AGENT_BUDGET_MAX_USD",
+                "FEISHU_AGENT_CODEX_HOME", "FEISHU_AGENT_MODEL",
+                "FEISHU_AGENT_BUDGET_BACKEND",
+            )) if result["config"]["env_parsed"] else None
+        ),
+        billing_source=(
+            values.get("FEISHU_AGENT_BILLING_SOURCE", "unapproved").strip().lower()
+            if values.get("FEISHU_AGENT_BILLING_SOURCE", "unapproved").strip().lower()
+            in ("unapproved", "codex_shared", "work_shared", "external_api_key", "external_gateway", "self_hosted")
+            else "invalid"
+        ),
+        budget_backend=(
+            "litellm" if values.get("FEISHU_AGENT_BUDGET_BACKEND", "").strip() == "litellm"
+            else ("unconfigured" if not values.get("FEISHU_AGENT_BUDGET_BACKEND", "").strip() else "unsupported")
+        ),
+        agent_modes_all_empty=(
+            all(
+                isinstance(item, dict) and item.get("agent_allowed_modes", []) == []
+                for item in policy["repositories"].values()
+            )
+            if result["config"]["policy_parsed"] and isinstance(policy.get("repositories"), dict)
+            else None
+        ),
     )
     db = absolute_path(
         values.get("FEISHU_STATE_DB") or policy.get("state_db")
@@ -319,10 +350,10 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
     result["state"] = {
         "bot_db": info(db), "legacy_db": info(legacy), "spool": info(spool, True),
         "lock": info(lock),
-        "paths_explicit_in_policy": all(
-            isinstance(policy.get(key), str) and Path(policy[key]).is_absolute()
-            for key in ("state_db", "lock_file")
-        ),
+        "paths_explicit_in_policy": False,
+        "policy_state_explicit_and_matches": False,
+        "policy_lock_explicit_and_matches": False,
+        "state_parent_metadata": info(db.parent, True) if db else "unresolved",
         "path_basis": (
             "observed_process_and_current_config_files"
             if runtime_verified and result["config"]["env_parsed"] and result["config"]["policy_parsed"]
@@ -330,6 +361,20 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
         ),
         "task_status": "not_observed_no_sqlite_access",
     }
+    policy_db = absolute_path(policy.get("state_db"), cwd)
+    policy_lock = absolute_path(policy.get("lock_file"), cwd)
+    result["state"]["policy_state_explicit_and_matches"] = bool(
+        isinstance(policy.get("state_db"), str) and Path(policy["state_db"]).is_absolute()
+        and policy_db == db and not has_symlink_component(db)
+    )
+    result["state"]["policy_lock_explicit_and_matches"] = bool(
+        isinstance(policy.get("lock_file"), str) and Path(policy["lock_file"]).is_absolute()
+        and policy_lock == lock and not has_symlink_component(lock)
+    )
+    result["state"]["paths_explicit_in_policy"] = (
+        result["state"]["policy_state_explicit_and_matches"]
+        and result["state"]["policy_lock_explicit_and_matches"]
+    )
     for name, path in (("bot", db), ("legacy", legacy)):
         for suffix in ("-wal", "-shm"):
             result["state"][name + suffix] = info(
