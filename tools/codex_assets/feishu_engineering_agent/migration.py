@@ -27,7 +27,24 @@ class MigrationRejected(IntakeRejected):
     pass
 
 
+def _validate_path_parents(path: pathlib.Path) -> None:
+    """Reject symlinked, missing, non-directory or writable parent components."""
+    path = pathlib.Path(path)
+    if not path.is_absolute() or ".." in path.parts:
+        raise MigrationRejected("private path must be absolute and normalized")
+    for parent in reversed(path.parents):
+        try:
+            info = parent.lstat()
+        except OSError:
+            raise MigrationRejected("private path parent is unavailable") from None
+        if not stat.S_ISDIR(info.st_mode):
+            raise MigrationRejected("private path parent must be a real directory")
+        if info.st_mode & 0o022 and not info.st_mode & stat.S_ISVTX:
+            raise MigrationRejected("private path parent must not be group/world writable")
+
+
 def _private_file(file_path: pathlib.Path) -> None:
+    _validate_path_parents(file_path)
     try:
         info = file_path.lstat()
     except FileNotFoundError:
@@ -38,6 +55,7 @@ def _private_file(file_path: pathlib.Path) -> None:
 
 
 def _private_directory(path: pathlib.Path) -> None:
+    _validate_path_parents(path)
     try:
         info = path.lstat()
     except OSError:
@@ -100,8 +118,7 @@ def _unified(db) -> bool:
 def ensure_engineering_migrated(bot_db: pathlib.Path) -> None:
     """Refuse legacy state before starting a new consumer; never open it writable."""
     path = pathlib.Path(bot_db)
-    if not path.is_absolute():
-        raise MigrationRejected("explicit absolute Bot database path required")
+    _validate_path_parents(path)
     legacy = path.with_name("feishu-engineering-agent.sqlite3")
     has_legacy = _database_present(legacy)
     if not path.exists() and not path.is_symlink():
@@ -188,12 +205,9 @@ class MigrationPlan:
         self.private_policy = pathlib.Path(private_policy) if private_policy else None
         self.private_env = pathlib.Path(private_env) if private_env else None
         self.agent_db = self.bot_db.with_name("feishu-engineering-agent.sqlite3")
-        for path in (self.bot_db, self.bot_spool):
-            if not path.is_absolute():
-                raise MigrationRejected("migration source must be explicit absolute path")
-        if any(path is not None and not path.is_absolute()
-               for path in (self.private_policy, self.private_env)):
-            raise MigrationRejected("private policy/env must be explicit absolute paths")
+        for path in (self.bot_db, self.bot_spool, self.private_policy, self.private_env):
+            if path is not None:
+                _validate_path_parents(path)
         if self.bot_db.name == "feishu-engineering-agent.sqlite3":
             raise MigrationRejected("backup source must be the original Bot DB")
 
@@ -204,11 +218,7 @@ class MigrationPlan:
                 "env_present": self.private_env is not None,
                 "agent_ledger_present": _database_present(self.agent_db),
                 "no_second_consumer_proven": False}
-        if not self.bot_spool.is_dir() or self.bot_spool.is_symlink():
-            raise MigrationRejected("legacy spool must be an existing directory")
-        if (self.bot_spool.stat().st_uid != os.getuid()
-                or (stat.S_IMODE(self.bot_spool.stat().st_mode) & 0o077)):
-            raise MigrationRejected("spool directory must be owner-private")
+        _private_directory(self.bot_spool)
         for entry in self.bot_spool.iterdir():
             if not entry.is_file() or entry.is_symlink():
                 raise MigrationRejected("unsafe legacy spool entry")
