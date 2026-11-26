@@ -12,6 +12,17 @@
 
 开始前核对实际源提交、工作树改动、服务账号、Python/SDK、`rtk`、Codex CLI、Bubblewrap、unit/drop-in、state/spool、环境文件和锁路径。更新源码不覆盖用户私有配置，不对脏工作树自动 reset、clean 或 stash。已有生产服务状态须重新观察，不能继承历史的 active 或 Linger 结论。
 
+先运行仓库内的只读预检脚本，核对精确部署提交及有效服务配置：
+
+```bash
+rtk python3 -B ~/codex/scripts/feishu-cutover-preflight.py \
+  --root ~/codex --expected-sha <GitHub-main-40位SHA>
+```
+
+`--expected-sha` 必须使用本次实际准备部署的 GitHub main 完整 SHA，不使用脚本内置旧基线。脚本只观察 systemd、进程参数、Git 状态、私有配置文件权限及路径；不打开 SQLite、不读取任务正文、不启动模型、不修改服务。默认 JSON 只输出密钥字段是否存在，不输出密钥、域名或私有路径；不要使用 `--show-paths` 分享回执。服务停止、无法识别唯一消费者、环境文件与运行参数不一致或工作树不干净时，结果会保留阻塞项，不代表可以迁移。
+
+`check-budget` 在 #91 合并后可在保持 `agent_intake_enabled=false` 时单独验证专用网关元数据和空 session 日志读取；它不证明请求级硬预算或最终结算。两个预检均成功也不替代后续冻结、备份、恢复演练与现场验收。
+
 ## 2. 迁移前冻结与未决任务
 
 1. 禁止新任务入队，停止全部本机 MCP 写入进程及其调用方；Bot 的单实例锁不能证明这些写入方已经停止。
