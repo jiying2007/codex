@@ -317,14 +317,68 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
         policy = {}
         result["config"]["policy_parsed"] = False
         blockers.append("explicit_private_policy_unreadable_or_absent")
+    legacy_env_fields = [
+        key for key in ("FEISHU_CODEX_WORKDIR", "FEISHU_ALLOWED_OPEN_IDS") if key in values
+    ]
+    legacy_policy_fields = [
+        key for key in ("manual_workitems_enabled", "engineering_cards_enabled") if key in policy
+    ]
+    repositories = policy.get("repositories")
+    repositories_valid = (
+        isinstance(repositories, dict) and bool(repositories)
+        and all(isinstance(item, dict) for item in repositories.values())
+    )
+    repo_items = list(repositories.values()) if repositories_valid else []
+    allowed_modes_valid = all(
+        isinstance(item.get("allowed_modes", ["explain", "review"]), list)
+        and bool(item.get("allowed_modes", ["explain", "review"]))
+        and all(isinstance(mode, str) for mode in item.get("allowed_modes", ["explain", "review"]))
+        for item in repo_items
+    )
+    edit_strategies_all_worktree = bool(repo_items) and all(
+        item.get("edit_strategy", "worktree") == "worktree" for item in repo_items
+    )
+    worktree_roots_ready_for_edit = bool(repo_items) and all(
+        "edit" not in item.get("allowed_modes", ["explain", "review"])
+        or (isinstance(item.get("worktree_root"), str) and bool(item.get("worktree_root").strip()))
+        for item in repo_items
+    )
+    agent_modes_all_empty = bool(repo_items) and all(
+        isinstance(item.get("agent_allowed_modes", []), list)
+        and item.get("agent_allowed_modes", []) == []
+        for item in repo_items
+    )
+    policy_contract = {
+        "schema_version_1": policy.get("schema_version") == 1,
+        "repositories_valid": repositories_valid and allowed_modes_valid,
+        "edit_strategies_all_worktree": edit_strategies_all_worktree,
+        "worktree_roots_ready_for_edit": worktree_roots_ready_for_edit,
+        "agent_intake_disabled": policy.get("agent_intake_enabled") is False,
+        "agent_modes_all_empty": agent_modes_all_empty,
+        "legacy_env_fields_absent": not legacy_env_fields,
+        "legacy_policy_fields_absent": not legacy_policy_fields,
+    }
+    result["config"]["policy_contract"] = policy_contract
+    if not policy_contract["schema_version_1"]:
+        blockers.append("private_policy_schema_not_v1")
+    if not policy_contract["repositories_valid"]:
+        blockers.append("private_policy_repositories_invalid")
+    if not policy_contract["edit_strategies_all_worktree"]:
+        blockers.append("repository_edit_strategy_not_worktree")
+    if not policy_contract["worktree_roots_ready_for_edit"]:
+        blockers.append("repository_worktree_root_missing_for_edit")
+    if not policy_contract["agent_intake_disabled"]:
+        blockers.append("agent_intake_not_disabled")
+    if not policy_contract["agent_modes_all_empty"]:
+        blockers.append("agent_modes_not_empty")
+    if not policy_contract["legacy_env_fields_absent"]:
+        blockers.append("legacy_environment_fields_present")
+    if not policy_contract["legacy_policy_fields_absent"]:
+        blockers.append("legacy_policy_fields_present")
     result["config"].update(
         policy_file=info(policy_path),
-        legacy_env_fields=[
-            key for key in ("FEISHU_CODEX_WORKDIR", "FEISHU_ALLOWED_OPEN_IDS") if key in values
-        ],
-        legacy_policy_fields=[
-            key for key in ("manual_workitems_enabled", "engineering_cards_enabled") if key in policy
-        ],
+        legacy_env_fields=legacy_env_fields,
+        legacy_policy_fields=legacy_policy_fields,
         engineering_enabled=(
             policy.get("engineering_enabled") is True if result["config"]["policy_parsed"] else None
         ),
@@ -332,7 +386,7 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
             policy.get("agent_intake_enabled") is True if result["config"]["policy_parsed"] else None
         ),
         repositories=(
-            len(policy["repositories"]) if isinstance(policy.get("repositories"), dict) else None
+            len(repositories) if repositories_valid else None
         ),
         environment_fields_present={
             key: (bool(values.get(key)) if result["config"]["env_parsed"] else None)
@@ -362,14 +416,9 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
             "litellm" if values.get("FEISHU_AGENT_BUDGET_BACKEND", "").strip() == "litellm"
             else ("unconfigured" if not values.get("FEISHU_AGENT_BUDGET_BACKEND", "").strip() else "unsupported")
         ),
-        agent_modes_all_empty=(
-            all(
-                isinstance(item, dict) and item.get("agent_allowed_modes", []) == []
-                for item in policy["repositories"].values()
-            )
-            if result["config"]["policy_parsed"] and isinstance(policy.get("repositories"), dict)
-            else None
-        ),
+        agent_modes_all_empty=(agent_modes_all_empty if result["config"]["policy_parsed"] else None),
+        edit_strategies_all_worktree=(edit_strategies_all_worktree if result["config"]["policy_parsed"] else None),
+        worktree_roots_ready_for_edit=(worktree_roots_ready_for_edit if result["config"]["policy_parsed"] else None),
     )
     db = absolute_path(
         values.get("FEISHU_STATE_DB") or policy.get("state_db")
