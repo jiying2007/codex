@@ -343,6 +343,23 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
         or (isinstance(item.get("worktree_root"), str) and bool(item.get("worktree_root").strip()))
         for item in repo_items
     )
+    def worktree_root_is_external(item):
+        if "edit" not in item.get("allowed_modes", ["explain", "review"]):
+            return True
+        if not isinstance(item.get("path"), str) or not item.get("path").strip():
+            return False
+        if not isinstance(item.get("worktree_root"), str) or not item.get("worktree_root").strip():
+            return False
+        base = policy_path.parent if policy_path is not None else cwd
+        repo_path = Path(item["path"]).expanduser()
+        worktree_path = Path(item["worktree_root"]).expanduser()
+        repo_path = (base / repo_path).resolve() if not repo_path.is_absolute() else repo_path.resolve()
+        worktree_path = (base / worktree_path).resolve() if not worktree_path.is_absolute() else worktree_path.resolve()
+        return worktree_path != repo_path and repo_path not in worktree_path.parents
+    worktree_roots_outside_repositories = (
+        bool(repo_items) and allowed_modes_valid
+        and all(worktree_root_is_external(item) for item in repo_items)
+    )
     agent_modes_all_empty = bool(repo_items) and all(
         isinstance(item.get("agent_allowed_modes", []), list)
         and item.get("agent_allowed_modes", []) == []
@@ -353,6 +370,7 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
         "repositories_valid": repositories_valid and allowed_modes_valid,
         "edit_strategies_all_worktree": edit_strategies_all_worktree,
         "worktree_roots_ready_for_edit": worktree_roots_ready_for_edit,
+        "worktree_roots_outside_repositories": worktree_roots_outside_repositories,
         "agent_intake_disabled": policy.get("agent_intake_enabled") is False,
         "agent_modes_all_empty": agent_modes_all_empty,
         "legacy_env_fields_absent": not legacy_env_fields,
@@ -367,6 +385,8 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
         blockers.append("repository_edit_strategy_not_worktree")
     if not policy_contract["worktree_roots_ready_for_edit"]:
         blockers.append("repository_worktree_root_missing_for_edit")
+    if not policy_contract["worktree_roots_outside_repositories"]:
+        blockers.append("repository_worktree_root_not_external")
     if not policy_contract["agent_intake_disabled"]:
         blockers.append("agent_intake_not_disabled")
     if not policy_contract["agent_modes_all_empty"]:
