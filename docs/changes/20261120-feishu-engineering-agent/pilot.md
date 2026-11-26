@@ -114,6 +114,8 @@ CLI version/help 成功只说明命令存在，不证明主机沙箱、模型兼
 
 实际模型适配器仅支持 LiteLLM 外部网关。专用 `FEISHU_AGENT_*` 字段、`key/alias/models/blocked/budget_duration` 和金额规则见 [使用指南](../../feishu-codex-bot-usage.md#5-独立模型身份与预算)。当前真实独占身份、模型映射、网关请求级拒绝/在途预留、异步费用及最终账单验证均为 `NOT_RUN`。累计 key spend 不代表原子硬 cap 或单任务最终结算。当前源码会持久化每次任务的账务 session，并观察同 key 下精确请求的费用；异步日志为空时金额为 null，所有观察保持 settlement=pending。需现场核验实际 CLI 的 provider header 能力、网关 session 归属、普通专用 key 的自查日志权限和真实模型路由，不能用升级到某个版本的声明代替测试。
 
+在保持模型入口关闭的新版私有配置下，先执行 `rtk bash ~/codex/scripts/feishu-codex-bot.sh check-budget --env-file <实际私有环境文件>`，确认专用 key 的元数据及空 session 日志可查询。它不执行模型、不创建 SQLite 状态，也不认证硬限额或最终结算。失败时保持关闭；即使通过仍须完成实际网关资格核验。
+
 只有取得实际调用授权并核验费用通道后，才由操作者开启执行和必要仓库模式，验证低风险需求、缺陷、文档驱动任务及跨仓多轮研发。记录精确 native thread、工作区/提交、取消、重启、PR/全部必需 CI 以及真正的项目测试/QA。配置 CI 通过不自动完成跨仓联调或关闭原工单。
 
 若需要回滚，先重新冻结所有写入方并保存切换后状态，核对新发生的任务、提交、模型费用和远端效果，再选择匹配版本及配对状态。不能盲覆盖旧 DB 丢失新记录，更不能靠重放未知任务“恢复成功”。
