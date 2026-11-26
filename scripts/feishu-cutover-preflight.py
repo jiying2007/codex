@@ -338,7 +338,7 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
     edit_strategies_all_worktree = bool(repo_items) and all(
         item.get("edit_strategy", "worktree") == "worktree" for item in repo_items
     )
-    worktree_roots_ready_for_edit = bool(repo_items) and all(
+    worktree_roots_ready_for_edit = bool(repo_items) and allowed_modes_valid and all(
         "edit" not in item.get("allowed_modes", ["explain", "review"])
         or (isinstance(item.get("worktree_root"), str) and bool(item.get("worktree_root").strip()))
         for item in repo_items
