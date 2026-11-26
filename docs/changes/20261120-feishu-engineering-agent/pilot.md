@@ -70,6 +70,7 @@ rtk systemctl --user status feishu-codex-bot.service
 在备份前确认原私有策略显式记录实际绝对路径 `state_db` 与 `lock_file`。原环境文件和当前命令环境中的 `FEISHU_STATE_DB`、`FEISHU_LOCK_FILE` 若存在，必须与这两个路径一致。不得用新建的无关锁文件冒充真实服务锁。若原配置依赖隐含默认值，须先在服务冻结状态下核实、固定这些有效路径，再备份。
 
 原 DB、WAL/SHM、spool 和配置必须属于服务账号；私有文件 0600、目录 0700。先在冻结状态核对权限，不对运行中的数据库自动改权限。备份包含 SQLite 一致快照、对应旧 ledger、spool 及所提供的私有 policy/env；SQLite backup API 将已提交的 WAL 数据纳入快照，不靠只复制主 DB 文件。
+迁移工具还会检查完整父目录链：父路径必须真实存在、为目录、无符号链接，且不得 group/world writable（sticky 目录如 /tmp 例外）。若仓库路径祖先可被组写入，应将私有状态与备份移到真正私有的目录，不要放宽门禁。
 
 以下命令从任意工作目录运行，使用同一源码与实际 Python 环境。备份父目录须已存在并为 0700；本次目标目录须尚不存在且不在 spool 内，由 backup 创建：
 
