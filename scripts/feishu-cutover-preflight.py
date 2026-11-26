@@ -209,7 +209,7 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
     if consumer:
         try:
             proc_pid, argv = consumer
-            cwd = Path("/proc") .joinpath(str(proc_pid), "cwd").resolve(strict=True)
+            cwd = Path("/proc").joinpath(str(proc_pid), "cwd").resolve(strict=True)
             service_root = absolute_path(argument(argv, "--root"), cwd)
             raw_env_path = argument(argv, "--env-file")
             detected_env = absolute_path(raw_env_path, cwd) if raw_env_path else (
@@ -237,7 +237,7 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
     git = ["git", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false"]
     sha = command(git + ["rev-parse", "--verify", "HEAD"], root)
     status = command(
-        git + ["status", "--porcelain=v1", "--untracked-files=normal", "--ignore-submodules=all"], root
+        git + ["status", "--porcelain=v1", "--untracked-files=normal", "--untracked-files=all"], root
     )
     sha = (sha or "").strip()
     valid_sha = sha if re.fullmatch(r"[a-f0-9]{40}", sha) else None
