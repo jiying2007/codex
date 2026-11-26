@@ -107,7 +107,7 @@ HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
 - Runtime Binding Contract 及 Profile Context Contract：共 6 项成功。
 - 合并后 main dc0a903e6d8d2908d7047262073410cf0aa26149 独立 Push CI：Full Regression、Runtime Binding Contract、Profile Context Contract 共 9/9 成功；Python 三环境各 815 项、零失败/错误/跳过，隔离生命周期回滚成功。
 
-### PR #92：版本化只读主机预检（待验收）
+### PR #92：版本化只读主机预检（已合并）
 
 - 代码提交 b4ad78e69e3058164bb0360d498d2d9b6c7ff710；合并预览 checkout ee410765bf888ce596051f00f4c222e8c3d46dfd，候选与合并预览 tree 均为 fb7abdf430263c0187e9554b486b10465414d69d。PR 最新 head 因现场文档同步而更新，最终 head 与检查以 GitHub PR #92 为准。
 - [Full Regression](https://github.com/jiying2007/codex/actions/runs/45731637561)：Python 3.8/3.11/3.12 各 823 项，0 failure/error/skip/expected failure；隔离 apply、post-apply check、no-op、rollback 全部成功。
@@ -115,6 +115,20 @@ HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
 - 新增 scripts/feishu-cutover-preflight.py 与 tests/test_feishu_cutover_preflight.py。覆盖精确 SHA、脱敏、符号链接/FIFO、私有配置、state/lock 显式匹配、脏子模块检测；不打开数据库、不读任务正文、不调用模型、不修改服务。
 - 脚本仅检查 systemd 主服务进程树，不扫描主机所有进程，因此不能证明没有其他消费者；writers freeze 仍须人工核验。
 - 实际 vstrong100 预检、状态迁移、恢复演练、服务切换、真实网关请求预算/最终结算及业务验收仍为 NOT_RUN。CI live_member_installation=false、real_feishu_connection=false。
+
+
+
+### PR #93：迁移状态路径父目录安全（已合并）
+
+- 候选 7d9ba402b6c38af8fc549ff8a3138d239e05e082，合并提交 f861728222e5ebc6d13900f9c06aacec5483b847。
+- [Full Regression](https://github.com/jiying2007/codex/actions/runs/45735587911)：Python 3.8/3.11/3.12 各 827 项，0 failure/error/skip/expected failure；隔离 apply/post-apply check/no-op/rollback 成功。
+- [Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45735587910) 与 [Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45735587902)：6/6 成功，总计 9/9。
+- 合并后 main [Full Regression](https://github.com/jiying2007/codex/actions/runs/45826223819)、[Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45826223694)、[Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45826223735) 再次 9/9；Python 三环境各 827 项，零失败/错误/跳过；隔离生命周期回滚成功。
+- CI 明确 live_member_installation=false、real_feishu_connection=false，不代表真实主机部署。
+
+### PR #94：systemd 安全属性主机预检（进行中）
+
+当前候选 e64f8dd00588975a3ea3cb1df89efd2a2fb6bb1e；新增 UMask=0077、NoNewPrivileges=yes、PrivateTmp=yes 和 WorkingDirectory 一致性阻塞检查及回归。最终 head 和九项检查以 PR #94 当前状态为准。
 
 
 ## 2026-11-24 vstrong100 历史现场事实（非当前验收）
