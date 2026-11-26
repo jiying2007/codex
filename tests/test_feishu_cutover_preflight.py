@@ -189,6 +189,15 @@ class CutoverPreflightTests(unittest.TestCase):
         self.assertTrue(result["config"]["policy_contract"]["worktree_roots_ready_for_edit"])
         self.assertTrue(result["config"]["policy_contract"]["worktree_roots_outside_repositories"])
 
+    def test_repository_without_source_path_is_rejected(self):
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"].pop("path")
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["repositories_valid"])
+        self.assertIn("private_policy_repositories_invalid", result["blockers_observed"])
+
     def test_malformed_allowed_modes_fail_closed_without_crashing(self):
         payload = json.loads(self.policy.read_text(encoding="utf-8"))
         payload["repositories"]["app"]["allowed_modes"] = None
