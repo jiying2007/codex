@@ -19,6 +19,9 @@ class CutoverPreflightTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="feishu-cutover-preflight-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        self.repo = self.root / "repo"
+        self.repo.mkdir()
+        (self.repo / ".git").mkdir()
         self.env = self.root / "private.env"
         self.policy = self.root / "policy.json"
         self.db = self.root / "state.sqlite3"
@@ -31,7 +34,7 @@ class CutoverPreflightTests(unittest.TestCase):
             "schema_version": 1,
             "engineering_enabled": True,
             "agent_intake_enabled": False,
-            "repositories": {"app": {"path": str(self.root / "repo")}},
+            "repositories": {"app": {"path": str(self.repo)}},
             "state_db": str(self.db),
             "lock_file": str(self.lock),
         }
@@ -91,6 +94,7 @@ class CutoverPreflightTests(unittest.TestCase):
             {
                 "schema_version_1": True,
                 "repositories_valid": True,
+                "repository_paths_valid": True,
                 "edit_strategies_all_worktree": True,
                 "worktree_roots_ready_for_edit": True,
                 "worktree_roots_outside_repositories": True,
@@ -162,8 +166,7 @@ class CutoverPreflightTests(unittest.TestCase):
         self.assertIn("repository_worktree_root_not_external", result["blockers_observed"])
 
     def test_worktree_root_inside_source_repository_is_rejected(self):
-        repo = self.root / "repo"
-        repo.mkdir()
+        repo = self.repo
         payload = json.loads(self.policy.read_text(encoding="utf-8"))
         payload["repositories"]["app"].update(
             path=str(repo), allowed_modes=["explain", "review", "edit"],
@@ -197,6 +200,12 @@ class CutoverPreflightTests(unittest.TestCase):
         result = self.observe()
         self.assertFalse(result["config"]["policy_contract"]["repositories_valid"])
         self.assertIn("private_policy_repositories_invalid", result["blockers_observed"])
+
+    def test_repository_path_without_git_metadata_is_rejected(self):
+        (self.repo / ".git").rmdir()
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["repository_paths_valid"])
+        self.assertIn("private_policy_repository_path_invalid", result["blockers_observed"])
 
     def test_malformed_allowed_modes_fail_closed_without_crashing(self):
         payload = json.loads(self.policy.read_text(encoding="utf-8"))
