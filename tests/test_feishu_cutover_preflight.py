@@ -47,7 +47,14 @@ class CutoverPreflightTests(unittest.TestCase):
             "FEISHU_BOT_CONFIG": str(policy_path or self.policy),
             "FEISHU_STATE_DB": str(self.db),
             "FEISHU_LOCK_FILE": str(self.lock),
+            "FEISHU_AGENT_BILLING_SOURCE": "external_gateway",
             "FEISHU_AGENT_OPENAI_API_KEY": "dedicated-key-must-not-appear",
+            "FEISHU_AGENT_OPENAI_BASE_URL": "https://gateway.example/v1",
+            "FEISHU_AGENT_BUDGET_BACKEND": "litellm",
+            "FEISHU_AGENT_BUDGET_KEY_ALIAS": "fixture-alias",
+            "FEISHU_AGENT_BUDGET_MAX_USD": "10",
+            "FEISHU_AGENT_CODEX_HOME": "/srv/feishu-agent/codex-home",
+            "FEISHU_AGENT_MODEL": "fixture-model",
             "FEISHU_AGENT_GITHUB_WRITE_TOKEN": "github-token-must-not-appear",
         }
         self.env.write_text(
@@ -71,6 +78,13 @@ class CutoverPreflightTests(unittest.TestCase):
         self.assertFalse(result["checkout"]["dirty"])
         self.assertTrue(result["config"]["env_parsed"])
         self.assertTrue(result["config"]["policy_parsed"])
+        self.assertTrue(result["config"]["required_feishu_fields_present"])
+        self.assertTrue(result["config"]["dedicated_model_fields_present"])
+        self.assertEqual("external_gateway", result["config"]["billing_source"])
+        self.assertEqual("litellm", result["config"]["budget_backend"])
+        self.assertTrue(result["config"]["agent_modes_all_empty"])
+        self.assertTrue(result["state"]["paths_explicit_in_policy"])
+        self.assertEqual("private_directory", result["state"]["state_parent_metadata"])
         self.assertFalse(result["service_changed"])
         self.assertFalse(result["model_called"])
         self.assertFalse(result["database_opened"])
@@ -115,6 +129,17 @@ class CutoverPreflightTests(unittest.TestCase):
         self.assertEqual("unsafe_symlink_component", result["config"]["policy_file"])
         self.assertFalse(result["config"]["policy_parsed"])
         self.assertIn("explicit_private_policy_unreadable_or_absent", result["blockers_observed"])
+
+    def test_policy_state_and_lock_must_be_explicit_and_match(self):
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["state_db"] = "relative-state.sqlite3"
+        payload["lock_file"] = str(self.root / "different.lock")
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["state"]["policy_state_explicit_and_matches"])
+        self.assertFalse(result["state"]["policy_lock_explicit_and_matches"])
+        self.assertFalse(result["state"]["paths_explicit_in_policy"])
 
     def test_private_reader_rejects_symlinks_and_fifo_without_blocking(self):
         target = self.root / "target.env"
