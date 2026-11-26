@@ -333,6 +333,17 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
         )
     )
     repo_items = list(repositories.values()) if repositories_valid else []
+    policy_base = policy_path.parent if policy_path is not None else cwd
+    def repository_source_is_valid(item):
+        try:
+            raw_path = Path(item["path"]).expanduser()
+            repo_path = (policy_base / raw_path).resolve() if not raw_path.is_absolute() else raw_path.resolve()
+            return repo_path.is_dir() and (repo_path / ".git").exists()
+        except (OSError, ValueError, RuntimeError):
+            return False
+    repository_paths_valid = bool(repo_items) and all(
+        repository_source_is_valid(item) for item in repo_items
+    )
     allowed_modes_valid = all(
         isinstance(item.get("allowed_modes", ["explain", "review"]), list)
         and bool(item.get("allowed_modes", ["explain", "review"]))
@@ -371,7 +382,8 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
     )
     policy_contract = {
         "schema_version_1": policy.get("schema_version") == 1,
-        "repositories_valid": repositories_valid and allowed_modes_valid,
+        "repositories_valid": repositories_valid and allowed_modes_valid and repository_paths_valid,
+        "repository_paths_valid": repository_paths_valid,
         "edit_strategies_all_worktree": edit_strategies_all_worktree,
         "worktree_roots_ready_for_edit": worktree_roots_ready_for_edit,
         "worktree_roots_outside_repositories": worktree_roots_outside_repositories,
@@ -385,6 +397,8 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
         blockers.append("private_policy_schema_not_v1")
     if not policy_contract["repositories_valid"]:
         blockers.append("private_policy_repositories_invalid")
+    if not policy_contract["repository_paths_valid"]:
+        blockers.append("private_policy_repository_path_invalid")
     if not policy_contract["edit_strategies_all_worktree"]:
         blockers.append("repository_edit_strategy_not_worktree")
     if not policy_contract["worktree_roots_ready_for_edit"]:
