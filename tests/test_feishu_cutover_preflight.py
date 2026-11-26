@@ -93,6 +93,7 @@ class CutoverPreflightTests(unittest.TestCase):
                 "repositories_valid": True,
                 "edit_strategies_all_worktree": True,
                 "worktree_roots_ready_for_edit": True,
+                "worktree_roots_outside_repositories": True,
                 "agent_intake_disabled": True,
                 "agent_modes_all_empty": True,
                 "legacy_env_fields_absent": True,
@@ -156,7 +157,37 @@ class CutoverPreflightTests(unittest.TestCase):
         self.policy.chmod(0o600)
         result = self.observe()
         self.assertFalse(result["config"]["policy_contract"]["worktree_roots_ready_for_edit"])
+        self.assertFalse(result["config"]["policy_contract"]["worktree_roots_outside_repositories"])
         self.assertIn("repository_worktree_root_missing_for_edit", result["blockers_observed"])
+        self.assertIn("repository_worktree_root_not_external", result["blockers_observed"])
+
+    def test_worktree_root_inside_source_repository_is_rejected(self):
+        repo = self.root / "repo"
+        repo.mkdir()
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"].update(
+            path=str(repo), allowed_modes=["explain", "review", "edit"],
+            edit_strategy="worktree", worktree_root=str(repo / "worktrees"),
+        )
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["worktree_roots_outside_repositories"])
+        self.assertIn("repository_worktree_root_not_external", result["blockers_observed"])
+
+    def test_external_worktree_root_is_accepted(self):
+        repo = self.root / "repo"
+        repo.mkdir()
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"].update(
+            path=str(repo), allowed_modes=["explain", "review", "edit"],
+            edit_strategy="worktree", worktree_root=str(self.root / "worktrees"),
+        )
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertTrue(result["config"]["policy_contract"]["worktree_roots_ready_for_edit"])
+        self.assertTrue(result["config"]["policy_contract"]["worktree_roots_outside_repositories"])
 
     def test_malformed_allowed_modes_fail_closed_without_crashing(self):
         payload = json.loads(self.policy.read_text(encoding="utf-8"))
