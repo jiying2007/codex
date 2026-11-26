@@ -201,6 +201,12 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
     if root is None:
         raise ValueError("checkout root unresolved")
     svc = service_observation()
+    security = {
+        "umask_0077": svc.get("UMask") == "0077",
+        "no_new_privileges": svc.get("NoNewPrivileges") == "yes",
+        "private_tmp": svc.get("PrivateTmp") == "yes",
+    }
+    working_directory_matches = svc.get("WorkingDirectory") == str(root)
     result = {
         "scope": "read_only_observation_not_cutover",
         "service_changed": False, "model_called": False,
@@ -210,7 +216,17 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
             "UMask", "NoNewPrivileges", "PrivateTmp",
         )},
     }
+    result["service"]["security"] = security
+    result["service"]["working_directory_matches_checkout"] = working_directory_matches
     blockers = []
+    if not security["umask_0077"]:
+        blockers.append("systemd_umask_not_0077")
+    if not security["no_new_privileges"]:
+        blockers.append("systemd_no_new_privileges_not_enabled")
+    if not security["private_tmp"]:
+        blockers.append("systemd_private_tmp_not_enabled")
+    if not working_directory_matches:
+        blockers.append("systemd_working_directory_differs_from_checkout")
     if has_symlink_component(root):
         blockers.append("checkout_path_contains_symlink")
     try:
