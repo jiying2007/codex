@@ -12,7 +12,7 @@ import unittest
 from unittest import mock
 
 from tools.codex_assets.feishu_engineering_agent.migration import (
-    MigrationPlan, MigrationRejected,
+    MigrationPlan, MigrationRejected, ensure_engineering_migrated,
 )
 from tools.codex_assets.feishu_engineering_agent.migration_cli import main
 
@@ -114,6 +114,40 @@ class MigrationContractTest(unittest.TestCase):
         with self.assertRaisesRegex(MigrationRejected, "owner-private"):
             self.plan.backup(target)
         self.assertFalse(target.exists())
+
+    def test_symlinked_parent_is_rejected_for_sources_and_startup_gate(self):
+        real = self.root / "real-private"
+        real.mkdir(mode=0o700)
+        real_db = real / "bot-state.sqlite3"
+        with sqlite3.connect(str(real_db)) as db:
+            db.execute("CREATE TABLE jobs(id INTEGER PRIMARY KEY,state TEXT)")
+        real_db.chmod(0o600)
+        real_spool = real / "spool"
+        real_spool.mkdir(mode=0o700)
+        alias = self.root / "private-alias"
+        alias.symlink_to(real, target_is_directory=True)
+        with self.assertRaisesRegex(MigrationRejected, "real directory"):
+            MigrationPlan(alias / real_db.name, alias / "spool", self.policy)
+        with self.assertRaisesRegex(MigrationRejected, "real directory"):
+            ensure_engineering_migrated(alias / real_db.name)
+
+    def test_backup_parent_rejects_symlinks_and_writable_ancestors(self):
+        real = self.root / "backup-parent"
+        real.mkdir(mode=0o700)
+        alias = self.root / "backup-alias"
+        alias.symlink_to(real, target_is_directory=True)
+        with self.assertRaisesRegex(MigrationRejected, "real directory"):
+            self.plan.backup(alias / "cutover")
+        self.assertFalse((real / "cutover").exists())
+
+        shared = self.root / "shared-ancestor"
+        shared.mkdir(mode=0o700)
+        private_child = shared / "private"
+        private_child.mkdir(mode=0o700)
+        shared.chmod(0o777)
+        with self.assertRaisesRegex(MigrationRejected, "group/world writable"):
+            self.plan.backup(private_child / "cutover")
+        self.assertFalse((private_child / "cutover").exists())
 
     def test_tampered_backup_and_symlink_source_fail_closed(self):
         target = self.root / "archive-2"
