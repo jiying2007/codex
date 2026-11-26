@@ -90,3 +90,27 @@ HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
 
 本节记录的是上述精确候选。后续即使只改文档，也以 PR 当前 head 的新检查为合并门禁，
 合并后再次核对主线工作流。主机服务切换、真实网关预算/账单与业务验收仍保持 `NOT_RUN`。
+
+
+## 2026-11-26 主线与现场预检验收
+
+### PR #90：迁移备份/恢复完整性
+
+- 候选 868991e1172c044a4542593e157d2d8c71e47c38，合并 fa23fe77783c3521f30146bab804d226ae2c1536。
+- Full Regression：Python 3.8/3.11/3.12 各 813 项，0 failure/error/skip/expected failure；隔离 apply、post-apply check、no-op、rollback 均成功。
+- Runtime Binding Contract 及 Profile Context Contract：共 6 项成功。
+
+### PR #91：无模型计费预检与完整提交 SHA
+
+- 候选 a33f16351749dad5640063ae66c32d35c4e778ea，合并 dc0a903e6d8d2908d7047262073410cf0aa26149。
+- Full Regression：Python 3.8/3.11/3.12 各 815 项，0 failure/error/skip/expected failure；隔离安装和回滚均成功。
+- Runtime Binding Contract 及 Profile Context Contract：共 6 项成功。
+- 合并后 main dc0a903e6d8d2908d7047262073410cf0aa26149 独立 Push CI：Full Regression、Runtime Binding Contract、Profile Context Contract 共 9/9 成功；Python 三环境各 815 项、零失败/错误/跳过，隔离生命周期回滚成功。
+
+### PR #92：版本化只读主机预检（待验收）
+
+- 当前候选 b4ad78e69e3058164bb0360d498d2d9b6c7ff710；工作流 Full Regression、Runtime Binding Contract、Profile Context Contract。最终结果以该精确 head 的九项检查为准。
+- 新增 scripts/feishu-cutover-preflight.py 与 tests/test_feishu_cutover_preflight.py。覆盖精确 SHA、脱敏、符号链接/FIFO、私有配置、state/lock 显式匹配、脏子模块检测；不打开数据库、不读任务正文、不调用模型、不修改服务。
+- 脚本仅检查 systemd 主服务进程树，不扫描主机所有进程，因此不能证明没有其他消费者；writers freeze 仍须人工核验。
+- 实际 vstrong100 预检、状态迁移、恢复演练、服务切换、真实网关请求预算/最终结算及业务验收仍为 NOT_RUN。CI live_member_installation=false、real_feishu_connection=false。
+
