@@ -158,6 +158,16 @@ class CutoverPreflightTests(unittest.TestCase):
         self.assertFalse(result["config"]["policy_contract"]["worktree_roots_ready_for_edit"])
         self.assertIn("repository_worktree_root_missing_for_edit", result["blockers_observed"])
 
+    def test_malformed_allowed_modes_fail_closed_without_crashing(self):
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"]["allowed_modes"] = None
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["repositories_valid"])
+        self.assertFalse(result["config"]["policy_contract"]["worktree_roots_ready_for_edit"])
+        self.assertIn("private_policy_repositories_invalid", result["blockers_observed"])
+
     def test_model_intake_and_retired_policy_environment_fields_block(self):
         payload = json.loads(self.policy.read_text(encoding="utf-8"))
         payload["agent_intake_enabled"] = True
