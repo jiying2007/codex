@@ -109,7 +109,9 @@ HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
 
 ### PR #92：版本化只读主机预检（待验收）
 
-- 当前候选 b4ad78e69e3058164bb0360d498d2d9b6c7ff710；工作流 Full Regression、Runtime Binding Contract、Profile Context Contract。最终结果以该精确 head 的九项检查为准。
+- 最终 PR head 8371d3928b70d3b165761e63b16fa947270fd339，代码提交 b4ad78e69e3058164bb0360d498d2d9b6c7ff710；合并预览 checkout ee410765bf888ce596051f00f4c222e8c3d46dfd，候选与合并预览 tree 均为 fb7abdf430263c0187e9554b486b10465414d69d。
+- [Full Regression](https://github.com/jiying2007/codex/actions/runs/45731637561)：Python 3.8/3.11/3.12 各 823 项，0 failure/error/skip/expected failure；隔离 apply、post-apply check、no-op、rollback 全部成功。
+- [Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45731637552) 与 [Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45731637568)：6/6 成功；三个工作流共 9/9 成功。CI 日志确认 live_member_installation=false、real_feishu_connection=false。
 - 新增 scripts/feishu-cutover-preflight.py 与 tests/test_feishu_cutover_preflight.py。覆盖精确 SHA、脱敏、符号链接/FIFO、私有配置、state/lock 显式匹配、脏子模块检测；不打开数据库、不读任务正文、不调用模型、不修改服务。
 - 脚本仅检查 systemd 主服务进程树，不扫描主机所有进程，因此不能证明没有其他消费者；writers freeze 仍须人工核验。
 - 实际 vstrong100 预检、状态迁移、恢复演练、服务切换、真实网关请求预算/最终结算及业务验收仍为 NOT_RUN。CI live_member_installation=false、real_feishu_connection=false。
