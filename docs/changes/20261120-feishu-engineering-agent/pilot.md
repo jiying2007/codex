@@ -4,6 +4,16 @@
 
 所有示例路径、账号、仓库和域名均为合成数据，必须替换为实际部署值。保留已有唯一 `feishu-codex-bot.service`，不新增 Bot、MCP 后台 Worker 或第二个消费者。
 
+
+从 Windows Terminal/PowerShell 使用既有 SSH 路径进入目标主机：
+
+~~~powershell
+ssh -tt leiwenjun@vstrong100
+~~~
+
+在主机中进入 ~/codex。先执行 rtk git status --short；若工作树不干净，停止并保留现状，不 stash/reset/clean。仅在干净时执行 rtk git fetch origin main 和 rtk git merge --ff-only origin/main，再用 GitHub main 当前完整 SHA 运行预检。不要使用旧脚本附件或脚本内置历史基线。
+
+
 ## 1. 先确认部署类型与边界
 
 无旧 `feishu-engineering-agent.sqlite3`、旧关联记录或相关 WAL/SHM 遗留的新部署，不需要 `unify`。按 [新配置](../../../mcp/feishu-codex-bot.example.json) 建立私有目录，先保持 `agent_intake_enabled=false`、`agent_allowed_modes=[]`，可开启 `engineering_enabled=true` 验证无模型话题入口。
