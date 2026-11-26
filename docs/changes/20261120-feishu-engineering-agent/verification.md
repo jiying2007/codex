@@ -126,9 +126,15 @@ HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
 - 合并后 main [Full Regression](https://github.com/jiying2007/codex/actions/runs/45826223819)、[Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45826223694)、[Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45826223735) 再次 9/9；Python 三环境各 827 项，零失败/错误/跳过；隔离生命周期回滚成功。
 - CI 明确 live_member_installation=false、real_feishu_connection=false，不代表真实主机部署。
 
-### PR #94：systemd 安全属性主机预检（进行中）
+### PR #94：systemd 安全属性主机预检（已合并）
 
-当前候选 e64f8dd00588975a3ea3cb1df89efd2a2fb6bb1e；新增 UMask=0077、NoNewPrivileges=yes、PrivateTmp=yes 和 WorkingDirectory 一致性阻塞检查及回归。最终 head 和九项检查以 PR #94 当前状态为准。
+候选 e64f8dd00588975a3ea3cb1df89efd2a2fb6bb1e，合并提交 dc1aefa9d2524110bc540b99e2ee87ebb7388a20；Python 3.8/3.11/3.12 各 828 项、零失败/错误/跳过，9/9 CI 成功；合并后 main Push CI 再次 9/9。
+
+
+
+### PR #95：私有策略契约预检（进行中）
+
+当前候选 a4b15bb7d4de3dae7cddf1ac6cd1174d7d382eae；新增 schema/repository/allowed_modes/edit_strategy/worktree_root/agent intake/旧字段检查，防止主机历史 in_place 配置通过浅层 inventory 后才在 BotConfig 启动时失败。最终 head 的 CI 结果以 PR #95 为准。
 
 
 ## 2026-11-24 vstrong100 历史现场事实（非当前验收）
