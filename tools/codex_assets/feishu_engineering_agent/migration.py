@@ -60,8 +60,9 @@ def _private_directory(path: pathlib.Path) -> None:
         info = path.lstat()
     except OSError:
         raise MigrationRejected("required private directory is unavailable") from None
-    if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
-            or stat.S_IMODE(info.st_mode) & 0o077):
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+        raise MigrationRejected("directory must be a real directory")
+    if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
         raise MigrationRejected("directory must be owner-private")
 
 
