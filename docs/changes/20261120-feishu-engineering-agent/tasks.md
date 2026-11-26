@@ -1,13 +1,13 @@
 # 终态实施任务
 
-状态截至 2026-11-26。当前实施批次为 [PR #89](https://github.com/jiying2007/codex/pull/89)；源码、CI 和真实主机验收分别记录，精确候选及工作流回执见 [verification.md](verification.md)。
+状态截至 2026-11-26。当前实施批次为 [PR #95](https://github.com/jiying2007/codex/pull/95)；源码、CI 和真实主机验收分别记录，精确候选及工作流回执见 [verification.md](verification.md)。
 
 | 阶段 | 已落代码 | 剩余验收 |
 |---|---|---|
 | G0 | #81/#82 已合并，保留双层沙箱私有 procfs | 真实服务部署 SHA 尚需现场确认 |
 | G1 | 项目/TAPD/文档引用解析、无 API 明确语义、可信话题和用户绑定、去重及仓库选择 | 真实飞书消息与文档权限 smoke |
 | G2 | 单队列及私有输入、远程/MCP 请求和策略绑定、专用身份、预算观察、精确 CLI session/worktree、多仓、取消与 UNKNOWN 恢复 | 实际网关独占身份/请求预算/最终账单，以及真实模型使用授权 |
-| G3 | 精确 PR/必需 CI 与联合版本、只读反馈；双库备份/恢复/事务归档；锁/环境/权限核验；旧 App Server、卡片、双库工作流和重复授权删除 | 本批精确提交完整回归/源码复核；真实主机冻结全部 writers 后完成迁移和恢复回执 |
+| G3 | PR #90–#94 已合并：迁移备份/恢复、无模型预算预检、版本化主机预检、路径父链与 systemd 安全属性 | PR #95 完成私有策略契约预检；随后需在真实主机重新观察、冻结 writers、配对备份/恢复并执行单服务切换 |
 | G4 | 操作步骤已收敛在 pilot 和使用指南 | 真实需求、缺陷、文档、多仓研发与 QA；生产部署及验收 |
 
 本轮不启动真实模型、不消耗共享额度、不修改运行中的生产服务。新示例默认关闭模型入口。G1–G3 的源码验证可在合成 fixture 与 GitHub CI 中完成；源码合并不能关闭 G4。
@@ -57,7 +57,8 @@ Execution Policy 状态库不可用，未伪造状态或宣称归档/Runtime gat
 - PR #91 已合并为 dc0a903e6d8d2908d7047262073410cf0aa26149：关闭模型入口时的只读 check-budget 与完整提交 SHA 首行回执；各 Python 环境 815 项通过，9/9 检查成功。合并后 main 独立 Push CI 也为 9/9，各环境 815 项。
 - PR #92 已合并为 fee8cb59f7f128fd46961861fd6ffed01313b057：版本化只读主机预检；显式 --expected-sha、符号链接/FIFO 拒绝、子模块 dirty 检查、独立计费字段存在性与 state/lock 路径一致性；最终精确 head 9/9 CI 成功。
 - PR #93 已合并为 f861728222e5ebc6d13900f9c06aacec5483b847：迁移源、私有配置、spool、备份与锁路径父目录拒绝符号链接和非 sticky group/world-writable 祖先；Python 三环境各 827 项，9/9 CI 成功，合并后 main Push CI 再次 9/9。
-- PR #94 正在增加 systemd UMask/NoNewPrivileges/PrivateTmp/WorkingDirectory 的显式预检阻塞；真实主机状态与迁移仍 NOT_RUN。
+- PR #94 已合并为 dc1aefa9d2524110bc540b99e2ee87ebb7388a20：systemd UMask/NoNewPrivileges/PrivateTmp/WorkingDirectory 纳入显式预检；Python 三环境各 828 项，9/9 CI 成功，合并后 main Push CI 再次 9/9。
+- PR #95 正在增加私有策略契约预检，明确拒绝历史 edit_strategy=in_place、缺失 worktree_root、模型入口/旧环境字段残留；同步修正 2026-11-24 vstrong100 历史现场时间线。
 - 预检脚本不打开 SQLite、不读取任务正文、不调用模型、不改动服务；输出默认脱敏。它只观察服务进程树，不证明主机不存在其他消费者，也不是迁移准入或 cutover gate。
 - 真实 vstrong100 服务状态、状态库/历史 ledger、迁移/恢复、实际网关硬预算与最终账单、飞书/跨仓业务 QA 仍为 NOT_RUN。已知人工接入路径是 Windows SSH ssh -tt leiwenjun@vstrong100，目标仓库 ~/codex；当前 ChatGPT 执行环境不能接管该 Windows SSH TTY。
 

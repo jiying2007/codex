@@ -126,13 +126,21 @@ HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
 - 合并后 main [Full Regression](https://github.com/jiying2007/codex/actions/runs/45826223819)、[Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45826223694)、[Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45826223735) 再次 9/9；Python 三环境各 827 项，零失败/错误/跳过；隔离生命周期回滚成功。
 - CI 明确 live_member_installation=false、real_feishu_connection=false，不代表真实主机部署。
 
-### PR #94：systemd 安全属性主机预检（进行中）
+### PR #94：systemd 安全属性主机预检（已合并）
 
-当前候选 e64f8dd00588975a3ea3cb1df89efd2a2fb6bb1e；新增 UMask=0077、NoNewPrivileges=yes、PrivateTmp=yes 和 WorkingDirectory 一致性阻塞检查及回归。最终 head 和九项检查以 PR #94 当前状态为准。
+候选 e64f8dd00588975a3ea3cb1df89efd2a2fb6bb1e，合并提交 dc1aefa9d2524110bc540b99e2ee87ebb7388a20；Python 3.8/3.11/3.12 各 828 项、零失败/错误/跳过，9/9 CI 成功；合并后 main Push CI 再次 9/9。
 
 
-## 2026-11-24 vstrong100 历史现场事实（非当前验收）
 
-用户当时提供的主机快照：feishu-codex-bot.service active/running、MainPID 1480533、NRestarts=0、UMask=0002、Linger=yes、Codex 0.171.0；Bot DB 为 /home/leiwenjun/codex/mcp/secrets/feishu-codex-current-state.sqlite3（0644），同目录 spool 为 0700；任务只有 completed:1；没有 AgentRun DB；WorkItem/agent-intake/cards 均关闭；billing_source=unapproved，专用 key 与 Agent CODEX_HOME 未配置。
+### PR #95：私有策略契约预检（进行中）
 
-这仅是 2026-11-24 的历史用户回执。2026-11-24/25 的后续记录明确说明预定 no-model cutover 脚本没有实际执行；没有证据证明生产服务曾停止/重启、迁移标记写入或部署 SHA 更新。当前主机状态仍为 NOT_RUN。若当前 DB 权限仍为 0644，须在真实冻结和停服后修正为 0600，再执行配对备份；不得在运行时修改。
+PR #95 的最终候选、head、合并预览 tree 与九项 CI 回执以 GitHub PR #95 最终验收记录为准；新增 schema/repository/allowed_modes/edit_strategy/worktree_root/agent intake/旧字段检查。
+
+
+## 2026-11-24 vstrong100 历史现场事实（已按时间顺序校正；非当前验收）
+
+历史用户回执不是单一快照：03:08:50 UTC 部署前为 checkout febefc920b17010153d83ac55907e7a288969853、MainPID 1480533、UMask=0002；03:20:12 UTC 部署后为 checkout 19a697c81b45666b8794171182c968e256725771、MainPID 1235836、UMask=0077、NoNewPrivileges=yes、PrivateTmp=yes；03:30:36 UTC 后续嵌套 sandbox probe returncode=0、nested_shell_ok=true。完整用户事实及时间顺序见 pilot.md。
+
+部署后最后一份 DB/业务预检仍显示 DB 0644、spool 0700、task_counts completed=1、billing_source=unapproved、专用 API key 与 Agent CODEX_HOME 缺失；历史 policy 的 edit_strategy=in_place 与当前仅支持 worktree 的 BotConfig 不兼容。没有检索到配对备份/恢复演练、migration_cli backup/rehearse/unify、DB 权限修正或真实飞书/网关/业务验收回执。不能将历史服务 active 或 nested_shell_ok 当作数据库迁移/计费/业务验收。
+
+当前 versioned preflight 脚本及策略契约检查均为后续仓库实现；截至本记录没有真实 vstrong100 当前 SHA 的预检 JSON。历史 SHA 19a697c8 不作为当前部署基线。

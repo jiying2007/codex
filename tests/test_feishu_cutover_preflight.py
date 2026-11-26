@@ -19,6 +19,9 @@ class CutoverPreflightTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="feishu-cutover-preflight-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        self.repo = self.root / "repo"
+        self.repo.mkdir()
+        (self.repo / ".git").mkdir()
         self.env = self.root / "private.env"
         self.policy = self.root / "policy.json"
         self.db = self.root / "state.sqlite3"
@@ -31,7 +34,7 @@ class CutoverPreflightTests(unittest.TestCase):
             "schema_version": 1,
             "engineering_enabled": True,
             "agent_intake_enabled": False,
-            "repositories": {"app": {"path": str(self.root / "repo")}},
+            "repositories": {"app": {"path": str(self.repo)}},
             "state_db": str(self.db),
             "lock_file": str(self.lock),
         }
@@ -87,6 +90,21 @@ class CutoverPreflightTests(unittest.TestCase):
         self.assertEqual("external_gateway", result["config"]["billing_source"])
         self.assertEqual("litellm", result["config"]["budget_backend"])
         self.assertTrue(result["config"]["agent_modes_all_empty"])
+        self.assertEqual(
+            {
+                "schema_version_1": True,
+                "repositories_valid": True,
+                "repository_paths_valid": True,
+                "edit_strategies_all_worktree": True,
+                "worktree_roots_ready_for_edit": True,
+                "worktree_roots_outside_repositories": True,
+                "agent_intake_disabled": True,
+                "agent_modes_all_empty": True,
+                "legacy_env_fields_absent": True,
+                "legacy_policy_fields_absent": True,
+            },
+            result["config"]["policy_contract"],
+        )
         self.assertTrue(result["state"]["paths_explicit_in_policy"])
         self.assertEqual("private_directory", result["state"]["state_parent_metadata"])
         self.assertEqual(
@@ -123,6 +141,99 @@ class CutoverPreflightTests(unittest.TestCase):
             {"umask_0077": False, "no_new_privileges": False, "private_tmp": False},
             result["service"]["security"],
         )
+
+    def test_legacy_in_place_strategy_is_a_cutover_blocker(self):
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"].update(
+            allowed_modes=["explain", "review"], edit_strategy="in_place",
+        )
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["edit_strategies_all_worktree"])
+        self.assertIn("repository_edit_strategy_not_worktree", result["blockers_observed"])
+
+    def test_edit_mode_requires_an_external_worktree_root(self):
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"]["allowed_modes"] = ["explain", "review", "edit"]
+        payload["repositories"]["app"]["edit_strategy"] = "worktree"
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["worktree_roots_ready_for_edit"])
+        self.assertFalse(result["config"]["policy_contract"]["worktree_roots_outside_repositories"])
+        self.assertIn("repository_worktree_root_missing_for_edit", result["blockers_observed"])
+        self.assertIn("repository_worktree_root_not_external", result["blockers_observed"])
+
+    def test_worktree_root_inside_source_repository_is_rejected(self):
+        repo = self.repo
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"].update(
+            path=str(repo), allowed_modes=["explain", "review", "edit"],
+            edit_strategy="worktree", worktree_root=str(repo / "worktrees"),
+        )
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["worktree_roots_outside_repositories"])
+        self.assertIn("repository_worktree_root_not_external", result["blockers_observed"])
+
+    def test_external_worktree_root_is_accepted(self):
+        repo = self.repo
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"].update(
+            path=str(repo), allowed_modes=["explain", "review", "edit"],
+            edit_strategy="worktree", worktree_root=str(self.root / "worktrees"),
+        )
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertTrue(result["config"]["policy_contract"]["worktree_roots_ready_for_edit"])
+        self.assertTrue(result["config"]["policy_contract"]["worktree_roots_outside_repositories"])
+
+    def test_repository_without_source_path_is_rejected(self):
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"].pop("path")
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["repositories_valid"])
+        self.assertIn("private_policy_repositories_invalid", result["blockers_observed"])
+
+    def test_repository_path_without_git_metadata_is_rejected(self):
+        (self.repo / ".git").rmdir()
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["repository_paths_valid"])
+        self.assertIn("private_policy_repository_path_invalid", result["blockers_observed"])
+
+    def test_malformed_allowed_modes_fail_closed_without_crashing(self):
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["repositories"]["app"]["allowed_modes"] = None
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        result = self.observe()
+        self.assertFalse(result["config"]["policy_contract"]["repositories_valid"])
+        self.assertFalse(result["config"]["policy_contract"]["worktree_roots_ready_for_edit"])
+        self.assertIn("private_policy_repositories_invalid", result["blockers_observed"])
+
+    def test_model_intake_and_retired_policy_environment_fields_block(self):
+        payload = json.loads(self.policy.read_text(encoding="utf-8"))
+        payload["agent_intake_enabled"] = True
+        payload["manual_workitems_enabled"] = False
+        payload["engineering_cards_enabled"] = False
+        payload["repositories"]["app"]["agent_allowed_modes"] = ["explain"]
+        self.policy.write_text(json.dumps(payload), encoding="utf-8")
+        self.policy.chmod(0o600)
+        with self.env.open("a", encoding="utf-8") as stream:
+            stream.write("FEISHU_CODEX_WORKDIR=/tmp/legacy-workdir\n")
+            stream.write("FEISHU_ALLOWED_OPEN_IDS=legacy-id\n")
+        self.env.chmod(0o600)
+        result = self.observe()
+        blockers = set(result["blockers_observed"])
+        self.assertIn("agent_intake_not_disabled", blockers)
+        self.assertIn("agent_modes_not_empty", blockers)
+        self.assertIn("legacy_environment_fields_present", blockers)
+        self.assertIn("legacy_policy_fields_present", blockers)
 
     def test_dirty_submodule_is_not_suppressed(self):
         sha = "a" * 40
