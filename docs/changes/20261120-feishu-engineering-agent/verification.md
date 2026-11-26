@@ -116,3 +116,9 @@ HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
 - 脚本仅检查 systemd 主服务进程树，不扫描主机所有进程，因此不能证明没有其他消费者；writers freeze 仍须人工核验。
 - 实际 vstrong100 预检、状态迁移、恢复演练、服务切换、真实网关请求预算/最终结算及业务验收仍为 NOT_RUN。CI live_member_installation=false、real_feishu_connection=false。
 
+
+## 2026-11-24 vstrong100 历史现场事实（非当前验收）
+
+用户当时提供的主机快照：feishu-codex-bot.service active/running、MainPID 1480533、NRestarts=0、UMask=0002、Linger=yes、Codex 0.171.0；Bot DB 为 /home/leiwenjun/codex/mcp/secrets/feishu-codex-current-state.sqlite3（0644），同目录 spool 为 0700；任务只有 completed:1；没有 AgentRun DB；WorkItem/agent-intake/cards 均关闭；billing_source=unapproved，专用 key 与 Agent CODEX_HOME 未配置。
+
+这仅是 2026-11-24 的历史用户回执。2026-11-24/25 的后续记录明确说明预定 no-model cutover 脚本没有实际执行；没有证据证明生产服务曾停止/重启、迁移标记写入或部署 SHA 更新。当前主机状态仍为 NOT_RUN。若当前 DB 权限仍为 0644，须在真实冻结和停服后修正为 0600，再执行配对备份；不得在运行时修改。
