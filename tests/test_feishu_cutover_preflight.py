@@ -156,6 +156,19 @@ class CutoverPreflightTests(unittest.TestCase):
         with self.assertRaises((OSError, ValueError)):
             PREFLIGHT.read_private(fifo)
 
+    def test_parent_chain_permissions_match_migration_gate(self):
+        shared = self.root / "shared-parent"
+        shared.mkdir(mode=0o700)
+        private = shared / "private"
+        private.mkdir(mode=0o700)
+        policy = private / "policy.json"
+        policy.write_text("{}", encoding="utf-8")
+        policy.chmod(0o600)
+        shared.chmod(0o777)
+        self.assertEqual("unsafe_parent_unsafe_permissions", PREFLIGHT.info(policy))
+        with self.assertRaisesRegex(ValueError, "unsafe parent"):
+            PREFLIGHT.read_private(policy)
+
     def test_private_environment_parser_exposes_only_presence_to_report(self):
         values = PREFLIGHT.read_env(self.env)
         self.assertEqual("secret-must-not-appear", values["FEISHU_APP_SECRET"])

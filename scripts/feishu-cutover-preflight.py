@@ -69,11 +69,27 @@ def has_symlink_component(path):
     return False
 
 
+def parent_chain_issue(path):
+    for parent in reversed(path.parents):
+        try:
+            metadata = parent.lstat()
+        except OSError:
+            return "unavailable"
+        if not stat.S_ISDIR(metadata.st_mode):
+            return "unsafe_type"
+        if metadata.st_mode & 0o022 and not metadata.st_mode & stat.S_ISVTX:
+            return "unsafe_permissions"
+    return ""
+
+
 def info(path, directory=False):
     if path is None:
         return "unresolved"
     if has_symlink_component(path):
         return "unsafe_symlink_component"
+    parent_issue = parent_chain_issue(path)
+    if parent_issue:
+        return "unsafe_parent_" + parent_issue
     try:
         metadata = path.lstat()
     except FileNotFoundError:
@@ -92,6 +108,8 @@ def info(path, directory=False):
 def read_private(path):
     if path is None or has_symlink_component(path):
         raise ValueError("private path unresolved or contains a symlink")
+    if parent_chain_issue(path):
+        raise ValueError("private path has an unsafe parent directory")
     # O_NONBLOCK prevents an unexpected FIFO from hanging the probe. Never
     # follow a symlink, open for writing, or emit source text on errors.
     fd = os.open(str(path), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
