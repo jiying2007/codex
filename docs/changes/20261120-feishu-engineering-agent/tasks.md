@@ -55,7 +55,9 @@ Execution Policy 状态库不可用，未伪造状态或宣称归档/Runtime gat
 
 - PR #90 已合并为 fa23fe77783c3521f30146bab804d226ae2c1536：迁移备份/恢复完整性修复；Python 3.8/3.11/3.12 各 813 项全量回归通过，9/9 检查成功。
 - PR #91 已合并为 dc0a903e6d8d2908d7047262073410cf0aa26149：关闭模型入口时的只读 check-budget 与完整提交 SHA 首行回执；各 Python 环境 815 项通过，9/9 检查成功。合并后 main 独立 Push CI 也为 9/9，各环境 815 项。
-- PR #92 代码提交 b4ad78e69e3058164bb0360d498d2d9b6c7ff710、源码树 fb7abdf430263c0187e9554b486b10465414d69d：版本化只读主机预检；显式 --expected-sha、符号链接/FIFO 拒绝、子模块 dirty 检查、独立计费字段存在性与 state/lock 路径一致性。代码候选的三环境全量回归各 823 项通过；PR 最新文档 head 的独立检查见 GitHub PR #92。
+- PR #92 已合并为 fee8cb59f7f128fd46961861fd6ffed01313b057：版本化只读主机预检；显式 --expected-sha、符号链接/FIFO 拒绝、子模块 dirty 检查、独立计费字段存在性与 state/lock 路径一致性；最终精确 head 9/9 CI 成功。
+- PR #93 已合并为 f861728222e5ebc6d13900f9c06aacec5483b847：迁移源、私有配置、spool、备份与锁路径父目录拒绝符号链接和非 sticky group/world-writable 祖先；Python 三环境各 827 项，9/9 CI 成功，合并后 main Push CI 再次 9/9。
+- PR #94 正在增加 systemd UMask/NoNewPrivileges/PrivateTmp/WorkingDirectory 的显式预检阻塞；真实主机状态与迁移仍 NOT_RUN。
 - 预检脚本不打开 SQLite、不读取任务正文、不调用模型、不改动服务；输出默认脱敏。它只观察服务进程树，不证明主机不存在其他消费者，也不是迁移准入或 cutover gate。
 - 真实 vstrong100 服务状态、状态库/历史 ledger、迁移/恢复、实际网关硬预算与最终账单、飞书/跨仓业务 QA 仍为 NOT_RUN。已知人工接入路径是 Windows SSH ssh -tt leiwenjun@vstrong100，目标仓库 ~/codex；当前 ChatGPT 执行环境不能接管该 Windows SSH TTY。
 
