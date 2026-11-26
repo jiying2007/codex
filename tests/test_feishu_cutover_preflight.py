@@ -63,9 +63,13 @@ class CutoverPreflightTests(unittest.TestCase):
         )
         self.env.chmod(0o600)
 
-    def observe(self, expected_sha=None):
+    def observe(self, expected_sha=None, service=None):
         sha = "a" * 40
-        service = {"ActiveState": "inactive", "SubState": "dead", "MainPID": "0"}
+        service = service or {
+            "ActiveState": "inactive", "SubState": "dead", "MainPID": "0",
+            "WorkingDirectory": str(self.root), "UMask": "0077",
+            "NoNewPrivileges": "yes", "PrivateTmp": "yes",
+        }
         with mock.patch.object(PREFLIGHT, "service_observation", side_effect=[service, service]), \
                 mock.patch.object(PREFLIGHT, "command", side_effect=[sha, ""]):
             return PREFLIGHT.probe(self.root, self.env, expected_sha=expected_sha)
@@ -85,6 +89,12 @@ class CutoverPreflightTests(unittest.TestCase):
         self.assertTrue(result["config"]["agent_modes_all_empty"])
         self.assertTrue(result["state"]["paths_explicit_in_policy"])
         self.assertEqual("private_directory", result["state"]["state_parent_metadata"])
+        self.assertEqual(
+            {"umask_0077": True, "no_new_privileges": True, "private_tmp": True},
+            result["service"]["security"],
+        )
+        self.assertTrue(result["service"]["working_directory_matches_checkout"])
+        self.assertNotIn("systemd_umask_not_0077", result["blockers_observed"])
         self.assertFalse(result["service_changed"])
         self.assertFalse(result["model_called"])
         self.assertFalse(result["database_opened"])
@@ -97,9 +107,30 @@ class CutoverPreflightTests(unittest.TestCase):
         ):
             self.assertNotIn(secret, encoded)
 
+    def test_weak_systemd_unit_properties_are_explicit_blockers(self):
+        service = {
+            "ActiveState": "inactive", "SubState": "dead", "MainPID": "0",
+            "WorkingDirectory": str(self.root / "wrong"),
+            "UMask": "0002", "NoNewPrivileges": "no", "PrivateTmp": "no",
+        }
+        result = self.observe(service=service)
+        blockers = set(result["blockers_observed"])
+        self.assertIn("systemd_umask_not_0077", blockers)
+        self.assertIn("systemd_no_new_privileges_not_enabled", blockers)
+        self.assertIn("systemd_private_tmp_not_enabled", blockers)
+        self.assertIn("systemd_working_directory_differs_from_checkout", blockers)
+        self.assertEqual(
+            {"umask_0077": False, "no_new_privileges": False, "private_tmp": False},
+            result["service"]["security"],
+        )
+
     def test_dirty_submodule_is_not_suppressed(self):
         sha = "a" * 40
-        service = {"ActiveState": "inactive", "SubState": "dead", "MainPID": "0"}
+        service = {
+            "ActiveState": "inactive", "SubState": "dead", "MainPID": "0",
+            "WorkingDirectory": str(self.root), "UMask": "0077",
+            "NoNewPrivileges": "yes", "PrivateTmp": "yes",
+        }
         with mock.patch.object(PREFLIGHT, "service_observation", side_effect=[service, service]), \
                 mock.patch.object(PREFLIGHT, "command", side_effect=[sha, " m submodule"]) as run:
             result = PREFLIGHT.probe(self.root, self.env, expected_sha=sha)
