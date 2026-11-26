@@ -237,7 +237,7 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
     git = ["git", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false"]
     sha = command(git + ["rev-parse", "--verify", "HEAD"], root)
     status = command(
-        git + ["status", "--porcelain=v1", "--untracked-files=normal", "--untracked-files=all"], root
+        git + ["status", "--porcelain=v1", "--untracked-files=all"], root
     )
     sha = (sha or "").strip()
     valid_sha = sha if re.fullmatch(r"[a-f0-9]{40}", sha) else None
