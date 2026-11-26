@@ -131,6 +131,17 @@ class MigrationContractTest(unittest.TestCase):
         with self.assertRaisesRegex(MigrationRejected, "real directory"):
             ensure_engineering_migrated(alias / real_db.name)
 
+    def test_private_policy_parent_symlink_is_rejected(self):
+        real = self.root / "private-config"
+        real.mkdir(mode=0o700)
+        policy = real / "policy.json"
+        policy.write_text("{}", encoding="utf-8")
+        policy.chmod(0o600)
+        alias = self.root / "config-alias"
+        alias.symlink_to(real, target_is_directory=True)
+        with self.assertRaisesRegex(MigrationRejected, "real directory"):
+            MigrationPlan(self.db, self.spool, alias / "policy.json")
+
     def test_backup_parent_rejects_symlinks_and_writable_ancestors(self):
         real = self.root / "backup-parent"
         real.mkdir(mode=0o700)
