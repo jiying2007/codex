@@ -11,7 +11,7 @@
 ssh -tt leiwenjun@vstrong100
 ~~~
 
-在主机中进入 ~/codex。先执行 rtk git status --short；若工作树不干净，停止并保留现状，不 stash/reset/clean。仅在干净时执行 rtk git fetch origin main 和 rtk git merge --ff-only origin/main，再用 GitHub main 当前完整 SHA 运行预检。不要使用旧脚本附件或脚本内置历史基线。
+在主机中进入 ~/codex。先执行 rtk git branch --show-current（必须为 main）和 rtk git status --short（必须为空）；若分支不是 main 或工作树不干净，停止并保留现状，不 stash/reset/clean。仅在 main 且干净时执行 rtk git fetch origin 和 rtk git merge --ff-only origin/main，再用 GitHub main 当前完整 SHA 运行预检。不要使用旧脚本附件或脚本内置历史基线。
 
 
 ## 1. 先确认部署类型与边界
