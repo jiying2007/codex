@@ -83,6 +83,17 @@ class CutoverPreflightTests(unittest.TestCase):
         ):
             self.assertNotIn(secret, encoded)
 
+    def test_dirty_submodule_is_not_suppressed(self):
+        sha = "a" * 40
+        service = {"ActiveState": "inactive", "SubState": "dead", "MainPID": "0"}
+        with mock.patch.object(PREFLIGHT, "service_observation", side_effect=[service, service]), \
+                mock.patch.object(PREFLIGHT, "command", side_effect=[sha, " m submodule"]) as run:
+            result = PREFLIGHT.probe(self.root, self.env, expected_sha=sha)
+        self.assertTrue(result["checkout"]["dirty"])
+        status_args = run.call_args_list[1].args[0]
+        self.assertNotIn("--ignore-submodules=all", status_args)
+        self.assertIn("--untracked-files=all", status_args)
+
     def test_expected_sha_mismatch_is_an_explicit_blocker(self):
         result = self.observe("b" * 40)
         self.assertFalse(result["checkout"]["matches_expected_sha"])
