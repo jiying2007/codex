@@ -17,16 +17,15 @@ ssh -tt leiwenjun@vstrong100
 ## 1. 先确认部署类型与边界
 
 
-## 已知 vstrong100 历史现场快照（2026-11-24；必须重新核验）
+## 已补全的 2026-11-24 vstrong100 部署时间线（历史用户实测，非当前状态）
 
-最近一次用户提供的现场记录显示：
-
-- 唯一服务 feishu-codex-bot.service 当时为 active/running，MainPID 1480533，NRestarts=0；systemd UMask=0002，Linger=yes；Codex CLI 0.171.0。以上均为历史快照，不是当前状态。
-- 当时 Bot DB 为 /home/leiwenjun/codex/mcp/secrets/feishu-codex-current-state.sqlite3，权限 0644；spool 为同目录下 feishu-pending-jobs，权限 0700。锁文件在同一私有目录，精确名称必须从当前私有策略读取，不能根据 DB 文件名推断。
-- 当时任务状态只有 completed:1；没有旧 AgentRun DB；WorkItem、agent-intake、cards 均关闭。
-- 当时 billing_source 为 unapproved，专用 API key 与 Agent CODEX_HOME 均未配置。因此不能启动模型，不能回退个人登录或共享额度。
-- 0644 的数据库权限不满足当前迁移备份要求。若当前复核仍为 0644，必须先停止唯一服务并冻结所有写入方，确认文件类型、属主及 WAL/SHM 后，再按 0600 修正；禁止对运行中的数据库 chmod。spool 若仍为 0700 可保留。
-- 若当前再次确认旧 AgentRun DB 不存在且 Bot DB 的 agent_run_task_links 无记录，则不执行 unify；仍需配对备份、恢复演练、任务/外部效果核对和单服务切换。
+- 03:08:50 UTC 部署前：checkout febefc920b17010153d83ac55907e7a288969853；feishu-codex-bot.service active，MainPID 1480533，UMask=0002；Bot DB /home/leiwenjun/codex/mcp/secrets/feishu-codex-current-state.sqlite3 为 0644，spool 0700，WAL/SHM 未出现；任务 completed=1；无旧 AgentRun DB。模型入口关闭，billing_source=unapproved，专用 API key 与 Agent CODEX_HOME 缺失；仓库 allowed_modes 为 explain/review，agent_allowed_modes 为空，edit_strategy=in_place。
+- 03:20:12 UTC 部署后：checkout 19a697c81b45666b8794171182c968e256725771；服务 active，MainPID 1235836，UMask=0077、NoNewPrivileges=yes、PrivateTmp=yes；kernel.unprivileged_userns_clone=1。首次嵌套 Bubblewrap 探针 P4/P5 因 Read-only file system 失败。
+- 03:24:49–03:27:37 UTC：用户提供的多组嵌套探针仍因 uid map Read-only file system 失败；主机 shell、Codex sandbox、外层 Bubblewrap 已通过。
+- 03:30:36 UTC：用户提供的后续嵌套探针返回 returncode=0、nested_shell_ok=true；服务仍 active，UMask=0077、PrivateTmp=yes、NoNewPrivileges=yes。
+- 部署后最后一份 DB/业务预检仍显示 DB 0644、task_counts completed=1、billing=unapproved；没有专用 API key 或 Agent CODEX_HOME。没有检索到配对备份/恢复演练、migration_cli backup/rehearse/unify、DB 权限修正或真实飞书/网关/业务验收回执，因此这些不能标记为完成。
+- 历史 policy 的 edit_strategy=in_place 与当前源码仅支持 worktree 的契约冲突。当前 BotConfig 会拒绝不支持的 edit_strategy；若允许 edit，还必须配置位于源仓库之外的 worktree_root。需通过当前预检显式发现并在备份后转换，不可直接复用旧私有 policy。
+- 以上只证明 2026-11-24 那次部署和沙箱探针，不证明 2026-11-26 当前主机仍运行该 SHA/服务状态。当前 versioned preflight 脚本在 2026-11-26 才加入仓库，尚无其真实主机 JSON 回执。
 
 当前版本要求的 unit 安全属性为 UMask=0077、NoNewPrivileges=true、PrivateTmp=true。必须从 systemd 有效属性重新观察，不沿用上述历史值。
 
@@ -44,7 +43,7 @@ rtk python3 -B ~/codex/scripts/feishu-cutover-preflight.py \
   --root ~/codex --expected-sha <GitHub-main-40位SHA>
 ```
 
-`--expected-sha` 必须使用本次实际准备部署的 GitHub main 完整 SHA，不使用脚本内置旧基线。脚本只观察 systemd、进程参数、Git 状态、私有配置文件权限及路径；不打开 SQLite、不读取任务正文、不启动模型、不修改服务。默认 JSON 只输出密钥字段是否存在，不输出密钥、域名或私有路径；不要使用 `--show-paths` 分享回执。服务停止、无法识别唯一消费者、环境文件与运行参数不一致或工作树不干净时，结果会保留阻塞项，不代表可以迁移。预检还会将 `UMask=0077`、`NoNewPrivileges=yes`、`PrivateTmp=yes` 和 systemd `WorkingDirectory` 与当前 checkout 的一致性列为显式阻塞项；任一不满足都不能进入服务切换。它只观察，不会替你修改 unit 或重启服务。
+`--expected-sha` 必须使用本次实际准备部署的 GitHub main 完整 SHA，不使用脚本内置旧基线。脚本只观察 systemd、进程参数、Git 状态、私有配置文件权限及路径；不打开 SQLite、不读取任务正文、不启动模型、不修改服务。默认 JSON 只输出密钥字段是否存在，不输出密钥、域名或私有路径；不要使用 `--show-paths` 分享回执。服务停止、无法识别唯一消费者、环境文件与运行参数不一致或工作树不干净时，结果会保留阻塞项，不代表可以迁移。预检还会将 `UMask=0077`、`NoNewPrivileges=yes`、`PrivateTmp=yes` 和 systemd `WorkingDirectory` 与当前 checkout 的一致性列为显式阻塞项；任一不满足都不能进入服务切换。它只观察，不会替你修改 unit 或重启服务。 最新策略预检还会核对 schema_version、仓库 allowed_modes、agent intake/agent_allowed_modes、旧环境字段及 edit_strategy。当前实现只支持 edit_strategy=worktree；历史 in_place 配置会被显式阻塞。若允许 edit，必须提供位于源工作区之外的 worktree_root。转换私有 policy 前必须先完成配对备份，不能直接在运行中的服务上改写。
 
 `check-budget` 在 #91 合并后可在保持 `agent_intake_enabled=false` 时单独验证专用网关元数据和空 session 日志读取；它不证明请求级硬预算或最终结算。两个预检均成功也不替代后续冻结、备份、恢复演练与现场验收。
 
