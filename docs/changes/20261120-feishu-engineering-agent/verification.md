@@ -90,3 +90,35 @@ HTTP 和模型均为 fixture；没有对真实业务仓库执行 Bot 发布。
 
 本节记录的是上述精确候选。后续即使只改文档，也以 PR 当前 head 的新检查为合并门禁，
 合并后再次核对主线工作流。主机服务切换、真实网关预算/账单与业务验收仍保持 `NOT_RUN`。
+
+
+## 2026-11-26 主线与现场预检验收
+
+### PR #90：迁移备份/恢复完整性
+
+- 候选 868991e1172c044a4542593e157d2d8c71e47c38，合并 fa23fe77783c3521f30146bab804d226ae2c1536。
+- Full Regression：Python 3.8/3.11/3.12 各 813 项，0 failure/error/skip/expected failure；隔离 apply、post-apply check、no-op、rollback 均成功。
+- Runtime Binding Contract 及 Profile Context Contract：共 6 项成功。
+
+### PR #91：无模型计费预检与完整提交 SHA
+
+- 候选 a33f16351749dad5640063ae66c32d35c4e778ea，合并 dc0a903e6d8d2908d7047262073410cf0aa26149。
+- Full Regression：Python 3.8/3.11/3.12 各 815 项，0 failure/error/skip/expected failure；隔离安装和回滚均成功。
+- Runtime Binding Contract 及 Profile Context Contract：共 6 项成功。
+- 合并后 main dc0a903e6d8d2908d7047262073410cf0aa26149 独立 Push CI：Full Regression、Runtime Binding Contract、Profile Context Contract 共 9/9 成功；Python 三环境各 815 项、零失败/错误/跳过，隔离生命周期回滚成功。
+
+### PR #92：版本化只读主机预检（待验收）
+
+- 代码提交 b4ad78e69e3058164bb0360d498d2d9b6c7ff710；合并预览 checkout ee410765bf888ce596051f00f4c222e8c3d46dfd，候选与合并预览 tree 均为 fb7abdf430263c0187e9554b486b10465414d69d。PR 最新 head 因现场文档同步而更新，最终 head 与检查以 GitHub PR #92 为准。
+- [Full Regression](https://github.com/jiying2007/codex/actions/runs/45731637561)：Python 3.8/3.11/3.12 各 823 项，0 failure/error/skip/expected failure；隔离 apply、post-apply check、no-op、rollback 全部成功。
+- [Runtime Binding Contract](https://github.com/jiying2007/codex/actions/runs/45731637552) 与 [Profile Context Contract](https://github.com/jiying2007/codex/actions/runs/45731637568)：6/6 成功；三个工作流共 9/9 成功。CI 日志确认 live_member_installation=false、real_feishu_connection=false。
+- 新增 scripts/feishu-cutover-preflight.py 与 tests/test_feishu_cutover_preflight.py。覆盖精确 SHA、脱敏、符号链接/FIFO、私有配置、state/lock 显式匹配、脏子模块检测；不打开数据库、不读任务正文、不调用模型、不修改服务。
+- 脚本仅检查 systemd 主服务进程树，不扫描主机所有进程，因此不能证明没有其他消费者；writers freeze 仍须人工核验。
+- 实际 vstrong100 预检、状态迁移、恢复演练、服务切换、真实网关请求预算/最终结算及业务验收仍为 NOT_RUN。CI live_member_installation=false、real_feishu_connection=false。
+
+
+## 2026-11-24 vstrong100 历史现场事实（非当前验收）
+
+用户当时提供的主机快照：feishu-codex-bot.service active/running、MainPID 1480533、NRestarts=0、UMask=0002、Linger=yes、Codex 0.171.0；Bot DB 为 /home/leiwenjun/codex/mcp/secrets/feishu-codex-current-state.sqlite3（0644），同目录 spool 为 0700；任务只有 completed:1；没有 AgentRun DB；WorkItem/agent-intake/cards 均关闭；billing_source=unapproved，专用 key 与 Agent CODEX_HOME 未配置。
+
+这仅是 2026-11-24 的历史用户回执。2026-11-24/25 的后续记录明确说明预定 no-model cutover 脚本没有实际执行；没有证据证明生产服务曾停止/重启、迁移标记写入或部署 SHA 更新。当前主机状态仍为 NOT_RUN。若当前 DB 权限仍为 0644，须在真实冻结和停服后修正为 0600，再执行配对备份；不得在运行时修改。

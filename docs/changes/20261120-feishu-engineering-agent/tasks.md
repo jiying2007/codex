@@ -1,6 +1,6 @@
 # 终态实施任务
 
-状态截至 2026-11-25。当前实施批次为 [PR #89](https://github.com/jiying2007/codex/pull/89)；源码、CI 和真实主机验收分别记录，精确候选及工作流回执见 [verification.md](verification.md)。
+状态截至 2026-11-26。当前实施批次为 [PR #89](https://github.com/jiying2007/codex/pull/89)；源码、CI 和真实主机验收分别记录，精确候选及工作流回执见 [verification.md](verification.md)。
 
 | 阶段 | 已落代码 | 剩余验收 |
 |---|---|---|
@@ -49,3 +49,14 @@ Python 3.8/3.11/3.12 共九项检查均成功。该批修复取消与完成事�
 Execution Policy 状态库不可用，未伪造状态或宣称归档/Runtime gate 成功。
 本地执行环境在整合时不可用，已有修改按精确基线和补丁通过 GitHub 保全；
 重建候选必须重新接受完整 CI，本地先前通过结果不能自动继承。
+
+
+## 2026-11-26 主线验收与现场预检
+
+- PR #90 已合并为 fa23fe77783c3521f30146bab804d226ae2c1536：迁移备份/恢复完整性修复；Python 3.8/3.11/3.12 各 813 项全量回归通过，9/9 检查成功。
+- PR #91 已合并为 dc0a903e6d8d2908d7047262073410cf0aa26149：关闭模型入口时的只读 check-budget 与完整提交 SHA 首行回执；各 Python 环境 815 项通过，9/9 检查成功。合并后 main 独立 Push CI 也为 9/9，各环境 815 项。
+- PR #92 代码提交 b4ad78e69e3058164bb0360d498d2d9b6c7ff710、源码树 fb7abdf430263c0187e9554b486b10465414d69d：版本化只读主机预检；显式 --expected-sha、符号链接/FIFO 拒绝、子模块 dirty 检查、独立计费字段存在性与 state/lock 路径一致性。代码候选的三环境全量回归各 823 项通过；PR 最新文档 head 的独立检查见 GitHub PR #92。
+- 预检脚本不打开 SQLite、不读取任务正文、不调用模型、不改动服务；输出默认脱敏。它只观察服务进程树，不证明主机不存在其他消费者，也不是迁移准入或 cutover gate。
+- 真实 vstrong100 服务状态、状态库/历史 ledger、迁移/恢复、实际网关硬预算与最终账单、飞书/跨仓业务 QA 仍为 NOT_RUN。已知人工接入路径是 Windows SSH ssh -tt leiwenjun@vstrong100，目标仓库 ~/codex；当前 ChatGPT 执行环境不能接管该 Windows SSH TTY。
+
+下一阶段停止无依据的代码扩张，先通过目标主机只读预检，再按本文件的 writers freeze、配对备份、restore rehearsal、unify（仅旧 ledger 部署）、配置转换、单服务切换和真实验收顺序执行。

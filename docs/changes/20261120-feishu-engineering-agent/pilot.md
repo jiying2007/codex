@@ -4,13 +4,49 @@
 
 所有示例路径、账号、仓库和域名均为合成数据，必须替换为实际部署值。保留已有唯一 `feishu-codex-bot.service`，不新增 Bot、MCP 后台 Worker 或第二个消费者。
 
+
+从 Windows Terminal/PowerShell 使用既有 SSH 路径进入目标主机：
+
+~~~powershell
+ssh -tt leiwenjun@vstrong100
+~~~
+
+在主机中进入 ~/codex。先执行 rtk git branch --show-current（必须为 main）和 rtk git status --short（必须为空）；若分支不是 main 或工作树不干净，停止并保留现状，不 stash/reset/clean。仅在 main 且干净时执行 rtk git fetch origin 和 rtk git merge --ff-only origin/main，再用 GitHub main 当前完整 SHA 运行预检。不要使用旧脚本附件或脚本内置历史基线。
+
+
 ## 1. 先确认部署类型与边界
+
+
+## 已知 vstrong100 历史现场快照（2026-11-24；必须重新核验）
+
+最近一次用户提供的现场记录显示：
+
+- 唯一服务 feishu-codex-bot.service 当时为 active/running，MainPID 1480533，NRestarts=0；systemd UMask=0002，Linger=yes；Codex CLI 0.171.0。以上均为历史快照，不是当前状态。
+- 当时 Bot DB 为 /home/leiwenjun/codex/mcp/secrets/feishu-codex-current-state.sqlite3，权限 0644；spool 为同目录下 feishu-pending-jobs，权限 0700。锁文件在同一私有目录，精确名称必须从当前私有策略读取，不能根据 DB 文件名推断。
+- 当时任务状态只有 completed:1；没有旧 AgentRun DB；WorkItem、agent-intake、cards 均关闭。
+- 当时 billing_source 为 unapproved，专用 API key 与 Agent CODEX_HOME 均未配置。因此不能启动模型，不能回退个人登录或共享额度。
+- 0644 的数据库权限不满足当前迁移备份要求。若当前复核仍为 0644，必须先停止唯一服务并冻结所有写入方，确认文件类型、属主及 WAL/SHM 后，再按 0600 修正；禁止对运行中的数据库 chmod。spool 若仍为 0700 可保留。
+- 若当前再次确认旧 AgentRun DB 不存在且 Bot DB 的 agent_run_task_links 无记录，则不执行 unify；仍需配对备份、恢复演练、任务/外部效果核对和单服务切换。
+
+当前版本要求的 unit 安全属性为 UMask=0077、NoNewPrivileges=true、PrivateTmp=true。必须从 systemd 有效属性重新观察，不沿用上述历史值。
+
 
 无旧 `feishu-engineering-agent.sqlite3`、旧关联记录或相关 WAL/SHM 遗留的新部署，不需要 `unify`。按 [新配置](../../../mcp/feishu-codex-bot.example.json) 建立私有目录，先保持 `agent_intake_enabled=false`、`agent_allowed_modes=[]`，可开启 `engineering_enabled=true` 验证无模型话题入口。
 
 已有旧 ledger 的部署必须离线迁移。新版 Bot、`check` 和 MCP 检测到未迁移历史会拒绝准入；删除旧 DB、改状态或重新命名文件都不能代替迁移。旧代码已删除，历史数据库及备份仍保留作审计和离线恢复。
 
 开始前核对实际源提交、工作树改动、服务账号、Python/SDK、`rtk`、Codex CLI、Bubblewrap、unit/drop-in、state/spool、环境文件和锁路径。更新源码不覆盖用户私有配置，不对脏工作树自动 reset、clean 或 stash。已有生产服务状态须重新观察，不能继承历史的 active 或 Linger 结论。
+
+先运行仓库内的只读预检脚本，核对精确部署提交及有效服务配置：
+
+```bash
+rtk python3 -B ~/codex/scripts/feishu-cutover-preflight.py \
+  --root ~/codex --expected-sha <GitHub-main-40位SHA>
+```
+
+`--expected-sha` 必须使用本次实际准备部署的 GitHub main 完整 SHA，不使用脚本内置旧基线。脚本只观察 systemd、进程参数、Git 状态、私有配置文件权限及路径；不打开 SQLite、不读取任务正文、不启动模型、不修改服务。默认 JSON 只输出密钥字段是否存在，不输出密钥、域名或私有路径；不要使用 `--show-paths` 分享回执。服务停止、无法识别唯一消费者、环境文件与运行参数不一致或工作树不干净时，结果会保留阻塞项，不代表可以迁移。
+
+`check-budget` 在 #91 合并后可在保持 `agent_intake_enabled=false` 时单独验证专用网关元数据和空 session 日志读取；它不证明请求级硬预算或最终结算。两个预检均成功也不替代后续冻结、备份、恢复演练与现场验收。
 
 ## 2. 迁移前冻结与未决任务
 
