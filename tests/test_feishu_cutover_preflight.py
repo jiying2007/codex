@@ -179,8 +179,7 @@ class CutoverPreflightTests(unittest.TestCase):
         self.assertIn("repository_worktree_root_not_external", result["blockers_observed"])
 
     def test_external_worktree_root_is_accepted(self):
-        repo = self.root / "repo"
-        repo.mkdir()
+        repo = self.repo
         payload = json.loads(self.policy.read_text(encoding="utf-8"))
         payload["repositories"]["app"].update(
             path=str(repo), allowed_modes=["explain", "review", "edit"],
