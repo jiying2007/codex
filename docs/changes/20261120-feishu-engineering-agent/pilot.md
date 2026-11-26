@@ -16,6 +16,21 @@ ssh -tt leiwenjun@vstrong100
 
 ## 1. 先确认部署类型与边界
 
+
+## 已知 vstrong100 历史现场快照（2026-11-24；必须重新核验）
+
+最近一次用户提供的现场记录显示：
+
+- 唯一服务 feishu-codex-bot.service 当时为 active/running，MainPID 1480533，NRestarts=0；systemd UMask=0002，Linger=yes；Codex CLI 0.171.0。以上均为历史快照，不是当前状态。
+- 当时 Bot DB 为 /home/leiwenjun/codex/mcp/secrets/feishu-codex-current-state.sqlite3，权限 0644；spool 为同目录下 feishu-pending-jobs，权限 0700。锁文件在同一私有目录，精确名称必须从当前私有策略读取，不能根据 DB 文件名推断。
+- 当时任务状态只有 completed:1；没有旧 AgentRun DB；WorkItem、agent-intake、cards 均关闭。
+- 当时 billing_source 为 unapproved，专用 API key 与 Agent CODEX_HOME 均未配置。因此不能启动模型，不能回退个人登录或共享额度。
+- 0644 的数据库权限不满足当前迁移备份要求。若当前复核仍为 0644，必须先停止唯一服务并冻结所有写入方，确认文件类型、属主及 WAL/SHM 后，再按 0600 修正；禁止对运行中的数据库 chmod。spool 若仍为 0700 可保留。
+- 若当前再次确认旧 AgentRun DB 不存在且 Bot DB 的 agent_run_task_links 无记录，则不执行 unify；仍需配对备份、恢复演练、任务/外部效果核对和单服务切换。
+
+当前版本要求的 unit 安全属性为 UMask=0077、NoNewPrivileges=true、PrivateTmp=true。必须从 systemd 有效属性重新观察，不沿用上述历史值。
+
+
 无旧 `feishu-engineering-agent.sqlite3`、旧关联记录或相关 WAL/SHM 遗留的新部署，不需要 `unify`。按 [新配置](../../../mcp/feishu-codex-bot.example.json) 建立私有目录，先保持 `agent_intake_enabled=false`、`agent_allowed_modes=[]`，可开启 `engineering_enabled=true` 验证无模型话题入口。
 
 已有旧 ledger 的部署必须离线迁移。新版 Bot、`check` 和 MCP 检测到未迁移历史会拒绝准入；删除旧 DB、改状态或重新命名文件都不能代替迁移。旧代码已删除，历史数据库及备份仍保留作审计和离线恢复。
