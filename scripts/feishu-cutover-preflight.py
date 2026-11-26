@@ -326,7 +326,11 @@ def probe(root, explicit_env=None, expected_sha=None, show_paths=False):
     repositories = policy.get("repositories")
     repositories_valid = (
         isinstance(repositories, dict) and bool(repositories)
-        and all(isinstance(item, dict) for item in repositories.values())
+        and all(
+            isinstance(item, dict) and isinstance(item.get("path"), str)
+            and bool(item.get("path").strip())
+            for item in repositories.values()
+        )
     )
     repo_items = list(repositories.values()) if repositories_valid else []
     allowed_modes_valid = all(
